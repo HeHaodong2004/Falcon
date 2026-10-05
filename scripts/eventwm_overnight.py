@@ -36,8 +36,8 @@ def matrix_args():
         asset=(SOURCE/scene['local_scene']) if 'local_scene' in scene else REPO/scene['scene_id']
         for path in (asset,SOURCE/scene['navmesh']):
             if not path.exists(): missing.append(str(path))
-    roots=len(names)*len(counts)
-    return argparse.Namespace(scenes=names,human_counts=counts,roots_per_config=1,max_total_roots=roots,
+    roots=len(names)*len(counts)*2
+    return argparse.Namespace(scenes=names,human_counts=counts,roots_per_config=2,max_total_roots=roots,
         max_total_branches=roots*36*2,max_attempts=2,seed=8301,concurrency=1,min_free_gb=150.,
         profiles=['wait','seek_visible','seek_move','seek_lost'],storage_profile='production',missing_assets=missing)
 
@@ -82,7 +82,7 @@ def preflight():
         max_attempts_per_root=2,concurrency=1,min_free_disk_gb=150)
     print(json.dumps(summary,indent=2),flush=True)
     cmd=[str(PYTHON),'-u',str(REPO/'scripts/eventwm_scale.py'),'run','--output',str(OUTPUT),
-        '--scenes',*args.scenes,'--human-counts',*map(str,args.human_counts),'--roots-per-config','1',
+        '--scenes',*args.scenes,'--human-counts',*map(str,args.human_counts),'--roots-per-config',str(args.roots_per_config),
         '--max-total-roots',str(args.max_total_roots),'--max-total-branches',str(args.max_total_branches),
         '--max-attempts','2','--seed','8301','--concurrency','1','--root-timeout','1800',
         '--storage-profile','production','--min-free-gb','150','--resume']
