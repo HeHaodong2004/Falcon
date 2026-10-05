@@ -133,6 +133,7 @@ def worker(args):
     recipe = read(out/'roots/replay.json')
     source = REPO/'evaluation/controlled50'
     case = next(c for c in read(source/'cases.json') if c['tag']==recipe['case'])
+    case = dict(case, seed=recipe.get('seed', case['seed']))
     seed = case['seed']
     random.seed(seed); np.random.seed(seed)
     import torch
@@ -175,7 +176,12 @@ def worker(args):
         meta, im = observe(obs,[0.,0.]); history.append(meta); images.append((meta['timestamp'],im))
         rec.capture('initial')
         control_times = [float(sim.get_world_time())]
-        for i,command in enumerate(recipe['prefix_controls']):
+        # Optional bounded legal-history root selection; the resolved controls are
+        # frozen into replay.json before any branch is launched.
+        from collector.root_sampling import prefix_commands
+        executed_prefix = []
+        for i,command in enumerate(prefix_commands(recipe, history)):
+            executed_prefix.append(list(command))
             obs = step(command,i)
             meta, im = observe(obs,command); history.append(meta); images.append((meta['timestamp'],im))
             control_times.append(float(sim.get_world_time()))
@@ -199,7 +205,10 @@ def worker(args):
         write(attempt/'root_fingerprint.json',dict(sha256=fingerprint,state=root_state))
         write(attempt/'observation_diagnostics.json',observer.diagnostics)
         if args.query_id is None:
-            root_id = 'root_castle_h1_' + fingerprint[:10]
+            if 'sampling' in recipe and 'prefix_controls' not in recipe:
+                recipe['prefix_controls'] = executed_prefix
+                write(out/'roots/replay.json', recipe)
+            root_id = recipe.get('root_id', f"root_{case['scene']}_h{case['humans']}_" + fingerprint[:10])
             legal = dict(root_id=root_id,robot_position=root_state['robot']['position'],
                          robot_yaw=root_state['robot']['yaw'],control_dt=dt,integration_dt=1/sim.ctrl_freq,
                          timestamp=root_state['timestamp'])
@@ -256,5 +265,6 @@ def worker(args):
                       truth=rec.rows,controls=controls,legal_observations=legal_rows)
         write(attempt/'branch.json',result)
         write(attempt/'observation_diagnostics.json',observer.diagnostics)
-        save_images(attempt/'branch_images.npz',branch_images)
+        if getattr(args,'storage_profile','validated')!='production':
+            save_images(attempt/'branch_images.npz',branch_images)
         print('BRANCH',args.worker_id,reason,'seconds',result['observed_duration'],'error',endpoint_error,flush=True)

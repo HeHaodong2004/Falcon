@@ -17,7 +17,7 @@ def launch(args, worker_id, query_id=None, limit=None):
     dest = args.output/'audits/workers'/worker_id
     dest.mkdir(parents=True,exist_ok=True)
     cmd = [sys.executable,'-u',str(Path(__file__).resolve()),'worker','--output',str(args.output),
-           '--worker-id',worker_id]
+           '--worker-id',worker_id,'--storage-profile',getattr(args,'storage_profile','validated')]
     if query_id:
         cmd += ['--query-id',query_id]
     if limit is not None:
@@ -39,15 +39,19 @@ def collect(args):
         raise ValueError('Use a new output directory; refusing to overwrite a collection')
     for d in ('roots','legal_observations','queries','branch_truth','labels','audits','diagnostics'):
         (args.output/d).mkdir(parents=True,exist_ok=True)
-    write(args.output/'roots/replay.json',dict(case='002_castle_h1',seed=2301,
-          mechanism='fresh_process_seeded_episode_plus_exact_prefix',prefix_controls=[[0.,0.]]*40))
+    recipe = read(args.recipe) if getattr(args, 'recipe', None) else dict(case='002_castle_h1',seed=2301,
+          mechanism='fresh_process_seeded_episode_plus_exact_prefix',prefix_controls=[[0.,0.]]*40)
+    write(args.output/'roots/replay.json',recipe)
     sources = [Path(__file__),*sorted((REPO/'scripts/collector').glob('*.py')),
                *sorted((REPO/'scripts/controlled').glob('*.py'))]
     write(args.output/'audits/provenance.json',dict(git_head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+          storage_profile=getattr(args,'storage_profile','validated'),
           python=sys.executable,cuda_visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES'),
           source_sha256={str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}))
     launch(args,'root')
     queries = read(args.output/'queries/queries.json')
+    if len(queries)+3 > getattr(args, 'max_branches', 36):
+        raise ValueError('Root branch budget exceeded before branch execution')
     records = []
     for i,row in enumerate(queries):
         records.append(launch(args,f'b{i:03}',row['query']['query_id']))
@@ -63,12 +67,17 @@ def collect(args):
     # Images grouped into one archive per root; no per-timestep/query NPZ files in
     # the logical dataset. Worker files are retained as execution audit artifacts.
     import zipfile
-    with zipfile.ZipFile(args.output/'legal_observations/branch_images.zip','w') as archive:
-        for b in records:
-            archive.write(args.output/'audits/workers'/b['branch_id']/'branch_images.npz',b['branch_id']+'.npz')
+    if getattr(args,'storage_profile','validated')!='production':
+        with zipfile.ZipFile(args.output/'legal_observations/branch_images.zip','w') as archive:
+            for b in records:
+                archive.write(args.output/'audits/workers'/b['branch_id']/'branch_images.npz',b['branch_id']+'.npz')
     labels(args)
     validate(args)
-    render(args)
+    if getattr(args,'storage_profile','validated')=='production':
+        from collector.storage import compact_workers
+        compact_workers(args.output)
+    elif not getattr(args, 'no_render', False):
+        render(args)
 
 
 def branches(output):
@@ -132,13 +141,15 @@ def validate(args):
     from collector.runtime import StaticPlanner
     from collector.core import generate_queries
     scenes = read(REPO/'evaluation/controlled50/scenes.json')
-    navmesh = REPO/'evaluation/controlled50'/next(s['navmesh'] for s in scenes if s['name']=='castle')
+    recipe = read(args.output/'roots/replay.json')
+    case = next(c for c in read(REPO/'evaluation/controlled50/cases.json') if c['tag']==recipe['case'])
+    navmesh = REPO/'evaluation/controlled50'/next(s['navmesh'] for s in scenes if s['name']==case['scene'])
     regen,_ = generate_queries(LegalRoot.load(dirty),StaticPlanner(navmesh))
     audit('static_planner_human_blind',[q.sha256 for q in regen]==[q['sha256'] for q in qs],
           'Regenerated identical query set with poisoned privileged fields and only a standalone static navmesh')
     ref = next(b for b in rows if b['branch_id']==f'b{len(qs)-1:03}')
     comparisons = []
-    for b in rows[:len(qs)-1]:
+    for b in rows[:len(qs)-1] if case['humans'] else []:
         n = min(len(b['truth']),len(ref['truth']))
         hp = np.array([r['humans'][0]['position'] for r in b['truth'][:n]])
         hr = np.array([r['humans'][0]['position'] for r in ref['truth'][:n]])
@@ -150,9 +161,9 @@ def validate(args):
             mean_absolute_speed_change_mps=float(speed_delta.mean()),
             human_travel_difference_m=float(np.linalg.norm(np.diff(hp,axis=0),axis=1).sum()-np.linalg.norm(np.diff(hr,axis=0),axis=1).sum()),
             minimum_clearance=build_labels(b)['minimum_human_clearance']))
-    reacting = max(c['max_human_deviation_m'] for c in comparisons)>1e-5
-    audit('human_reactivity',reacting,dict(max_deviation_m=max(c['max_human_deviation_m'] for c in comparisons),
-          minimum_active_clearance=min(c['minimum_clearance'] for c in comparisons),
+    reacting = max((c['max_human_deviation_m'] for c in comparisons), default=0.)>1e-5
+    audit('human_reactivity',reacting,dict(max_deviation_m=max((c['max_human_deviation_m'] for c in comparisons), default=0.),
+          minimum_active_clearance=min((c['minimum_clearance'] for c in comparisons), default=None),
           interpretation='Observed robot-dependent human motion' if reacting else
           'No robot reactivity observed. Native avoidance excludes agent 0; semantics unchanged.'))
     write(args.output/'diagnostics/comparisons.json',comparisons)
@@ -207,6 +218,10 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('command',choices=['collect','worker','labels','validate','render'])
     p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--storage-profile',choices=['validated','production'],default='validated')
+    p.add_argument('--recipe',type=Path)
+    p.add_argument('--max-branches',type=int,default=36)
+    p.add_argument('--no-render',action='store_true')
     p.add_argument('--worker-id',default='root'); p.add_argument('--query-id'); p.add_argument('--limit-steps',type=int)
     args=p.parse_args(); args.output=args.output.absolute()
     if args.command=='worker':
