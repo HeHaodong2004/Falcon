@@ -14,7 +14,7 @@ import time
 REPO=Path(__file__).resolve().parents[1]
 OUTPUT=REPO/'datasets/raw/eventwm_prod_v1'
 PYTHON=Path('/home/haodong/miniforge3/envs/eventwm-falcon/bin/python')
-TAG='eventwm-scale-pilot-v1'
+TAG='eventwm-overnight-v2'
 sys.path.insert(0,str(REPO/'scripts'))
 from collector.core import read
 from eventwm_scale import SOURCE,plan,provenance,verify_root
