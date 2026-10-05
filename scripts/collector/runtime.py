@@ -16,6 +16,8 @@ from habitat.config import read_write
 from omegaconf import OmegaConf, open_dict
 from controlled.run_case import build_config
 from collector.core import LegalRoot, Query, digest, generate_queries, legal_observation, read, write
+from collector.observation import HabitatHumanObserver, ObservationConfig
+from dataclasses import asdict
 
 
 class StaticPlanner:
@@ -148,10 +150,13 @@ def worker(args):
         cfg.habitat.task.lab_sensors = {}
         cfg.habitat.simulator.concur_render = False
     OmegaConf.save(cfg,attempt/'resolved_config.yaml',resolve=True)
+    observation_config = ObservationConfig.from_depth_sensor(cfg.habitat.simulator.agents.agent_0.sim_sensors.jaw_depth_sensor)
+    write(attempt/'observation_config.json',asdict(observation_config))
     with habitat.Env(config=cfg.habitat) as env:
         env.seed(seed)
         obs = env.reset()
         sim, task = env.sim, env.task
+        observer = HabitatHumanObserver(sim,observation_config)
         rec = Recorder(env,case['humans'])
         robot_action = task.actions['agent_0_collector_velocity']
         humans = [f'agent_{i}_oracle_nav_randcoord_action_obstacle' for i in range(1,case['humans']+1)]
@@ -164,7 +169,8 @@ def worker(args):
             return env.step({'action':action_names,'action_args':vals})
         def observe(obs, command):
             r = state(sim.get_agent_data(0).articulated_agent)
-            return legal_observation(obs,r['position'],r['yaw'],sim.get_world_time(),command)
+            tracks = observer.observe(sim.get_world_time(),case['humans'])
+            return legal_observation(obs,r['position'],r['yaw'],sim.get_world_time(),command,tracks)
         history, images = [], []
         meta, im = observe(obs,[0.,0.]); history.append(meta); images.append((meta['timestamp'],im))
         rec.capture('initial')
@@ -191,12 +197,14 @@ def worker(args):
         # Store controller artifacts for audit, not as a claim of full snapshot API.
         fingerprint = digest(root_state)
         write(attempt/'root_fingerprint.json',dict(sha256=fingerprint,state=root_state))
+        write(attempt/'observation_diagnostics.json',observer.diagnostics)
         if args.query_id is None:
             root_id = 'root_castle_h1_' + fingerprint[:10]
             legal = dict(root_id=root_id,robot_position=root_state['robot']['position'],
                          robot_yaw=root_state['robot']['yaw'],control_dt=dt,integration_dt=1/sim.ctrl_freq,
                          timestamp=root_state['timestamp'])
             write(out/'roots/legal_root.json',legal)
+            write(out/'legal_observations/observation_config.json',asdict(observation_config))
             write(out/'roots/privileged_root.json',dict(sha256=fingerprint,state=root_state))
             write(out/'legal_observations/history.json',history)
             save_images(out/'legal_observations/history_images.npz',images)
@@ -247,5 +255,6 @@ def worker(args):
                       completed=completed,termination_reason=reason,endpoint_error=endpoint_error,
                       truth=rec.rows,controls=controls,legal_observations=legal_rows)
         write(attempt/'branch.json',result)
+        write(attempt/'observation_diagnostics.json',observer.diagnostics)
         save_images(attempt/'branch_images.npz',branch_images)
         print('BRANCH',args.worker_id,reason,'seconds',result['observed_duration'],'error',endpoint_error,flush=True)

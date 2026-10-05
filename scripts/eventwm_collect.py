@@ -109,9 +109,10 @@ def validate(args):
     fake.update(hidden_human_position=np.ones(3)*999,oracle_humanoid_future_trajectory=np.ones((10,3)))
     b = legal_observation(fake,[0,0,0],0,0,[0,0])
     wm = load_wm_input(args.output,qs[0]['query']['query_id'])
+    from collector.observation import TRACK_FIELDS
     audit('hidden_gt_not_in_legal_input',a[0]==b[0] and all(np.array_equal(a[1][k],b[1][k]) for k in a[1]) and
-          all(not h['human_tracks'] for h in wm['history']),
-          'Injected hidden/future sensors excluded; only raw occluded first-person RGB/depth, odometry and past controls; no GT-derived tracks')
+          all(set(t)==set(TRACK_FIELDS) for h in wm['history'] for t in h['human_tracks']),
+          'Injected raw hidden/future sensors excluded; structured tracks have an explicit nested whitelist; visibility and tracking audited separately')
     derived = [build_labels(b) for b in rows]
     audit('offline_label_recomputation',derived==read(args.output/'labels/labels.json'),'All labels recomputed solely from saved raw truth')
     truncated = next(x for x in derived if x['branch_id']=='truncated_wait')

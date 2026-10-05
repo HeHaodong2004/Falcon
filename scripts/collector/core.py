@@ -61,14 +61,15 @@ class Query:
         return hashlib.sha256(self.serialized.encode()).hexdigest()
 
 
-def legal_observation(observations, position, yaw, timestamp, previous_command):
-    # No detector/tracker yet: human GT, count, goals, third-person RGB, and task
-    # sensors are excluded. RGB/depth themselves retain actual occlusion.
+def legal_observation(observations, position, yaw, timestamp, previous_command, human_tracks=None):
+    # Tracks must come from the legal observer, never arbitrary task sensors.
+    from collector.observation import legal_tracks
     allowed = ('agent_0_articulated_agent_jaw_rgb', 'agent_0_articulated_agent_jaw_depth')
     images = {k: np.asarray(observations[k]).copy() for k in allowed}
     meta = dict(timestamp=float(timestamp), robot_position=list(map(float, position)),
                 robot_yaw=float(yaw), previous_command=list(previous_command),
-                human_tracks=[], tracking_available=False,
+                human_tracks=legal_tracks(human_tracks) if human_tracks is not None else [],
+                tracking_available=human_tracks is not None,
                 sensor_keys=list(allowed))
     return meta, images
 
@@ -178,5 +179,17 @@ def load_wm_input(root_dir, query_id):
     fields = ('timestamp','robot_position','robot_yaw','previous_command','human_tracks',
               'tracking_available','sensor_keys')
     history = [{k: row[k] for k in fields} for row in history]
+    from collector.observation import legal_tracks
+    for row in history:
+        row['human_tracks'] = legal_tracks(row['human_tracks'])
     query = next(q['query'] for q in read(root_dir/'queries/queries.json') if q['query']['query_id']==query_id)
+    query_fields = ('schema_version','root_id','direction','local_target','spatial_path',
+                    'nominal_timed_trajectory','executable_controls','control_units','control_dt',
+                    'integration_dt','wait_duration','timing_policy','clock_quantization_tolerance',
+                    'effective_wait_duration','speed_scale','planned_duration','static_path_length',
+                    'robot_spec','generation_config','query_id')
+    query = {k: query[k] for k in query_fields}
+    query['robot_spec'] = {k: query['robot_spec'][k] for k in ('research_radius','navmesh_radius','height')}
+    query['generation_config'] = {k: query['generation_config'][k] for k in
+        ('directions','target_radius','speed','yaw_speed','max_projection','max_path_length','human_blind')}
     return dict(history=history, history_images=str(root_dir/'legal_observations/history_images.npz'), query=query)
