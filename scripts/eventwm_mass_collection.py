@@ -16,7 +16,7 @@ import socket
 import subprocess
 import sys
 import time
-from collector.core import read,write,digest,load_wm_input
+from collector.core import read,write,digest,load_wm_input,canonical
 from collector.v2 import QueryConfig
 from collector.v3 import PROTOCOL,social_outcome_labels
 from collector.static_feasibility import CHECKER_VERSION,StaticConfig
@@ -132,6 +132,10 @@ def schedule_spec(index,scenes,master_seed=410000):
         sampling=sampling,sampling_profile=profile,sampling_profile_family='natural' if natural else 'targeted',
         mechanism='fresh_process_seeded_episode_plus_exact_prefix',query_config=asdict(QueryConfig(movement_queries=8)),
         static_config=asdict(StaticConfig()),debug_static_reference=False,sampling_audit=True)
+    # Freeze one JSON-native recipe before sharing it with the manifest and
+    # root_job. Dataclass tuples (notably QueryConfig.radii) otherwise differ
+    # from the lists read back at the strict pre-launch equality guard.
+    recipe=json.loads(canonical(recipe))
     rid='v3m_'+digest(dict(recipe=recipe,physical_scene_id=s['physical_scene_id']))[:20];recipe['root_id']=rid
     return dict(root_id=rid,sequence=index,round=round_id,seed=seed,scene=s['name'],physical_scene_id=s['physical_scene_id'],
         family=s['family'],scene_role=s['scene_role'],role=role,split_group=rid,human_count=count,

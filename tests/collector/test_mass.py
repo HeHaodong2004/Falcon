@@ -1,4 +1,6 @@
 import copy
+import hashlib
+import json
 import importlib.util
 from pathlib import Path
 import sys
@@ -59,7 +61,58 @@ class MassSchedulingTests(unittest.TestCase):
         r=schedule_spec(0,self.scenes)
         self.assertNotIn('spatial_region_id',r['recipe'])
 
+    def test_fresh_recipe_matches_both_persisted_representations(self):
+        # Exercise the real production writer before any manifest reload.
+        # Only navmesh episode sampling is stubbed; no simulator is needed.
+        with tempfile.TemporaryDirectory() as d:
+            out=Path(d);navmesh=out/'scene.navmesh';navmesh.write_bytes(b'navmesh')
+            scenes=copy.deepcopy(self.scenes)
+            for scene in scenes:
+                scene.update(scene={'navmesh':str(navmesh)},
+                             navmesh_sha256=hashlib.sha256(navmesh.read_bytes()).hexdigest())
+            roots=[schedule_spec(i,scenes) for i in range(80)]
+            manifest={'scenes':scenes,'roots':roots}
+            with patch.object(mass,'episode_for',return_value={'start_position':[0.,0.,0.]}):
+                for root in roots:
+                    recipe=root['recipe']
+                    mass.root_job(out,manifest,root)
+                    self.assertIs(root['recipe'],recipe)
+                    self.assertEqual(mass.read(out/'recipes'/f"{root['root_id']}.json"),recipe)
+                    self.assertEqual(json.loads(json.dumps(recipe)),recipe)
+                    without_id={k:v for k,v in recipe.items() if k!='root_id'}
+                    self.assertEqual(root['root_id'],'v3m_'+mass.digest(dict(
+                        recipe=without_id,physical_scene_id=root['physical_scene_id']))[:20])
+            mass.write(out/'manifest.json',manifest)
+            saved=mass.read(out/'manifest.json')
+            self.assertEqual(saved,manifest)
+            for root in saved['roots']:
+                self.assertEqual(root['recipe'],mass.read(out/'recipes'/f"{root['root_id']}.json"))
+
 class MassSafetyTests(unittest.TestCase):
+    def test_frozen_recipe_mismatch_still_prevents_launch(self):
+        with tempfile.TemporaryDirectory() as d:
+            base=Path(d);(base/'output').mkdir();out=base/'dataset'
+            root=schedule_spec(0,[dict(name='scene',physical_scene_id='scene',family='test',scene_role='training')])
+            tampered=copy.deepcopy(root['recipe'])
+            tampered['query_config']['radii'].reverse()
+            mass.write(out/'recipes'/f"{root['root_id']}.json",tampered)
+            mass.write(base/'release.json',dict(benchmark_pass=True,commit='frozen',source_hashes={},
+                                               selected_concurrency=1,gpu_assignment=[0]))
+            manifest=dict(roots=[root],scenes=[{'name':'scene'}],max_completed_roots=1,
+                          target_primary_queries=33,collection_seconds=0.,sessions=[],
+                          state='prepared',frozen_commit='frozen')
+            args=SimpleNamespace(output=out,benchmark=False,stop_after_attempts=1,concurrency=1,
+                                 gpus=[0],storage_profile='structured_production',min_free_gb=150,target=33,max_roots=1)
+            with patch.object(mass,'REPO',base),patch.object(mass,'REPORT',base), \
+                 patch.object(mass,'init',return_value=manifest),patch.object(mass,'catalog_link'), \
+                 patch.object(mass,'git_head',return_value='frozen'),patch.object(mass,'clean',return_value=True), \
+                 patch.object(mass,'hashes',return_value={}),patch.object(mass,'hardware',return_value={}), \
+                 patch.object(mass.shutil,'disk_usage',return_value=SimpleNamespace(free=1000*10**9)), \
+                 patch.object(mass.subprocess,'Popen') as launch:
+                with self.assertRaisesRegex(RuntimeError,'Frozen recipe file mismatch'):mass.run(args)
+                launch.assert_not_called()
+            self.assertEqual(mass.read(out/'recipes'/f"{root['root_id']}.json"),tampered)
+
     def test_disk_guard_stops_before_any_worker(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d);(base/'output').mkdir()
