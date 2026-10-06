@@ -192,4 +192,9 @@ def load_wm_input(root_dir, query_id):
     query['robot_spec'] = {k: query['robot_spec'][k] for k in ('research_radius','navmesh_radius','height')}
     query['generation_config'] = {k: query['generation_config'][k] for k in
         ('directions','target_radius','speed','yaw_speed','max_projection','max_path_length','human_blind')}
-    return dict(history=history, history_images=str(root_dir/'legal_observations/history_images.npz'), query=query)
+    images = str(root_dir/'legal_observations/history_images.npz')
+    if (root_dir/'legal_observations/image_storage.json').exists():
+        # Retention metadata only; no privileged labels or truth are read.
+        if not read(root_dir/'legal_observations/image_storage.json')['retained']:
+            images = None
+    return dict(history=history, history_images=images, query=query)

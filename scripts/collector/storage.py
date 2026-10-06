@@ -21,7 +21,7 @@ def compact_workers(output):
         pending.append((path,dict(path=str(path.relative_to(output)),bytes=path.stat().st_size,
                                  sha256=hashlib.sha256(path.read_bytes()).hexdigest())))
     # Write the removal inventory atomically before deleting any duplicate.
-    report=dict(profile='production',root_images_retained=True,branch_images_retained=False,
+    report=dict(profile='production',root_images_retained=(output/'legal_observations/history_images.npz').exists(),branch_images_retained=False,
                 removed_worker_records=[row for _,row in pending],
                 removed_bytes=sum(row['bytes'] for _,row in pending))
     write(output/'audits/storage.json',report)

@@ -128,11 +128,17 @@ def save_images(path, entries):
 
 def worker(args):
     from collector.v2 import guard_output
+    if getattr(args, 'protocol', 'v2') == 'v3':
+        from collector.v3 import guard_output
     out = guard_output(args.output)
     attempt = out/'audits'/'workers'/args.worker_id
     attempt.mkdir(parents=True,exist_ok=True)
     recipe = read(out/'roots/replay.json')
     from collector.v2 import PROTOCOL, guard_output
+    from collector.v3 import PROTOCOL as V3_PROTOCOL
+    v3 = recipe.get('protocol_version') == V3_PROTOCOL
+    if v3:
+        from collector.v3 import PROTOCOL, guard_output
     v2 = recipe.get('protocol_version') == PROTOCOL
     if v2: guard_output(out)
     source = REPO/'evaluation/controlled50'
@@ -162,7 +168,11 @@ def worker(args):
         obs = env.reset()
         sim, task = env.sim, env.task
         observer = HabitatHumanObserver(sim,observation_config)
-        rec = Recorder(env,case['humans'])
+        if v3:
+            from collector.social_habitat import make_social_recorder
+            rec = make_social_recorder(env,case['humans'])
+        else:
+            rec = Recorder(env,case['humans'])
         robot_action = task.actions['agent_0_collector_velocity']
         humans = [f'agent_{i}_oracle_nav_randcoord_action_obstacle' for i in range(1,case['humans']+1)]
         action_names = ('agent_0_collector_velocity', *humans)
@@ -220,12 +230,18 @@ def worker(args):
             write(out/'legal_observations/observation_config.json',asdict(observation_config))
             write(out/'roots/privileged_root.json',dict(sha256=fingerprint,state=root_state))
             write(out/'legal_observations/history.json',history)
-            save_images(out/'legal_observations/history_images.npz',images)
+            if not v3:
+                save_images(out/'legal_observations/history_images.npz',images)
+            else:
+                write(out/'legal_observations/image_storage.json',dict(retained=False,
+                    reason='structured input uses no pixels; image hash still verified in replay'))
             write(out/'roots/prefix_truth.json',rec.rows)
             scene = next(s for s in read(source/'scenes.json') if s['name']==case['scene'])
             planner = StaticPlanner(source/scene['navmesh'])
             if v2:
                 from collector.v2 import generate_queries_v2, QueryConfig, InsufficientStaticQueries
+                if v3:
+                    from collector.v3 import generate_queries_v3 as generate_queries_v2
                 from collector.static_feasibility import StaticConfig
                 from collector.static_habitat import HabitatStaticWorld
                 static_world = HabitatStaticWorld(planner,sim,sim.get_agent_data(0).articulated_agent)
@@ -237,6 +253,9 @@ def worker(args):
                     raise
                 generation['static_world']=dict(stage_id=int(habitat_sim.stage_id),static_object_ids=sorted(static_world.static_ids))
                 write(out/'audits/generation_v2.json',generation)
+                if v3 and recipe.get('debug_static_reference',False):
+                    from collector.debug_static import capture_static_reference
+                    capture_static_reference(static_world,legal['robot_position'],out/'audits/debug_static_reference.json')
                 rejected=generation['candidate_rejections']
             else:
                 queries,rejected = generate_queries(LegalRoot.load(legal),planner)
@@ -254,6 +273,8 @@ def worker(args):
         q = query.data
         if v2:
             from collector.v2 import PROTOCOL
+            if v3:
+                from collector.v3 import PROTOCOL
             from collector.static_feasibility import CHECKER_VERSION
             if q.get('protocol_version') != PROTOCOL or not q.get('static_precheck',{}).get('static_feasible') or q['static_precheck']['checker_version'] != CHECKER_VERSION:
                 raise RuntimeError('Missing/incompatible static feasibility certificate')
@@ -289,6 +310,6 @@ def worker(args):
                       truth=rec.rows,controls=controls,legal_observations=legal_rows)
         write(attempt/'branch.json',result)
         write(attempt/'observation_diagnostics.json',observer.diagnostics)
-        if getattr(args,'storage_profile','validated')!='production':
+        if not v3 and getattr(args,'storage_profile','validated')!='production':
             save_images(attempt/'branch_images.npz',branch_images)
         print('BRANCH',args.worker_id,reason,'seconds',result['observed_duration'],'error',endpoint_error,flush=True)

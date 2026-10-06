@@ -17,7 +17,7 @@ def launch(args, worker_id, query_id=None, limit=None):
     dest = args.output/'audits/workers'/worker_id
     dest.mkdir(parents=True,exist_ok=True)
     cmd = [sys.executable,'-u',str(Path(__file__).resolve()),'worker','--output',str(args.output),
-           '--worker-id',worker_id,'--storage-profile',getattr(args,'storage_profile','validated')]
+           '--protocol',getattr(args,'protocol','v2'),'--worker-id',worker_id,'--storage-profile',getattr(args,'storage_profile','validated')]
     if query_id:
         cmd += ['--query-id',query_id]
     if limit is not None:
@@ -33,7 +33,11 @@ def launch(args, worker_id, query_id=None, limit=None):
     if query_id:
         branch=read(dest/'branch.json')
         from collector.v2 import PROTOCOL, human_event_labels
-        if read(args.output/'roots/replay.json').get('protocol_version') == PROTOCOL:
+        protocol=read(args.output/'roots/replay.json').get('protocol_version')
+        from collector.v3 import PROTOCOL as V3_PROTOCOL
+        if protocol == V3_PROTOCOL:
+            from collector.v3 import social_outcome_labels as human_event_labels
+        if protocol in (PROTOCOL,V3_PROTOCOL):
             q=next(x['query'] for x in read(args.output/'queries/queries.json') if x['query']['query_id']==query_id)
             label=human_event_labels(branch,q)
             if label['static_feasibility_violation']:
@@ -45,6 +49,8 @@ def launch(args, worker_id, query_id=None, limit=None):
 
 def collect(args):
     from collector.v2 import guard_output, PROTOCOL, QueryConfig
+    if getattr(args,'protocol','v2') == 'v3':
+        from collector.v3 import guard_output, PROTOCOL
     guard_output(args.output)
     if args.output.exists() and any(args.output.iterdir()):
         raise ValueError('Use a new output directory; refusing to overwrite a collection')
@@ -52,7 +58,7 @@ def collect(args):
         (args.output/d).mkdir(parents=True,exist_ok=True)
     recipe = read(args.recipe) if getattr(args, 'recipe', None) else dict(case='002_castle_h1',seed=2301,
           mechanism='fresh_process_seeded_episode_plus_exact_prefix',prefix_controls=[[0.,0.]]*40)
-    if getattr(args,'protocol','v2') == 'v2':
+    if getattr(args,'protocol','v2') in ('v2','v3'):
         recipe.update(protocol_version=PROTOCOL)
         recipe.setdefault('query_config',dict(movement_queries=getattr(args,'movement_queries',8)))
         recipe.setdefault('static_config',{})
@@ -82,7 +88,7 @@ def collect(args):
     # Images grouped into one archive per root; no per-timestep/query NPZ files in
     # the logical dataset. Worker files are retained as execution audit artifacts.
     import zipfile
-    if getattr(args,'storage_profile','validated')!='production':
+    if getattr(args,'protocol','v2')!='v3' and getattr(args,'storage_profile','validated')!='production':
         with zipfile.ZipFile(args.output/'legal_observations/branch_images.zip','w') as archive:
             for b in records:
                 archive.write(args.output/'audits/workers'/b['branch_id']/'branch_images.npz',b['branch_id']+'.npz')
@@ -91,7 +97,7 @@ def collect(args):
     if getattr(args,'storage_profile','validated')=='production':
         from collector.storage import compact_workers
         compact_workers(args.output)
-    elif not getattr(args, 'no_render', False):
+    elif getattr(args,'protocol','v2')!='v3' and not getattr(args, 'no_render', False):
         render(args)
 
 
@@ -103,6 +109,9 @@ def branches(output):
 def labels(args):
     from collector.v2 import PROTOCOL, human_event_labels
     recipe=read(args.output/'roots/replay.json')
+    from collector.v3 import PROTOCOL as V3_PROTOCOL
+    if recipe.get('protocol_version') == V3_PROTOCOL:
+        from collector.v3 import PROTOCOL, social_outcome_labels as human_event_labels
     if recipe.get('protocol_version') == PROTOCOL:
         qs={q['query']['query_id']:q['query'] for q in read(args.output/'queries/queries.json')}
         case=next(c for c in read(REPO/'evaluation/controlled50/cases.json') if c['tag']==recipe['case'])
@@ -118,6 +127,10 @@ def validate(args):
     qs = read(args.output/'queries/queries.json')
     byid = {q['query']['query_id']:q for q in qs}
     from collector.v2 import PROTOCOL, human_event_labels
+    from collector.v3 import PROTOCOL as V3_PROTOCOL
+    v3=read(args.output/'roots/replay.json').get('protocol_version') == V3_PROTOCOL
+    if v3:
+        from collector.v3 import PROTOCOL, social_outcome_labels as human_event_labels
     v2=read(args.output/'roots/replay.json').get('protocol_version') == PROTOCOL
     audits = {}
     def audit(name,passed,details):
@@ -178,10 +191,12 @@ def validate(args):
               'Every immutable fixed variant checked before branch execution')
         audit('zero_unexpected_static_collisions',not any(l['static_feasibility_violation'] for l in derived),
               'Static contact invalidates any human outcome and stops collection')
-        audit('zero_human_invariant',case['humans']!=0 or not any(l['human_event_label']==1 for l in derived),
+        audit('zero_human_invariant',case['humans']!=0 or not any(l.get('social_outcome_class') in (1,2) if v3 else l['human_event_label']==1 for l in derived),
               'Zero humans cannot have a positive human event')
         primary=[l for l in derived if l['branch_id'].startswith('b')]
-        audit('v2_primary_labels',all(l['human_event_valid'] for l in primary),'All primary outcomes determined under human-event contract')
+        audit('v3_primary_labels' if v3 else 'v2_primary_labels',
+              all(l['social_outcome_valid'] if v3 else l['human_event_valid'] for l in primary),
+              'All primary outcomes determined under the versioned label contract')
     ref = next(b for b in rows if b['branch_id']==f'b{len(qs)-1:03}')
     comparisons = []
     for b in rows[:len(qs)-1] if case['humans'] else []:
@@ -257,12 +272,16 @@ def main():
     p.add_argument('--recipe',type=Path)
     p.add_argument('--max-branches',type=int,default=36)
     p.add_argument('--no-render',action='store_true')
-    p.add_argument('--protocol',choices=['v1','v2'],default='v2')
+    p.add_argument('--protocol',choices=['v1','v2','v3'],default='v2')
     p.add_argument('--movement-queries',type=int,default=8)
     p.add_argument('--worker-id',default='root'); p.add_argument('--query-id'); p.add_argument('--limit-steps',type=int)
     args=p.parse_args(); args.output=args.output.absolute()
     from collector.v2 import guard_output
+    if args.protocol=='v3':
+        from collector.v3 import guard_output
     guard_output(args.output)
+    if args.protocol=='v3' and args.command=='render':
+        raise ValueError('Use the bounded offline eventwm_v3_visualize.py tool')
     if args.command=='worker':
         from collector.runtime import worker
         worker(args)
