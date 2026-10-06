@@ -127,3 +127,7 @@ data/
 output_test/
 docs/
 res/
+# Generated release identity and measured production plan (avoid commit self-reference).
+/reports/eventwm_mass_collection/release.json
+/reports/eventwm_mass_collection/production_plan_metrics.json
+/reports/eventwm_mass_collection/terminal_summary.txt

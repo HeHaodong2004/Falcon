@@ -1,0 +1,25 @@
+bf46195517d33367af061c2982bfbf2ed6f58000 2026-10-06T15:08:55+01:00  (HEAD -> research/eventquerywm-v0, research/eventwm-v3-natural-sampling, research/eventwm-v3-mass-collection) Add legal targeted EventWM root sampling and balanced collision index
+82097ac974cba4f8aa604d3319238f7a2fe75a50 2026-10-06T11:22:02+01:00  (research/eventwm-social-outcome-v3) Add versioned social-outcome v3 labels and bounded debug smoke
+36e2872d09cced67050be9776770550906aeaf65 2026-10-06T10:24:08+01:00  (research/eventwm-human-event-v2) docs: record passing bounded EventWM v2 smoke and integrity checks
+cbfe0a907af6af0bb5f265e524647d5aa8f174c1 2026-10-06T10:22:25+01:00  feat: enforce static feasibility for EventWM human-event v2
+4a72eaa692dd4984da2a113517b761a7863aa639 2026-10-06T09:40:29+01:00  (research/structured-human-observation) chore: freeze audited EventWM v1 as legacy regression data
+ed63aff3e192d201aaefd72eab32bab5591b3803 2026-10-05T21:47:09+01:00  (tag: eventwm-overnight-v2) fix: checkpoint overnight launcher guard
+0d57610a8a6943758ee5e152a4b572ea75422b71 2026-10-05T21:43:52+01:00  (tag: eventwm-overnight-v1) chore: expand overnight collection to 100 roots
+8762be50940b1af4f4d8077cc8e59a4d58d5ecb6 2026-10-05T21:38:41+01:00  (tag: eventwm-scale-pilot-v1) feat: add scalable audited EventWM collection
+64dcf298f66cbe1db13144d0dccec7d82222ecd9 2026-10-05T20:47:35+01:00  (tag: eventwm-structured-observation-v1) feat: add structured legal human observations
+b041762b368cfd9f59d4217a400164e60e3b185f 2026-10-05T20:22:40+01:00  (tag: eventwm-collector-phase1, research/eventwm-data-collector) feat: validate EventWM counterfactual collector phase 1
+a7069930c78a353df9a6563858b17cbe066a6ddb 2026-10-05T19:43:47+01:00  (tag: eventwm-pre-collector) checkpoint: validated Falcon environment before EventWM collector
+d15ef512c4b1451f9daeaf6d4d7ecc702ed57430 2025-12-17T15:08:57+08:00  (origin/research/controlled-matrix, origin/main, origin/HEAD, research/controlled-matrix) Update additional_action.py
+0aa959d65f6f08df4de6745e175bb3b5123f549f 2025-09-30T11:15:44+08:00  Update details
+fd1255dbe02e29d3f7f7d294cd801ddc70229f6b 2025-09-24T18:36:45+08:00  Update Mini
+2d3468c298b6361a56938ba93fc141ff964b08c5 2025-09-24T16:58:15+08:00  Remove large media files and add to .gitignore
+7877568adc37078efcf992171917d0c37aba33e3 2025-09-24T16:47:31+08:00  add mini
+65b88ccc7218190a24564d5ea3d989895c25b2c3 2025-08-10T10:28:24+08:00  Prepare for robosense phase2
+fd2297887eb508a681fd6f1f0d31d6acffb9bb25 2025-08-09T20:36:26+08:00  Prepare for robosense phase2
+f0ed4ff25ce7170a9446e5661a1911140426cfd9 2025-07-23T15:16:44+08:00  Fix training bug, from main_agent to agent_0
+eaccd1529dfdc4e8e03f5aaeb03c26d78f50866b 2025-07-07T15:26:32+08:00  Fix wget typo
+dbd42acee1a52cbd48ffd5183ecedaf431cf92f4 2025-07-07T09:05:49+08:00  Update Training
+36c5f21d53c13532555c058cab3d85d203126808 2025-06-19T10:05:17+08:00  Update Readme
+43ee55395856e955941af15be01d231468bd90cf 2025-06-19T09:55:38+08:00  Update No Aux Evaluation
+7820b664a8ab33b9867b5dc7b92d94a84024cd46 2025-04-13T21:56:29+08:00  Update training script
+591b077f066b3c19f41c8fa2dc29c5aa656c33d3 2025-04-13T21:47:37+08:00  Update training yaml

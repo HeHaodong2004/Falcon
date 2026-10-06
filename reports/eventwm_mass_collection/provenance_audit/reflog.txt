@@ -1,0 +1,25 @@
+bf46195 refs/heads/research/eventwm-v3-mass-collection@{2026-10-06 20:13:28 +0100}: branch: Created from bf46195517d33367af061c2982bfbf2ed6f58000
+bf46195 worktrees/mass_collection_checkout/HEAD@{2026-10-06 20:13:28 +0100}: reset: moving to HEAD
+bf46195 worktrees/mass_collection_checkout/HEAD@{2026-10-06 20:13:28 +0100}:
+bf46195 refs/heads/research/eventquerywm-v0@{2026-10-06 16:04:41 +0100}: branch: Created from HEAD
+bf46195 HEAD@{2026-10-06 16:04:41 +0100}: checkout: moving from research/eventwm-v3-natural-sampling to research/eventquerywm-v0
+bf46195 refs/heads/research/eventwm-v3-natural-sampling@{2026-10-06 15:08:55 +0100}: commit: Add legal targeted EventWM root sampling and balanced collision index
+bf46195 HEAD@{2026-10-06 15:08:55 +0100}: commit: Add legal targeted EventWM root sampling and balanced collision index
+82097ac refs/heads/research/eventwm-v3-natural-sampling@{2026-10-06 11:43:21 +0100}: branch: Created from HEAD
+82097ac HEAD@{2026-10-06 11:43:21 +0100}: checkout: moving from research/eventwm-social-outcome-v3 to research/eventwm-v3-natural-sampling
+82097ac refs/heads/research/eventwm-social-outcome-v3@{2026-10-06 11:22:02 +0100}: commit: Add versioned social-outcome v3 labels and bounded debug smoke
+82097ac HEAD@{2026-10-06 11:22:02 +0100}: commit: Add versioned social-outcome v3 labels and bounded debug smoke
+36e2872 refs/heads/research/eventwm-social-outcome-v3@{2026-10-06 10:50:32 +0100}: branch: Created from HEAD
+36e2872 HEAD@{2026-10-06 10:50:32 +0100}: checkout: moving from research/eventwm-human-event-v2 to research/eventwm-social-outcome-v3
+36e2872 refs/heads/research/eventwm-human-event-v2@{2026-10-06 10:24:08 +0100}: commit: docs: record passing bounded EventWM v2 smoke and integrity checks
+36e2872 HEAD@{2026-10-06 10:24:08 +0100}: commit: docs: record passing bounded EventWM v2 smoke and integrity checks
+cbfe0a9 refs/heads/research/eventwm-human-event-v2@{2026-10-06 10:22:25 +0100}: commit: feat: enforce static feasibility for EventWM human-event v2
+cbfe0a9 HEAD@{2026-10-06 10:22:25 +0100}: commit: feat: enforce static feasibility for EventWM human-event v2
+4a72eaa refs/heads/research/eventwm-human-event-v2@{2026-10-06 09:40:29 +0100}: branch: Created from HEAD
+4a72eaa refs/heads/research/structured-human-observation@{2026-10-06 09:40:29 +0100}: commit: chore: freeze audited EventWM v1 as legacy regression data
+4a72eaa HEAD@{2026-10-06 09:40:29 +0100}: checkout: moving from research/structured-human-observation to research/eventwm-human-event-v2
+4a72eaa HEAD@{2026-10-06 09:40:29 +0100}: commit: chore: freeze audited EventWM v1 as legacy regression data
+ed63aff refs/heads/research/structured-human-observation@{2026-10-05 21:47:09 +0100}: commit: fix: checkpoint overnight launcher guard
+ed63aff HEAD@{2026-10-05 21:47:09 +0100}: commit: fix: checkpoint overnight launcher guard
+0d57610 refs/heads/research/structured-human-observation@{2026-10-05 21:43:52 +0100}: commit: chore: expand overnight collection to 100 roots
+0d57610 HEAD@{2026-10-05 21:43:52 +0100}: commit: chore: expand overnight collection to 100 roots

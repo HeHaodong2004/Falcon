@@ -1,0 +1,305 @@
+{
+  "concurrency": 24,
+  "output": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_social_outcome_v3_benchmark_c24",
+  "completed_roots": 24,
+  "failed_roots": 0,
+  "primary_queries": 792,
+  "wall_seconds": 721.4300255240087,
+  "root_seconds": 13606.47823414902,
+  "roots_hour": 119.76213484771942,
+  "queries_hour": 3952.1504499747416,
+  "failure_rate": 0.0,
+  "failures": {},
+  "static_violations": 0,
+  "integrity_failures": 0,
+  "cpu_percent": 55.98231540031342,
+  "cpu_percent_peak": 71.779910568219,
+  "cpu_load1_peak": 25.63818359375,
+  "cpu_load1_mean": 19.82138602615248,
+  "ram_peak_gb": 47.829364736,
+  "gpus": {
+    "0": {
+      "mean_utilization": 21.97163120567376,
+      "max_vram_mib": 8318.0
+    },
+    "1": {
+      "mean_utilization": 18.78014184397163,
+      "max_vram_mib": 8289.0
+    }
+  },
+  "disk_write_mb_s": 14.171355912975596,
+  "io_wait_percent": 0.017454356242458755,
+  "io_wait_peak_percent": 0.07695690413368514,
+  "startup_stagger_seconds": 3.0,
+  "no_image_video_files": true,
+  "source_hashes": {
+    "scripts/eventwm_collect.py": "a18b534c6cf790a857285065002a489c1b68e1cf76397dadcd3de63e1ea6c4a0",
+    "scripts/eventwm_mass_collection.py": "17d1e36cfd00c93d808b6e9ebb4d4b94fa38725f497d59f74688d430cba0055e",
+    "scripts/eventwm_mass_assets.py": "6f4908e81cf8db2397266dcbb7bfdd4464ef2cf390806cc9d5a4f3d89c3daf78",
+    "scripts/collector/core.py": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+    "scripts/collector/debug_static.py": "c09cb9c2423c75956cbcc97179ed0f0fe60d8c6c1b0c1227c1052eb022d547b7",
+    "scripts/collector/multi_human_audit.py": "8b6ed2a3a76f2814e69a4b7d452055d785f2b5bd3c9f4914819927c2b21fbd4a",
+    "scripts/collector/natural_sampling.py": "aec9c631914ab32fd67bbb4182f5ff5280a0885151d0c5ba82a5457191305af7",
+    "scripts/collector/observation.py": "7212ddf3610b6f6a9174b9d9a3c35d3ad65c2c96f4c88a19962066999b0f0ce9",
+    "scripts/collector/observation_audit.py": "c426f51225b77da0bd5bab74d616f5cd8685633213a1a754051902720fcad260",
+    "scripts/collector/root_sampling.py": "36edb643d91934f68221c603ef9efa31fad30dc41b0fd5757570fbdc87c8b43f",
+    "scripts/collector/runtime.py": "ad485a52779bbdb5d2149b6aec6f10bf5b12fad91f701aca3072c2dd7840ede4",
+    "scripts/collector/sampling_audit.py": "177cf15b2a9c6031a3987e242b3c4c25c3c2439b579ab35c00005665242a1b7f",
+    "scripts/collector/social_habitat.py": "5edfd18fe3d22c78cce6651dd77231af4ad922d798a00c238316a42e44970e39",
+    "scripts/collector/static_feasibility.py": "93be0dc1821c277d9276485084730b386ff938a154b237253a904dc309d12228",
+    "scripts/collector/static_habitat.py": "e10406110dbef8c38f4e615663aa3b247d09d84d65ae4c313dca5d978c9de4ed",
+    "scripts/collector/storage.py": "7b920d181bfdb54526b2e9daf9c86334905c0a5f74ffed190e4a0b8a285eb290",
+    "scripts/collector/v2.py": "eac8b9e869e855bdc71718792deb4349f529905c30ff26403a4bde5e4630a2a5",
+    "scripts/collector/v3.py": "be1025999a1fa1a5f294f125c8612c95b827eb1a5dc52eb2bf7b952708bb9ae1",
+    "scripts/collector/wm_sampling.py": "fa919cebf4a18b0eb1d393156ae2c1df4a7ec63e4cac529d0a20ccb17842d92b",
+    "scripts/controlled/generate.py": "b1b26e07e4d2de75774614a3f2bd4133430fa706c0ae652d48443df513812fa4",
+    "scripts/controlled/run_case.py": "af7682632c3ccf462d5e29910c4ff52a4e8b0f68e5a8ae13c8a54b338c3b81d5",
+    "scripts/controlled/runtime.py": "e83e04c61af3b5d87b6bb3ba51e782c8d8a02bc1595764ec825aef4662c9ec51",
+    "falcon/additional_metric.py": "e670bb87f56e5901c55b003642c3ca1c419edc2b5f1afec62356a8ed3d6aad1c",
+    "configs/eventwm_wm_train_pilot.json": "f62af92ff2dbab0915923cca6297d371e838db858a1c3566fe3608823da125f8"
+  },
+  "all_completed_root_native_audits_pass": true,
+  "pass_correctness": true,
+  "sizes": [
+    {
+      "root_id": "bench_a1eeed2dc891fd018e67",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_9201bf69950dc00c",
+      "scene": "castle",
+      "human_count": 0,
+      "category": "zero",
+      "bytes": 24757339,
+      "primary_queries": 33,
+      "seconds": 491.88257009400695
+    },
+    {
+      "root_id": "bench_b26ebc1ce1c01a55d1e8",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_7e1f76ef25d2e59a",
+      "scene": "castle",
+      "human_count": 1,
+      "category": "unseen",
+      "bytes": 72411700,
+      "primary_queries": 33,
+      "seconds": 526.0719271990092
+    },
+    {
+      "root_id": "bench_e8412b755ac603e4d872",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_7458fcca87c84b97",
+      "scene": "castle",
+      "human_count": 2,
+      "category": "unseen",
+      "bytes": 128305951,
+      "primary_queries": 33,
+      "seconds": 569.0701924340101
+    },
+    {
+      "root_id": "bench_4fc70ea6eaa9e610c539",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_518836ed8fc7c5d9",
+      "scene": "castle",
+      "human_count": 4,
+      "category": "visible",
+      "bytes": 197503551,
+      "primary_queries": 33,
+      "seconds": 579.5456859880069
+    },
+    {
+      "root_id": "bench_3a121c1c53dbcd1db32c",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_835086743aa3d17c",
+      "scene": "castle",
+      "human_count": 6,
+      "category": "lost",
+      "bytes": 272017053,
+      "primary_queries": 33,
+      "seconds": 620.4876777649915
+    },
+    {
+      "root_id": "bench_a6c60bcdb16bc918dcb3",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_3848efca6c963234",
+      "scene": "castle",
+      "human_count": 0,
+      "category": "zero",
+      "bytes": 24863039,
+      "primary_queries": 33,
+      "seconds": 509.7884151150065
+    },
+    {
+      "root_id": "bench_c129ec57f065be0c9356",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_e28f12ebde0892b2",
+      "scene": "castle",
+      "human_count": 1,
+      "category": "visible",
+      "bytes": 73313409,
+      "primary_queries": 33,
+      "seconds": 543.177799971003
+    },
+    {
+      "root_id": "bench_6e37136c84d9c35bcfca",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_ca84d280852d3eae",
+      "scene": "castle",
+      "human_count": 2,
+      "category": "visible",
+      "bytes": 130955009,
+      "primary_queries": 33,
+      "seconds": 579.5197608699964
+    },
+    {
+      "root_id": "bench_95255a738741f2249704",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_ae6a8b0c1ac22be3",
+      "scene": "castle",
+      "human_count": 4,
+      "category": "unseen",
+      "bytes": 205102398,
+      "primary_queries": 33,
+      "seconds": 595.1211448319955
+    },
+    {
+      "root_id": "bench_a6cf955589f2ae2245c5",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_a65297043790e89f",
+      "scene": "castle",
+      "human_count": 6,
+      "category": "visible",
+      "bytes": 270517689,
+      "primary_queries": 33,
+      "seconds": 613.5557201619959
+    },
+    {
+      "root_id": "bench_be4bd540e9d91d9b8690",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_de92779e98650c94",
+      "scene": "castle",
+      "human_count": 0,
+      "category": "zero",
+      "bytes": 24318528,
+      "primary_queries": 33,
+      "seconds": 497.1979749430029
+    },
+    {
+      "root_id": "bench_c591b4965f049e5d5c44",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_56a792f4e27bdf1e",
+      "scene": "castle",
+      "human_count": 1,
+      "category": "lost",
+      "bytes": 88319361,
+      "primary_queries": 33,
+      "seconds": 553.2234303079895
+    },
+    {
+      "root_id": "bench_304935bb5cae5576fcaf",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_214e4f8abc4b758d",
+      "scene": "castle",
+      "human_count": 2,
+      "category": "lost",
+      "bytes": 104674692,
+      "primary_queries": 33,
+      "seconds": 564.2146797430032
+    },
+    {
+      "root_id": "bench_20c9616f28f2b5f75f67",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_7d428ba18b79ad95",
+      "scene": "castle",
+      "human_count": 4,
+      "category": "lost",
+      "bytes": 327687994,
+      "primary_queries": 33,
+      "seconds": 680.8241304989933
+    },
+    {
+      "root_id": "bench_c301fe3e3afbe4852b08",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_70df5b49ef7dd661",
+      "scene": "castle",
+      "human_count": 6,
+      "category": "unseen",
+      "bytes": 209357962,
+      "primary_queries": 33,
+      "seconds": 611.2013004409964
+    },
+    {
+      "root_id": "bench_77f7b403b00e259c0a84",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_5b801974695d348e",
+      "scene": "castle",
+      "human_count": 0,
+      "category": "zero",
+      "bytes": 24585903,
+      "primary_queries": 33,
+      "seconds": 505.3001563909929
+    },
+    {
+      "root_id": "bench_2ee17351299a12d5fb11",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_bb4da22d35b529b0",
+      "scene": "castle",
+      "human_count": 1,
+      "category": "visible",
+      "bytes": 80386749,
+      "primary_queries": 33,
+      "seconds": 560.3942282390053
+    },
+    {
+      "root_id": "bench_11b0d9c2abde7dbf9a75",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_adc85ccb7a829975",
+      "scene": "castle",
+      "human_count": 2,
+      "category": "visible",
+      "bytes": 134644019,
+      "primary_queries": 33,
+      "seconds": 579.264448965012
+    },
+    {
+      "root_id": "bench_bf3cea4d89cf0eb27fda",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_43584ecceff6127b",
+      "scene": "castle",
+      "human_count": 4,
+      "category": "visible",
+      "bytes": 203604788,
+      "primary_queries": 33,
+      "seconds": 588.8045521449967
+    },
+    {
+      "root_id": "bench_8ec1102d0e8facb8a1f1",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_5adc00f1c1d349eb",
+      "scene": "castle",
+      "human_count": 6,
+      "category": "visible",
+      "bytes": 276189352,
+      "primary_queries": 33,
+      "seconds": 613.7758097170008
+    },
+    {
+      "root_id": "bench_98c71df83dcf0d38d6ac",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_d981a50edcc57b1d",
+      "scene": "castle",
+      "human_count": 0,
+      "category": "zero",
+      "bytes": 24410842,
+      "primary_queries": 33,
+      "seconds": 505.1588969799923
+    },
+    {
+      "root_id": "bench_b1f32124029314274b7f",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_152b3c5c41c4bdc0",
+      "scene": "castle",
+      "human_count": 1,
+      "category": "lost",
+      "bytes": 86418163,
+      "primary_queries": 33,
+      "seconds": 554.5236535150034
+    },
+    {
+      "root_id": "bench_516aa3fb1c86abb5b2e0",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_3d5f8916ddea122b",
+      "scene": "castle",
+      "human_count": 2,
+      "category": "lost",
+      "bytes": 137796547,
+      "primary_queries": 33,
+      "seconds": 583.6972564919997
+    },
+    {
+      "root_id": "bench_f6193986e4de8026cbd6",
+      "source_recipe": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_cc1a2032abaa6ae0",
+      "scene": "castle",
+      "human_count": 4,
+      "category": "lost",
+      "bytes": 212969380,
+      "primary_queries": 33,
+      "seconds": 580.6768213410105
+    }
+  ]
+}
