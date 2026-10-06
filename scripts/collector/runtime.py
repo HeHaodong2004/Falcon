@@ -193,13 +193,48 @@ def worker(args):
         # Optional bounded legal-history root selection; the resolved controls are
         # frozen into replay.json before any branch is launched.
         from collector.root_sampling import prefix_commands
+        def natural_motion(selection):
+            # No history/human/PSC inputs: known static mesh + current robot only.
+            from collector.v3 import generate_queries_v3
+            from collector.v2 import QueryConfig
+            from collector.static_feasibility import StaticConfig
+            from collector.static_habitat import HabitatStaticWorld
+            scene=next(s for s in read(source/'scenes.json') if s['name']==case['scene'])
+            planner=StaticPlanner(source/scene['navmesh'])
+            robot=sim.get_agent_data(0).articulated_agent
+            pose=state(robot)
+            prefix_root=LegalRoot(recipe['root_id']+'/prefix',tuple(pose['position']),pose['yaw'],
+                1/task._physics_target_sps+sim.ac_freq_ratio*sim.get_physics_time_step(),1/sim.ctrl_freq)
+            world=HabitatStaticWorld(planner,sim,robot)
+            choices,generation=generate_queries_v3(prefix_root,world,world.geometry,
+                QueryConfig(movement_queries=selection['prefix_movement_queries']),StaticConfig(**recipe.get('static_config',{})))
+            chosen=choices[4*selection['selected_prefix_path']].data
+            if args.query_id is None:
+                write(out/'audits/natural_prefix.json',dict(selection=selection,query=chosen,generation=generation))
+            return chosen['executable_controls']
+        natural=recipe.get('sampling',{}).get('profile')=='natural'
+        if natural and args.query_id is None:
+            from collector.natural_sampling import natural_selection
+            write(out/'audits/sampling_selection.json',natural_selection(seed,recipe['sampling']))
         executed_prefix = []
-        for i,command in enumerate(prefix_commands(recipe, history)):
+        for i,command in enumerate(prefix_commands(recipe, history, natural_motion=natural_motion)):
+            prefix_row_start=len(rec.rows)
             executed_prefix.append(list(command))
             obs = step(command,i)
             meta, im = observe(obs,command); history.append(meta); images.append((meta['timestamp'],im))
             control_times.append(float(sim.get_world_time()))
+            prefix_static=(natural and i>=len(recipe['sampling'].get('prelude_controls',[])) and
+                           any(r['native_static_contact'] for r in rec.rows[prefix_row_start:]))
+            if prefix_static:
+                write(out/'audits/STATIC_FEASIBILITY_VIOLATION.json',dict(static_feasibility_violation=True,
+                    phase='accepted_natural_prefix',step=i,termination_reason='static_collision'))
+                raise RuntimeError('STATIC_FEASIBILITY_VIOLATION in accepted natural prefix')
             if env.episode_over:
+                if recipe.get('sampling_audit'):
+                    write(out/'audits/prefix_failure.json',dict(phase='before_preselected_root',steps_executed=i+1,
+                        timestamp=float(sim.get_world_time()),native_human_contact=any(r['native_human_contact'] for r in rec.rows),
+                        native_static_contact=any(r['native_static_contact'] for r in rec.rows),
+                        sampling=recipe.get('sampling'),selection_not_replaced=True))
                 raise RuntimeError('Prefix terminated before root')
         physics_dt = sim.get_physics_time_step()
         dt = 1/task._physics_target_sps + sim.ac_freq_ratio*physics_dt
@@ -219,6 +254,9 @@ def worker(args):
         write(attempt/'root_fingerprint.json',dict(sha256=fingerprint,state=root_state))
         write(attempt/'observation_diagnostics.json',observer.diagnostics)
         if args.query_id is None:
+            if recipe.get('sampling_audit'):
+                from collector.sampling_audit import root_diagnostics
+                write(out/'audits/root_sampling.json',root_diagnostics(recipe,root_state,history,len(executed_prefix)))
             if 'sampling' in recipe and 'prefix_controls' not in recipe:
                 recipe['prefix_controls'] = executed_prefix
                 write(out/'roots/replay.json', recipe)

@@ -1,10 +1,20 @@
 """Bounded prefix recipes. Decisions use only observations already acquired."""
 
-def prefix_commands(recipe, history):
+def prefix_commands(recipe, history, natural_motion=None):
     if 'prefix_controls' in recipe:
         yield from recipe['prefix_controls']
         return
     profile = recipe['sampling']['profile']
+    if profile == 'wm_train':
+        from collector.wm_sampling import wm_commands
+        yield from wm_commands(recipe, history)
+        return
+    if profile == 'natural':
+        from collector.natural_sampling import natural_commands
+        if natural_motion is None:
+            raise ValueError('Natural sampling requires a human-independent static motion factory')
+        yield from natural_commands(recipe, natural_motion)
+        return
     if profile == 'wait':
         yield from [[0., 0.]] * recipe['sampling']['wait_steps']
         return

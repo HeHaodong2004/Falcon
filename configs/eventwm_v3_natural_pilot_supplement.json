@@ -1,0 +1,34 @@
+{
+  "purpose": "predeclared_same_matrix_supplement_if_first_block_completes_fewer_than_90_roots",
+  "master_seed": 242000,
+  "movement_queries": 1,
+  "natural_repeats_castle": 7,
+  "human_counts_castle": [
+    0,
+    1,
+    2,
+    4,
+    6
+  ],
+  "noncastle_zero_human_roots": 0,
+  "window_start_after_prelude": 20,
+  "window_end_after_prelude": 180,
+  "prefix_movement_queries": 3,
+  "comparison_repeats": 0,
+  "comparison_human_counts": [
+    1,
+    2,
+    4,
+    6
+  ],
+  "comparison_profiles": [
+    "seek_visible",
+    "seek_lost"
+  ],
+  "visualization": false,
+  "max_root_processes": 2,
+  "gpu_devices": [
+    0,
+    1
+  ]
+}
