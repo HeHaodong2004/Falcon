@@ -147,6 +147,8 @@ def seals_without_marker(path):
 
 
 def run(args):
+    from collector.v2 import guard_output
+    guard_output(args.output, check_protocol=False)
     output=args.output
     output.mkdir(parents=True,exist_ok=True)
     with (output/'.lock').open('a') as lock:
@@ -271,7 +273,7 @@ def main():
     if args.command=='plan':
         m=plan(args); print(json.dumps(dict(roots=len(m['roots']),maximum_primary_queries=33*len(m['roots']),
             branches_including_audits=36*len(m['roots']),bounds=m['bounds'],selection=m['selection']),indent=2))
-    elif args.command=='run': sys.exit(run(args))
+    elif args.command=='run': raise RuntimeError('Legacy production CLI retired; use eventwm_v2.py')
     else:
         m=read(args.output/'manifest.json')
         if args.command=='validate':

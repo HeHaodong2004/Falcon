@@ -31,16 +31,31 @@ def launch(args, worker_id, query_id=None, limit=None):
         raise RuntimeError(f'Worker {worker_id} failed; see {dest}/run.log')
     print('COMPLETE',worker_id,round(time.time()-start,2),'s',flush=True)
     if query_id:
-        return read(dest/'branch.json')
+        branch=read(dest/'branch.json')
+        from collector.v2 import PROTOCOL, human_event_labels
+        if read(args.output/'roots/replay.json').get('protocol_version') == PROTOCOL:
+            q=next(x['query'] for x in read(args.output/'queries/queries.json') if x['query']['query_id']==query_id)
+            label=human_event_labels(branch,q)
+            if label['static_feasibility_violation']:
+                write(args.output/'audits/STATIC_FEASIBILITY_VIOLATION.json',label)
+                write(args.output/'labels/quarantined_branch.json',label)
+                raise RuntimeError('STATIC_FEASIBILITY_VIOLATION: stopping all collection')
+        return branch
 
 
 def collect(args):
+    from collector.v2 import guard_output, PROTOCOL, QueryConfig
+    guard_output(args.output)
     if args.output.exists() and any(args.output.iterdir()):
         raise ValueError('Use a new output directory; refusing to overwrite a collection')
     for d in ('roots','legal_observations','queries','branch_truth','labels','audits','diagnostics'):
         (args.output/d).mkdir(parents=True,exist_ok=True)
     recipe = read(args.recipe) if getattr(args, 'recipe', None) else dict(case='002_castle_h1',seed=2301,
           mechanism='fresh_process_seeded_episode_plus_exact_prefix',prefix_controls=[[0.,0.]]*40)
+    if getattr(args,'protocol','v2') == 'v2':
+        recipe.update(protocol_version=PROTOCOL)
+        recipe.setdefault('query_config',dict(movement_queries=getattr(args,'movement_queries',8)))
+        recipe.setdefault('static_config',{})
     write(args.output/'roots/replay.json',recipe)
     sources = [Path(__file__),*sorted((REPO/'scripts/collector').glob('*.py')),
                *sorted((REPO/'scripts/controlled').glob('*.py'))]
@@ -86,7 +101,14 @@ def branches(output):
 
 
 def labels(args):
-    write(args.output/'labels/labels.json',[build_labels(b) for b in branches(args.output)])
+    from collector.v2 import PROTOCOL, human_event_labels
+    recipe=read(args.output/'roots/replay.json')
+    if recipe.get('protocol_version') == PROTOCOL:
+        qs={q['query']['query_id']:q['query'] for q in read(args.output/'queries/queries.json')}
+        case=next(c for c in read(REPO/'evaluation/controlled50/cases.json') if c['tag']==recipe['case'])
+        labs=[human_event_labels(b,qs[b['query_id']],case['humans']) for b in branches(args.output)]
+    else: labs=[build_labels(b) for b in branches(args.output)]
+    write(args.output/'labels/labels.json',labs)
 
 
 def validate(args):
@@ -95,6 +117,8 @@ def validate(args):
     rows = branches(args.output)
     qs = read(args.output/'queries/queries.json')
     byid = {q['query']['query_id']:q for q in qs}
+    from collector.v2 import PROTOCOL, human_event_labels
+    v2=read(args.output/'roots/replay.json').get('protocol_version') == PROTOCOL
     audits = {}
     def audit(name,passed,details):
         audits[name] = dict(status='PASS' if passed else 'FAIL',details=details)
@@ -122,7 +146,8 @@ def validate(args):
     audit('hidden_gt_not_in_legal_input',a[0]==b[0] and all(np.array_equal(a[1][k],b[1][k]) for k in a[1]) and
           all(set(t)==set(TRACK_FIELDS) for h in wm['history'] for t in h['human_tracks']),
           'Injected raw hidden/future sensors excluded; structured tracks have an explicit nested whitelist; visibility and tracking audited separately')
-    derived = [build_labels(b) for b in rows]
+    case=next(c for c in read(REPO/'evaluation/controlled50/cases.json') if c['tag']==read(args.output/'roots/replay.json')['case'])
+    derived = [human_event_labels(b,byid[b['query_id']]['query'],case['humans']) if v2 else build_labels(b) for b in rows]
     audit('offline_label_recomputation',derived==read(args.output/'labels/labels.json'),'All labels recomputed solely from saved raw truth')
     truncated = next(x for x in derived if x['branch_id']=='truncated_wait')
     audit('truncation_censoring',truncated['censored'] and truncated['full_query_safe'] is None,
@@ -144,9 +169,19 @@ def validate(args):
     recipe = read(args.output/'roots/replay.json')
     case = next(c for c in read(REPO/'evaluation/controlled50/cases.json') if c['tag']==recipe['case'])
     navmesh = REPO/'evaluation/controlled50'/next(s['navmesh'] for s in scenes if s['name']==case['scene'])
-    regen,_ = generate_queries(LegalRoot.load(dirty),StaticPlanner(navmesh))
-    audit('static_planner_human_blind',[q.sha256 for q in regen]==[q['sha256'] for q in qs],
-          'Regenerated identical query set with poisoned privileged fields and only a standalone static navmesh')
+    if not v2:
+        regen,_ = generate_queries(LegalRoot.load(dirty),StaticPlanner(navmesh))
+        audit('static_planner_human_blind',[q.sha256 for q in regen]==[q['sha256'] for q in qs],
+              'Regenerated with poisoned privileged fields and standalone static navmesh')
+    else:
+        audit('static_feasibility_certificates',all(q['query']['static_precheck']['static_feasible'] for q in qs),
+              'Every immutable fixed variant checked before branch execution')
+        audit('zero_unexpected_static_collisions',not any(l['static_feasibility_violation'] for l in derived),
+              'Static contact invalidates any human outcome and stops collection')
+        audit('zero_human_invariant',case['humans']!=0 or not any(l['human_event_label']==1 for l in derived),
+              'Zero humans cannot have a positive human event')
+        primary=[l for l in derived if l['branch_id'].startswith('b')]
+        audit('v2_primary_labels',all(l['human_event_valid'] for l in primary),'All primary outcomes determined under human-event contract')
     ref = next(b for b in rows if b['branch_id']==f'b{len(qs)-1:03}')
     comparisons = []
     for b in rows[:len(qs)-1] if case['humans'] else []:
@@ -222,8 +257,12 @@ def main():
     p.add_argument('--recipe',type=Path)
     p.add_argument('--max-branches',type=int,default=36)
     p.add_argument('--no-render',action='store_true')
+    p.add_argument('--protocol',choices=['v1','v2'],default='v2')
+    p.add_argument('--movement-queries',type=int,default=8)
     p.add_argument('--worker-id',default='root'); p.add_argument('--query-id'); p.add_argument('--limit-steps',type=int)
     args=p.parse_args(); args.output=args.output.absolute()
+    from collector.v2 import guard_output
+    guard_output(args.output)
     if args.command=='worker':
         from collector.runtime import worker
         worker(args)

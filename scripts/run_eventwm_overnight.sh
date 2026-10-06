@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+echo 'V1 production retired. Use the explicit v2 small-run entry point.' >&2
+exit 2
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_dir"
 export PATH="/home/haodong/miniforge3/envs/eventwm-falcon/bin:$PATH"

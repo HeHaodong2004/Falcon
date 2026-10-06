@@ -133,6 +133,7 @@ def status():
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('command',choices=['launch','preflight','status']);args=p.parse_args()
     if args.command=='status': status(); return
+    raise RuntimeError('V1 production retired; only read-only status remains available')
     cmd=preflight()
     if args.command=='preflight':
         print('PREFLIGHT PASS; no output created and no collection started',flush=True); return

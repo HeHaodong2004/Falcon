@@ -127,10 +127,14 @@ def save_images(path, entries):
 
 
 def worker(args):
-    out = args.output.resolve()
+    from collector.v2 import guard_output
+    out = guard_output(args.output)
     attempt = out/'audits'/'workers'/args.worker_id
     attempt.mkdir(parents=True,exist_ok=True)
     recipe = read(out/'roots/replay.json')
+    from collector.v2 import PROTOCOL, guard_output
+    v2 = recipe.get('protocol_version') == PROTOCOL
+    if v2: guard_output(out)
     source = REPO/'evaluation/controlled50'
     case = next(c for c in read(source/'cases.json') if c['tag']==recipe['case'])
     case = dict(case, seed=recipe.get('seed', case['seed']))
@@ -220,7 +224,22 @@ def worker(args):
             write(out/'roots/prefix_truth.json',rec.rows)
             scene = next(s for s in read(source/'scenes.json') if s['name']==case['scene'])
             planner = StaticPlanner(source/scene['navmesh'])
-            queries,rejected = generate_queries(LegalRoot.load(legal),planner)
+            if v2:
+                from collector.v2 import generate_queries_v2, QueryConfig, InsufficientStaticQueries
+                from collector.static_feasibility import StaticConfig
+                from collector.static_habitat import HabitatStaticWorld
+                static_world = HabitatStaticWorld(planner,sim,sim.get_agent_data(0).articulated_agent)
+                try:
+                    queries,generation = generate_queries_v2(LegalRoot.load(legal),static_world,static_world.geometry,
+                        QueryConfig(**recipe.get('query_config',{})),StaticConfig(**recipe.get('static_config',{})))
+                except InsufficientStaticQueries as exc:
+                    write(out/'audits/generation_v2.json',exc.diagnostics)
+                    raise
+                generation['static_world']=dict(stage_id=int(habitat_sim.stage_id),static_object_ids=sorted(static_world.static_ids))
+                write(out/'audits/generation_v2.json',generation)
+                rejected=generation['candidate_rejections']
+            else:
+                queries,rejected = generate_queries(LegalRoot.load(legal),planner)
             write(out/'queries/queries.json',[dict(sha256=q.sha256,query=q.data) for q in queries])
             write(out/'audits/generation.json',dict(rejected=rejected,generated=len(queries),
                   static_navmesh_sha256=hashlib.sha256((source/scene['navmesh']).read_bytes()).hexdigest()))
@@ -233,6 +252,11 @@ def worker(args):
         query = Query.make(saved['query']); before = query.sha256
         assert before == saved['sha256']
         q = query.data
+        if v2:
+            from collector.v2 import PROTOCOL
+            from collector.static_feasibility import CHECKER_VERSION
+            if q.get('protocol_version') != PROTOCOL or not q.get('static_precheck',{}).get('static_feasible') or q['static_precheck']['checker_version'] != CHECKER_VERSION:
+                raise RuntimeError('Missing/incompatible static feasibility certificate')
         rec.rows = []; rec.previous = None; rec.index = -1; rec.command=[0.,0.]
         rec.capture('root')
         legal_rows, branch_images, controls = [], [], []
