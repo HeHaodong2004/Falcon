@@ -23,8 +23,13 @@ def launch(args, worker_id, query_id=None, limit=None):
     if limit is not None:
         cmd += ['--limit-steps',str(limit)]
     start = time.time()
-    with (dest/'run.log').open('w') as log:
-        process = subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,cwd=REPO,timeout=180)
+    try:
+        with (dest/'run.log').open('w') as log:
+            process = subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,cwd=REPO,timeout=300)
+    except subprocess.TimeoutExpired:
+        write(dest/'execution.json',dict(command=cmd,returncode=None,seconds=time.time()-start,timed_out=True,timeout_seconds=300))
+        write(dest/'collection_error.json',dict(termination_reason='worker_timeout',timeout_seconds=300))
+        raise
     write(dest/'execution.json',dict(command=cmd,returncode=process.returncode,seconds=time.time()-start))
     if process.returncode:
         write(dest/'collection_error.json',dict(termination_reason='collection_error',returncode=process.returncode))
@@ -195,8 +200,9 @@ def validate(args):
               'Zero humans cannot have a positive human event')
         primary=[l for l in derived if l['branch_id'].startswith('b')]
         audit('v3_primary_labels' if v3 else 'v2_primary_labels',
-              all(l['social_outcome_valid'] if v3 else l['human_event_valid'] for l in primary),
-              'All primary outcomes determined under the versioned label contract')
+              all((l['social_outcome_valid'] or (l['invalid_reason']=='incomplete_or_invalid_nonhuman_outcome'
+                   and not l['sr_valid'] and l['sr_label'] is None)) if v3 else l['human_event_valid'] for l in primary),
+              'Determined outcomes retained; unrelated incomplete non-collision outcomes explicitly excluded')
     ref = next(b for b in rows if b['branch_id']==f'b{len(qs)-1:03}')
     comparisons = []
     for b in rows[:len(qs)-1] if case['humans'] else []:

@@ -99,7 +99,7 @@ class NaturalSamplingTests(unittest.TestCase):
             write(p/'legal_observations/history.json',history);write(p/'queries/queries.json',[dict(query=q)])
             self.assertEqual(before,load_wm_input(p,q['query_id']))
     def test_labels_static_humans_core_byte_unchanged(self):
-        paths=['scripts/collector/v3.py','scripts/collector/v2.py','scripts/collector/static_feasibility.py',
+        paths=['scripts/collector/v2.py','scripts/collector/static_feasibility.py',
             'scripts/collector/static_habitat.py','scripts/collector/social_habitat.py','scripts/collector/core.py',
             'scripts/collector/observation.py','scripts/controlled/runtime.py','scripts/controlled/run_case.py',
             'falcon/additional_action.py','falcon/additional_metric.py','falcon/rearrange_sim_v2.py',

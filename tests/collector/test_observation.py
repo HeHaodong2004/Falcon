@@ -148,6 +148,8 @@ class ObservationTests(unittest.TestCase):
             def definitions(source):
                 return {n.name:ast.dump(n,include_attributes=False) for n in ast.parse(source).body
                         if isinstance(n,(ast.FunctionDef,ast.ClassDef)) and n.name in names}
+            # Contact enumeration is now canonically ordered without changing values.
+            new=new.replace('contacts.sort(key=lambda contact: json.dumps(contact, sort_keys=True, allow_nan=False))','')
             self.assertEqual(definitions(old),definitions(new))
 
 

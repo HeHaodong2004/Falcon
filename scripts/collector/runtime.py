@@ -107,6 +107,9 @@ class Recorder:
                 elif not (abs(cp.contact_normal_on_b_in_ws[1]) > .8 and
                           max(cp.position_on_a_in_ws[1],cp.position_on_b_in_ws[1]) < robot['position'][1]+.12):
                     ns = True
+        # Bullet contact enumeration order is not physical state. Preserve every
+        # exact value and duplicate, but serialize this multiset deterministically.
+        contacts.sort(key=lambda contact: json.dumps(contact, sort_keys=True, allow_nan=False))
         row = dict(timestamp=float(sim.get_world_time()), phase=phase, requested_physics_dt=requested_dt,
                    control_index=self.index, issued_command=self.command[:], robot=robot, humans=humans,
                    contacts=contacts, native_human_contact=nh, native_static_contact=ns)

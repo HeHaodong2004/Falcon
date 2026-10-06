@@ -131,10 +131,10 @@ class MassSafetyTests(unittest.TestCase):
         args=SimpleNamespace(concurrency=1,benchmark=True,stop_after_attempts=None)
         with self.assertRaisesRegex(ValueError,'bounded'):mass.run(args)
     def test_high_benchmark_ceiling_and_stagger_validation(self):
-        with self.assertRaisesRegex(ValueError,'1..24'):
-            mass.run(SimpleNamespace(concurrency=25))
+        with self.assertRaisesRegex(ValueError,'1..36'):
+            mass.run(SimpleNamespace(concurrency=37))
         with self.assertRaisesRegex(ValueError,'bounded'):
-            mass.run(SimpleNamespace(concurrency=24,benchmark=True,stop_after_attempts=25))
+            mass.run(SimpleNamespace(concurrency=24,benchmark=True,stop_after_attempts=241))
         with self.assertRaisesRegex(ValueError,'stagger'):
             mass.run(SimpleNamespace(concurrency=24,benchmark=True,stop_after_attempts=24,startup_stagger=-1))
     def test_static_replay_and_oom_failures_are_global(self):

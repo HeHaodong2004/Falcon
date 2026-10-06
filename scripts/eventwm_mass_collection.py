@@ -32,6 +32,10 @@ SAMPLING_CONFIG=read(REPO/'configs/eventwm_wm_train_pilot.json')
 CATEGORIES=allocation(SAMPLING_CONFIG['root_target_percent'],20,random.Random(20261007))
 VISIBLE_CYCLE=allocation(SAMPLING_CONFIG['visible_target_percent'],10,random.Random(20261008))
 LOST_CYCLE=allocation(SAMPLING_CONFIG['lost_target_percent'],20,random.Random(20261009))
+class NoRetainedValidQueries(ValueError):
+    """A correctly audited root whose non-collision outcomes are all unknown."""
+
+
 BANNED_SUFFIXES={'.png','.jpg','.jpeg','.mp4','.avi','.webm','.npz','.zip'}
 
 
@@ -174,12 +178,12 @@ def init(args):
             if s is None:del families[f]
             else:ordered.append(s)
     write(out/'scene_inventory.json',inv)
-    m=dict(schema_version=1,protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,storage_profile='structured_production',
+    m=dict(schema_version=2,sr_contract_version='binary-execution-safety-v1',contact_serialization='sorted-exact-multiset-v1',protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,storage_profile='structured_production',
            collector_storage_profile='production',query_config=asdict(QueryConfig(movement_queries=8)),static_config=asdict(StaticConfig()),
            frozen_commit=git_head(),source_hashes=hashes(),target_primary_queries=args.target,
            max_completed_roots=args.max_roots or math.ceil(args.target/33),min_free_gb=args.min_free_gb,
            roots=[],next_sequence=0,scenes=ordered,state='prepared_not_started',sessions=[],master_seed=410000,
-           max_attempts=2,root_timeout_seconds=2400,collection_seconds=0.,catalogue='catalogue',
+           max_attempts=2,root_timeout_seconds=12000,collection_seconds=0.,catalogue='catalogue',
            role_policy='12.5% scenes held out per large family; 1/8 recipe opportunities natural independent of outcomes; never split a root')
     save(out,m);return m
 
@@ -209,14 +213,22 @@ def inspect_root(path,root):
     if len(primary)!=33 or len(qs)!=33 or len({l['query_id'] for l in primary})!=33:raise RuntimeError('global_integrity: query count/identity')
     if any(q['sha256']!=digest(q['query']) or q['query']['static_precheck']['checker_version']!=CHECKER_VERSION or q['query']['static_precheck']['static_feasible'] is not True for q in qs):raise RuntimeError('global_integrity: query hash/static certificate')
     if any(l['static_feasibility_violation'] for l in labels):raise RuntimeError('global_integrity: static violation')
-    if any(not l['social_outcome_valid'] for l in primary):raise RuntimeError('global_integrity: invalid primary outcome')
+    excluded=[l for l in primary if not l['social_outcome_valid']]
+    if any(l['invalid_reason']!='incomplete_or_invalid_nonhuman_outcome' or l['sr_valid'] or l['sr_label'] is not None for l in excluded):
+        raise RuntimeError('global_integrity: invalid primary evidence')
+    primary=[l for l in primary if l['social_outcome_valid'] and l['sr_valid']]
+    if not primary:raise NoRetainedValidQueries('no_retained_valid_queries')
     history=load_wm_input(path,primary[0]['query_id'])['history']
     state=legal_root_state(history,root['human_count'],read(REPO/'configs/eventwm_wm_train_pilot.json'))
     position=history[-1]['robot_position'];last=history[-1]['previous_command']
+    retained_ids={l['query_id'] for l in primary}
+    retained_queries=[q for q in qs if q['query']['query_id'] in retained_ids]
     variants=Counter('WAIT' if q['query']['direction']=='WAIT' else
-         'half_speed' if q['query']['speed_scale']==.5 else f"wait_{q['query']['wait_duration']}" if q['query']['wait_duration'] else 'immediate_normal' for q in qs)
+         'half_speed' if q['query']['speed_scale']==.5 else f"wait_{q['query']['wait_duration']}" if q['query']['wait_duration'] else 'immediate_normal' for q in retained_queries)
     stats=dict(primary_queries=len(primary),class_counts=dict(Counter(l['social_outcome_name'] for l in primary)),
-        binary_targets=dict(Counter(str(int(l['social_outcome_class']==2)) for l in primary)),static_violations=0,invalid=0,
+        binary_targets=dict(Counter(str(int(l['social_outcome_class']==2)) for l in primary)),
+        sr_targets=dict(Counter(str(l['sr_label']) for l in primary)),static_violations=0,invalid=len(excluded),
+        invalid_reasons=dict(Counter(l['invalid_reason'] for l in excluded)),
         legal_state=state,robot_state='moving' if any(last) else 'stationary',spatial_region_id=root['physical_scene_id']+'/'+region(position),
         spatial_paths=8,variants=dict(variants),bytes=sum(p.stat().st_size for p in path.rglob('*') if p.is_file()))
     return stats,primary
@@ -236,9 +248,9 @@ def aggregate(m):
         robot_state=dict(Counter(r['stats']['robot_state'] for r in done)),
         failed_reasons=dict(Counter(a.get('reason','unknown') for r in m['roots'] for a in r['attempts'] if a['state']=='failed')),
         completed_root_bytes=sum(r['stats']['bytes'] for r in done),collection_seconds=m['collection_seconds'])
-    for key in ('class_counts','binary_targets','variants'):
+    for key in ('class_counts','binary_targets','sr_targets','invalid_reasons','variants'):
         c=Counter()
-        for r in done:c.update(r['stats'][key])
+        for r in done:c.update(r['stats'].get(key,{}))
         report[key]=dict(c)
     report['static_violations']=sum(r.get('stats',{}).get('static_violations',0) for r in m['roots'])+sum(a.get('reason')=='static_violation' for r in m['roots'] for a in r['attempts'])
     report['invalid']=sum(r['stats']['invalid'] for r in done)
@@ -280,6 +292,7 @@ def failure_reason(path,log):
     if 'wm_train_stratum_unavailable' in text:return 'requested_legal_stratum_unavailable',False,text[-6000:]
     if 'insufficient_static_feasible_queries' in text:return 'insufficient_static_feasible_queries',False,text[-6000:]
     if 'Prefix terminated before root' in text:return 'prefix_terminated_before_root',False,text[-6000:]
+    if 'TimeoutExpired' in text:return 'worker_timeout',False,text[-6000:]
     return 'collection_failure_unresolved',False,text[-6000:]
 
 
@@ -299,8 +312,8 @@ def recover_completed(output,root):
 
 
 def run(args):
-    if args.concurrency<1 or args.concurrency>24:raise ValueError('Concurrency must be 1..24')
-    if args.benchmark and (not args.stop_after_attempts or args.stop_after_attempts>24):raise ValueError('Benchmark must be explicitly bounded to at most 24 attempts')
+    if args.concurrency<1 or args.concurrency>36:raise ValueError('Concurrency must be 1..36')
+    if args.benchmark and (not args.stop_after_attempts or args.stop_after_attempts>240):raise ValueError('Benchmark must be explicitly bounded to at most 240 attempts')
     if not 0<=getattr(args,'startup_stagger',3.)<=60:raise ValueError('Startup stagger must be 0..60 seconds')
     if args.target<=0 or (args.max_roots is not None and args.max_roots<=0):raise ValueError('Positive target/root budget required')
     if args.storage_profile!='structured_production':raise ValueError('Only structured_production is authorized')
@@ -337,8 +350,10 @@ def run(args):
             while True:
                 now=time.monotonic();m['collection_seconds']=base_seconds+now-began
                 total=aggregate(m)
-                if not stopping and (total['primary_queries']>=args.target or total['completed_roots']>=m['max_completed_roots']):
-                    stopping=True;m['state']='target_reached'
+                if not args.max_roots and total['completed_roots']>=m['max_completed_roots'] and total['primary_queries']<args.target:
+                    m['max_completed_roots']+=math.ceil((args.target-total['primary_queries'])/33)
+                if not stopping and (total['primary_queries']>=args.target or (args.max_roots and total['completed_roots']>=m['max_completed_roots'])):
+                    stopping=True;m['state']='target_reached' if total['primary_queries']>=args.target else 'root_budget_exhausted'
                 if not stopping and args.stop_after_attempts and launched>=args.stop_after_attempts:
                     stopping=True;m['state']='bounded_benchmark_draining'
                 free=shutil.disk_usage(args.output).free
@@ -367,8 +382,9 @@ def run(args):
                         if code:
                             reason,global_failure,detail=failure_reason(path,Path(attempt['log']))
                             if attempt.get('timeout'):reason='root_timeout'
+                            elif fatal and code<0:reason='cancelled_after_global_failure'
                             attempt.update(state='failed',reason=reason,detail=detail);root['state']='failed'
-                            if global_failure or args.benchmark:stopping=fatal=True;m['state']='global_'+reason
+                            if global_failure:stopping=fatal=True;m['state']='global_'+reason
                         else:
                             stats,labels=inspect_root(path,root)
                             new_ids={l['query_id'] for l in labels}
@@ -383,6 +399,8 @@ def run(args):
                             attempt['state']='completed'
                             write(args.output/'primary_indices'/f"{root['root_id']}.json",dict(root_id=root['root_id'],role=root['role'],scene_role=root['scene_role'],
                                 split_group=root['root_id'],physical_scene_id=root['physical_scene_id'],path=root['path'],samples=labels))
+                    except NoRetainedValidQueries as e:
+                        root['state']='failed';attempt.update(state='failed',reason='no_retained_valid_queries',detail=str(e))
                     except Exception as e:
                         reason='static_violation' if 'static violation' in str(e) else 'integrity_failure'
                         root['state']='failed';attempt.update(state='failed',reason=reason,detail=repr(e));stopping=fatal=True;m['state']='global_'+reason
@@ -398,7 +416,7 @@ def run(args):
                     if args.stop_after_attempts and launched>=args.stop_after_attempts:break
                     root=next((r for r in m['roots'] if r['state']=='pending'),None)
                     if root is None:root=next((r for r in m['roots'] if r['state']=='failed' and len(r['attempts'])<m['max_attempts'] and
-                               r['attempts'][-1]['reason'] in ('interrupted_before_commit','root_timeout')),None)
+                               r['attempts'][-1]['reason'] in ('interrupted_before_commit','root_timeout','worker_timeout')),None)
                     if root is None:
                         root=schedule_spec(m['next_sequence'],m['scenes'],m['master_seed']);m['next_sequence']+=1;m['roots'].append(root)
                         try:root_job(args.output,m,root)

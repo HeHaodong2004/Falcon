@@ -122,7 +122,15 @@ def social_outcome_labels(branch, query, human_count=None):
     # Keep old raw/general metadata, but do not publish v2 binary targets on v3 rows.
     for key in ('human_event_valid', 'human_event_label', 'protocol_version', 'invalid_reason', 'legacy_fields_note'):
         old.pop(key, None)
-    return dict(old, protocol_version=PROTOCOL, social_metric_version=SOCIAL_METRIC,
+    # SR is independent of the three-class social outcome. A declared physical
+    # collision determines SR even when it terminates execution early. Static
+    # collisions still trip the independent static-feasibility quarantine gate.
+    sr_valid = bool(native or static or (branch['completed'] and old['full_horizon_observed']
+                    and branch['termination_reason'] == 'query_completed'))
+    return dict(old, protocol_version=PROTOCOL, sr_contract_version='binary-execution-safety-v1',
+        sr_valid=sr_valid, sr_label=(int(not (native or static)) if sr_valid else None),
+        sr_invalid_reason=None if sr_valid else branch['termination_reason'],
+        social_metric_version=SOCIAL_METRIC,
         social_threshold=SOCIAL_THRESHOLD, social_outcome_valid=reason is None,
         social_outcome_class=None if outcome is None else int(outcome),
         social_outcome_name=None if outcome is None else outcome.name, invalid_reason=reason,

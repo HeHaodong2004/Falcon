@@ -177,4 +177,22 @@ class V3CollectionGates(unittest.TestCase):
         self.assertEqual(l['social_violation_count'],3)
         self.assertEqual(l['social_violation_duration'],end)
 
+
+class BinarySRContract(unittest.TestCase):
+    def test_collision_termination_is_valid_negative(self):
+        for native,static in [(True,False),(False,True),(True,True)]:
+            b,q=fixture(native=native,static=static,completed=False,reason='static_collision' if static else 'robot_human_collision')
+            label=social_outcome_labels(b,q,1)
+            self.assertTrue(label['sr_valid']);self.assertEqual(label['sr_label'],0)
+            self.assertEqual(label['static_feasibility_violation'],static)
+    def test_safe_and_social_success_are_sr_positive(self):
+        for distance in (3.,.8):
+            b,q=fixture(distance=distance)
+            self.assertEqual(social_outcome_labels(b,q,1)['sr_label'],1)
+    def test_unrelated_early_termination_is_excluded(self):
+        for reason in ('timeout','environment_termination','execution_failure','collection_error'):
+            b,q=fixture(completed=False,reason=reason)
+            label=social_outcome_labels(b,q,1)
+            self.assertFalse(label['sr_valid']);self.assertIsNone(label['sr_label'])
+
 if __name__=='__main__':unittest.main()
