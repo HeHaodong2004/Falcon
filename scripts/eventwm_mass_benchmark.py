@@ -89,7 +89,7 @@ def prepare_dataset(output,concurrency,panel):
             sampling_profile=recipe.get('sampling_profile','explicit'),requested_category=recipe.get('sampling',{}).get('target_category'),
             seed=recipe['seed'],recipe=recipe,state='pending',attempts=[]))
     write(output/'catalogue/cases.json',cases);write(output/'catalogue/scenes.json',[s['scene'] for s in scenes])
-    write(output/'manifest.json',dict(schema_version=2,sr_contract_version='binary-execution-safety-v1',contact_serialization='sorted-exact-multiset-v1',protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,
+    write(output/'manifest.json',dict(schema_version=3,branch_truth_encoding='jsonl-gzip-v1',sr_contract_version='binary-execution-safety-v1',contact_serialization='sorted-exact-multiset-v1',protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,
          storage_profile='structured_production',collector_storage_profile='production',frozen_commit=git_head(),source_hashes=hashes(),
          roots=roots,scenes=scenes,target_primary_queries=33*len(panel),max_completed_roots=len(panel),min_free_gb=150,
          state='prepared_not_started',sessions=[],next_sequence=len(panel),master_seed=990000,max_attempts=1,

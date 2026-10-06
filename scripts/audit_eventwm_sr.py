@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 
 from collector.core import build_labels, digest, read, write
+from collector.branch_storage import iter_branches
 from eventwm_scale import verify_root
 
 REPO = Path(__file__).resolve().parents[1]
@@ -107,7 +108,7 @@ def main():
         check('stored_collector_integrity_audits', all(v['status'] == 'PASS' for k, v in saved.items()
               if k != 'human_reactivity'), root_id=rid)
         queries = read(path / 'queries/queries.json'); labels = read(path / 'labels/labels.json')
-        branches = [json.loads(line) for line in (path / 'branch_truth/branches.jsonl').read_text().splitlines()]
+        branches = list(iter_branches(path))
         lb = {l['branch_id']: l for l in labels}; bb = {b['branch_id']: b for b in branches}
         check('unique_branch_and_label_ids', len(lb) == len(labels) and len(bb) == len(branches), root_id=rid)
         primary_ids = {f'b{i:03}' for i in range(len(queries))}

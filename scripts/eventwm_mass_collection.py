@@ -178,7 +178,7 @@ def init(args):
             if s is None:del families[f]
             else:ordered.append(s)
     write(out/'scene_inventory.json',inv)
-    m=dict(schema_version=2,sr_contract_version='binary-execution-safety-v1',contact_serialization='sorted-exact-multiset-v1',protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,storage_profile='structured_production',
+    m=dict(schema_version=3,branch_truth_encoding='jsonl-gzip-v1',sr_contract_version='binary-execution-safety-v1',contact_serialization='sorted-exact-multiset-v1',protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,storage_profile='structured_production',
            collector_storage_profile='production',query_config=asdict(QueryConfig(movement_queries=8)),static_config=asdict(StaticConfig()),
            frozen_commit=git_head(),source_hashes=hashes(),target_primary_queries=args.target,
            max_completed_roots=args.max_roots or math.ceil(args.target/33),min_free_gb=args.min_free_gb,
@@ -205,6 +205,8 @@ def root_job(output,m,spec):
 
 
 def inspect_root(path,root):
+    from collector.branch_storage import branch_path
+    if branch_path(path).name!='branches.jsonl.gz':raise RuntimeError('global_integrity: mixed branch storage encoding')
     if any(p.suffix.lower() in BANNED_SUFFIXES for p in path.rglob('*') if p.is_file()):raise RuntimeError('global_integrity: image/video/archive file written')
     audits=read(path/'audits/audits.json')
     if any(v['status']!='PASS' for k,v in audits.items() if k!='human_reactivity'):raise RuntimeError('global_integrity: collector audit failed')

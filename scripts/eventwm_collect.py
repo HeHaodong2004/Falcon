@@ -86,10 +86,9 @@ def collect(args):
     for i in (1,0):
         records.append(launch(args,f'reverse_{i}',queries[i]['query']['query_id']))
     records.append(launch(args,'truncated_wait',queries[-1]['query']['query_id'],limit=10))
-    with (args.output/'branch_truth/branches.jsonl').open('w') as f:
-        import json
-        for row in records:
-            f.write(json.dumps(row,allow_nan=False)+'\n')
+    from collector.branch_storage import write_branches
+    write_branches(args.output, records, compressed=(getattr(args,'protocol','v2')=='v3' and
+                   getattr(args,'storage_profile','validated')=='production'))
     # Images grouped into one archive per root; no per-timestep/query NPZ files in
     # the logical dataset. Worker files are retained as execution audit artifacts.
     import zipfile
@@ -107,8 +106,8 @@ def collect(args):
 
 
 def branches(output):
-    import json
-    return [json.loads(line) for line in (output/'branch_truth/branches.jsonl').read_text().splitlines()]
+    from collector.branch_storage import iter_branches
+    return list(iter_branches(output))
 
 
 def labels(args):
