@@ -178,7 +178,7 @@ def init(args):
             if s is None:del families[f]
             else:ordered.append(s)
     write(out/'scene_inventory.json',inv)
-    m=dict(schema_version=3,branch_truth_encoding='jsonl-gzip-v1',sr_contract_version='binary-execution-safety-v1',contact_serialization='sorted-exact-multiset-v1',protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,storage_profile='structured_production',
+    m=dict(schema_version=4,prefix_truth_encoding='json-gzip-v1',branch_truth_encoding='jsonl-gzip-v1',sr_contract_version='binary-execution-safety-v1',contact_serialization='sorted-exact-multiset-v1',protocol_version=PROTOCOL,protocol=PROTOCOL,checker=CHECKER_VERSION,storage_profile='structured_production',
            collector_storage_profile='production',query_config=asdict(QueryConfig(movement_queries=8)),static_config=asdict(StaticConfig()),
            frozen_commit=git_head(),source_hashes=hashes(),target_primary_queries=args.target,
            max_completed_roots=args.max_roots or math.ceil(args.target/33),min_free_gb=args.min_free_gb,
@@ -261,7 +261,8 @@ def aggregate(m):
 
 
 def save(output,m):
-    write(output/'manifest.json',m);write(output/'aggregate.json',aggregate(m))
+    from collector.storage import write_compact_json
+    write_compact_json(output/'manifest.json',m);write_compact_json(output/'aggregate.json',aggregate(m))
 
 
 def hardware(previous=None):
@@ -313,8 +314,21 @@ def recover_completed(output,root):
     return True
 
 
+def external_roots(args):
+    """Share the proven machine budget with an unchanged predecessor draining."""
+    path=getattr(args,'drain_from',None)
+    if path is None:return 0
+    if path.resolve()==args.output.resolve():raise ValueError('Drain predecessor must be a different dataset')
+    previous=read(path/'manifest.json')
+    if not previous['state'].startswith(('draining_','stopped_')):
+        raise RuntimeError('Predecessor must be draining or stopped before shared-budget launch')
+    return sum(r['state']=='running' for r in previous['roots'])
+
+
 def run(args):
     if args.concurrency<1 or args.concurrency>36:raise ValueError('Concurrency must be 1..36')
+    total_capacity=getattr(args,'total_concurrency',None) or args.concurrency
+    if not args.concurrency<=total_capacity<=36:raise ValueError('Total concurrency must cover workers and remain at most 36')
     if args.benchmark and (not args.stop_after_attempts or args.stop_after_attempts>240):raise ValueError('Benchmark must be explicitly bounded to at most 240 attempts')
     if not 0<=getattr(args,'startup_stagger',3.)<=60:raise ValueError('Startup stagger must be 0..60 seconds')
     if args.target<=0 or (args.max_roots is not None and args.max_roots<=0):raise ValueError('Positive target/root budget required')
@@ -341,6 +355,8 @@ def run(args):
                 root['state']='failed';root['attempts'][-1].update(state='failed',reason='interrupted_before_commit')
         m['state']='running';m['runner']=dict(pid=os.getpid(),host=socket.gethostname(),started=time.time())
         session=dict(started=time.time(),concurrency=args.concurrency,gpus=args.gpus,threads=1,startup_stagger_seconds=getattr(args,'startup_stagger',3.),benchmark=args.benchmark)
+        session.update(drain_from=str(args.drain_from.resolve()) if getattr(args,'drain_from',None) else None,total_concurrency=total_capacity)
+        external_roots(args)
         m['sessions'].append(session);save(args.output,m)
         stopping=False;fatal=False;active={};launched=0;previous=hardware();last_save=time.monotonic();began=last_save;base_seconds=m['collection_seconds'];next_launch=began
         def stop(signum,frame):
@@ -410,9 +426,12 @@ def run(args):
                     print(root['state'].upper(),root['root_id'],root['scene'],attempt.get('reason'),round(attempt['seconds'],1),flush=True)
                 # Recount after completions so MAX_ROOTS is a hard bound.
                 total=aggregate(m)
+                # The predecessor only drains, so this count cannot grow between dispatches.
+                external_count=external_roots(args)
                 # Dispatch only a bounded number of workers; never hidden-label selection.
                 for slot in range(args.concurrency):
                     if stopping or slot in active:continue
+                    if external_count+len(active)>=total_capacity:break
                     if time.monotonic()<next_launch:break
                     if total['completed_roots']+len(active)>=m['max_completed_roots']:continue
                     if args.stop_after_attempts and launched>=args.stop_after_attempts:break
@@ -497,6 +516,8 @@ def parser():
     p.add_argument('--output',type=Path,default=DEFAULT_OUTPUT);p.add_argument('--target',type=int,default=300000)
     p.add_argument('--max-roots',type=int);p.add_argument('--concurrency',type=int,default=1);p.add_argument('--gpus',default='0,1')
     p.add_argument('--startup-stagger',type=float,default=3.)
+    p.add_argument('--drain-from',type=Path)
+    p.add_argument('--total-concurrency',type=int)
     p.add_argument('--min-free-gb',type=float,default=150);p.add_argument('--storage-profile',default='structured_production')
     p.add_argument('--benchmark',action='store_true');p.add_argument('--stop-after-attempts',type=int)
     return p

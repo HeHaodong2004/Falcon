@@ -276,7 +276,8 @@ def worker(args):
             else:
                 write(out/'legal_observations/image_storage.json',dict(retained=False,
                     reason='structured input uses no pixels; image hash still verified in replay'))
-            write(out/'roots/prefix_truth.json',rec.rows)
+            from collector.storage import write_prefix_truth
+            write_prefix_truth(out,rec.rows,compressed=(v3 and getattr(args,'storage_profile','validated')=='production'))
             scene = next(s for s in read(source/'scenes.json') if s['name']==case['scene'])
             planner = StaticPlanner(source/scene['navmesh'])
             if v2:

@@ -28,3 +28,30 @@ def compact_workers(output):
     write(output/'audits/storage.json',report)
     for path,_ in pending: path.unlink()
     return report
+
+
+def write_compact_json(path, value):
+    """Atomic JSON metadata; whitespace only differs from core.write."""
+    import json
+    from pathlib import Path
+    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+    temporary=path.with_suffix(path.suffix+'.tmp')
+    temporary.write_text(json.dumps(value,separators=(',',':'),allow_nan=False)+'\n')
+    temporary.replace(path)
+
+
+def write_prefix_truth(output, rows, compressed=False):
+    """Preserve all prefix evidence, including rejected-root evidence, losslessly."""
+    import gzip
+    import json
+    from pathlib import Path
+    output=Path(output)
+    if not compressed:
+        return write(output/'roots/prefix_truth.json',rows)
+    path=output/'roots/prefix_truth.json.gz';path.parent.mkdir(parents=True,exist_ok=True)
+    temporary=path.with_suffix(path.suffix+'.tmp')
+    payload=(json.dumps(rows,indent=2,allow_nan=False)+'\n').encode()
+    with temporary.open('wb') as raw:
+        with gzip.GzipFile(filename='',mode='wb',fileobj=raw,compresslevel=1,mtime=0) as packed:
+            packed.write(payload)
+    temporary.replace(path)

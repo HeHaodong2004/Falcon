@@ -25,6 +25,12 @@ def verify_one(arguments):
     path = output / root['path']
     try:
         verify_root(output, dict(root, seals=read(output / root['seal_file'])), deep=True)
+        import gzip
+        require(not (path/'roots/prefix_truth.json').exists(), f"{root['root_id']}: mixed prefix encoding")
+        with gzip.open(path/'roots/prefix_truth.json.gz','rt') as prefix_stream:
+            prefix=json.load(prefix_stream)
+        require(bool(prefix), f"{root['root_id']}: empty prefix truth")
+        del prefix
         stats, retained = inspect_root(path, root)
         for key in stats.keys() - {'bytes'}:
             require(stats[key] == root['stats'][key], f"{root['root_id']}: stats mismatch {key}")
@@ -88,7 +94,7 @@ def check(output, final=False, workers=4):
         if not condition:
             errors.append(message)
     require(m['source_hashes'] == hashes(), 'current source hashes differ from manifest')
-    require(m.get('schema_version') == 3 and m.get('branch_truth_encoding') == 'jsonl-gzip-v1', 'expected lossless binary SR storage schema v3')
+    require(m.get('schema_version') == 4 and m.get('branch_truth_encoding') == 'jsonl-gzip-v1' and m.get('prefix_truth_encoding') == 'json-gzip-v1', 'expected lossless branch/prefix storage schema v4')
     require(m.get('sr_contract_version') == 'binary-execution-safety-v1', 'SR version mismatch')
     require(m.get('contact_serialization') == 'sorted-exact-multiset-v1', 'contact format mismatch')
     require(not any(r['state'] == 'running' for r in m['roots']), 'workers remain running')
