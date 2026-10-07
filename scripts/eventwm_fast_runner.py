@@ -14,6 +14,74 @@ import subprocess
 import sys
 import time
 
+SUPPORTED_TERMINAL_CACHE_COMMIT = 'dd1400e0121a8353d79be12d18f98c15bb17e43f'
+NONRETRYABLE_FAILURES = frozenset({
+    'requested_legal_stratum_unavailable', 'insufficient_static_feasible_queries',
+    'prefix_terminated_before_root', 'episode_preparation_unavailable',
+    'no_retained_valid_queries', 'collection_failure_unresolved',
+})
+
+
+def _immutable(*args, **kwargs):
+    raise TypeError('Validated terminal metadata is immutable')
+
+
+class _FrozenDict(dict):
+    __slots__ = ()
+
+    def __new__(cls, value):
+        if type(value) is not dict or not native_finite(value):
+            raise TypeError('Only validated native dictionaries can be cached')
+        result = dict.__new__(cls)
+        dict.update(result, ((key, _freeze(item)) for key, item in value.items()))
+        return result
+
+    def __init__(self, value):
+        pass  # Reinitialization must not provide a mutation route.
+
+    __setitem__ = __delitem__ = clear = pop = popitem = setdefault = update = __ior__ = _immutable
+
+
+class _FrozenList(list):
+    __slots__ = ()
+
+    def __new__(cls, value):
+        if type(value) not in (list, tuple) or not native_finite(value):
+            raise TypeError('Only validated native sequences can be cached')
+        result = list.__new__(cls)
+        list.extend(result, (_freeze(item) for item in value))
+        return result
+
+    def __init__(self, value):
+        pass
+
+    __setitem__ = __delitem__ = append = clear = extend = insert = pop = remove = reverse = sort = __iadd__ = __imul__ = _immutable
+
+
+def _freeze(value):
+    if type(value) is dict:
+        return _FrozenDict(value)
+    if type(value) in (list, tuple):
+        return _FrozenList(value)
+    return value
+
+
+def freeze_terminal_roots(manifest):
+    """Cache only roots the pinned coordinator never mutates or retries again.
+
+    Completed roots and the listed nonretryable rejections are terminal in the
+    supported source commit. Running/pending roots and timeout retries retain
+    their original objects. A restart loads ordinary JSON objects afresh.
+    """
+    for index, root in enumerate(manifest['roots']):
+        if type(root) is _FrozenDict:
+            continue
+        terminal = root['state'] == 'completed' or (
+            root['state'] == 'failed' and root.get('attempts') and
+            root['attempts'][-1].get('reason') in NONRETRYABLE_FAILURES)
+        if terminal and native_finite(root):
+            manifest['roots'][index] = _freeze(root)
+
 
 def native_finite(value):
     """Reject nonfinite numbers; use stdlib for types needing its exact behavior."""
@@ -22,6 +90,8 @@ def native_finite(value):
     while pending:
         item = pending.pop()
         kind = type(item)
+        if kind is _FrozenDict or kind is _FrozenList:
+            continue  # Constructors validate every value; ordinary mutation raises.
         if kind is str or kind is int or kind is bool or item is None:
             continue
         if kind is float:
@@ -65,6 +135,8 @@ def install_overrides(mass, backend, identity):
         return manifest
 
     def fast_save(output, manifest):
+        if identity.get('worker_commit') == SUPPORTED_TERMINAL_CACHE_COMMIT:
+            freeze_terminal_roots(manifest)
         write_metadata(output / 'manifest.json', manifest, backend)
         write_metadata(output / 'aggregate.json', mass.aggregate(manifest), backend)
 
@@ -101,6 +173,7 @@ def main():
                     worker_checkout=str(worker), worker_commit=mass.git_head(), checkpoint_encoding='JSON, identical decoded values',
                     backend_version=orjson.__version__, backend_directory=str(vendor),
                     backend_sha256={str(path.relative_to(vendor)): hashlib.sha256(path.read_bytes()).hexdigest() for path in package_files},
+                    terminal_metadata_cache='immutable-closed-roots-v1' if mass.git_head() == SUPPORTED_TERMINAL_CACHE_COMMIT else None,
                     overrides=['mass.save: atomic manifest/aggregate JSON encoding only'])
     install_overrides(mass, orjson, identity)
     return mass.run(args)
