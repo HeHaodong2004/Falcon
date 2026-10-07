@@ -17,18 +17,25 @@ import time
 
 def native_finite(value):
     """Reject nonfinite numbers; use stdlib for types needing its exact behavior."""
-    kind = type(value)
-    if kind is float:
-        if not math.isfinite(value):
-            raise ValueError('Out of range float values are not JSON compliant')
-        return True
-    if kind in (str, int, bool, type(None)):
-        return True
-    if kind in (list, tuple):
-        return all(native_finite(item) for item in value)
-    if kind is dict:
-        return all(type(key) is str and native_finite(item) for key, item in value.items())
-    return False
+    pending = [value]
+    native = True
+    while pending:
+        item = pending.pop()
+        kind = type(item)
+        if kind is str or kind is int or kind is bool or item is None:
+            continue
+        if kind is float:
+            if not math.isfinite(item):
+                raise ValueError('Out of range float values are not JSON compliant')
+        elif kind is list or kind is tuple:
+            pending.extend(item)
+        elif kind is dict:
+            if any(type(key) is not str for key in item):
+                native = False
+            pending.extend(item.values())
+        else:
+            native = False
+    return native
 
 
 def encode_metadata(value, backend):
