@@ -1,0 +1,651 @@
+{
+  "base_commit": "bf46195517d33367af061c2982bfbf2ed6f58000",
+  "mass_head": "bf46195517d33367af061c2982bfbf2ed6f58000",
+  "original_head": "bf46195517d33367af061c2982bfbf2ed6f58000",
+  "original_branch": "research/eventquerywm-v0",
+  "mass_branch": "research/eventwm-v3-mass-collection",
+  "original_status": "M EVENTWM_SR_DATA_AUDIT.md\n M scripts/audit_eventwm_sr.py\n?? EVENTQUERYWM_V0_TINY_OVERFIT.md\n?? EVENTWM_EXACT_INPUT_CONTRADICTION_AUDIT.md\n?? EVENTWM_OVERFIT_GATES.md\n?? reports/eventquerywm_v0/contradiction_audit.json\n?? reports/eventquerywm_v0/contradiction_diagnosis.json\n?? reports/eventquerywm_v0/metrics.json\n?? reports/eventquerywm_v0/query_representation_audit.json\n?? reports/eventquerywm_v0/source_fingerprints.json\n?? reports/eventquerywm_v0/terminal_summary.txt\n?? reports/eventwm_exact_input_audit/contradiction_groups.json\n?? reports/eventwm_exact_input_audit/initial_contact_diagnostics.json\n?? reports/eventwm_exact_input_audit/input_shapes.json\n?? reports/eventwm_exact_input_audit/repeated_raw_groups.csv\n?? reports/eventwm_exact_input_audit/repeated_raw_groups.json\n?? reports/eventwm_exact_input_audit/sample_hashes.csv\n?? reports/eventwm_exact_input_audit/sample_hashes.json\n?? reports/eventwm_exact_input_audit/source_fingerprints.json\n?? reports/eventwm_exact_input_audit/summary.json\n?? reports/eventwm_exact_input_audit/terminal_summary.txt\n?? reports/eventwm_overfit/frozen_protocol.json\n?? reports/eventwm_overfit/micro16.pt\n?? reports/eventwm_overfit/micro16_curve.json\n?? reports/eventwm_overfit/micro16_manifest.json\n?? reports/eventwm_overfit/micro16_metrics.json\n?? reports/eventwm_overfit/micro16_predictions.csv\n?? reports/eventwm_overfit/micro16_predictions.json\n?? reports/eventwm_overfit/micro16_reload.json\n?? reports/eventwm_overfit/micro16_steps.jsonl\n?? reports/eventwm_overfit/probability.pt\n?? reports/eventwm_overfit/probability_curve.json\n?? reports/eventwm_overfit/probability_groups_manifest.json\n?? reports/eventwm_overfit/probability_metrics.json\n?? reports/eventwm_overfit/probability_predictions.csv\n?? reports/eventwm_overfit/probability_predictions.json\n?? reports/eventwm_overfit/probability_reload.json\n?? reports/eventwm_overfit/probability_steps.jsonl\n?? reports/eventwm_overfit/source_integrity.json\n?? reports/eventwm_overfit/summary.json\n?? reports/eventwm_overfit/terminal_summary.txt\n?? reports/eventwm_provenance/inventory.csv\n?? reports/eventwm_provenance/inventory.json\n?? reports/eventwm_provenance/terminal_summary.txt\n?? scripts/audit_eventwm_exact_inputs.py\n?? scripts/eventquerywm/__init__.py\n?? scripts/eventquerywm/diagnostics.py\n?? scripts/eventquerywm/experiment.py\n?? scripts/eventquerywm/inputs.py\n?? scripts/eventquerywm/model.py\n?? tests/test_eventquerywm.py\n?? tests/test_eventwm_diagnostics.py\n?? tests/test_exact_input_audit.py\n?? tests/test_sr_audit.py",
+  "mass_status": "M .gitignore\n?? reports/eventwm_mass_collection/benchmark_panel.json\n?? reports/eventwm_mass_collection/dry_run.json\n?? reports/eventwm_mass_collection/episode_inventory_counts.json\n?? reports/eventwm_mass_collection/high_concurrency_decision.json\n?? reports/eventwm_mass_collection/live_c1_footprint.json\n?? reports/eventwm_mass_collection/scene_inventory.json\n?? reports/eventwm_mass_collection/scene_preparation_progress.json\n?? reports/eventwm_mass_collection/unit_tests.txt\n?? scripts/check_eventwm_v3_mass_collection.sh\n?? scripts/eventwm_mass_assets.py\n?? scripts/eventwm_mass_benchmark.py\n?? scripts/eventwm_mass_benchmark_suite.py\n?? scripts/eventwm_mass_collection.py\n?? scripts/eventwm_mass_monitor.py\n?? scripts/eventwm_mass_report.py\n?? scripts/run_eventwm_v3_mass_collection.sh\n?? tests/collector/test_mass.py",
+  "files": [
+    {
+      "path": "configs/eventwm_v2_noncastle_smoke_prefix.json",
+      "base_sha256": "1f80519216bbf7ba58a942efe718ca35a17c2a080fa8a6f5a893fff065c54a22",
+      "original_sha256": "1f80519216bbf7ba58a942efe718ca35a17c2a080fa8a6f5a893fff065c54a22",
+      "mass_sha256": "1f80519216bbf7ba58a942efe718ca35a17c2a080fa8a6f5a893fff065c54a22",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "configs/eventwm_v3_natural_pilot.json",
+      "base_sha256": "e305dd0c9c075fc118e09c323b85e77969a32f8c355883ab345c6002b6dddeb1",
+      "original_sha256": "e305dd0c9c075fc118e09c323b85e77969a32f8c355883ab345c6002b6dddeb1",
+      "mass_sha256": "e305dd0c9c075fc118e09c323b85e77969a32f8c355883ab345c6002b6dddeb1",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "configs/eventwm_v3_natural_pilot_supplement.json",
+      "base_sha256": "496d6e34ec58e3e5a162c31ad518e8819446876222817336185becc33d363251",
+      "original_sha256": "496d6e34ec58e3e5a162c31ad518e8819446876222817336185becc33d363251",
+      "mass_sha256": "496d6e34ec58e3e5a162c31ad518e8819446876222817336185becc33d363251",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "configs/eventwm_wm_train_pilot.json",
+      "base_sha256": "f62af92ff2dbab0915923cca6297d371e838db858a1c3566fe3608823da125f8",
+      "original_sha256": "f62af92ff2dbab0915923cca6297d371e838db858a1c3566fe3608823da125f8",
+      "mass_sha256": "f62af92ff2dbab0915923cca6297d371e838db858a1c3566fe3608823da125f8",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "falcon/__init__.py",
+      "base_sha256": "7237c2523907b4d6fc609176db489e2bcd51360b7f6355248dd29432b551a7b3",
+      "original_sha256": "7237c2523907b4d6fc609176db489e2bcd51360b7f6355248dd29432b551a7b3",
+      "mass_sha256": "7237c2523907b4d6fc609176db489e2bcd51360b7f6355248dd29432b551a7b3",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "falcon/additional_action.py",
+      "base_sha256": "dc67a1742a5c335855181cfdaacd4297ab088d8edbe3a36a9c4dea9ddf5bf930",
+      "original_sha256": "dc67a1742a5c335855181cfdaacd4297ab088d8edbe3a36a9c4dea9ddf5bf930",
+      "mass_sha256": "dc67a1742a5c335855181cfdaacd4297ab088d8edbe3a36a9c4dea9ddf5bf930",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "falcon/additional_metric.py",
+      "base_sha256": "e670bb87f56e5901c55b003642c3ca1c419edc2b5f1afec62356a8ed3d6aad1c",
+      "original_sha256": "e670bb87f56e5901c55b003642c3ca1c419edc2b5f1afec62356a8ed3d6aad1c",
+      "mass_sha256": "e670bb87f56e5901c55b003642c3ca1c419edc2b5f1afec62356a8ed3d6aad1c",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "falcon/additional_sensor.py",
+      "base_sha256": "177093cceda28c8f0d64549488bbfe53fa69dfcdad8a7f3523ba6bc11d9f3aa2",
+      "original_sha256": "177093cceda28c8f0d64549488bbfe53fa69dfcdad8a7f3523ba6bc11d9f3aa2",
+      "mass_sha256": "177093cceda28c8f0d64549488bbfe53fa69dfcdad8a7f3523ba6bc11d9f3aa2",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "falcon/auxiliary_tasks.py",
+      "base_sha256": "229dd814f69b8d84505f099dbcbb18141a026fdcd2ff502d2bea8b8010780579",
+      "original_sha256": "229dd814f69b8d84505f099dbcbb18141a026fdcd2ff502d2bea8b8010780579",
+      "mass_sha256": "229dd814f69b8d84505f099dbcbb18141a026fdcd2ff502d2bea8b8010780579",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "falcon/rearrange_sim_v2.py",
+      "base_sha256": "5918354fe4835b914a52fc0c988c5c105da96b814131136a949a2cf6466f00b4",
+      "original_sha256": "5918354fe4835b914a52fc0c988c5c105da96b814131136a949a2cf6466f00b4",
+      "mass_sha256": "5918354fe4835b914a52fc0c988c5c105da96b814131136a949a2cf6466f00b4",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/collector/core.py",
+      "base_sha256": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+      "original_sha256": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+      "mass_sha256": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+      "all_equal": true,
+      "pilot_sha256": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/debug_static.py",
+      "base_sha256": "c09cb9c2423c75956cbcc97179ed0f0fe60d8c6c1b0c1227c1052eb022d547b7",
+      "original_sha256": "c09cb9c2423c75956cbcc97179ed0f0fe60d8c6c1b0c1227c1052eb022d547b7",
+      "mass_sha256": "c09cb9c2423c75956cbcc97179ed0f0fe60d8c6c1b0c1227c1052eb022d547b7",
+      "all_equal": true,
+      "pilot_sha256": "c09cb9c2423c75956cbcc97179ed0f0fe60d8c6c1b0c1227c1052eb022d547b7",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/multi_human_audit.py",
+      "base_sha256": "8b6ed2a3a76f2814e69a4b7d452055d785f2b5bd3c9f4914819927c2b21fbd4a",
+      "original_sha256": "8b6ed2a3a76f2814e69a4b7d452055d785f2b5bd3c9f4914819927c2b21fbd4a",
+      "mass_sha256": "8b6ed2a3a76f2814e69a4b7d452055d785f2b5bd3c9f4914819927c2b21fbd4a",
+      "all_equal": true,
+      "pilot_sha256": "8b6ed2a3a76f2814e69a4b7d452055d785f2b5bd3c9f4914819927c2b21fbd4a",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/natural_sampling.py",
+      "base_sha256": "aec9c631914ab32fd67bbb4182f5ff5280a0885151d0c5ba82a5457191305af7",
+      "original_sha256": "aec9c631914ab32fd67bbb4182f5ff5280a0885151d0c5ba82a5457191305af7",
+      "mass_sha256": "aec9c631914ab32fd67bbb4182f5ff5280a0885151d0c5ba82a5457191305af7",
+      "all_equal": true,
+      "pilot_sha256": "aec9c631914ab32fd67bbb4182f5ff5280a0885151d0c5ba82a5457191305af7",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/observation.py",
+      "base_sha256": "7212ddf3610b6f6a9174b9d9a3c35d3ad65c2c96f4c88a19962066999b0f0ce9",
+      "original_sha256": "7212ddf3610b6f6a9174b9d9a3c35d3ad65c2c96f4c88a19962066999b0f0ce9",
+      "mass_sha256": "7212ddf3610b6f6a9174b9d9a3c35d3ad65c2c96f4c88a19962066999b0f0ce9",
+      "all_equal": true,
+      "pilot_sha256": "7212ddf3610b6f6a9174b9d9a3c35d3ad65c2c96f4c88a19962066999b0f0ce9",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/observation_audit.py",
+      "base_sha256": "c426f51225b77da0bd5bab74d616f5cd8685633213a1a754051902720fcad260",
+      "original_sha256": "c426f51225b77da0bd5bab74d616f5cd8685633213a1a754051902720fcad260",
+      "mass_sha256": "c426f51225b77da0bd5bab74d616f5cd8685633213a1a754051902720fcad260",
+      "all_equal": true,
+      "pilot_sha256": "c426f51225b77da0bd5bab74d616f5cd8685633213a1a754051902720fcad260",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/root_sampling.py",
+      "base_sha256": "36edb643d91934f68221c603ef9efa31fad30dc41b0fd5757570fbdc87c8b43f",
+      "original_sha256": "36edb643d91934f68221c603ef9efa31fad30dc41b0fd5757570fbdc87c8b43f",
+      "mass_sha256": "36edb643d91934f68221c603ef9efa31fad30dc41b0fd5757570fbdc87c8b43f",
+      "all_equal": true,
+      "pilot_sha256": "36edb643d91934f68221c603ef9efa31fad30dc41b0fd5757570fbdc87c8b43f",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/runtime.py",
+      "base_sha256": "ad485a52779bbdb5d2149b6aec6f10bf5b12fad91f701aca3072c2dd7840ede4",
+      "original_sha256": "ad485a52779bbdb5d2149b6aec6f10bf5b12fad91f701aca3072c2dd7840ede4",
+      "mass_sha256": "ad485a52779bbdb5d2149b6aec6f10bf5b12fad91f701aca3072c2dd7840ede4",
+      "all_equal": true,
+      "pilot_sha256": "ad485a52779bbdb5d2149b6aec6f10bf5b12fad91f701aca3072c2dd7840ede4",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/sampling_audit.py",
+      "base_sha256": "177cf15b2a9c6031a3987e242b3c4c25c3c2439b579ab35c00005665242a1b7f",
+      "original_sha256": "177cf15b2a9c6031a3987e242b3c4c25c3c2439b579ab35c00005665242a1b7f",
+      "mass_sha256": "177cf15b2a9c6031a3987e242b3c4c25c3c2439b579ab35c00005665242a1b7f",
+      "all_equal": true,
+      "pilot_sha256": "177cf15b2a9c6031a3987e242b3c4c25c3c2439b579ab35c00005665242a1b7f",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/social_habitat.py",
+      "base_sha256": "5edfd18fe3d22c78cce6651dd77231af4ad922d798a00c238316a42e44970e39",
+      "original_sha256": "5edfd18fe3d22c78cce6651dd77231af4ad922d798a00c238316a42e44970e39",
+      "mass_sha256": "5edfd18fe3d22c78cce6651dd77231af4ad922d798a00c238316a42e44970e39",
+      "all_equal": true,
+      "pilot_sha256": "5edfd18fe3d22c78cce6651dd77231af4ad922d798a00c238316a42e44970e39",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/static_feasibility.py",
+      "base_sha256": "93be0dc1821c277d9276485084730b386ff938a154b237253a904dc309d12228",
+      "original_sha256": "93be0dc1821c277d9276485084730b386ff938a154b237253a904dc309d12228",
+      "mass_sha256": "93be0dc1821c277d9276485084730b386ff938a154b237253a904dc309d12228",
+      "all_equal": true,
+      "pilot_sha256": "93be0dc1821c277d9276485084730b386ff938a154b237253a904dc309d12228",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/static_habitat.py",
+      "base_sha256": "e10406110dbef8c38f4e615663aa3b247d09d84d65ae4c313dca5d978c9de4ed",
+      "original_sha256": "e10406110dbef8c38f4e615663aa3b247d09d84d65ae4c313dca5d978c9de4ed",
+      "mass_sha256": "e10406110dbef8c38f4e615663aa3b247d09d84d65ae4c313dca5d978c9de4ed",
+      "all_equal": true,
+      "pilot_sha256": "e10406110dbef8c38f4e615663aa3b247d09d84d65ae4c313dca5d978c9de4ed",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/storage.py",
+      "base_sha256": "7b920d181bfdb54526b2e9daf9c86334905c0a5f74ffed190e4a0b8a285eb290",
+      "original_sha256": "7b920d181bfdb54526b2e9daf9c86334905c0a5f74ffed190e4a0b8a285eb290",
+      "mass_sha256": "7b920d181bfdb54526b2e9daf9c86334905c0a5f74ffed190e4a0b8a285eb290",
+      "all_equal": true,
+      "pilot_sha256": "7b920d181bfdb54526b2e9daf9c86334905c0a5f74ffed190e4a0b8a285eb290",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/v2.py",
+      "base_sha256": "eac8b9e869e855bdc71718792deb4349f529905c30ff26403a4bde5e4630a2a5",
+      "original_sha256": "eac8b9e869e855bdc71718792deb4349f529905c30ff26403a4bde5e4630a2a5",
+      "mass_sha256": "eac8b9e869e855bdc71718792deb4349f529905c30ff26403a4bde5e4630a2a5",
+      "all_equal": true,
+      "pilot_sha256": "eac8b9e869e855bdc71718792deb4349f529905c30ff26403a4bde5e4630a2a5",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/v3.py",
+      "base_sha256": "be1025999a1fa1a5f294f125c8612c95b827eb1a5dc52eb2bf7b952708bb9ae1",
+      "original_sha256": "be1025999a1fa1a5f294f125c8612c95b827eb1a5dc52eb2bf7b952708bb9ae1",
+      "mass_sha256": "be1025999a1fa1a5f294f125c8612c95b827eb1a5dc52eb2bf7b952708bb9ae1",
+      "all_equal": true,
+      "pilot_sha256": "be1025999a1fa1a5f294f125c8612c95b827eb1a5dc52eb2bf7b952708bb9ae1",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/collector/wm_sampling.py",
+      "base_sha256": "fa919cebf4a18b0eb1d393156ae2c1df4a7ec63e4cac529d0a20ccb17842d92b",
+      "original_sha256": "fa919cebf4a18b0eb1d393156ae2c1df4a7ec63e4cac529d0a20ccb17842d92b",
+      "mass_sha256": "fa919cebf4a18b0eb1d393156ae2c1df4a7ec63e4cac529d0a20ccb17842d92b",
+      "all_equal": true,
+      "pilot_sha256": "fa919cebf4a18b0eb1d393156ae2c1df4a7ec63e4cac529d0a20ccb17842d92b",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/controlled/generate.py",
+      "base_sha256": "b1b26e07e4d2de75774614a3f2bd4133430fa706c0ae652d48443df513812fa4",
+      "original_sha256": "b1b26e07e4d2de75774614a3f2bd4133430fa706c0ae652d48443df513812fa4",
+      "mass_sha256": "b1b26e07e4d2de75774614a3f2bd4133430fa706c0ae652d48443df513812fa4",
+      "all_equal": true,
+      "pilot_sha256": "b1b26e07e4d2de75774614a3f2bd4133430fa706c0ae652d48443df513812fa4",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/controlled/run_case.py",
+      "base_sha256": "af7682632c3ccf462d5e29910c4ff52a4e8b0f68e5a8ae13c8a54b338c3b81d5",
+      "original_sha256": "af7682632c3ccf462d5e29910c4ff52a4e8b0f68e5a8ae13c8a54b338c3b81d5",
+      "mass_sha256": "af7682632c3ccf462d5e29910c4ff52a4e8b0f68e5a8ae13c8a54b338c3b81d5",
+      "all_equal": true,
+      "pilot_sha256": "af7682632c3ccf462d5e29910c4ff52a4e8b0f68e5a8ae13c8a54b338c3b81d5",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/controlled/runtime.py",
+      "base_sha256": "e83e04c61af3b5d87b6bb3ba51e782c8d8a02bc1595764ec825aef4662c9ec51",
+      "original_sha256": "e83e04c61af3b5d87b6bb3ba51e782c8d8a02bc1595764ec825aef4662c9ec51",
+      "mass_sha256": "e83e04c61af3b5d87b6bb3ba51e782c8d8a02bc1595764ec825aef4662c9ec51",
+      "all_equal": true,
+      "pilot_sha256": "e83e04c61af3b5d87b6bb3ba51e782c8d8a02bc1595764ec825aef4662c9ec51",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/eventwm_collect.py",
+      "base_sha256": "a18b534c6cf790a857285065002a489c1b68e1cf76397dadcd3de63e1ea6c4a0",
+      "original_sha256": "a18b534c6cf790a857285065002a489c1b68e1cf76397dadcd3de63e1ea6c4a0",
+      "mass_sha256": "a18b534c6cf790a857285065002a489c1b68e1cf76397dadcd3de63e1ea6c4a0",
+      "all_equal": true,
+      "pilot_sha256": "a18b534c6cf790a857285065002a489c1b68e1cf76397dadcd3de63e1ea6c4a0",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/eventwm_human_defaults_audit.py",
+      "base_sha256": "1703060a6755bc7d3641ee70515d1b96fb6ab9a0db55d1a0d258f991e663361b",
+      "original_sha256": "1703060a6755bc7d3641ee70515d1b96fb6ab9a0db55d1a0d258f991e663361b",
+      "mass_sha256": "1703060a6755bc7d3641ee70515d1b96fb6ab9a0db55d1a0d258f991e663361b",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_overnight.py",
+      "base_sha256": "e5dbecf8f0c286cadbdcc8a441f252e717311a489ec6aa088cfeda7656779955",
+      "original_sha256": "e5dbecf8f0c286cadbdcc8a441f252e717311a489ec6aa088cfeda7656779955",
+      "mass_sha256": "e5dbecf8f0c286cadbdcc8a441f252e717311a489ec6aa088cfeda7656779955",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_scale.py",
+      "base_sha256": "237a884599384e300e9827be422b00827b6a1aaaed4e2923bc38dfcac5d112d5",
+      "original_sha256": "237a884599384e300e9827be422b00827b6a1aaaed4e2923bc38dfcac5d112d5",
+      "mass_sha256": "237a884599384e300e9827be422b00827b6a1aaaed4e2923bc38dfcac5d112d5",
+      "all_equal": true,
+      "pilot_sha256": "237a884599384e300e9827be422b00827b6a1aaaed4e2923bc38dfcac5d112d5",
+      "pilot_matches": true
+    },
+    {
+      "path": "scripts/eventwm_v2.py",
+      "base_sha256": "ddf9bdf23bee95b4d3b8e39489c4ce471aeec09e190d5a7714a6c105010f9877",
+      "original_sha256": "ddf9bdf23bee95b4d3b8e39489c4ce471aeec09e190d5a7714a6c105010f9877",
+      "mass_sha256": "ddf9bdf23bee95b4d3b8e39489c4ce471aeec09e190d5a7714a6c105010f9877",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_v2_visualize.py",
+      "base_sha256": "3d64f27eb0768cd40edff0187a5a445dfed062e78b9260a8e84495ff09b5c689",
+      "original_sha256": "3d64f27eb0768cd40edff0187a5a445dfed062e78b9260a8e84495ff09b5c689",
+      "mass_sha256": "3d64f27eb0768cd40edff0187a5a445dfed062e78b9260a8e84495ff09b5c689",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_v3.py",
+      "base_sha256": "eaf4f28e5a7956d376160ada428e7bd8c6f4182ee7ab27e36763d5b85eeba9de",
+      "original_sha256": "eaf4f28e5a7956d376160ada428e7bd8c6f4182ee7ab27e36763d5b85eeba9de",
+      "mass_sha256": "eaf4f28e5a7956d376160ada428e7bd8c6f4182ee7ab27e36763d5b85eeba9de",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_v3_sampling_pilot.py",
+      "base_sha256": "53cd3354b7ab34ce0dd4234693bddcd5be9595867f355472d276806bc06bf945",
+      "original_sha256": "53cd3354b7ab34ce0dd4234693bddcd5be9595867f355472d276806bc06bf945",
+      "mass_sha256": "53cd3354b7ab34ce0dd4234693bddcd5be9595867f355472d276806bc06bf945",
+      "all_equal": true,
+      "pilot_sha256": "20b37009cdc0f6f744201171d3a9f4b6381fe79c81b3ee0191c2ca6226398dad",
+      "pilot_matches": false
+    },
+    {
+      "path": "scripts/eventwm_v3_sampling_report.py",
+      "base_sha256": "86fa1e3ffdc42528e1edebe75652ed9fedf8927c638e4d9e9fb3d43e2b8808d0",
+      "original_sha256": "86fa1e3ffdc42528e1edebe75652ed9fedf8927c638e4d9e9fb3d43e2b8808d0",
+      "mass_sha256": "86fa1e3ffdc42528e1edebe75652ed9fedf8927c638e4d9e9fb3d43e2b8808d0",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_v3_visualize.py",
+      "base_sha256": "c2e87110eb67132867c8ff199fe65fbeeb9bdd7d0e1f8df5b9b1e0253c521875",
+      "original_sha256": "c2e87110eb67132867c8ff199fe65fbeeb9bdd7d0e1f8df5b9b1e0253c521875",
+      "mass_sha256": "c2e87110eb67132867c8ff199fe65fbeeb9bdd7d0e1f8df5b9b1e0253c521875",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_wm_train_index.py",
+      "base_sha256": "5c6f1afc2fcd7ffd5cce9bd7f6b513a1e5206e63c3e8d0fe3d20671372abfe78",
+      "original_sha256": "5c6f1afc2fcd7ffd5cce9bd7f6b513a1e5206e63c3e8d0fe3d20671372abfe78",
+      "mass_sha256": "5c6f1afc2fcd7ffd5cce9bd7f6b513a1e5206e63c3e8d0fe3d20671372abfe78",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    },
+    {
+      "path": "scripts/eventwm_wm_train_pilot.py",
+      "base_sha256": "8c0a71d9b93f6959a732c0fc5de51109a4f89b8944b940495e8e61961ae12ac1",
+      "original_sha256": "8c0a71d9b93f6959a732c0fc5de51109a4f89b8944b940495e8e61961ae12ac1",
+      "mass_sha256": "8c0a71d9b93f6959a732c0fc5de51109a4f89b8944b940495e8e61961ae12ac1",
+      "all_equal": true,
+      "pilot_sha256": null,
+      "pilot_matches": null
+    }
+  ],
+  "branches": [
+    {
+      "ref": "refs/heads/research/controlled-matrix",
+      "commit": "d15ef512c4b1451f9daeaf6d4d7ecc702ed57430",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/core.py",
+        "scripts/collector/debug_static.py",
+        "scripts/collector/multi_human_audit.py",
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/observation.py",
+        "scripts/collector/observation_audit.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/social_habitat.py",
+        "scripts/collector/static_feasibility.py",
+        "scripts/collector/static_habitat.py",
+        "scripts/collector/storage.py",
+        "scripts/collector/v2.py",
+        "scripts/collector/v3.py",
+        "scripts/collector/wm_sampling.py",
+        "scripts/eventwm_collect.py"
+      ]
+    },
+    {
+      "ref": "refs/heads/research/eventquerywm-v0",
+      "commit": "bf46195517d33367af061c2982bfbf2ed6f58000",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": []
+    },
+    {
+      "ref": "refs/heads/research/eventwm-data-collector",
+      "commit": "b041762b368cfd9f59d4217a400164e60e3b185f",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/core.py",
+        "scripts/collector/debug_static.py",
+        "scripts/collector/multi_human_audit.py",
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/observation.py",
+        "scripts/collector/observation_audit.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/social_habitat.py",
+        "scripts/collector/static_feasibility.py",
+        "scripts/collector/static_habitat.py",
+        "scripts/collector/storage.py",
+        "scripts/collector/v2.py",
+        "scripts/collector/v3.py",
+        "scripts/collector/wm_sampling.py",
+        "scripts/eventwm_collect.py"
+      ]
+    },
+    {
+      "ref": "refs/heads/research/eventwm-human-event-v2",
+      "commit": "36e2872d09cced67050be9776770550906aeaf65",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/core.py",
+        "scripts/collector/debug_static.py",
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/social_habitat.py",
+        "scripts/collector/storage.py",
+        "scripts/collector/v3.py",
+        "scripts/collector/wm_sampling.py",
+        "scripts/eventwm_collect.py"
+      ]
+    },
+    {
+      "ref": "refs/heads/research/eventwm-social-outcome-v3",
+      "commit": "82097ac974cba4f8aa604d3319238f7a2fe75a50",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/wm_sampling.py"
+      ]
+    },
+    {
+      "ref": "refs/heads/research/eventwm-v3-mass-collection",
+      "commit": "bf46195517d33367af061c2982bfbf2ed6f58000",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": []
+    },
+    {
+      "ref": "refs/heads/research/eventwm-v3-natural-sampling",
+      "commit": "bf46195517d33367af061c2982bfbf2ed6f58000",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": []
+    },
+    {
+      "ref": "refs/heads/research/structured-human-observation",
+      "commit": "4a72eaa692dd4984da2a113517b761a7863aa639",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/core.py",
+        "scripts/collector/debug_static.py",
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/social_habitat.py",
+        "scripts/collector/static_feasibility.py",
+        "scripts/collector/static_habitat.py",
+        "scripts/collector/storage.py",
+        "scripts/collector/v2.py",
+        "scripts/collector/v3.py",
+        "scripts/collector/wm_sampling.py",
+        "scripts/eventwm_collect.py"
+      ]
+    },
+    {
+      "ref": "refs/remotes/origin/HEAD",
+      "commit": "d15ef512c4b1451f9daeaf6d4d7ecc702ed57430",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/core.py",
+        "scripts/collector/debug_static.py",
+        "scripts/collector/multi_human_audit.py",
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/observation.py",
+        "scripts/collector/observation_audit.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/social_habitat.py",
+        "scripts/collector/static_feasibility.py",
+        "scripts/collector/static_habitat.py",
+        "scripts/collector/storage.py",
+        "scripts/collector/v2.py",
+        "scripts/collector/v3.py",
+        "scripts/collector/wm_sampling.py",
+        "scripts/eventwm_collect.py"
+      ]
+    },
+    {
+      "ref": "refs/remotes/origin/main",
+      "commit": "d15ef512c4b1451f9daeaf6d4d7ecc702ed57430",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/core.py",
+        "scripts/collector/debug_static.py",
+        "scripts/collector/multi_human_audit.py",
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/observation.py",
+        "scripts/collector/observation_audit.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/social_habitat.py",
+        "scripts/collector/static_feasibility.py",
+        "scripts/collector/static_habitat.py",
+        "scripts/collector/storage.py",
+        "scripts/collector/v2.py",
+        "scripts/collector/v3.py",
+        "scripts/collector/wm_sampling.py",
+        "scripts/eventwm_collect.py"
+      ]
+    },
+    {
+      "ref": "refs/remotes/origin/research/controlled-matrix",
+      "commit": "d15ef512c4b1451f9daeaf6d4d7ecc702ed57430",
+      "tip_is_ancestor_of_base": true,
+      "commits_not_in_base": 0,
+      "diff_paths": [
+        "scripts/collector/core.py",
+        "scripts/collector/debug_static.py",
+        "scripts/collector/multi_human_audit.py",
+        "scripts/collector/natural_sampling.py",
+        "scripts/collector/observation.py",
+        "scripts/collector/observation_audit.py",
+        "scripts/collector/root_sampling.py",
+        "scripts/collector/runtime.py",
+        "scripts/collector/sampling_audit.py",
+        "scripts/collector/social_habitat.py",
+        "scripts/collector/static_feasibility.py",
+        "scripts/collector/static_habitat.py",
+        "scripts/collector/storage.py",
+        "scripts/collector/v2.py",
+        "scripts/collector/v3.py",
+        "scripts/collector/wm_sampling.py",
+        "scripts/eventwm_collect.py"
+      ]
+    }
+  ],
+  "collector_commits_after_base": [],
+  "pilot_recorded_commit": "82097ac974cba4f8aa604d3319238f7a2fe75a50",
+  "pilot_source_mismatches": [
+    {
+      "path": "scripts/eventwm_v3_sampling_pilot.py",
+      "base_sha256": "53cd3354b7ab34ce0dd4234693bddcd5be9595867f355472d276806bc06bf945",
+      "original_sha256": "53cd3354b7ab34ce0dd4234693bddcd5be9595867f355472d276806bc06bf945",
+      "mass_sha256": "53cd3354b7ab34ce0dd4234693bddcd5be9595867f355472d276806bc06bf945",
+      "all_equal": true,
+      "pilot_sha256": "20b37009cdc0f6f744201171d3a9f4b6381fe79c81b3ee0191c2ca6226398dad",
+      "pilot_matches": false
+    }
+  ],
+  "overfit_frozen_sources": [
+    {
+      "path": "output/eventwm_wm_train_validation/training_index.json",
+      "expected_sha256": "0cdd7519ccd01dacd6a302055221d18f0ef08819fc4a58200d7a06326566f1b4",
+      "current_sha256": "0cdd7519ccd01dacd6a302055221d18f0ef08819fc4a58200d7a06326566f1b4",
+      "unchanged": true
+    },
+    {
+      "path": "reports/eventwm_exact_input_audit/sample_hashes.json",
+      "expected_sha256": "09578955eb7d365972923a8e218d5f16ed28d4a2d7c6b1e9469412ed0e8d5709",
+      "current_sha256": "09578955eb7d365972923a8e218d5f16ed28d4a2d7c6b1e9469412ed0e8d5709",
+      "unchanged": true
+    },
+    {
+      "path": "reports/eventwm_exact_input_audit/contradiction_groups.json",
+      "expected_sha256": "adf716977cdc283a00417ad6218e8f410d4284277a3a6da18385552b01a3fd1e",
+      "current_sha256": "adf716977cdc283a00417ad6218e8f410d4284277a3a6da18385552b01a3fd1e",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/eventquerywm/model.py",
+      "expected_sha256": "2917d90da3bf43c6857699cee4e283d6e42b71014086bb5e9e7dad3e196f88ab",
+      "current_sha256": "2917d90da3bf43c6857699cee4e283d6e42b71014086bb5e9e7dad3e196f88ab",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/eventquerywm/inputs.py",
+      "expected_sha256": "1a2039ff7c0d37e4de05516469455721466c7ce68762262f0e0b17c3d0cf3779",
+      "current_sha256": "1a2039ff7c0d37e4de05516469455721466c7ce68762262f0e0b17c3d0cf3779",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/collector/core.py",
+      "expected_sha256": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+      "current_sha256": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/collector/v3.py",
+      "expected_sha256": "be1025999a1fa1a5f294f125c8612c95b827eb1a5dc52eb2bf7b952708bb9ae1",
+      "current_sha256": "be1025999a1fa1a5f294f125c8612c95b827eb1a5dc52eb2bf7b952708bb9ae1",
+      "unchanged": true
+    },
+    {
+      "path": "datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/manifest.json",
+      "expected_sha256": "f8c4e28f2d3885c86c9f5e07542e2075fafc419e4242b513cb97742473b1b2db",
+      "current_sha256": "f8c4e28f2d3885c86c9f5e07542e2075fafc419e4242b513cb97742473b1b2db",
+      "unchanged": true
+    }
+  ],
+  "queries_py_exists": {
+    "base": false,
+    "original": false,
+    "mass": false
+  },
+  "scope": "Local branches, local remote-tracking refs, original and mass worktree bytes; no remote fetch"
+}

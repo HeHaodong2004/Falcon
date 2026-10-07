@@ -1,0 +1,27 @@
+{
+  "selected_test_concurrency": 24,
+  "reason": "One measured-footprint-sized high wave; intermediate sweep canceled by user",
+  "sample_seconds": 49.05660833900038,
+  "worker_cpu_core_equivalents": 0.9151943930931004,
+  "worker_peak_rss_gb": 2.055458816,
+  "collector_gpu_mean_percent": 1.625,
+  "collector_gpu_peak_mib": 1206,
+  "io_wait_percent": 0.010876323801695021,
+  "estimated_c24_cpu_cores": 21.96466543423441,
+  "estimated_c24_ram_gb": 49.331011583999995,
+  "estimated_c24_per_gpu_vram_mib": 14472,
+  "conservative_ram_budget_gb": 118.66202316799999,
+  "desktop_gpu0_peak_mib": 1052,
+  "startup_stagger_seconds": 3,
+  "cpu_threads_per_worker": 1,
+  "gpu_assignment": [
+    0,
+    1
+  ],
+  "caveats": [
+    "CPU hyperthread scaling is not linear",
+    "Peak GPU utilization is bursty",
+    "Per-scene asset footprints vary",
+    "High batch uses validated Castle recipes; HM3D baseline retained separately"
+  ]
+}

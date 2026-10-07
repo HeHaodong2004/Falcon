@@ -1,0 +1,47 @@
+{
+  "root_target_percent": {
+    "zero": 10,
+    "unseen": 15,
+    "visible": 30,
+    "lost": 30,
+    "visible_lost": 15
+  },
+  "visible_target_percent": {
+    "near": 30,
+    "medium": 50,
+    "far": 20
+  },
+  "lost_target_percent": {
+    "recent": 50,
+    "medium": 35,
+    "stale": 15
+  },
+  "root_cycle": {
+    "lost": 6,
+    "visible": 6,
+    "zero": 2,
+    "visible_lost": 3,
+    "unseen": 3
+  },
+  "visible_cycle": {
+    "medium": 5,
+    "far": 2,
+    "near": 3
+  },
+  "lost_cycle": {
+    "recent": 10,
+    "medium": 7,
+    "stale": 3
+  },
+  "canonical_allocator": "eventwm_wm_train_pilot.allocation",
+  "runtime_selector": "collector.wm_sampling",
+  "offline_class_target": [
+    0.3,
+    0.3,
+    0.4
+  ],
+  "raw_outcome_filter": false,
+  "collector_modified": false,
+  "scheduling_correction": "Independent targeted/category-conditional counters prevent natural-slot aliasing; verified exact masses over 4000 targeted opportunities for 1, 5 and 952 scenes.",
+  "benchmark_effect": "C24 uses frozen pilot recipes and does not invoke schedule_spec; dispatch/collector code unchanged by the quota bookkeeping correction."
+}

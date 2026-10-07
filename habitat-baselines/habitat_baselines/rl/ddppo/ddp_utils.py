@@ -221,7 +221,8 @@ def load_resume_state(
     if rank0_only():
         logger.info(f"Loading resume state: {filename}")
 
-    return torch.load(filename, map_location="cpu", weights_only=False)
+    # PyTorch 1.12 (the CI pin) loads full checkpoints by default.
+    return torch.load(filename, map_location="cpu")
 
 
 def requeue_job():

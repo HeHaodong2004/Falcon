@@ -205,7 +205,6 @@ class SingleAgentAccessMgr(AgentAccessMgr):
             pretrained_state = torch.load(
                 self._config.habitat_baselines.rl.ddppo.pretrained_weights,
                 map_location="cpu",
-                weights_only=False,
             )
 
         # adapt to multi-agent setup
