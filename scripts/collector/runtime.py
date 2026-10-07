@@ -209,6 +209,10 @@ def worker(args):
             prefix_root=LegalRoot(recipe['root_id']+'/prefix',tuple(pose['position']),pose['yaw'],
                 1/task._physics_target_sps+sim.ac_freq_ratio*sim.get_physics_time_step(),1/sim.ctrl_freq)
             world=HabitatStaticWorld(planner,sim,robot)
+            if v3 and getattr(args, 'exact_root_preflight', False):
+                from collector.root_preflight import run_root_preflight
+                run_root_preflight(prefix_root,world,world.geometry,
+                    StaticConfig(**recipe.get('static_config',{})),out,'natural_prefix')
             choices,generation=generate_queries_v3(prefix_root,world,world.geometry,
                 QueryConfig(movement_queries=selection['prefix_movement_queries']),StaticConfig(**recipe.get('static_config',{})))
             chosen=choices[4*selection['selected_prefix_path']].data
@@ -256,6 +260,9 @@ def worker(args):
         fingerprint = digest(root_state)
         write(attempt/'root_fingerprint.json',dict(sha256=fingerprint,state=root_state))
         write(attempt/'observation_diagnostics.json',observer.diagnostics)
+        checkpoint_hook = globals().get('_exact_root_checkpoint_hook')
+        if checkpoint_hook is not None and args.query_id is None:
+            attempt = checkpoint_hook(args, attempt, env, root_state, history, control_times)
         if args.query_id is None:
             if recipe.get('sampling_audit'):
                 from collector.sampling_audit import root_diagnostics
@@ -287,6 +294,10 @@ def worker(args):
                 from collector.static_feasibility import StaticConfig
                 from collector.static_habitat import HabitatStaticWorld
                 static_world = HabitatStaticWorld(planner,sim,sim.get_agent_data(0).articulated_agent)
+                if v3 and getattr(args, 'exact_root_preflight', False):
+                    from collector.root_preflight import run_root_preflight
+                    run_root_preflight(LegalRoot.load(legal),static_world,static_world.geometry,
+                        StaticConfig(**recipe.get('static_config',{})),out,'selected_root')
                 try:
                     queries,generation = generate_queries_v2(LegalRoot.load(legal),static_world,static_world.geometry,
                         QueryConfig(**recipe.get('query_config',{})),StaticConfig(**recipe.get('static_config',{})))
