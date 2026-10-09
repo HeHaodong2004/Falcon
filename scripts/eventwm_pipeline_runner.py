@@ -181,7 +181,8 @@ def run(args, release):
                 raise RuntimeError('Resume source/commit differs')
             if manifest.get('pipeline_release', digest(release)) != digest(release):
                 raise RuntimeError('Resume release differs')
-            manifest.update(pipeline_version=1, pipeline_settings=settings, pipeline_release=digest(release))
+            manifest.update(pipeline_version=1, pipeline_settings=settings, pipeline_release=digest(release),
+                            production_geometry_sampler=release['configuration'].get('production_geometry_sampler',False))
             if args.fixture:
                 populate_fixture(output, manifest, args.fixture)
             for index, root in enumerate(manifest['roots']):
@@ -213,6 +214,11 @@ def coordinate(args, output, manifest, store):
     coverage = {name:Counter() for name in scenes}
     for root in roots.values():
         if root.get('start_region'): coverage[root['scene']][root['start_region']] += 1
+    v3_coverage = {name:Counter() for name in scenes}
+    for root in roots.values():
+        cell=root.get('v3_shadow_start_region',root.get('start_region'))
+        if cell:v3_coverage[root['scene']][cell]+=1
+    geometry_enabled=manifest.get('production_geometry_sampler',False)
     index = ActiveIndex(roots, lambda r:retryable(r, manifest))
     running, checkpoints, pids = set(), {}, set()
     native, preparing, validating, packing = {}, {}, {}, {}
@@ -293,6 +299,13 @@ def coordinate(args, output, manifest, store):
                     root.update(state='pending', start_region=result['start_region'], episode_sha256=result['episode_sha256'])
                     coverage[root['scene']][root['start_region']] += 1
                     root.pop('_preparation_covered',None)
+                if 'v3_shadow_start_region' in result:
+                    root.update({k:v for k,v in result.items() if k.startswith('v3_shadow_')})
+                    cell=result['v3_shadow_start_region']
+                    if cell:v3_coverage[root['scene']][cell]+=1
+                elif result.get('start_region'):
+                    v3_coverage[root['scene']][result['start_region']]+=1
+                root.pop('_v3_preparation_covered',None)
                 persist(root)
                 event('preparation_end',root_id=root['root_id'],**result)
             for f in list(packing):
@@ -489,10 +502,16 @@ def coordinate(args, output, manifest, store):
                             manifest['max_completed_roots']+=math.ceil((args.target-committed_queries)/33)
                         else: break
                     if args.max_proposals is not None and manifest['next_sequence']>=args.max_proposals: break
-                    root=mass.schedule_spec(manifest['next_sequence'],manifest['scenes'],manifest['master_seed'])
+                    if geometry_enabled:
+                        from eventwm_geometry_v4 import spec as schedule
+                    else:schedule=mass.schedule_spec
+                    root=schedule(manifest['next_sequence'],manifest['scenes'],manifest['master_seed'])
                     if root['scene'] in preparing_scenes: break
                     root.update(state='preparing',_pipeline_ordinal=len(manifest['roots']),
                                 _preparation_covered=dict(coverage[root['scene']]))
+                    if geometry_enabled:
+                        root['_v3_preparation_covered']=dict(v3_coverage[root['scene']])
+                    if 'frozen_commit' in manifest:root['source_commit']=manifest['frozen_commit']
                     manifest['next_sequence']+=1
                     manifest['roots'].append(root)
                     roots[root['root_id']]=root

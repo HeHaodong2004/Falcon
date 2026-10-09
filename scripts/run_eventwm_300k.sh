@@ -22,6 +22,7 @@ case "$ACTION" in
   if [[ "$ACTION" == start && -e "$OUTPUT/pipeline.sqlite3" ]];then echo 'Use resume for the saved dataset';exit 2;fi
   if [[ "$ACTION" == resume && ! -e "$OUTPUT/pipeline.sqlite3" ]];then echo 'No saved dataset';exit 2;fi
   "$PYTHON" -c 'import json,sys; v=json.load(open(sys.argv[1])); assert v["scientific_matches"] and v["retained"]>=100, "Native scientific gate has not passed"' "$PROJECT/output/eventwm_72h_native_ab/VERDICT.json"
+  "$PYTHON" -c 'import json,sys;v=json.load(open(sys.argv[1]));assert v["passed"] and v["retained_native_primary_queries"]>=100;assert v["source_commit"]==sys.argv[2]' "$PROJECT/output/eventwm_72h_v4_branch_gate/VERDICT.json" "$(git rev-parse HEAD)"
   tmux new-session -d -s "$SESSION" -c "$REPO" "$REPO/scripts/run_eventwm_300k.sh" _run
   echo "Started $SESSION; dataset $OUTPUT"
  ;;

@@ -1,7 +1,7 @@
 {
-  "release_version": "eventwm-300k-v3-compatible-pipeline-r2-validator-cache",
+  "release_version": "eventwm-300k-r4-train-geometry-v2-shadow-reference",
   "base_commit": "4b01a7a699462967172c9d61485dea4b40a41f78",
-  "required_branch": "research/eventwm-72h-acceleration",
+  "required_branch": "research/eventwm-72h-geometry-production",
   "python": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
   "frozen_reference": {
     "checkout": "/home/haodong/workspace/projects/eventwm-falcon/output/overnight_collection_checkout",
@@ -500,21 +500,23 @@
     "scripts/run_eventwm_30k.sh": "adf908684ae81ba445f72d2c5230b8d2f85b1667fa873871ce786adb64d49806",
     "scripts/scientific_comparison.py": "c353c0f5f9625eb2c37ccb6d09c1bbfab35373f9b4dbec6e8289f510c7934e56",
     "scripts/eventwm_pipeline_benchmark.py": "7da9557d411bb8c75c9d1039f8266495fdbf93f02ff90e1c52e27d6b8d296477",
-    "scripts/eventwm_pipeline_io.py": "b081836676b47a3ac0468baaff4ba6fc1ec20e34c1b80fafb8f23940dc98efad",
+    "scripts/eventwm_pipeline_io.py": "2c9f0395455ed14ce64fdbc7ef8acaa09d9a009ac53b5368ba79798769ca9321",
     "scripts/eventwm_pipeline_microbench.py": "b44c24149d59ac1ace6c4d7a16b24646cb728ca86c49a37136ef4aa582eb477d",
     "scripts/eventwm_pipeline_pool.py": "df0ea081a37b2591bae5f60dc8a19a4cd649417246d03196834ddff2da70d365",
-    "scripts/eventwm_pipeline_runner.py": "e225d1bb3d8193b1d01e8149336c8a523fed306ee68f0b5a3141c701a01e93c6",
+    "scripts/eventwm_pipeline_runner.py": "c5d0f270603fbf15ef3ced756c220a0c372f7fc02b1ae7dd11ada52eca2e1569",
     "scripts/eventwm_pipeline_validator.py": "53ed7ff2a8563a2c294b8d266a6e8e09c81c509141e20e3f025f571b16d404d1",
     "scripts/eventwm_pipeline_worker.py": "44e8504b937b936bb0ab579a049873800860f152725f244eb8e290086a8116c9",
     "scripts/run_eventwm_pipeline.sh": "833eb08b43c8ba896a8758e34174cb865f41c574a566e7a655f644ae18a8e3fa",
     "tests/collector/test_pipeline_runner.py": "bf8a5a3e8aec92d38a3524ef002609fea079be4a284442af04e94ce943d6de57",
     "scripts/eventwm_pipeline_index.py": "ef9c70a6ab0680cb9e6bd2456189bf1789851525bc0689cfc7a8ec781c938d67",
     "scripts/eventwm_300k_storage.py": "0f07d1e809a4961bf2c2944c277b1359a073b9260061a9eab0835a39f4edb535",
-    "scripts/run_eventwm_300k.sh": "d70a18df36b9c1e75351d56dc4b4b1b4e6b5968e759e8a7841cc6a8337e7d16c",
+    "scripts/run_eventwm_300k.sh": "b6dbe4fd71c2186d9bf1b506fc9f2df6b64aa273f2a2727da0713dc326c2f1b9",
     "scripts/eventwm_300k_monitor.py": "d82d799f50a05e32d429ee06877b91b41f988d0d10f869784c8f1df6abce3ff5",
     "scripts/eventwm_pipeline_scheduler_bench.py": "68c0c63f66447a1b22ac95e175d5d3e9ddd700bee35098bc198fa6a3d4b402ad",
     "scripts/eventwm_geometry_probe.py": "ae5ecfe7541be947f65eb796e0c4ff6a0a821f2b134b7c3ed44465394e614e83",
-    "scripts/eventwm_geometry_v4.py": "030cb92b1292a5b172730ed9d7c8b2c6f3195e0c97be27d79b8a1249dc5fa266"
+    "scripts/eventwm_geometry_v4.py": "6921b13e39146645afc97023272a7bc29f78882e368802988c2a0c94b90e0b47",
+    "scripts/eventwm_geometry_branch_gate.py": "cb80c1ccfef4134325110b81657bf19527af5eb6e05db4642f26783ae56bb309",
+    "tests/collector/test_geometry_shadow.py": "3585b288328c56f38e9684572dbc19de5537285f212dae8c541d67a6dc07f631"
   },
   "configuration": {
     "architecture": "COMBINED",
@@ -543,9 +545,9 @@
     "evidence_storage": "canonical-verified-compaction-gzip6-and-rejected-prefix-xz1",
     "archive": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_v4_300k_archive",
     "capacity_plan": "two-NVMe-filesystem-balanced-new-root-archive",
-    "episode_sampler": "V3-compatible unchanged; Geometry V4 research inactive",
+    "episode_sampler": "TRAIN-only geometry-aware-v4-clearance-mixture-v2-shadow-reference; 12.5% original support; unchanged natural/unseen episodes from V3 shadow coverage",
     "max_native_workers": 60,
-    "production_initial_native_limit": 36,
+    "production_initial_native_limit": 24,
     "profile_limits": [
       24,
       36,
@@ -555,7 +557,9 @@
     "validation": "decoded-native-record-cache-plus-original-audits-and-hash-capture",
     "native_scientific_gate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_native_ab/VERDICT.json",
     "validator_cache_gate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_validator_cache_probe_v2/VERDICT.json",
-    "canonical_storage": "Original serializer -> gzip6 once; full canonical/raw equality; decoded and compressed SHA256 receipts"
+    "canonical_storage": "Original serializer -> gzip6 once; full canonical/raw equality; decoded and compressed SHA256 receipts",
+    "production_geometry_sampler": true,
+    "geometry_branch_gate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_branch_gate/VERDICT.json"
   },
   "measured_evidence": {
     "baseline_panel": "exact_gate128_c36_A_v2",
@@ -594,6 +598,9 @@
   "candidate_evidence": {
     "simulator_free_tests": 11,
     "native_speedup": null,
-    "native_validated": false
+    "native_validated": false,
+    "geometry_root_only_cpu_ratio": 1.9286,
+    "geometry_root_evidence": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_geometry_native_v2/RESULT.json",
+    "root_only_is_not_collection_speedup": true
   }
 }

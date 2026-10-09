@@ -11,7 +11,7 @@ from pathlib import Path
 from collector.core import digest
 import eventwm_mass_collection as mass
 
-VERSION='geometry-aware-v4-clearance-mixture-v1'
+VERSION='geometry-aware-v4-clearance-mixture-v2-shadow-reference'
 # Measured frozen articulated Spot geometry; derived necessary clearance bound.
 RADIUS=0.5996548533439636
 CLEARANCE=RADIUS-.25+.03+.02/2
@@ -26,8 +26,10 @@ def spec(index,scenes,master_seed):
         train_only=True,geometry_radius=RADIUS,required_navmesh_clearance=CLEARANCE,
         original_component_probability=.125,geometry_component_probability=.875,
         geometry_sources='frozen Spot link bounds plus prepared static NavMesh',
-        sampling_law='V4; not V3 proposal-equivalent',proposal_seed=master_seed+index)
-    root['root_id']='v4g_'+digest(dict(recipe=root['recipe'],physical_scene_id=root['physical_scene_id']))[:20]
+        sampling_law='V4; not V3 proposal-equivalent',proposal_seed=master_seed+index,
+        reference_coverage='original seeded V3 shadow episodes; updated on preparation success',
+        importance_weights='not estimated; mixture and clearance/region strata retained')
+    root['root_id']='v4g2_'+digest(dict(recipe=root['recipe'],physical_scene_id=root['physical_scene_id']))[:20]
     root['recipe']['root_id']=root['root_id'];root['split_group']=root['root_id']
     return root
 

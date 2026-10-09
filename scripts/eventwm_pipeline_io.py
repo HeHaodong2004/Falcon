@@ -115,20 +115,41 @@ def prepare_episode(output, scene, spec, covered):
     output = Path(output)
     if hashlib.sha256(Path(scene['scene']['navmesh']).read_bytes()).hexdigest() != scene['navmesh_sha256']:
         raise RuntimeError('prepared_navmesh_hash_mismatch')
+    shadow={}
+    sampler=spec.get('recipe',{}).get('episode_sampler')
+    if '_v3_preparation_covered' in spec:
+        reference=spec['_v3_preparation_covered']
+        try:
+            original=mass.episode_for(scene,spec['seed'],spec['human_count'],reference)
+            shadow=dict(v3_shadow_start_region=mass.region(original['start_position']),
+                        v3_shadow_episode_digest=__import__('collector.core',fromlist=['digest']).digest(original),
+                        v3_shadow_preparation_error=None)
+        except RuntimeError as exc:
+            if str(exc) not in ('static_episode_unavailable: no connected 4-10m goal',
+                                'static_episode_unavailable: no separated human waypoint'):raise
+            original=None
+            shadow=dict(v3_shadow_start_region=None,v3_shadow_preparation_error=str(exc))
     try:
         sampler=spec.get('recipe',{}).get('episode_sampler')
         if sampler:
             from eventwm_geometry_v4 import episode as geometry_episode
-            episode,geometry_audit=geometry_episode(scene,spec['seed'],spec['human_count'],covered,sampler)
+            if '_v3_preparation_covered' in spec and sampler['component']=='v3_support':
+                if original is None:raise RuntimeError(shadow['v3_shadow_preparation_error'])
+                episode=original
+            else:
+                episode,geometry_audit=geometry_episode(scene,spec['seed'],spec['human_count'],covered,sampler)
         else:
-            episode = mass.episode_for(scene, spec['seed'], spec['human_count'], covered)
+            if '_v3_preparation_covered' in spec:
+                if original is None:raise RuntimeError(shadow['v3_shadow_preparation_error'])
+                episode=original
+            else:episode = mass.episode_for(scene, spec['seed'], spec['human_count'], covered)
     except RuntimeError as exc:
         # Only these two exact, intentional sampling failures are skippable.
         if str(exc) not in ('static_episode_unavailable: no connected 4-10m goal',
                             'static_episode_unavailable: no separated human waypoint',
                             'geometry_episode_unavailable: no feasible start in bounded search'):
             raise
-        return dict(error=str(exc), seconds=time.perf_counter()-started)
+        return dict(error=str(exc), seconds=time.perf_counter()-started,**shadow)
     epfile = output/'catalogue/episodes'/f"{spec['root_id']}.json"
     # Preserve original episode JSON BYTES, not only decoded content.
     from collector.core import write
@@ -149,7 +170,7 @@ def prepare_episode(output, scene, spec, covered):
     immutable_json(output/'catalogue/cases'/f"{spec['root_id']}.json", case)
     immutable_json(output/'recipes'/f"{spec['root_id']}.json", spec['recipe'])
     return dict(error=None, start_region=mass.region(episode['start_position']),
-                episode_sha256=episode_hash, seconds=time.perf_counter()-started)
+                episode_sha256=episode_hash, seconds=time.perf_counter()-started,**shadow)
 
 
 def install_indexed_reads(runtime, controlled, current, output):
