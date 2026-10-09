@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "timestamp": 1791556087.090363,
+  "verified_roots": 1487,
+  "primary_query_inputs": 49071,
+  "roles": {
+    "train": 35409,
+    "natural_reference": 6435,
+    "unseen_evaluation": 7227
+  },
+  "opened_model_input_artifacts": [
+    "legal_observations/history.json",
+    "legal_observations/image_storage.json",
+    "queries/queries.json"
+  ],
+  "no_future_or_privileged_truth_in_model_input": true,
+  "seconds": 61.41713547706604
+}

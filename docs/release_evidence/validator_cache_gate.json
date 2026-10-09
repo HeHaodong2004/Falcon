@@ -1,0 +1,77 @@
+{
+  "passed": true,
+  "returncode": 0,
+  "errors": [],
+  "roots": [
+    {
+      "root_id": "v3m_2d9a4177d2f1c5c16abb",
+      "original_timings": {
+        "load_records": 2.5777986069442704,
+        "persistence": 2.8739353010314517,
+        "labels": 3.269311568001285,
+        "validation": 4.014803944970481,
+        "seal": 0.05423598299967125
+      },
+      "cached_timings": {
+        "load_records": 2.977401035022922,
+        "persistence": 2.5410767510184087,
+        "labels": 0.3144891560077667,
+        "validation": 4.414864221995231,
+        "seal": 0.0474492329522036
+      }
+    },
+    {
+      "root_id": "v3m_fcb9c00bbb654d227c9c",
+      "original_timings": {
+        "load_records": 0.5736410829704255,
+        "persistence": 0.7084966240217909,
+        "labels": 1.0249016750021838,
+        "validation": 4.38749154395191,
+        "seal": 0.07139528903644532
+      },
+      "cached_timings": {
+        "load_records": 0.6754789290134795,
+        "persistence": 0.6350620909943245,
+        "labels": 0.11275939701590687,
+        "validation": 0.24757425399729982,
+        "seal": 0.03618409897899255
+      }
+    },
+    {
+      "root_id": "v3m_f59e8453cd5f61f14f20",
+      "original_timings": {
+        "load_records": 0.9632958929869346,
+        "persistence": 0.7298455740092322,
+        "labels": 1.1533628310426138,
+        "validation": 1.598833836033009,
+        "seal": 0.04909512400627136
+      },
+      "cached_timings": {
+        "load_records": 0.9583936930284835,
+        "persistence": 0.772701698995661,
+        "labels": 0.1365417439956218,
+        "validation": 0.2706146439886652,
+        "seal": 0.050023283052723855
+      }
+    },
+    {
+      "root_id": "v3m_4af793729476709a828a",
+      "original_timings": {
+        "load_records": 15.974047032010276,
+        "persistence": 14.142184676020406,
+        "labels": 20.69343864201801,
+        "validation": 23.890290426032152,
+        "seal": 0.06816421501571313
+      },
+      "cached_timings": {
+        "load_records": 23.310796407982707,
+        "persistence": 22.079202195978723,
+        "labels": 1.3254245080170222,
+        "validation": 4.5473865359672345,
+        "seal": 0.04573537700343877
+      }
+    }
+  ],
+  "wall_seconds": 126.57309372798773,
+  "scope": "Replay saved native records through all unchanged labels/audits; validates IO caching and canonical duplicate equality, not native collection q/h"
+}

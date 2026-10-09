@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "errors": [],
+  "results": {
+    "baseline_cached_repack": {
+      "returncode": 0,
+      "wall_seconds": 112.6792662999942,
+      "child_cpu_seconds": 112.28000399999999
+    },
+    "direct_gzip6": {
+      "returncode": 0,
+      "wall_seconds": 108.50725935801165,
+      "child_cpu_seconds": 108.237326
+    }
+  },
+  "retained_native_primary_queries": 132,
+  "roots": [
+    "v3m_2d9a4177d2f1c5c16abb",
+    "v3m_fcb9c00bbb654d227c9c",
+    "v3m_f59e8453cd5f61f14f20",
+    "v3m_4af793729476709a828a"
+  ],
+  "validator_cpu_speedup": 1.0373501281803654,
+  "scope": "Same 132 saved native primary queries; all unchanged audit/label outputs and decoded canonical bytes compared; validator CPU speedup is not collection speedup",
+  "source_commit": "b2bfea873e5c247100d32472d301fc76fa70251e",
+  "live_catalogue_untouched": true
+}

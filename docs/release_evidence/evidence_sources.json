@@ -1,0 +1,38 @@
+{
+  "v4_native_branch_gate.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_branch_gate/VERDICT.json",
+    "sha256": "fb7aefd6157f49fba16f71bbbf51b3671109f39e2cb14457cac9a6d4868b48f2"
+  },
+  "v3_native_ab.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_native_ab/VERDICT.json",
+    "sha256": "ef1a35b0c5106644e9fc2bd1b183102db22a37da0d3c4ebcc27a8b216750273f"
+  },
+  "validator_cache_gate.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_validator_cache_probe_v2/VERDICT.json",
+    "sha256": "4ead9958e484faf2ab23643099a58b7c5533f5dae4800ee15948f4903c3e811e"
+  },
+  "canonical_storage_gate.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_direct_storage_gate/VERDICT.json",
+    "sha256": "95b30392774ed46b26f128c080e0d09f2c597823c81a9c17679e09a5d9fec35b"
+  },
+  "v4_startup_10min.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_10min.json",
+    "sha256": "9716164d6ef584a95a368d2e474f165214ffb1455e6c4cb1e705494867d0bfeb"
+  },
+  "v4_startup_30min.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_30min.json",
+    "sha256": "86fb7554356316f5a63ad1a27420f31961257953de37c3ae1c6b0498dcc10aad"
+  },
+  "v4_startup_60min.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_60min.json",
+    "sha256": "6f4acd8b6ed28478d3a36e63571cd49d5525bbc1a75302374bd222b9ba90f813"
+  },
+  "combined_input_audit.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_combined_input_audit.json",
+    "sha256": "c82f179d4e9a129e0a2f284f06fa5b5918a5a928be6d7c81ddc720efba074c6c"
+  },
+  "successor_audit.json": {
+    "source": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_successor_audit.json",
+    "sha256": "44303177c163a9f84325e2a17435ef34d415149b53982d6c3c48a956cc775cc6"
+  }
+}
