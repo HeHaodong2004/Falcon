@@ -504,12 +504,12 @@
     "scripts/eventwm_pipeline_microbench.py": "b44c24149d59ac1ace6c4d7a16b24646cb728ca86c49a37136ef4aa582eb477d",
     "scripts/eventwm_pipeline_pool.py": "df0ea081a37b2591bae5f60dc8a19a4cd649417246d03196834ddff2da70d365",
     "scripts/eventwm_pipeline_runner.py": "e225d1bb3d8193b1d01e8149336c8a523fed306ee68f0b5a3141c701a01e93c6",
-    "scripts/eventwm_pipeline_validator.py": "8ebbd2badbbf0969e90321257dda7762b2be75137cdd3cb94aa6c4d15fbf63eb",
+    "scripts/eventwm_pipeline_validator.py": "53ed7ff2a8563a2c294b8d266a6e8e09c81c509141e20e3f025f571b16d404d1",
     "scripts/eventwm_pipeline_worker.py": "44e8504b937b936bb0ab579a049873800860f152725f244eb8e290086a8116c9",
     "scripts/run_eventwm_pipeline.sh": "833eb08b43c8ba896a8758e34174cb865f41c574a566e7a655f644ae18a8e3fa",
     "tests/collector/test_pipeline_runner.py": "bf8a5a3e8aec92d38a3524ef002609fea079be4a284442af04e94ce943d6de57",
     "scripts/eventwm_pipeline_index.py": "ef9c70a6ab0680cb9e6bd2456189bf1789851525bc0689cfc7a8ec781c938d67",
-    "scripts/eventwm_300k_storage.py": "e0c557dfaf25fe06f85b27f7adc8df55826c48c7bd5513ede7ea642cdba11919",
+    "scripts/eventwm_300k_storage.py": "0f07d1e809a4961bf2c2944c277b1359a073b9260061a9eab0835a39f4edb535",
     "scripts/run_eventwm_300k.sh": "d70a18df36b9c1e75351d56dc4b4b1b4e6b5968e759e8a7841cc6a8337e7d16c",
     "scripts/eventwm_300k_monitor.py": "d82d799f50a05e32d429ee06877b91b41f988d0d10f869784c8f1df6abce3ff5",
     "scripts/eventwm_pipeline_scheduler_bench.py": "68c0c63f66447a1b22ac95e175d5d3e9ddd700bee35098bc198fa6a3d4b402ad",
@@ -554,7 +554,8 @@
     ],
     "validation": "decoded-native-record-cache-plus-original-audits-and-hash-capture",
     "native_scientific_gate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_native_ab/VERDICT.json",
-    "validator_cache_gate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_validator_cache_probe_v2/VERDICT.json"
+    "validator_cache_gate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_validator_cache_probe_v2/VERDICT.json",
+    "canonical_storage": "Original serializer -> gzip6 once; full canonical/raw equality; decoded and compressed SHA256 receipts"
   },
   "measured_evidence": {
     "baseline_panel": "exact_gate128_c36_A_v2",

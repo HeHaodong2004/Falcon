@@ -28,18 +28,39 @@ def compress_prefix(output, rows, compressed=False):
             stream.write((json.dumps(rows,indent=2,allow_nan=False)+'\n').encode())
     temporary.replace(path)
 
-def compact_validated(path):
+def compact_validated(path,known_encoding=None):
     """Existing exact canonical-equality proof, then stronger gzip encoding."""
     marker=Path(path)/'audits/encoding.json'
     if marker.exists():
-        expected=read(marker)['decoded_sha256']
+        receipt=read(marker)
+        if receipt.get('compressed_sha256'):
+            actual=hashlib.sha256()
+            with (Path(path)/'branch_truth/branches.jsonl.gz').open('rb') as stream:
+                while data:=stream.read(1024*1024):actual.update(data)
+            if actual.hexdigest()!=receipt['compressed_sha256']:raise RuntimeError('Packed canonical file changed')
+            return
+        expected=receipt['decoded_sha256']
         actual=hashlib.sha256()
         with gzip.open(Path(path)/'branch_truth/branches.jsonl.gz','rb') as stream:
             while data:=stream.read(1024*1024):actual.update(data)
         if actual.hexdigest()!=expected:raise RuntimeError('Packed canonical data changed')
         return
     from collector.storage import compact_workers
+    if known_encoding is not None:
+        p=Path(path)/'branch_truth/branches.jsonl.gz'
+        before=hashlib.sha256()
+        with p.open('rb') as stream:
+            while data:=stream.read(1024*1024):before.update(data)
+        if before.hexdigest()!=known_encoding['compressed_sha256']:
+            raise RuntimeError('Canonical file changed before compaction')
     compact_workers(path)
+    if known_encoding is not None:
+        after=hashlib.sha256()
+        with p.open('rb') as stream:
+            while data:=stream.read(1024*1024):after.update(data)
+        if before.digest()!=after.digest():raise RuntimeError('Canonical file changed during equality proof')
+        durable_json(marker,known_encoding)
+        return
     p=Path(path)/'branch_truth/branches.jsonl.gz'
     temporary=p.with_suffix('.gz.repack')
     # Streaming avoids holding a second full branch stream in publisher RAM.
