@@ -116,11 +116,17 @@ def prepare_episode(output, scene, spec, covered):
     if hashlib.sha256(Path(scene['scene']['navmesh']).read_bytes()).hexdigest() != scene['navmesh_sha256']:
         raise RuntimeError('prepared_navmesh_hash_mismatch')
     try:
-        episode = mass.episode_for(scene, spec['seed'], spec['human_count'], covered)
+        sampler=spec.get('recipe',{}).get('episode_sampler')
+        if sampler:
+            from eventwm_geometry_v4 import episode as geometry_episode
+            episode,geometry_audit=geometry_episode(scene,spec['seed'],spec['human_count'],covered,sampler)
+        else:
+            episode = mass.episode_for(scene, spec['seed'], spec['human_count'], covered)
     except RuntimeError as exc:
         # Only these two exact, intentional sampling failures are skippable.
         if str(exc) not in ('static_episode_unavailable: no connected 4-10m goal',
-                            'static_episode_unavailable: no separated human waypoint'):
+                            'static_episode_unavailable: no separated human waypoint',
+                            'geometry_episode_unavailable: no feasible start in bounded search'):
             raise
         return dict(error=str(exc), seconds=time.perf_counter()-started)
     epfile = output/'catalogue/episodes'/f"{spec['root_id']}.json"

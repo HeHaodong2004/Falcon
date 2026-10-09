@@ -163,8 +163,12 @@ def run(args, release):
                         raise RuntimeError('Refuse legacy manifest migration')
                 manifest = mass.init(SimpleNamespace(output=output, target=args.target, max_roots=None, min_free_gb=150.))
                 store = StateStore(output)
+            expected_seed=getattr(args,'master_seed',None) or release['configuration']['master_seed']
+            if not manifest['roots'] and manifest['next_sequence']==0:
+                manifest['master_seed']=expected_seed
+            if manifest['master_seed']!=expected_seed:
+                raise RuntimeError('Master seed differs from immutable release')
             if fresh:
-                manifest['master_seed']=getattr(args,'master_seed',None) or release['configuration']['master_seed']
                 manifest['scientific_reference']=release['frozen_reference']
                 manifest['protected_scientific_hashes']=release['protected_scientific_hashes']
                 manifest['audit_storage_encoding']='lossless-worker-json-gzip-v1'
@@ -223,9 +227,12 @@ def coordinate(args, output, manifest, store):
     stopping, fatal = committed_queries>=args.target, None
     last_metrics = 0.
     last_guard = 0.
+    native_limit = args.concurrency
+    last_control = 0.
+    max_native_workers = 60 if args.concurrency==36 else args.concurrency
     free_gb = shutil.disk_usage(output).free/1e9
     mem_ok = True
-    exec_pool = cf.ThreadPoolExecutor(max_workers=args.concurrency)
+    exec_pool = cf.ThreadPoolExecutor(max_workers=max_native_workers)
     val_pool = cf.ThreadPoolExecutor(max_workers=args.validators)
     pub_pool = cf.ThreadPoolExecutor(max_workers=1)
     pack_pool = cf.ThreadPoolExecutor(max_workers=2)
@@ -439,8 +446,27 @@ def coordinate(args, output, manifest, store):
                 running.add(root['root_id'])
                 pending.append(job(root))
             # Audits then branches shorten checkpoint lifetime; ready roots follow.
+            if time.monotonic()-last_control>=1:
+                control=output/'native_limit.json'
+                limit=args.concurrency
+                if control.exists():
+                    request=read(control);limit=int(request['limit'])
+                    if limit>36 and (not request.get('until') or request['until']>time.time()+600):
+                        raise RuntimeError('C48/C60 profile must be bounded to at most ten minutes')
+                    if request.get('until') and time.time()>=request['until']:limit=args.concurrency
+                    if limit not in (24,36,48,60) or limit>max_native_workers:
+                        raise RuntimeError('Unsupported native limit')
+                if limit!=native_limit:
+                    native_limit=limit
+                    event('native_limit',limit=native_limit)
+                    print('NATIVE_LIMIT',native_limit,flush=True)
+                manifest['native_limit']=native_limit
+                last_control=time.monotonic()
+            while len(workers)<native_limit:
+                worker=PipelineWorker(len(workers),REPO,output,session_dir,pids,checkpoints,started)
+                workers.append(worker);idle.append(worker)
             for worker in list(idle):
-                if not pending: break
+                if not pending or len(native)>=native_limit: break
                 selected=min(pending,key=lambda j:(2 if j['worker_id']=='root' else 1 if j['worker_id'].startswith('b') else 0,
                                                    j['scene']!=worker.last_scene))
                 pending.remove(selected)
@@ -481,7 +507,7 @@ def coordinate(args, output, manifest, store):
             unlaunched=bool(index.count('pending') or index.count('preparing'))
             if not work and not unlaunched: break
             if time.perf_counter()-last_metrics>=1:
-                event('queue',busy=len(native),idle=len(idle),native_roots=len(running),preparing=len(preparing),
+                event('queue',busy=len(native),idle=len(idle),native_limit=native_limit,native_roots=len(running),preparing=len(preparing),
                       ready=len(pending),staged=staged,packing=len(packing),committed_queries=committed_queries)
                 store.flush(manifest)
                 store.export(manifest)

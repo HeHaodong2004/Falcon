@@ -30,6 +30,14 @@ def compress_prefix(output, rows, compressed=False):
 
 def compact_validated(path):
     """Existing exact canonical-equality proof, then stronger gzip encoding."""
+    marker=Path(path)/'audits/encoding.json'
+    if marker.exists():
+        expected=read(marker)['decoded_sha256']
+        actual=hashlib.sha256()
+        with gzip.open(Path(path)/'branch_truth/branches.jsonl.gz','rb') as stream:
+            while data:=stream.read(1024*1024):actual.update(data)
+        if actual.hexdigest()!=expected:raise RuntimeError('Packed canonical data changed')
+        return
     from collector.storage import compact_workers
     compact_workers(path)
     p=Path(path)/'branch_truth/branches.jsonl.gz'
