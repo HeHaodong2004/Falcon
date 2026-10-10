@@ -23,6 +23,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from settings import CONFIG as C, CONFIG_PATH, PROJECT, SCIENCE, DATA, LOGS, TARGET, RELEASE_REPO
+from settings import publication_epoch, MEASUREMENT_PREFIX
 
 
 def require(condition, message):
@@ -245,7 +246,7 @@ def status():
                     if isinstance(row, dict) and isinstance(row.get('timestamp'), (int, float)) and isinstance(row.get('new_retained'), int):
                         history.append(row)
                 except ValueError: continue
-    epoch = read(PROJECT / 'output/eventwm_72h_v4_resume_checkpoint.json')
+    epoch = publication_epoch()
     recovering=bool(C.get('recovery_gate'))
     if recovering:
         # Rates for this collector must not include crash downtime or old-epoch
@@ -262,11 +263,12 @@ def status():
     deadline = datetime.fromisoformat('2026-10-12T09:20:00+01:00').timestamp()
     remaining = max(0, TARGET - total)
     preferred = windows.get('60') or windows.get('30') or (windows.get('15') or windows.get('10') if recovering else None)
-    measured = read(PROJECT / 'output/eventwm_72h_v4_30min.json') if (PROJECT / 'output/eventwm_72h_v4_30min.json').exists() else None
+    measurement_file = PROJECT / 'output' / f'{MEASUREMENT_PREFIX}_30min.json'
+    measured = read(measurement_file) if measurement_file.exists() else None
     if recovering and measured and measured.get('source_commit')!=C['scientific_commit']:measured=None
     rate = preferred['qph'] if preferred else measured['actual_publication_qph_including_resume_startup'] if measured else None
     control = read(DATA / 'native_limit.json')
-    metrics_file = PROJECT / 'output/eventwm_72h_v4_native_metrics.json'
+    metrics_file = PROJECT / 'output' / f'{MEASUREMENT_PREFIX}_native_metrics.json'
     metrics = read(metrics_file) if metrics_file.exists() else {}
     integrity_file = PROJECT / 'output/eventwm_300k_combined_index/integrity.json'
     integrity = read(integrity_file) if integrity_file.exists() else {}
@@ -281,7 +283,7 @@ def status():
                 v4_epoch_retained=v4, geometry_train_retained=geometry, roles=dict(roles), sr=dict(sr),
                 worker_pool=m['pipeline_settings']['concurrency'], native_limit=control['limit'],
                 native_metrics=metrics, windows=windows, startup_inclusive_30_min=measured,
-                preferred_qph=rate, rate_basis='post-V4 publication window' if preferred else 'startup-inclusive saved 30-minute measurement',
+                preferred_qph=rate, rate_basis='current source publication window' if preferred else 'startup-inclusive saved 30-minute measurement',
                 required_qph=remaining / ((deadline - now) / 3600) if deadline > now else None,
                 estimated_completion_london=datetime.fromtimestamp(now + remaining / rate * 3600, ZoneInfo('Europe/London')).isoformat() if rate and rate > 0 else None,
                 storage=devices, aggregate_free_gb=free, deeply_verified_retained=integrity.get('total_verified'),

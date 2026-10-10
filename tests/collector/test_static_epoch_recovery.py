@@ -1,9 +1,11 @@
 """Source changes must preserve IDs, recipes, attempts and completed provenance."""
-import copy, sys, tempfile, unittest
+import copy, json, sys, tempfile, unittest
+from unittest.mock import patch
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'scripts/eventwm_production'))
 from recover_static_epoch import transition, OLD, CHANGED
 from control import C
+import settings
 
 class EpochRecoveryTests(unittest.TestCase):
     def test_transition_preserves_completed_and_validated_old_roots(self):
@@ -31,5 +33,20 @@ class EpochRecoveryTests(unittest.TestCase):
         release=dict(implementation_hashes={'labels.py':'new'})
         with self.assertRaisesRegex(RuntimeError,'Unexpected scientific'):
             transition(m,[],release,'new_epoch',Path('/tmp'))
+
+    def test_recovery_publication_baseline_excludes_old_epoch_staged_roots(self):
+        with tempfile.TemporaryDirectory() as td:
+            out=Path(td);receipt=out/'recovery_epochs/new_epoch/APPLIED.json'
+            receipt.parent.mkdir(parents=True)
+            receipt.write_text(json.dumps(dict(applied_at=1234,retained_new_after_old_publication=73524)))
+            with patch.object(settings,'DATA',out),patch.object(settings,'CONFIG',dict(recovery_gate='gate',scientific_commit='new_epoch')):
+                self.assertEqual(settings.publication_epoch(),dict(time=1234,retained_before_resume=73524))
+
+    def test_original_publication_baseline_remains_available(self):
+        with tempfile.TemporaryDirectory() as td:
+            project=Path(td);receipt=project/'output/eventwm_72h_v4_resume_checkpoint.json'
+            receipt.parent.mkdir();receipt.write_text(json.dumps(dict(time=100,retained_before_resume=12276)))
+            with patch.object(settings,'PROJECT',project),patch.object(settings,'CONFIG',{}):
+                self.assertEqual(settings.publication_epoch(),dict(time=100,retained_before_resume=12276))
 
 if __name__=='__main__':unittest.main()
