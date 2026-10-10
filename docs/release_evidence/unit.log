@@ -1,0 +1,355 @@
+................................................................................COMMITTED r0 TOTAL 33
+SUMMARY {"completed_roots": 1, "failed_roots": 0, "running_roots": 0, "target_roots": 100, "primary_queries": 33, "target_primary_queries": 3300, "compatible_scenes": 3, "completed_scenes": 1, "remaining_scenes": 2, "regions": 1, "scene_counts": {"scene0": 1}, "families": {"fake": 1}, "human_counts": {"0": 1}, "roles": {"train": 1}, "root_categories": {"zero": 1}, "visible": {}, "lost": {}, "robot_state": {"stationary": 1}, "failed_reasons": {}, "completed_root_bytes": 0, "collection_seconds": 0.23897587700048462, "class_counts": {}, "binary_targets": {}, "sr_targets": {}, "invalid_reasons": {}, "variants": {}, "static_violations": 0, "invalid": 0, "queries_per_hour": 497121.30567789107}
+..DRAIN: finish reserved preparation/native/validation/publication work
+COMMITTED r0 TOTAL 33
+COMMITTED r1 TOTAL 66
+COMMITTED r2 TOTAL 99
+SUMMARY {"completed_roots": 3, "failed_roots": 0, "running_roots": 0, "target_roots": 100, "primary_queries": 99, "target_primary_queries": 3300, "compatible_scenes": 3, "completed_scenes": 3, "remaining_scenes": 0, "regions": 3, "scene_counts": {"scene0": 1, "scene1": 1, "scene2": 1}, "families": {"fake": 3}, "human_counts": {"0": 3}, "roles": {"train": 3}, "root_categories": {"zero": 3}, "visible": {}, "lost": {}, "robot_state": {"stationary": 3}, "failed_reasons": {}, "completed_root_bytes": 0, "collection_seconds": 0.30042663001222536, "class_counts": {}, "binary_targets": {}, "sr_targets": {}, "invalid_reasons": {}, "variants": {}, "static_violations": 0, "invalid": 0, "queries_per_hour": 1186312.944313548}
+.COMMITTED r0 TOTAL 33
+COMMITTED r1 TOTAL 66
+COMMITTED r2 TOTAL 99
+SUMMARY {"completed_roots": 3, "failed_roots": 0, "running_roots": 0, "target_roots": 100, "primary_queries": 99, "target_primary_queries": 3300, "compatible_scenes": 3, "completed_scenes": 3, "remaining_scenes": 0, "regions": 3, "scene_counts": {"scene0": 1, "scene1": 1, "scene2": 1}, "families": {"fake": 3}, "human_counts": {"0": 3}, "roles": {"train": 3}, "root_categories": {"zero": 3}, "visible": {}, "lost": {}, "robot_state": {"stationary": 3}, "failed_reasons": {"worker_timeout": 1}, "completed_root_bytes": 0, "collection_seconds": 0.3576385629712604, "class_counts": {}, "binary_targets": {}, "sr_targets": {}, "invalid_reasons": {}, "variants": {}, "static_violations": 0, "invalid": 0, "queries_per_hour": 996536.8304777582}
+.COMMITTED r0 TOTAL 33
+COMMITTED r1 TOTAL 66
+COMMITTED r2 TOTAL 99
+COMMITTED r3 TOTAL 132
+COMMITTED r4 TOTAL 165
+COMMITTED r5 TOTAL 198
+COMMITTED r6 TOTAL 231
+COMMITTED r7 TOTAL 264
+COMMITTED r8 TOTAL 297
+SUMMARY {"completed_roots": 9, "failed_roots": 0, "running_roots": 0, "target_roots": 100, "primary_queries": 297, "target_primary_queries": 3300, "compatible_scenes": 3, "completed_scenes": 3, "remaining_scenes": 0, "regions": 3, "scene_counts": {"scene0": 3, "scene1": 3, "scene2": 3}, "families": {"fake": 9}, "human_counts": {"0": 9}, "roles": {"train": 9}, "root_categories": {"zero": 9}, "visible": {}, "lost": {}, "robot_state": {"stationary": 9}, "failed_reasons": {}, "completed_root_bytes": 0, "collection_seconds": 0.6178273489931598, "class_counts": {}, "binary_targets": {}, "sr_targets": {}, "invalid_reasons": {}, "variants": {}, "static_violations": 0, "invalid": 0, "queries_per_hour": 1730580.560641121}
+.START v3m_1cee02edf848ee714d0c scene 1 lost GPU 0
+FAILED v3m_1cee02edf848ee714d0c scene no_retained_valid_queries 0.0
+......START r_56192f2b88742f78 castle 0
+FAILED r_56192f2b88742f78
+START r_48b16b3592e4c24c castle 2
+COMPLETED r_48b16b3592e4c24c
+{
+  "root_states": {
+    "failed": 1,
+    "completed": 1
+  },
+  "completed_roots": 1,
+  "failed_roots": 1,
+  "failed_attempts": 1,
+  "total_queries": 33,
+  "total_branches": 36,
+  "primary_branches": 33,
+  "human_count_distribution": {
+    "2": 1
+  },
+  "roots_with_zero_legal_detections": 1,
+  "roots_with_visible_human_history": 0,
+  "roots_with_visible_tracks_at_root": 0,
+  "roots_with_lost_tracks_at_root": 0,
+  "roots_containing_lost_memory": 0,
+  "moving_roots": 0,
+  "collision_event_count": 0,
+  "collision_event_rate": 0.0,
+  "reserved_branches": 72,
+  "bounds": {
+    "max_total_roots": 2,
+    "max_total_branches": 144,
+    "max_attempts": 2,
+    "concurrency": 1,
+    "min_free_gb": 0.0
+  },
+  "completion": {
+    "completed": 33
+  },
+  "termination": {
+    "query_completed": 33
+  },
+  "wait": {
+    "count": 1,
+    "min": 0,
+    "max": 0,
+    "mean": 0.0,
+    "histogram": {
+      "0": 1
+    }
+  },
+  "speed": {
+    "count": 1,
+    "min": 1,
+    "max": 1,
+    "mean": 1.0,
+    "histogram": {
+      "1": 1
+    }
+  },
+  "duration": {
+    "count": 1,
+    "min": 3,
+    "max": 3,
+    "mean": 3.0,
+    "histogram": {
+      "3": 1
+    }
+  },
+  "completed_root_seconds": {
+    "count": 1,
+    "min": 0.0021359920501708984,
+    "max": 0.0021359920501708984,
+    "mean": 0.0021359920501708984,
+    "histogram": {
+      "0.002": 1
+    }
+  },
+  "completed_root_bytes": 442
+}
+START r_56192f2b88742f78 castle 0
+COMPLETED r_56192f2b88742f78
+SKIP r_48b16b3592e4c24c
+{
+  "root_states": {
+    "completed": 2
+  },
+  "completed_roots": 2,
+  "failed_roots": 0,
+  "failed_attempts": 1,
+  "total_queries": 66,
+  "total_branches": 72,
+  "primary_branches": 66,
+  "human_count_distribution": {
+    "0": 1,
+    "2": 1
+  },
+  "roots_with_zero_legal_detections": 2,
+  "roots_with_visible_human_history": 0,
+  "roots_with_visible_tracks_at_root": 0,
+  "roots_with_lost_tracks_at_root": 0,
+  "roots_containing_lost_memory": 0,
+  "moving_roots": 0,
+  "collision_event_count": 0,
+  "collision_event_rate": 0.0,
+  "reserved_branches": 108,
+  "bounds": {
+    "max_total_roots": 2,
+    "max_total_branches": 144,
+    "max_attempts": 2,
+    "concurrency": 1,
+    "min_free_gb": 0.0
+  },
+  "completion": {
+    "completed": 66
+  },
+  "termination": {
+    "query_completed": 66
+  },
+  "wait": {
+    "count": 2,
+    "min": 0,
+    "max": 0,
+    "mean": 0.0,
+    "histogram": {
+      "0": 2
+    }
+  },
+  "speed": {
+    "count": 2,
+    "min": 1,
+    "max": 1,
+    "mean": 1.0,
+    "histogram": {
+      "1": 2
+    }
+  },
+  "duration": {
+    "count": 2,
+    "min": 3,
+    "max": 3,
+    "mean": 3.0,
+    "histogram": {
+      "3": 2
+    }
+  },
+  "completed_root_seconds": {
+    "count": 2,
+    "min": 0.001957416534423828,
+    "max": 0.0021359920501708984,
+    "mean": 0.0020467042922973633,
+    "histogram": {
+      "0.002": 2
+    }
+  },
+  "completed_root_bytes": 876
+}
+SKIP r_56192f2b88742f78
+SKIP r_48b16b3592e4c24c
+{
+  "root_states": {
+    "completed": 2
+  },
+  "completed_roots": 2,
+  "failed_roots": 0,
+  "failed_attempts": 1,
+  "total_queries": 66,
+  "total_branches": 72,
+  "primary_branches": 66,
+  "human_count_distribution": {
+    "0": 1,
+    "2": 1
+  },
+  "roots_with_zero_legal_detections": 2,
+  "roots_with_visible_human_history": 0,
+  "roots_with_visible_tracks_at_root": 0,
+  "roots_with_lost_tracks_at_root": 0,
+  "roots_containing_lost_memory": 0,
+  "moving_roots": 0,
+  "collision_event_count": 0,
+  "collision_event_rate": 0.0,
+  "reserved_branches": 108,
+  "bounds": {
+    "max_total_roots": 2,
+    "max_total_branches": 144,
+    "max_attempts": 2,
+    "concurrency": 1,
+    "min_free_gb": 0.0
+  },
+  "completion": {
+    "completed": 66
+  },
+  "termination": {
+    "query_completed": 66
+  },
+  "wait": {
+    "count": 2,
+    "min": 0,
+    "max": 0,
+    "mean": 0.0,
+    "histogram": {
+      "0": 2
+    }
+  },
+  "speed": {
+    "count": 2,
+    "min": 1,
+    "max": 1,
+    "mean": 1.0,
+    "histogram": {
+      "1": 2
+    }
+  },
+  "duration": {
+    "count": 2,
+    "min": 3,
+    "max": 3,
+    "mean": 3.0,
+    "histogram": {
+      "3": 2
+    }
+  },
+  "completed_root_seconds": {
+    "count": 2,
+    "min": 0.001957416534423828,
+    "max": 0.0021359920501708984,
+    "mean": 0.0020467042922973633,
+    "histogram": {
+      "0.002": 2
+    }
+  },
+  "completed_root_bytes": 876
+}
+SKIP r_56192f2b88742f78
+.STOP LOW DISK 149000000000 bytes; no new root started
+.{
+  "root_states": {
+    "pending": 2
+  },
+  "completed_roots": 0,
+  "failed_roots": 0,
+  "failed_attempts": 0,
+  "total_queries": 0,
+  "total_branches": 0,
+  "primary_branches": 0,
+  "human_count_distribution": {},
+  "roots_with_zero_legal_detections": 0,
+  "roots_with_visible_human_history": 0,
+  "roots_with_visible_tracks_at_root": 0,
+  "roots_with_lost_tracks_at_root": 0,
+  "roots_containing_lost_memory": 0,
+  "moving_roots": 0,
+  "collision_event_count": 0,
+  "collision_event_rate": null,
+  "reserved_branches": 0,
+  "bounds": {
+    "max_total_roots": 2,
+    "max_total_branches": 144,
+    "max_attempts": 2,
+    "concurrency": 1,
+    "min_free_gb": 150.0
+  },
+  "completion": {},
+  "termination": {},
+  "wait": {
+    "count": 0,
+    "min": null,
+    "max": null,
+    "mean": null
+  },
+  "speed": {
+    "count": 0,
+    "min": null,
+    "max": null,
+    "mean": null
+  },
+  "duration": {
+    "count": 0,
+    "min": null,
+    "max": null,
+    "mean": null
+  },
+  "completed_root_seconds": {
+    "count": 0,
+    "min": null,
+    "max": null,
+    "mean": null
+  },
+  "completed_root_bytes": 0
+}
+START r_56192f2b88742f78 castle 0
+...............COMPLETE reverse_1 0.0 s
+.START v2_b8650f215e300f5c castle 0 wait
+QUARANTINED_STATIC_VIOLATION v2_b8650f215e300f5c 0.0 s
+{
+  "status": "FAIL",
+  "protocol_version": "eventwm-human-event-v2",
+  "checker_version": "eventwm-static-swept-v2.3-native-controller",
+  "roots_attempted": 1,
+  "roots_completed": 0,
+  "candidate_proposals": 0,
+  "static_candidate_rejections": 0,
+  "accepted_movement_queries": 0,
+  "requested_movement_queries_per_root": 3,
+  "attempts_to_n_mean": null,
+  "attempts_to_n_max": null,
+  "movement_per_root": {
+    "v2_b8650f215e300f5c": 0
+  },
+  "wait_count": 0,
+  "primary_branches": 0,
+  "human_event_positives": 0,
+  "human_event_negatives": 0,
+  "invalid_branches": 1,
+  "unexpected_static_collisions": 1,
+  "termination_reasons": {},
+  "scene_human_breakdown": {
+    "castle/h0": {
+      "branches": 0,
+      "positive": 0,
+      "negative": 0,
+      "invalid": 0
+    }
+  }
+}
+............................................COMPLETE reverse_1 0.0 s
+.START v3_184fe8cee976be3e castle 0 wait
+quarantined v3_184fe8cee976be3e 0.0
+{'protocol_version': 'eventwm-social-outcome-v3', 'checker_version': 'eventwm-static-swept-v2.3-native-controller', 'status': 'FAIL', 'roots_attempted': 1, 'roots_completed': 0, 'primary_branches': 0, 'audit_branches': 0, 'class_counts': {}, 'invalid': 0, 'unexpected_static_collisions': 1, 'by_root': {'v3_184fe8cee976be3e': {}}}
+..........................
+----------------------------------------------------------------------
+Ran 180 tests in 5.376s
+
+OK

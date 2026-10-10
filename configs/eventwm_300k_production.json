@@ -1,12 +1,12 @@
 {
-  "release_version": "eventwm-v4-300k-production-freeze-1",
-  "release_branch": "research/eventwm-v4-300k-production",
+  "release_version": "eventwm-v4-300k-native-static-recovery-1",
+  "release_branch": "research/eventwm-v4-300k-recovery-ops-20261010",
   "host": "cv-w06",
   "project": "/home/haodong/workspace/projects/eventwm-falcon",
   "python": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
-  "scientific_checkout": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-science",
-  "scientific_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
-  "scientific_release_sha256": "2637018b0b2eec9b9e323c89f4e2132baa2b720d0cc6df974f56a18534210819",
+  "scientific_checkout": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-300k/recovery/eventwm-v4-static-recovery",
+  "scientific_commit": "2e792aa26f677e4d6b83bbbefebb733c0efa8e63",
+  "scientific_release_sha256": "64b8f8e4482b9ca6e868523e7689fb3f95a172c217ae47e162a876ee8e9b2c71",
   "output": "/tmp/eventwm_v4_300k",
   "reboot_backup": "/var/tmp/eventwm_v4_300k_reboot_backup",
   "archive": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_v4_300k_archive",
@@ -15,9 +15,14 @@
   "retained_target": 300000,
   "native_limit": 24,
   "pipeline_settings": {
-    "concurrency": 36, "preparers": 4, "validators": 2,
-    "prefetch": 8, "backlog": 36, "max_proposals": null,
-    "target": 300000, "fixture_digest": null
+    "concurrency": 36,
+    "preparers": 4,
+    "validators": 2,
+    "prefetch": 8,
+    "backlog": 36,
+    "max_proposals": null,
+    "target": 300000,
+    "fixture_digest": null
   },
   "minimum_output_free_gb": 100,
   "minimum_aggregate_free_gb": 310,
@@ -26,5 +31,8 @@
   "working_reserve_gb": 80,
   "headroom_gb": 40,
   "shared_data": "/home/haodong/workspace/baselines/Falcon/data",
-  "shared_pretrained_model": "/home/haodong/workspace/projects/eventwm-falcon/pretrained_model"
+  "shared_pretrained_model": "/home/haodong/workspace/projects/eventwm-falcon/pretrained_model",
+  "parent_scientific_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+  "parent_scientific_checkout": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-science",
+  "recovery_gate": "docs/release_evidence/static_recovery_gate.json"
 }

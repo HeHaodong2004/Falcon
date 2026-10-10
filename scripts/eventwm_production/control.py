@@ -135,7 +135,14 @@ def source_check():
     require(Path(C['archive']).resolve() == Path(release['configuration']['archive']).resolve(), 'Archive differs from the pinned scientific configuration')
     gate = read(PROJECT / 'output/eventwm_72h_v4_branch_gate/VERDICT.json')
     require(gate['passed'] and gate['retained_native_primary_queries'] >= 100 and
-            gate['source_commit'] == C['scientific_commit'], 'Native V4 gate provenance differs')
+            gate['source_commit'] == C.get('parent_scientific_commit',C['scientific_commit']), 'Native V4 gate provenance differs')
+    if C.get('recovery_gate'):
+        recovery=read(RELEASE_REPO / C['recovery_gate'])
+        require(recovery['passed'] and recovery['source_commit']==C['scientific_commit'] and
+                recovery['retained_native_primary_queries']>=100 and
+                recovery['static_feasibility_violations']==0 and
+                recovery['fresh_cow_query_pairs']>=8 and recovery['original_failure_rejected'],
+                'Native static recovery gate failed or provenance differs')
     original = read(PROJECT / 'output/eventwm_72h_native_ab/VERDICT.json')
     require(original['scientific_matches'] and original['retained'] >= 100, 'Original native scientific gate failed')
     return release

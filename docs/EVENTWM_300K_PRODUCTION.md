@@ -1,5 +1,14 @@
 # EventWM 300K production handoff
 
+Recovery update, 10 October 2026: this operational recovery worktree supersedes
+the original launcher after the b027 static-certification crash. Read
+[EVENTWM_STATIC_RECOVERY.md](EVENTWM_STATIC_RECOVERY.md) and the committed
+`docs/release_evidence/static_recovery_gate.json` for diagnosis and native gates.
+The local production configuration pins the isolated repaired scientific epoch;
+the original scientific checkouts, existing dataset, completed roots and saved
+C24 settings remain preserved. Use this worktree's `run_eventwm_300k.sh` for
+subsequent check, resume, status and stop commands.
+
 ## Release and scientific contract
 
 Operational release: **eventwm-v4-300k-production-freeze-1**, branch

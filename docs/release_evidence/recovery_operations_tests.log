@@ -1,0 +1,11 @@
+..................usage: control.py [-h] [--follow]
+                  [--name {monitor,deadline,integrity,phases,supervision,sampler,v4_measurement,native_metrics,legacy_supervision,finalize}]
+                  [{check,status,start,resume,logs,attach,stop,drain,verify,helpers,preserve-for-reboot,restore-after-reboot,_run,_helper}]
+control.py: error: argument action: invalid choice: 'reset' (choose from 'check', 'status', 'start', 'resume', 'logs', 'attach', 'stop', 'drain', 'verify', 'helpers', 'preserve-for-reboot', 'restore-after-reboot', '_run', '_helper')
+............
+----------------------------------------------------------------------
+Ran 30 tests in 0.039s
+
+OK
+Preserved complete dataset at /tmp/tmp34g7a38s/persistent_backup; restore-after-reboot before resume
+Restored complete dataset at /tmp/tmp34g7a38s/dataset; run check, verify, then resume
