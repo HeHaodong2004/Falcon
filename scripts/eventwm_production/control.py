@@ -246,7 +246,13 @@ def status():
                         history.append(row)
                 except ValueError: continue
     epoch = read(PROJECT / 'output/eventwm_72h_v4_resume_checkpoint.json')
-    for minutes in (15, 30, 60):
+    recovering=bool(C.get('recovery_gate'))
+    if recovering:
+        # Rates for this collector must not include crash downtime or old-epoch
+        # staged publication. Keep the original source's historical evidence.
+        history=[r for r in history if r.get('source_commit')==C['scientific_commit'] and
+                 r.get('state')=='running' and r.get('runner',{}).get('pid')==m.get('runner',{}).get('pid')]
+    for minutes in ((10,15,30,60) if recovering else (15,30,60)):
         candidates = [r for r in history if r['timestamp'] >= epoch['time'] and
                       minutes * 60 <= now - r['timestamp'] <= minutes * 60 + 180]
         if candidates:
@@ -255,8 +261,9 @@ def status():
             windows[str(minutes)] = dict(seconds=seconds, retained=q, qph=q / seconds * 3600)
     deadline = datetime.fromisoformat('2026-10-12T09:20:00+01:00').timestamp()
     remaining = max(0, TARGET - total)
-    preferred = windows.get('60') or windows.get('30')
+    preferred = windows.get('60') or windows.get('30') or (windows.get('15') or windows.get('10') if recovering else None)
     measured = read(PROJECT / 'output/eventwm_72h_v4_30min.json') if (PROJECT / 'output/eventwm_72h_v4_30min.json').exists() else None
+    if recovering and measured and measured.get('source_commit')!=C['scientific_commit']:measured=None
     rate = preferred['qph'] if preferred else measured['actual_publication_qph_including_resume_startup'] if measured else None
     control = read(DATA / 'native_limit.json')
     metrics_file = PROJECT / 'output/eventwm_72h_v4_native_metrics.json'

@@ -10,7 +10,7 @@
     "scripts/eventwm_production/audit_combined_inputs.py": "69a9ce3947b231ef6d58a5afa934b3dd1cce378c703bea760ebc410b17a218c9",
     "scripts/eventwm_production/audit_public_inputs.py": "5ab823fde328be3f881f3ef654e26256f140abe980254d41752b99014766b076",
     "scripts/eventwm_production/audit_successor.py": "b0896dc0ee6eed933d59d9fc8b0cf078ac4ee55b85d2b30ef86db573d5a0bf46",
-    "scripts/eventwm_production/control.py": "745164df95a341245d1b2d937c29661e5cc349f3f92a9d1aef015d7b4eee1385",
+    "scripts/eventwm_production/control.py": "931ae0d74262207803ecf41b9ebffca116e7d8e918d3a3c995804c5e5dc4b396",
     "scripts/eventwm_production/deadline_watchdog.py": "6748f6408b9b7d63ef58f60fb133264cdca935f7599821d584aaa528037588f0",
     "scripts/eventwm_production/finalize_mission.py": "06dee134efc7849749016e59f336f99ef0f04be2c0e86cad04c82fb99ab449e4",
     "scripts/eventwm_production/integrity_index.py": "917ee8fa2c584dd93e4b0a678b185bae85f1b5a32b33163d01103727293da0fb",
