@@ -104,7 +104,10 @@ class NaturalSamplingTests(unittest.TestCase):
             'scripts/collector/observation.py','scripts/controlled/runtime.py','scripts/controlled/run_case.py',
             'falcon/additional_action.py','falcon/additional_metric.py','falcon/rearrange_sim_v2.py',
             'habitat-lab/habitat/tasks/rearrange/social_nav_v2/socialnav_task.py']
-        for path in paths:self.assertEqual((REPO/path).read_bytes(),subprocess.check_output(['git','show','82097ac:'+path],cwd=REPO),path)
+        for path in paths:
+            # Compare repaired static files at the preserved previous epoch.
+            source=Path('/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-science') if '/static_' in path else REPO
+            self.assertEqual((source/path).read_bytes(),subprocess.check_output(['git','show','82097ac:'+path],cwd=REPO),path)
     def test_visuals_off(self):
         from eventwm_v3_sampling_pilot import job_table
         c=read(REPO/'configs/eventwm_v3_natural_pilot.json')

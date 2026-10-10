@@ -1,7 +1,7 @@
 {
-  "release_version": "eventwm-300k-r4-train-geometry-v2-shadow-reference",
+  "release_version": "eventwm-300k-r5-native-static-controls",
   "base_commit": "4b01a7a699462967172c9d61485dea4b40a41f78",
-  "required_branch": "research/eventwm-72h-geometry-production",
+  "required_branch": "research/eventwm-v4-static-recovery-20261010",
   "python": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
   "frozen_reference": {
     "checkout": "/home/haodong/workspace/projects/eventwm-falcon/output/overnight_collection_checkout",
@@ -472,8 +472,8 @@
     "scripts/collector/runtime.py": "e821b76fd69452fe77b34021f318ce4a1646501a959f00a9f74c73bed108ee64",
     "scripts/collector/sampling_audit.py": "177cf15b2a9c6031a3987e242b3c4c25c3c2439b579ab35c00005665242a1b7f",
     "scripts/collector/social_habitat.py": "5edfd18fe3d22c78cce6651dd77231af4ad922d798a00c238316a42e44970e39",
-    "scripts/collector/static_feasibility.py": "93be0dc1821c277d9276485084730b386ff938a154b237253a904dc309d12228",
-    "scripts/collector/static_habitat.py": "e10406110dbef8c38f4e615663aa3b247d09d84d65ae4c313dca5d978c9de4ed",
+    "scripts/collector/static_feasibility.py": "7d38e4d33212c3d8592f13a41480a1fc8f51409fe796339e4513c70468016f83",
+    "scripts/collector/static_habitat.py": "118205ff3baff1d5364f61126cab286dc49a9fc7223322ecdde8ecc977b9e99d",
     "scripts/collector/storage.py": "c9055f95ad79f3c824398ef812b7303aaf77a9138159674637ecf80e0c8324e7",
     "scripts/collector/v2.py": "eac8b9e869e855bdc71718792deb4349f529905c30ff26403a4bde5e4630a2a5",
     "scripts/collector/v3.py": "774b5c613ea0603d27a8e09f704ee3d965efd54e86fd24ecfd5bbd22c1fccab3",
@@ -602,5 +602,12 @@
     "geometry_root_only_cpu_ratio": 1.9286,
     "geometry_root_evidence": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_geometry_native_v2/RESULT.json",
     "root_only_is_not_collection_speedup": true
+  },
+  "recovery": {
+    "parent_scientific_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+    "checker_version": "eventwm-static-swept-v2.3-native-controller",
+    "failure_root": "v3m_e7c6987aa64211d2f63c",
+    "failure_query": "q_b85b8f97f044",
+    "repair": "certify exact native float controller transforms against static geometry; unchanged labels and stopping gates"
   }
 }

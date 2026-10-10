@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 import math
 import numpy as np
 
-CHECKER_VERSION = 'eventwm-static-swept-v2.2'
+CHECKER_VERSION = 'eventwm-static-swept-v2.3-native-controller'
 
 
 @dataclass(frozen=True)
@@ -80,6 +80,17 @@ def is_static_feasible(root, query, static_map, geometry, config=StaticConfig())
         if distance > 1e-8 and not static_map.segment_free(a[1:4],b[1:4]):
             result.update(rejection_reason='controller_navmesh_clipping',failed_segment=i,
                           failed_pose=b.tolist(),min_static_clearance=minimum)
+            return result
+    # Nominal arithmetic is not the native VelocityControl float trajectory.
+    # The Habitat adapter also certifies those exact accumulated transforms,
+    # against static geometry only, with the existing contact predicate.
+    if hasattr(static_map,'native_control_check'):
+        native=static_map.native_control_check(q)
+        result['native_control_check']=native
+        if not native['static_feasible']:
+            result.update(rejection_reason=native['rejection_reason'],
+                          failed_segment=native['failed_segment'],failed_pose=native['failed_pose'],
+                          min_static_clearance=minimum if math.isfinite(minimum) else None)
             return result
     result.update(static_feasible=True,min_static_clearance=minimum if math.isfinite(minimum) else None)
     return result

@@ -83,6 +83,22 @@ class StaticTests(unittest.TestCase):
     def test_controller_clipped_path_rejected(self):
         m=Map();m.segment_free=lambda a,b:False
         self.assertEqual(is_static_feasible(ROOT,query(),m,GEO)['rejection_reason'],'controller_navmesh_clipping')
+    def test_nominal_pass_cannot_override_native_controller_rejection(self):
+        m=Map()
+        native=dict(static_feasible=False,checked_poses=51,failed_segment=50,
+                    failed_pose=[2.482,.565,-2.550,.155,-2.094],
+                    rejection_reason='native_controller_static_geometry_overlap')
+        m.native_control_check=lambda q:native
+        r=is_static_feasible(ROOT,query(),m,GEO)
+        self.assertFalse(r['static_feasible'])
+        self.assertEqual(r['failed_segment'],50)
+        self.assertEqual(r['native_control_check'],native)
+    def test_native_checker_errors_stop_certification(self):
+        m=Map()
+        def broken(q):raise RuntimeError('native check unavailable')
+        m.native_control_check=broken
+        with self.assertRaisesRegex(RuntimeError,'native check unavailable'):
+            is_static_feasible(ROOT,query(),m,GEO)
 
 class LabelTests(unittest.TestCase):
     def test_early_native_or_disc_or_both_positive(self):
