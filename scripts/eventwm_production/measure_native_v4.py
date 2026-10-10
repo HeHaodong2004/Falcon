@@ -11,6 +11,9 @@ while True:
     for directory in sorted(D.glob('logs/*')):
         file=directory/'scheduler_events.jsonl'
         if not file.exists() or file.stat().st_mtime<checkpoint['time']:continue
+        # Directory names use the runner's local wall clock. Event timestamps
+        # are elapsed perf_counter seconds within that native session.
+        if time.mktime(time.strptime(directory.name[:15],'%Y%m%d_%H%M%S'))<checkpoint['time']:continue
         # Exclude the fully drained epoch even if its final fsync was recent.
         if directory.name.endswith('_2399600'):continue
         with file.open() as f:
@@ -20,7 +23,6 @@ while True:
                 if not line:break
                 try:e=json.loads(line)
                 except ValueError:f.seek(position);break
-                if e['time']<checkpoint['time']:continue
                 kind=e['kind']
                 if kind=='queue':
                     previous=last.get(str(file))

@@ -15,7 +15,7 @@
     "scripts/eventwm_production/finalize_mission.py": "06dee134efc7849749016e59f336f99ef0f04be2c0e86cad04c82fb99ab449e4",
     "scripts/eventwm_production/integrity_index.py": "917ee8fa2c584dd93e4b0a678b185bae85f1b5a32b33163d01103727293da0fb",
     "scripts/eventwm_production/legacy_supervision.py": "86dd9a949b9089828adb22e769b1af34d420c5aadc5437e8c7a123340f542672",
-    "scripts/eventwm_production/measure_native_v4.py": "ff180d0ea48f7a782046579102c4c8913d61fef8fc4e999834aaa168eb121c00",
+    "scripts/eventwm_production/measure_native_v4.py": "ff238819c3b754f210e4a995adfd40aafab72ea2916485c61ba5a6e42b528264",
     "scripts/eventwm_production/measure_v4.py": "74fee6edd026131364b911361800624f81a213c6fa834ebeff4d98d579ddf332",
     "scripts/eventwm_production/monitor.py": "7c5f11fa14d5cbb7f95fa781293e292165805100177ef9cae49a02bcb5a03dff",
     "scripts/eventwm_production/observe_production.py": "77d77fa63c30229abf1a7c2aa6807d684eed131b408e327b287eaee6f35a3010",
