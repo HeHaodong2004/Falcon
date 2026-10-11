@@ -3,7 +3,7 @@ import copy, json, sys, tempfile, unittest
 from unittest.mock import patch
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'scripts/eventwm_production'))
-from recover_static_epoch import transition, OLD, CHANGED
+from recover_static_epoch import transition, OLD, CHANGED, ADDED
 from control import C
 import settings
 
@@ -14,7 +14,7 @@ class EpochRecoveryTests(unittest.TestCase):
             m=dict(frozen_commit=OLD,source_hashes={k:'old' for k in CHANGED},pipeline_settings=C['pipeline_settings'],
                    master_seed=731000000,protected_scientific_hashes={},production_source_epochs=[{'commit':OLD}],
                    next_sequence=30829,max_attempts=2)
-            release=dict(implementation_hashes={k:'new' for k in CHANGED},configuration={'master_seed':731000000},protected_scientific_hashes={})
+            release=dict(implementation_hashes={k:'new' for k in CHANGED|ADDED},configuration={'master_seed':731000000},protected_scientific_hashes={})
             roots=[dict(root_id='completed',state='completed',source_commit=OLD,attempts=[{'number':1,'path':'completed'}]),
                    dict(root_id='validated',state='running',source_commit=OLD,attempts=[{'number':1,'path':'validated'}]),
                    dict(root_id='retry',state='running',source_commit=OLD,attempts=[{'number':1,'path':'retry'}],recipe={'seed':1}),
@@ -23,14 +23,16 @@ class EpochRecoveryTests(unittest.TestCase):
             new,updates=transition(m,roots,release,'new_epoch',out)
             self.assertEqual((m,roots),original)
             self.assertEqual([b['root_id'] for b,_ in updates],['retry'])
-            self.assertEqual(updates[0][0]['attempts'],updates[0][1]['attempts'])
+            self.assertEqual([a['path'] for a in updates[0][0]['attempts']],[a['path'] for a in updates[0][1]['attempts']])
+            self.assertEqual(updates[0][1]['state'],'pending')
+            self.assertEqual(updates[0][1]['attempts'][-1]['reason'],'scientific_epoch_transition')
             self.assertEqual(updates[0][0]['recipe'],updates[0][1]['recipe'])
             self.assertEqual(new['next_sequence'],m['next_sequence'])
             self.assertEqual(new['pipeline_settings'],m['pipeline_settings'])
             self.assertEqual(new['production_source_epochs'][0],{'commit':OLD})
     def test_unrelated_source_change_is_refused(self):
         m=dict(frozen_commit=OLD,source_hashes={'labels.py':'old'})
-        release=dict(implementation_hashes={'labels.py':'new'})
+        release=dict(implementation_hashes=dict({'labels.py':'new'},**{p:'hash' for p in ADDED}))
         with self.assertRaisesRegex(RuntimeError,'Unexpected scientific'):
             transition(m,[],release,'new_epoch',Path('/tmp'))
 

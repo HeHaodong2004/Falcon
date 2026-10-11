@@ -1,7 +1,7 @@
 """Explicit, backed-up source transition; preserves all completed root records.
 
-Default is read-only. --apply changes source provenance only, while stopped.
-The unchanged runner subsequently uses its existing interrupted-attempt retry law.
+Default is read-only. --apply changes provenance while stopped and explicitly
+schedules interrupted, unsealed work once in the repaired scientific epoch.
 """
 import argparse, copy, fcntl, hashlib, json, shutil, sqlite3, time
 import sys
@@ -9,12 +9,14 @@ from collections import Counter
 from pathlib import Path
 from control import C, DATA, SCIENCE, RELEASE_REPO, metadata, reject_active, source_check, require, read, git, canonical_digest, durable
 
-OLD='58b4b0a17c90c5c7de420834b8ef62c44194eee7'
+OLD='2e792aa26f677e4d6b83bbbefebb733c0efa8e63'
+FAILED_ROOT='v4g2_2cc61907376608bec99f'
+ADDED={'tests/collector/test_static_contact_refresh.py'}
 CHANGED={'scripts/collector/static_habitat.py','scripts/collector/static_feasibility.py'}
 
 def transition(m,roots,new_release,new_commit,output):
     require(m['frozen_commit']==OLD,'This transition accepts only the diagnosed previous epoch')
-    require(set(m['source_hashes'])==set(new_release['implementation_hashes']),'Implementation inventory changed')
+    require(set(new_release['implementation_hashes'])-set(m['source_hashes'])==ADDED and not (set(m['source_hashes'])-set(new_release['implementation_hashes'])),'Only the contact-refresh regression may extend the implementation inventory')
     changed={p for p,h in m['source_hashes'].items() if new_release['implementation_hashes'][p]!=h}
     require(changed==CHANGED,'Unexpected scientific source changes: '+repr(changed))
     require(m['pipeline_settings']==C['pipeline_settings'],'Saved collection settings differ')
@@ -31,10 +33,17 @@ def transition(m,roots,new_release,new_commit,output):
         after=copy.deepcopy(r)
         after.setdefault('source_epoch_history',[]).append(dict(commit=r['source_commit'],attempt_numbers=[a['number'] for a in r['attempts']]))
         after['source_commit']=new_commit
+        # An explicit release transition grants interrupted, unsealed work one
+        # attempt in the repaired epoch. Preserve all prior attempt paths and
+        # receipts; normal max_attempts stays two for newly admitted work.
+        if after['state'] in ('running','preparing'):
+            if after['attempts'] and after['attempts'][-1].get('state')!='reserved':
+                after['attempts'][-1].update(state='failed',reason='scientific_epoch_transition')
+            after.update(state='pending',pid=None)
         updates.append((r,after))
     new['production_source_epochs']=copy.deepcopy(m.get('production_source_epochs',[]))
     new['production_source_epochs'].append(dict(commit=new_commit,source_hashes=new_release['implementation_hashes'],
-        pipeline_release=canonical_digest(new_release),transition='diagnosed native float static certification repair; completed roots immutable',
+        pipeline_release=canonical_digest(new_release),transition='diagnosed Bullet contact-manifold refresh repair; completed roots immutable; bounded new-epoch attempt for interrupted unsealed work',
         first_sequence=m['next_sequence'],resumed_root_ids=[r['root_id'] for r,_ in updates],time=time.time()))
     new.update(frozen_commit=new_commit,source_hashes=new_release['implementation_hashes'],pipeline_release=canonical_digest(new_release),state='stopped_recovery_ready')
     new['checker']=new_release.get('recovery',{}).get('checker_version',m.get('checker'))
@@ -51,14 +60,14 @@ def main():
     reject_active()
     require(git(SCIENCE,'rev-parse','HEAD')==C['scientific_commit'],'New source pin differs')
     release=source_check();m,progress,roots=metadata(roots=True)
-    old_release=read(Path(C['parent_scientific_checkout'])/'configs/eventwm_pipeline_release.json')
+    old_release=read(Path(C.get('previous_scientific_checkout',C['parent_scientific_checkout']))/'configs/eventwm_pipeline_release.json')
     require(m['source_hashes']==old_release['implementation_hashes'] and m['pipeline_release']==canonical_digest(old_release),'Old checkpoint release differs')
     new,updates=transition(m,roots,release,C['scientific_commit'],DATA)
     summary=dict(old_commit=OLD,new_commit=C['scientific_commit'],retained_new=progress['primary_queries'],
                  completed_roots=sum(r['state']=='completed' for r in roots),resumed_roots=len(updates),
                  validated_old_roots=sum(r['state']=='running' and (DATA/r['attempts'][-1]['path']/'VALIDATED.json').exists() for r in roots),
-                 failed_root_retried=any(r['root_id']=='v3m_e7c6987aa64211d2f63c' for r,_ in updates),settings=m['pipeline_settings'])
-    require(summary['failed_root_retried'],'Failing root must take the existing retry path')
+                 failed_root_retried=any(r['root_id']==FAILED_ROOT for r,_ in updates),settings=m['pipeline_settings'])
+    require(summary['failed_root_retried'],'Failing root must be explicitly scheduled in the repaired epoch')
     if not a.apply:print(json.dumps(dict(summary,dry_run=True),indent=2));return
     backup=DATA/'recovery_epochs'/C['scientific_commit']
     require(not backup.exists(),'Recovery backup already exists; inspect it instead of repeating the transition')
@@ -72,7 +81,7 @@ def main():
             # Finish old-epoch validated work using its ORIGINAL checker and
             # publication implementation. The new checker never reinterprets
             # a v2.2 certificate. No native job or completed root is replayed.
-            sys.path[:0]=[str(Path(C['parent_scientific_checkout'])/'scripts'),str(Path(C['parent_scientific_checkout']))]
+            sys.path[:0]=[str(Path(C.get('previous_scientific_checkout',C['parent_scientific_checkout']))/'scripts'),str(Path(C.get('previous_scientific_checkout',C['parent_scientific_checkout'])))]
             from eventwm_pipeline_runner import publish_one
             from eventwm_pipeline_io import StateStore
             import eventwm_mass_collection as mass
@@ -109,6 +118,12 @@ def main():
                     actual=json.loads(db.execute('SELECT value FROM roots WHERE id=?',(b['root_id'],)).fetchone()[0])
                     require(actual==b,'Root changed during transition')
                     db.execute('UPDATE roots SET value=? WHERE id=?',(json.dumps(x,separators=(',',':')),b['root_id']))
+                # Keep accounting consistent with the explicit pending states.
+                changed_progress=Counter(progress)
+                for b,x in updates:
+                    changed_progress['state_'+b['state']]-=1
+                    changed_progress['state_'+x['state']]+=1
+                db.execute("UPDATE meta SET value=? WHERE key='progress'",(json.dumps(dict(changed_progress),separators=(',',':')),))
                 require(completed_digest(db)==before,'Completed roots changed')
             exported=copy.deepcopy(new)
             exported['scenes']=json.loads(db.execute("SELECT value FROM meta WHERE key='scenes'").fetchone()[0])

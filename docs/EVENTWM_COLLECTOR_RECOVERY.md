@@ -31,7 +31,10 @@ checkpoint remains valid and all 3865 pre-existing root seals and query IDs were
 checked unchanged. Sustained production and the requested five-minute publication
 verification were not achieved. Do not use repeated manual resumes to exhaust
 the frozen interrupted-attempt policy and silently skip this known failure.
-Resolve the scientific certification mismatch before resuming again.
+The separately authorized repair is now validated in science commit `eac1c27`.
+See [the contact repair release](EVENTWM_STATIC_CONTACT_REPAIR.md) for the
+confirmed manifold-refresh cause, bounded native gate and checkpoint transition.
+Use the current pinned launcher after the explicit transition.
 
 The operational guard runs independently in `eventwm_300k_recovery`. It checks
 the actual runner PID, command, output and source commit every 15 seconds. It

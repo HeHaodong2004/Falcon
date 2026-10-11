@@ -1,9 +1,9 @@
 {
-  "release_version": "eventwm-v4-300k-native-static-recovery-1",
-  "scientific_commit": "2e792aa26f677e4d6b83bbbefebb733c0efa8e63",
+  "release_version": "eventwm-v4-300k-native-static-contact-repair-2",
+  "scientific_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
   "hashes": {
     "scripts/run_eventwm_300k.sh": "18e839f2c61165f4885b91d7c83b5cb956fd876f906975816b349b9d4ea7b810",
-    "configs/eventwm_300k_production.json": "bc802afefe3237ded558c44614764c32e40748ff55a18f806c1c07d2b2842187",
+    "configs/eventwm_300k_production.json": "e30bd932f2aaf1b39fbbed23d0387b30c5d73cec9e2f6001345f1c644c1dbef2",
     "tests/collector/test_production_control.py": "34016ed29e8fbf9fdf2945ac4b8fef70c8482ef4e4edb3652df4e2647b14c34a",
     "docs/EVENTWM_300K_PRODUCTION.md": "d4e4c54770cc2b1ffdafebfc58bb2e228906e3c15b18e9fad8713f7b478483ca",
     "scripts/eventwm_production/active_release.py": "dad684d4d377df53b327ab02746af955c92a027222503266179b6816e49f5c66",
@@ -35,12 +35,15 @@
     "docs/release_evidence/v4_startup_60min.json": "6f4acd8b6ed28478d3a36e63571cd49d5525bbc1a75302374bd222b9ba90f813",
     "docs/release_evidence/validation.json": "b1919cc67746756b6d1133f672ac982f2f5c95356006d71f420c80abafa4a37b",
     "docs/release_evidence/validator_cache_gate.json": "4ead9958e484faf2ab23643099a58b7c5533f5dae4800ee15948f4903c3e811e",
-    "scripts/eventwm_production/recover_static_epoch.py": "1bc5a52cc20dd24b8235ecd0252184c7d2f6d8a88e227a996c29534ee1e806d2",
-    "tests/collector/test_static_epoch_recovery.py": "960862f19aae7cc9431f60184366ec2ce0a3e07977e4be976757ba88e219103c",
+    "scripts/eventwm_production/recover_static_epoch.py": "99f324134d0548c2f1b6ebdd0154e91a32aa4cae7aa75aa58a687e64edbca10f",
+    "tests/collector/test_static_epoch_recovery.py": "57330aca1abe57b0e2148a1759db7725f026b51e37db981f284923177d61bd8d",
     "docs/EVENTWM_STATIC_RECOVERY.md": "4224f9fa922082d4f62af39fa182ad6a4ff550cce9f39db0427a5747a04f09fd",
     "docs/release_evidence/static_recovery_gate.json": "02e8a566de69b36869d35928b3a43d13b076fb41e95cccd9c11b005e8d2952cd",
     "scripts/eventwm_production/recovery_guard.py": "597ecde7c6653b39ff988c4488ed9f9462ac2f0b7d05124fa112f932a8dcacc7",
     "tests/collector/test_recovery_guard.py": "926650ad86d777fa6528d5b215f08f091953e8f2a9611f86d3354141d78bf9ff",
-    "docs/EVENTWM_COLLECTOR_RECOVERY.md": "ba6ff0af140642a87b651312b49346b3bc8961a45fb173bcb1292a27da53ce01"
+    "docs/EVENTWM_COLLECTOR_RECOVERY.md": "a02d1f2adc33b7875c5a813c5768884fc2c914ac7bda9772097461ef8f4f110f",
+    "tests/collector/test_static_epoch_transition.py": "f42273ea89e283f7b287db92e8a9ed55aa2bf4b257e8bd49db4c284112361c60",
+    "docs/EVENTWM_STATIC_CONTACT_REPAIR.md": "7883e5e576def19064424150bcb3a9ab56ac2a9897a4ada2d9d3b19321b80aad",
+    "docs/release_evidence/static_contact_repair_gate.json": "62484a00ee9c4a427cb77ea54da2553bb1d0a5c4ca9923ca36dace9e69371401"
   }
 }
