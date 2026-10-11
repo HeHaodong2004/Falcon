@@ -41,6 +41,6 @@
     "docs/release_evidence/static_recovery_gate.json": "02e8a566de69b36869d35928b3a43d13b076fb41e95cccd9c11b005e8d2952cd",
     "scripts/eventwm_production/recovery_guard.py": "597ecde7c6653b39ff988c4488ed9f9462ac2f0b7d05124fa112f932a8dcacc7",
     "tests/collector/test_recovery_guard.py": "926650ad86d777fa6528d5b215f08f091953e8f2a9611f86d3354141d78bf9ff",
-    "docs/EVENTWM_COLLECTOR_RECOVERY.md": "1135fdfefb51d35ff467f52496a2cf55cf8c18bcd22fd8b6502a80a4fb3a3aa2"
+    "docs/EVENTWM_COLLECTOR_RECOVERY.md": "ba6ff0af140642a87b651312b49346b3bc8961a45fb173bcb1292a27da53ce01"
   }
 }

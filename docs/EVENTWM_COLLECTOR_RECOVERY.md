@@ -16,6 +16,23 @@ collector ownership or recovery guarantee. Kernel records in the failure window
 showed no OOM, segfault or storage errors; repeated unrelated NVIDIA version
 mismatch reports do not explain the explicit native integrity exception.
 
+The guarded manual resume on 11 October used collector PID 3286596. Its frozen
+verifier reread all completed root data before starting native work. It recovered
+one previously validated root, raising retained publication to 157608 (127578
+new plus 30030 legacy), then executed at C24 with approximately 75.6% host CPU.
+At 18:54 BST the same query failed on attempt 02 with the same 3.960-second
+static event. The static certificate had declared feasibility; execution recorded
+a Spot link-19/stage contact with normal Y 0.799787104, below the unchanged 0.8
+ground-support cutoff. This is a reproducible certification mismatch, requiring
+a separate scientific repair release, not an operational restart loop.
+
+The guard recorded collector death and blocked further automatic recovery. The
+checkpoint remains valid and all 3865 pre-existing root seals and query IDs were
+checked unchanged. Sustained production and the requested five-minute publication
+verification were not achieved. Do not use repeated manual resumes to exhaust
+the frozen interrupted-attempt policy and silently skip this known failure.
+Resolve the scientific certification mismatch before resuming again.
+
 The operational guard runs independently in `eventwm_300k_recovery`. It checks
 the actual runner PID, command, output and source commit every 15 seconds. It
 waits while the collector tmux wrapper verifies sealed roots or cleans up workers.
