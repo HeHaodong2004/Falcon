@@ -71,6 +71,12 @@ class HabitatStaticWorld:
         vc.controlling_lin_vel=vc.lin_vel_is_local=True
         vc.controlling_ang_vel=vc.ang_vel_is_local=True
         checked=0
+        # Bullet refreshes persistent contact manifolds on every physics substep
+        # and recorder collision query. A single detection can retain a support
+        # normal that later refreshes into an obstacle contact at the SAME pose.
+        # Cover that refresh cadence without advancing physics or human state.
+        collision_passes=(math.ceil(query['control_dt']/self.sim.get_physics_time_step())
+                          + 1 + self.sim.ac_freq_ratio)
         try:
             obj.transformation=self.original
             for i,(v,w) in enumerate(query['executable_controls']):
@@ -83,15 +89,17 @@ class HabitatStaticWorld:
                     end=self.pf.try_step(rigid.translation,target.translation)
                     if end!=rigid.translation:end-=self.robot.params.base_offset
                     obj.transformation=mn.Matrix4.from_(target.rotation.to_matrix(),end)
-                self.sim.perform_discrete_collision_detection()
                 checked+=1
                 position=np.asarray(self.robot.base_pos)
-                if not self._contacts_free(position):
-                    forward=np.asarray(obj.transformation.transform_vector(mn.Vector3(1,0,0)))
-                    return dict(static_feasible=False,checked_poses=checked,failed_segment=i,
-                                failed_pose=[(i+1)*query['control_dt'],*position.tolist(),
-                                             math.atan2(-forward[2],forward[0])],
-                                rejection_reason='native_controller_static_geometry_overlap')
+                for collision_pass in range(collision_passes):
+                    self.sim.perform_discrete_collision_detection()
+                    if not self._contacts_free(position):
+                        forward=np.asarray(obj.transformation.transform_vector(mn.Vector3(1,0,0)))
+                        return dict(static_feasible=False,checked_poses=checked,failed_segment=i,
+                                    failed_pose=[(i+1)*query['control_dt'],*position.tolist(),
+                                                 math.atan2(-forward[2],forward[0])],
+                                    collision_pass=collision_pass,
+                                    rejection_reason='native_controller_static_geometry_overlap')
             return dict(static_feasible=True,checked_poses=checked)
         finally:
             obj.transformation=before

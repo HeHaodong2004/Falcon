@@ -1,7 +1,7 @@
 {
-  "release_version": "eventwm-300k-r5-native-static-controls",
+  "release_version": "eventwm-300k-r6-native-static-contact-refresh",
   "base_commit": "4b01a7a699462967172c9d61485dea4b40a41f78",
-  "required_branch": "research/eventwm-v4-static-recovery-20261010",
+  "required_branch": "research/eventwm-v4-static-contact-repair-20261011",
   "python": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
   "frozen_reference": {
     "checkout": "/home/haodong/workspace/projects/eventwm-falcon/output/overnight_collection_checkout",
@@ -472,8 +472,8 @@
     "scripts/collector/runtime.py": "e821b76fd69452fe77b34021f318ce4a1646501a959f00a9f74c73bed108ee64",
     "scripts/collector/sampling_audit.py": "177cf15b2a9c6031a3987e242b3c4c25c3c2439b579ab35c00005665242a1b7f",
     "scripts/collector/social_habitat.py": "5edfd18fe3d22c78cce6651dd77231af4ad922d798a00c238316a42e44970e39",
-    "scripts/collector/static_feasibility.py": "7d38e4d33212c3d8592f13a41480a1fc8f51409fe796339e4513c70468016f83",
-    "scripts/collector/static_habitat.py": "118205ff3baff1d5364f61126cab286dc49a9fc7223322ecdde8ecc977b9e99d",
+    "scripts/collector/static_feasibility.py": "079013f2e9d93b2367a6baa32a961c45201261b214c18e788500a11f1cbfa2d8",
+    "scripts/collector/static_habitat.py": "4e8667d5e47fcb4139048c4dc6538a4fe31aadf0e86a3027b81603ba6aa656f8",
     "scripts/collector/storage.py": "c9055f95ad79f3c824398ef812b7303aaf77a9138159674637ecf80e0c8324e7",
     "scripts/collector/v2.py": "eac8b9e869e855bdc71718792deb4349f529905c30ff26403a4bde5e4630a2a5",
     "scripts/collector/v3.py": "774b5c613ea0603d27a8e09f704ee3d965efd54e86fd24ecfd5bbd22c1fccab3",
@@ -516,7 +516,8 @@
     "scripts/eventwm_geometry_probe.py": "ae5ecfe7541be947f65eb796e0c4ff6a0a821f2b134b7c3ed44465394e614e83",
     "scripts/eventwm_geometry_v4.py": "6921b13e39146645afc97023272a7bc29f78882e368802988c2a0c94b90e0b47",
     "scripts/eventwm_geometry_branch_gate.py": "cb80c1ccfef4134325110b81657bf19527af5eb6e05db4642f26783ae56bb309",
-    "tests/collector/test_geometry_shadow.py": "3585b288328c56f38e9684572dbc19de5537285f212dae8c541d67a6dc07f631"
+    "tests/collector/test_geometry_shadow.py": "3585b288328c56f38e9684572dbc19de5537285f212dae8c541d67a6dc07f631",
+    "tests/collector/test_static_contact_refresh.py": "9223570e9f3dc0ccad2e85fbc5ec1c235920ae840dea8ce07ee3ab037c5eadc3"
   },
   "configuration": {
     "architecture": "COMBINED",
@@ -604,10 +605,10 @@
     "root_only_is_not_collection_speedup": true
   },
   "recovery": {
-    "parent_scientific_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
-    "checker_version": "eventwm-static-swept-v2.3-native-controller",
-    "failure_root": "v3m_e7c6987aa64211d2f63c",
-    "failure_query": "q_b85b8f97f044",
-    "repair": "certify exact native float controller transforms against static geometry; unchanged labels and stopping gates"
+    "parent_scientific_commit": "2e792aa26f677e4d6b83bbbefebb733c0efa8e63",
+    "checker_version": "eventwm-static-swept-v2.4-native-contact-refresh",
+    "failure_root": "v4g2_2cc61907376608bec99f",
+    "failure_query": "q_4c518149379d",
+    "repair": "refresh Bullet contact manifolds across native control-pose cadence; unchanged transforms, collision predicate, labels, physics and human policy"
   }
 }

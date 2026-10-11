@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 import math
 import numpy as np
 
-CHECKER_VERSION = 'eventwm-static-swept-v2.3-native-controller'
+CHECKER_VERSION = 'eventwm-static-swept-v2.4-native-contact-refresh'
 
 
 @dataclass(frozen=True)
