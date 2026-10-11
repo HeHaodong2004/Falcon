@@ -44,6 +44,7 @@
     "docs/EVENTWM_COLLECTOR_RECOVERY.md": "a02d1f2adc33b7875c5a813c5768884fc2c914ac7bda9772097461ef8f4f110f",
     "tests/collector/test_static_epoch_transition.py": "f42273ea89e283f7b287db92e8a9ed55aa2bf4b257e8bd49db4c284112361c60",
     "docs/EVENTWM_STATIC_CONTACT_REPAIR.md": "7883e5e576def19064424150bcb3a9ab56ac2a9897a4ada2d9d3b19321b80aad",
-    "docs/release_evidence/static_contact_repair_gate.json": "62484a00ee9c4a427cb77ea54da2553bb1d0a5c4ca9923ca36dace9e69371401"
+    "docs/release_evidence/static_contact_repair_gate.json": "62484a00ee9c4a427cb77ea54da2553bb1d0a5c4ca9923ca36dace9e69371401",
+    "docs/release_evidence/static_contact_repair_production.json": "173fa00359c5de155ca66da3481a278753ad82cf10d0cd951daf93a4d24070b0"
   }
 }
