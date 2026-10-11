@@ -10,7 +10,7 @@
     "scripts/eventwm_production/audit_combined_inputs.py": "69a9ce3947b231ef6d58a5afa934b3dd1cce378c703bea760ebc410b17a218c9",
     "scripts/eventwm_production/audit_public_inputs.py": "5ab823fde328be3f881f3ef654e26256f140abe980254d41752b99014766b076",
     "scripts/eventwm_production/audit_successor.py": "b0896dc0ee6eed933d59d9fc8b0cf078ac4ee55b85d2b30ef86db573d5a0bf46",
-    "scripts/eventwm_production/control.py": "9687411d41c0c3878edd7e6ddf298b90dbe8f98bfcf497902b94417562a714da",
+    "scripts/eventwm_production/control.py": "55eb83d460246500f2446b90da7f3e0d72a541c136b5e73470d32b14c9247412",
     "scripts/eventwm_production/deadline_watchdog.py": "6748f6408b9b7d63ef58f60fb133264cdca935f7599821d584aaa528037588f0",
     "scripts/eventwm_production/finalize_mission.py": "06dee134efc7849749016e59f336f99ef0f04be2c0e86cad04c82fb99ab449e4",
     "scripts/eventwm_production/integrity_index.py": "917ee8fa2c584dd93e4b0a678b185bae85f1b5a32b33163d01103727293da0fb",
@@ -38,6 +38,9 @@
     "scripts/eventwm_production/recover_static_epoch.py": "1bc5a52cc20dd24b8235ecd0252184c7d2f6d8a88e227a996c29534ee1e806d2",
     "tests/collector/test_static_epoch_recovery.py": "960862f19aae7cc9431f60184366ec2ce0a3e07977e4be976757ba88e219103c",
     "docs/EVENTWM_STATIC_RECOVERY.md": "4224f9fa922082d4f62af39fa182ad6a4ff550cce9f39db0427a5747a04f09fd",
-    "docs/release_evidence/static_recovery_gate.json": "02e8a566de69b36869d35928b3a43d13b076fb41e95cccd9c11b005e8d2952cd"
+    "docs/release_evidence/static_recovery_gate.json": "02e8a566de69b36869d35928b3a43d13b076fb41e95cccd9c11b005e8d2952cd",
+    "scripts/eventwm_production/recovery_guard.py": "597ecde7c6653b39ff988c4488ed9f9462ac2f0b7d05124fa112f932a8dcacc7",
+    "tests/collector/test_recovery_guard.py": "926650ad86d777fa6528d5b215f08f091953e8f2a9611f86d3354141d78bf9ff",
+    "docs/EVENTWM_COLLECTOR_RECOVERY.md": "1135fdfefb51d35ff467f52496a2cf55cf8c18bcd22fd8b6502a80a4fb3a3aa2"
   }
 }

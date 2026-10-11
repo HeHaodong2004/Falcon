@@ -345,7 +345,7 @@ def durable(path, value):
     finally: os.close(fd)
 
 
-def launch(action):
+def launch(action, enable_recovery=True):
     prepare_launch(action)
     # Serializes simultaneous user starts until the durable tmux session exists.
     with launch_lock():
@@ -357,6 +357,9 @@ def launch(action):
         command = 'EVENTWM_PRODUCTION_CONFIG=' + shlex.quote(str(CONFIG_PATH)) + ' ' + command
         subprocess.run(['tmux', 'new-session', '-d', '-s', C['session'], '-c', str(SCIENCE), command], check=True)
     helpers()
+    if enable_recovery:
+        from recovery_guard import start as start_guard
+        start_guard()
     print('Started durable collector session ' + C['session'] + '; dataset ' + str(DATA))
 
 
@@ -384,10 +387,16 @@ def run_collector():
         # A single log writer and no pipeline-dependent exit-code masking.
         result = subprocess.run(['nice', '-n', '5', 'ionice', '-c', '2', '-n', '6', *args], cwd=SCIENCE,
                                 stdout=log, stderr=subprocess.STDOUT)
+    m, _, _ = metadata()
+    from recovery_guard import events
+    events('collector_exit', exit_code=result.returncode, collector=m.get('runner') if m else None)
     raise SystemExit(result.returncode)
 
 
-def stop():
+def stop(disable_recovery=True):
+    if disable_recovery:
+        from recovery_guard import disable
+        disable()
     m, _, _ = metadata(); live = identity(m)
     if not live:
         print('Collector is already stopped'); return
@@ -506,7 +515,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', nargs='?', default='status', choices=['check', 'status', 'start', 'resume',
                         'logs', 'attach', 'stop', 'drain', 'verify', 'helpers', 'preserve-for-reboot',
-                        'restore-after-reboot', '_run', '_helper'])
+                        'restore-after-reboot', 'recovery-start', 'recovery-status', '_watch', '_run', '_helper'])
     parser.add_argument('--follow', action='store_true', help='Follow persistent collector log')
     parser.add_argument('--name', choices=HELPERS)
     args = parser.parse_args()
@@ -515,6 +524,11 @@ def main():
     elif args.action in ('start', 'resume'): launch(args.action)
     elif args.action == '_run': run_collector()
     elif args.action == '_helper': require(args.name, '--name required'); run_helper(args.name)
+    elif args.action in ('recovery-start', 'recovery-status', '_watch'):
+        import recovery_guard
+        if args.action == 'recovery-start': recovery_guard.start()
+        elif args.action == 'recovery-status': print(json.dumps(recovery_guard.state(), indent=2))
+        else: recovery_guard.watch()
     elif args.action in ('stop', 'drain'): stop()
     elif args.action in ('preserve-for-reboot', 'restore-after-reboot'): reboot_storage(args.action)
     elif args.action == 'helpers': helpers()
