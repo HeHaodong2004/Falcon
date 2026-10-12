@@ -1,0 +1,76 @@
+{
+  "source": "Frozen full-scaling train root membership joined to read-only verified root index",
+  "known_training_roots": 5705,
+  "indexed_training_roots": 5705,
+  "rows": [
+    {
+      "tag": "ep000_HMkoS756sz6_0",
+      "canonical_scene": "HM3D:HMkoS756sz6",
+      "training_roots_in_scene": 0,
+      "example_training_root": null
+    },
+    {
+      "tag": "ep001_YRUkbU5xsYj_6",
+      "canonical_scene": "HM3D:YRUkbU5xsYj",
+      "training_roots_in_scene": 20,
+      "example_training_root": [
+        "v4g2_c992efc5446b00423c84",
+        "HM3D:YRUkbU5xsYj",
+        "/tmp/eventwm_v4_300k",
+        "roots/v4g2_c992efc5446b00423c84/attempt_01"
+      ]
+    },
+    {
+      "tag": "ep002_q5QZSEeHe5g_3",
+      "canonical_scene": "HM3D:q5QZSEeHe5g",
+      "training_roots_in_scene": 0,
+      "example_training_root": null
+    },
+    {
+      "tag": "ep003_8CRYizAb6yd_10",
+      "canonical_scene": "HM3D:8CRYizAb6yd",
+      "training_roots_in_scene": 31,
+      "example_training_root": [
+        "v3m_87a5a94f203ee81296fa",
+        "HM3D:8CRYizAb6yd",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_v3_30k_c36_combined_exact_gate",
+        "roots/v3m_87a5a94f203ee81296fa/attempt_01"
+      ]
+    },
+    {
+      "tag": "ep004_bCPU9suPUw9_10",
+      "canonical_scene": "HM3D:bCPU9suPUw9",
+      "training_roots_in_scene": 0,
+      "example_training_root": null
+    },
+    {
+      "tag": "ep005_LEFTm3JecaC_13",
+      "canonical_scene": "HM3D:LEFTm3JecaC",
+      "training_roots_in_scene": 0,
+      "example_training_root": null
+    },
+    {
+      "tag": "ep006_RJaJt8UjXav_5",
+      "canonical_scene": "HM3D:RJaJt8UjXav",
+      "training_roots_in_scene": 3,
+      "example_training_root": [
+        "v4g2_f19ddde127aeeba9e366",
+        "HM3D:RJaJt8UjXav",
+        "/tmp/eventwm_v4_300k",
+        "roots/v4g2_f19ddde127aeeba9e366/attempt_01"
+      ]
+    },
+    {
+      "tag": "ep007_FnSn2KSrALj_6",
+      "canonical_scene": "HM3D:FnSn2KSrALj",
+      "training_roots_in_scene": 14,
+      "example_training_root": [
+        "v3m_7510613988e84c5ae813",
+        "HM3D:FnSn2KSrALj",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_v3_30k_c36_combined_exact_gate",
+        "roots/v3m_7510613988e84c5ae813/attempt_01"
+      ]
+    }
+  ],
+  "episode_disjointness": "Not certified by this scene audit; no unseen-scene benchmark claim"
+}

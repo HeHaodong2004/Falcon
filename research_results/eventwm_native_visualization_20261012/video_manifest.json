@@ -1,0 +1,33 @@
+{
+  "artifacts": {
+    "A_eventwm_success": {
+      "video": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/videos/A_eventwm_success.mp4",
+      "screenshot": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/screenshots/A_eventwm_success.png",
+      "validation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/replays/eventwm/ep001_YRUkbU5xsYj_6/validation.json"
+    },
+    "B_eventwm_collision": {
+      "video": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/videos/B_eventwm_collision.mp4",
+      "screenshot": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/screenshots/B_eventwm_collision.png",
+      "validation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/replays/eventwm/ep004_bCPU9suPUw9_10/validation.json"
+    },
+    "C_static_vs_eventwm": {
+      "video": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/videos/C_static_vs_eventwm.mp4",
+      "screenshot": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/screenshots/C_static_vs_eventwm.png",
+      "common_simulation_step_s": 0.048,
+      "first_divergent_robot_action_time_s": 1.5040000000000011,
+      "selection": "Latest actual native frame at or before common simulation time",
+      "after_terminal": "Hold final frame with explicit terminal label; no fabricated continuing motion"
+    }
+  },
+  "paired_initialization_verified": true,
+  "policy_unchanged": true,
+  "metrics_unchanged": true,
+  "ground_truth_map_overlay": false,
+  "playback": "12 fps; native-action frames preserve simulation timestamps; slower than native time; final two-second hold",
+  "native_utilities": [
+    "Habitat observations_to_image",
+    "Habitat get_topdown_map/colorize_topdown_map/to_grid",
+    "Habitat images_to_video"
+  ],
+  "telemetry": "Original model predictions and inference latency; no new model inference in visualization process"
+}

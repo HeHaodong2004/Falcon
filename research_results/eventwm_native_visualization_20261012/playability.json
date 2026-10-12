@@ -1,0 +1,59 @@
+{
+  "A_eventwm_success.mp4": {
+    "metadata": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 768,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "12/1",
+          "duration": "13.833333",
+          "nb_frames": "166"
+        }
+      ]
+    },
+    "full_decode_passed": true,
+    "sha256": "ee36b9a076b8c287b0283402f16a9295c1331d9730df7d6c75d76c27e9f0a270",
+    "bytes": 17959635
+  },
+  "B_eventwm_collision.mp4": {
+    "metadata": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 768,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "12/1",
+          "duration": "7.666667",
+          "nb_frames": "92"
+        }
+      ]
+    },
+    "full_decode_passed": true,
+    "sha256": "fbf1485d2385951a8f43a214451ceff56275da2d133e727a151ed3a4fabba290",
+    "bytes": 5202071
+  },
+  "C_static_vs_eventwm.mp4": {
+    "metadata": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 768,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "12/1",
+          "duration": "9.583333",
+          "nb_frames": "115"
+        }
+      ]
+    },
+    "full_decode_passed": true,
+    "sha256": "0aea839ea63cf113e848acf1e41f6723a6ea9f0d18c1597dd3f7cc32828d78fb",
+    "bytes": 9269210
+  }
+}

@@ -1,0 +1,337 @@
+{
+  "paired_episodes": 8,
+  "episodes": {
+    "ep000_HMkoS756sz6_0": {
+      "static": {
+        "visible_observation_frames": 1,
+        "valid_velocity_frames": 0,
+        "max_tracks": 1,
+        "selected_families": {
+          "route/normal": 8,
+          "left/normal": 4
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 1,
+        "valid_velocity_frames": 0,
+        "max_tracks": 1,
+        "selected_families": {
+          "route/normal": 8,
+          "left/normal": 4
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": {
+          "family": "route/normal",
+          "safe_probability": 0.9805417060852051,
+          "risk_range": [
+            0.019400298595428467,
+            0.02070862054824829
+          ],
+          "timestamp": 5.840000000000004,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 0,
+          "observation_ages_s": [],
+          "reason": "risk_budget_then_time_per_progress_hysteresis"
+        }
+      }
+    },
+    "ep001_YRUkbU5xsYj_6": {
+      "static": {
+        "visible_observation_frames": 72,
+        "valid_velocity_frames": 103,
+        "max_tracks": 2,
+        "selected_families": {
+          "route/normal": 13
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 72,
+        "valid_velocity_frames": 103,
+        "max_tracks": 2,
+        "selected_families": {
+          "route/normal": 13
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": {
+          "family": "route/normal",
+          "safe_probability": 0.9034109711647034,
+          "risk_range": [
+            0.09658902883529663,
+            0.11519324779510498
+          ],
+          "timestamp": 6.320000000000005,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 1,
+          "observation_ages_s": [
+            1.016000000000001
+          ],
+          "reason": "risk_budget_then_time_per_progress_hysteresis"
+        }
+      }
+    },
+    "ep002_q5QZSEeHe5g_3": {
+      "static": {
+        "visible_observation_frames": 0,
+        "valid_velocity_frames": 0,
+        "max_tracks": 0,
+        "selected_families": {
+          "route/normal": 11,
+          "right/normal": 2
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 0,
+        "valid_velocity_frames": 0,
+        "max_tracks": 0,
+        "selected_families": {
+          "route/normal": 11,
+          "right/normal": 2
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": {
+          "family": "route/normal",
+          "safe_probability": 0.9815480709075928,
+          "risk_range": [
+            0.018451929092407227,
+            0.02321726083755493
+          ],
+          "timestamp": 6.320000000000005,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 0,
+          "observation_ages_s": [],
+          "reason": "risk_budget_then_time_per_progress_hysteresis"
+        }
+      }
+    },
+    "ep003_8CRYizAb6yd_10": {
+      "static": {
+        "visible_observation_frames": 19,
+        "valid_velocity_frames": 59,
+        "max_tracks": 1,
+        "selected_families": {
+          "route/normal": 20,
+          "right/normal": 2
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 19,
+        "valid_velocity_frames": 59,
+        "max_tracks": 1,
+        "selected_families": {
+          "route/normal": 15,
+          "right/normal": 7
+        },
+        "choices_different_from_static_at_same_state": 1,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": {
+          "family": "route/normal",
+          "safe_probability": 0.950391948223114,
+          "risk_range": [
+            0.049608051776885986,
+            0.10794156789779663
+          ],
+          "timestamp": 10.703999999999805,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 0,
+          "observation_ages_s": [],
+          "reason": "risk_budget_then_time_per_progress_hysteresis"
+        }
+      }
+    },
+    "ep004_bCPU9suPUw9_10": {
+      "static": {
+        "visible_observation_frames": 25,
+        "valid_velocity_frames": 61,
+        "max_tracks": 1,
+        "selected_families": {
+          "route/normal": 7,
+          "left/normal": 1
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 28,
+        "valid_velocity_frames": 40,
+        "max_tracks": 1,
+        "selected_families": {
+          "route/normal": 2,
+          "left/normal": 4
+        },
+        "choices_different_from_static_at_same_state": 1,
+        "executed_prefixes_different_from_static_at_same_state": 1,
+        "last_decision": {
+          "family": "left/normal",
+          "safe_probability": 0.8619053959846497,
+          "risk_range": [
+            0.13809460401535034,
+            0.23637640476226807
+          ],
+          "timestamp": 2.920000000000002,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 1,
+          "observation_ages_s": [
+            0.29600000000000026
+          ],
+          "reason": "risk_budget_then_time_per_progress_hysteresis"
+        }
+      }
+    },
+    "ep005_LEFTm3JecaC_13": {
+      "static": {
+        "visible_observation_frames": 59,
+        "valid_velocity_frames": 88,
+        "max_tracks": 1,
+        "selected_families": {
+          "right/normal": 8
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 59,
+        "valid_velocity_frames": 88,
+        "max_tracks": 1,
+        "selected_families": {
+          "right/normal": 8
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": {
+          "family": "right/normal",
+          "safe_probability": 0.7707231044769287,
+          "risk_range": [
+            0.2292768955230713,
+            0.3532732129096985
+          ],
+          "timestamp": 3.888000000000003,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 1,
+          "observation_ages_s": [
+            1.072000000000001
+          ],
+          "reason": "minimum_risk_band_then_time_per_progress_hysteresis"
+        }
+      }
+    },
+    "ep006_RJaJt8UjXav_5": {
+      "static": {
+        "visible_observation_frames": 0,
+        "valid_velocity_frames": 0,
+        "max_tracks": 0,
+        "selected_families": {
+          "left/normal": 2,
+          "route/normal": 4
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 0,
+        "valid_velocity_frames": 0,
+        "max_tracks": 0,
+        "selected_families": {
+          "left/normal": 2,
+          "route/normal": 4
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": {
+          "family": "route/normal",
+          "safe_probability": 0.9794005751609802,
+          "risk_range": [
+            0.020599424839019775,
+            0.031650543212890625
+          ],
+          "timestamp": 2.920000000000002,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 0,
+          "observation_ages_s": [],
+          "reason": "risk_budget_then_time_per_progress_hysteresis"
+        }
+      }
+    },
+    "ep007_FnSn2KSrALj_6": {
+      "static": {
+        "visible_observation_frames": 13,
+        "valid_velocity_frames": 53,
+        "max_tracks": 1,
+        "selected_families": {
+          "route/normal": 3,
+          "right/normal": 3
+        },
+        "choices_different_from_static_at_same_state": 0,
+        "executed_prefixes_different_from_static_at_same_state": 0,
+        "last_decision": null
+      },
+      "eventwm": {
+        "visible_observation_frames": 13,
+        "valid_velocity_frames": 53,
+        "max_tracks": 1,
+        "selected_families": {
+          "right/normal": 6
+        },
+        "choices_different_from_static_at_same_state": 1,
+        "executed_prefixes_different_from_static_at_same_state": 1,
+        "last_decision": {
+          "family": "right/normal",
+          "safe_probability": 0.7499881982803345,
+          "risk_range": [
+            0.2500118017196655,
+            0.38240933418273926
+          ],
+          "timestamp": 2.920000000000002,
+          "current_visible_tracks": 0,
+          "current_valid_tracks": 0,
+          "observation_ages_s": [],
+          "reason": "minimum_risk_band_then_time_per_progress_hysteresis"
+        }
+      }
+    }
+  },
+  "wm_inference": {
+    "count": 86,
+    "mean_ms": 25.81759825143097,
+    "median_ms": 6.369301467202604,
+    "p95_ms": 181.00831046467647,
+    "max_ms": 266.7309249518439
+  },
+  "wm_planning": {
+    "count": 86,
+    "mean_ms": 81.13072574447277,
+    "median_ms": 58.225306449458,
+    "p95_ms": 222.27949101943523,
+    "max_ms": 362.28710191790015
+  },
+  "first_inference": {
+    "count": 8,
+    "mean_ms": 216.39455325203016,
+    "median_ms": 212.3805089504458,
+    "p95_ms": 262.9704371560365,
+    "max_ms": 266.7309249518439
+  },
+  "legal_input_checks_passed": true,
+  "caveats": [
+    "Partial-query execution does not supply full-query risk calibration labels.",
+    "Initial-distance/path-length ratio is uninformative for collision-truncated paths; use official SPL.",
+    "Static counterfactual choices use WM-visited states, not a counterfactual rollout."
+  ]
+}

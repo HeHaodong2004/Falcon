@@ -1,0 +1,110 @@
+{
+  "eventwm/ep001_YRUkbU5xsYj_6": {
+    "passed": true,
+    "policy": "eventwm",
+    "tag": "ep001_YRUkbU5xsYj_6",
+    "seed": 20261013,
+    "native_rendering": true,
+    "robot_max_position_error_m": 0.0,
+    "human_max_position_error_m": 0.0,
+    "yaw_max_error_rad": 0.0,
+    "clock_max_error_s": 0.0,
+    "legal_observation_max_error": 0.0,
+    "official_metric_max_error": 0.0,
+    "action_count": 141,
+    "original_metrics": {
+      "distance_to_goal": 0.033278170973062515,
+      "distance_to_goal_reward": -0.0,
+      "success": 1.0,
+      "did_multi_agents_collide": 0.0,
+      "num_steps": 141.0,
+      "spl": 1.0,
+      "psc": 1.0,
+      "human_collision": 0.0
+    },
+    "replay_metrics": {
+      "distance_to_goal": 0.033278170973062515,
+      "distance_to_goal_reward": -0.0,
+      "success": 1.0,
+      "did_multi_agents_collide": 0.0,
+      "num_steps": 141.0,
+      "spl": 1.0,
+      "psc": 1.0,
+      "human_collision": 0.0
+    },
+    "source_actions_sha256": "ef8df2b3a38ce46f7f1d62561f2d7f9317786fafbc77347689cb1d3a46b73689",
+    "scope": "Recorded original actions; native human actors; exact initialization and seed; no new policy/model decisions"
+  },
+  "eventwm/ep004_bCPU9suPUw9_10": {
+    "passed": true,
+    "policy": "eventwm",
+    "tag": "ep004_bCPU9suPUw9_10",
+    "seed": 20261016,
+    "native_rendering": true,
+    "robot_max_position_error_m": 0.0,
+    "human_max_position_error_m": 0.0,
+    "yaw_max_error_rad": 0.0,
+    "clock_max_error_s": 0.0,
+    "legal_observation_max_error": 0.0,
+    "official_metric_max_error": 0.0,
+    "action_count": 67,
+    "original_metrics": {
+      "distance_to_goal": 7.891722202301025,
+      "distance_to_goal_reward": 0.0323634147644043,
+      "success": 0.0,
+      "did_multi_agents_collide": 1.0,
+      "num_steps": 67.0,
+      "spl": 0.0,
+      "psc": 0.7611940298507462,
+      "human_collision": 1.0
+    },
+    "replay_metrics": {
+      "distance_to_goal": 7.891722202301025,
+      "distance_to_goal_reward": 0.0323634147644043,
+      "success": 0.0,
+      "did_multi_agents_collide": 1.0,
+      "num_steps": 67.0,
+      "spl": 0.0,
+      "psc": 0.7611940298507462,
+      "human_collision": 1.0
+    },
+    "source_actions_sha256": "f5ce5ddb522baf47269f35b5d8dc00da2cff96bf85ea9d77b001dd7d2380eab7",
+    "scope": "Recorded original actions; native human actors; exact initialization and seed; no new policy/model decisions"
+  },
+  "static/ep004_bCPU9suPUw9_10": {
+    "passed": true,
+    "policy": "static",
+    "tag": "ep004_bCPU9suPUw9_10",
+    "seed": 20261016,
+    "native_rendering": true,
+    "robot_max_position_error_m": 0.0,
+    "human_max_position_error_m": 0.0,
+    "yaw_max_error_rad": 0.0,
+    "clock_max_error_s": 0.0,
+    "legal_observation_max_error": 0.0,
+    "official_metric_max_error": 0.0,
+    "action_count": 88,
+    "original_metrics": {
+      "distance_to_goal": 7.335753440856934,
+      "distance_to_goal_reward": 0.03329038619995117,
+      "success": 0.0,
+      "did_multi_agents_collide": 1.0,
+      "num_steps": 88.0,
+      "spl": 0.0,
+      "psc": 0.6022727272727273,
+      "human_collision": 1.0
+    },
+    "replay_metrics": {
+      "distance_to_goal": 7.335753440856934,
+      "distance_to_goal_reward": 0.03329038619995117,
+      "success": 0.0,
+      "did_multi_agents_collide": 1.0,
+      "num_steps": 88.0,
+      "spl": 0.0,
+      "psc": 0.6022727272727273,
+      "human_collision": 1.0
+    },
+    "source_actions_sha256": "3555c7beab712157090aa20a19855061b125fdc179e5d2a66cc73cd033f96723",
+    "scope": "Recorded original actions; native human actors; exact initialization and seed; no new policy/model decisions"
+  }
+}
