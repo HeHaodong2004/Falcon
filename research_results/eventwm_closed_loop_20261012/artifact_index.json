@@ -1,0 +1,22 @@
+{
+  "episodes.json": {
+    "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_closed_loop_20261012/episodes.json",
+    "bytes": 7060,
+    "sha256": "cde70afee64e0020ac10b8cc973c5de5c7c9ec1b757bc20eed739a9a8abe7c83"
+  },
+  "goal_progress.png": {
+    "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_closed_loop_20261012/goal_progress.png",
+    "bytes": 192648,
+    "sha256": "68b28e8f7ec2d1e5c2d1d49a6e7c01503d8398cd8a8980e3b28528dd5452c16c"
+  },
+  "videos/ep004_bCPU9suPUw9_10_eventwm_diagnostic.mp4": {
+    "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_closed_loop_20261012/videos/ep004_bCPU9suPUw9_10_eventwm_diagnostic.mp4",
+    "bytes": 21558,
+    "sha256": "e1db3ef21f3018b3c77867915fa8eb3a34a389d2a659705aebd4980a9d9c7f15"
+  },
+  "first_episode_demonstration/eventwm/ep000_HMkoS756sz6_0/navigation.mp4": {
+    "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_closed_loop_20261012/first_episode_demonstration/eventwm/ep000_HMkoS756sz6_0/navigation.mp4",
+    "bytes": 31572,
+    "sha256": "b46e8e6dfd167ac0e6f73a2928c88aa5eafa6e0a6cec4fc8f9771ca82a59c504"
+  }
+}

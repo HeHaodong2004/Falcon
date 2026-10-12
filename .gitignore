@@ -127,3 +127,18 @@ data/
 output_test/
 docs/
 res/
+
+# EventWM research artifacts: implementation and compact summaries only
+*.pt
+*.pth
+*.mp4
+*.avi
+*.mov
+*.npz
+*.npy
+*.jsonl
+*.deb
+*.sqlite3
+.local_notes/
+shader_cache/
+graphics_runtime/

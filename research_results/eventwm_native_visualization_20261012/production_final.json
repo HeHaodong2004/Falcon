@@ -1,0 +1,51 @@
+{
+  "production": {
+    "timestamp": 1791823504.6884646,
+    "progress": {
+      "proposals": 89723,
+      "state_failed": 83074,
+      "state_completed": 6605,
+      "primary_queries": 217965,
+      "completed_roots": 6605,
+      "role_train": 192093,
+      "completed_root_bytes": 388855025501,
+      "role_natural_reference": 12441,
+      "role_unseen_evaluation": 13431,
+      "state_pending": 8,
+      "state_running": 36,
+      "state_preparing": 0
+    },
+    "runner_pid": 3296093,
+    "runner_alive": true,
+    "state": "running",
+    "native_limit": 24,
+    "source_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+    "pipeline_settings": {
+      "concurrency": 36,
+      "preparers": 4,
+      "validators": 2,
+      "prefetch": 8,
+      "backlog": 36,
+      "max_proposals": null,
+      "target": 300000,
+      "fixture_digest": null
+    }
+  },
+  "unchanged": {
+    "runner_pid": true,
+    "native_limit": true,
+    "source_commit": true,
+    "pipeline_settings": true
+  },
+  "source_hashes": {
+    "scripts/eventwm_pipeline_worker.py": "44e8504b937b936bb0ab579a049873800860f152725f244eb8e290086a8116c9",
+    "scripts/eventwm_pipeline_runner.py": "c5d0f270603fbf15ef3ced756c220a0c372f7fc02b1ae7dd11ada52eca2e1569",
+    "scripts/collector/core.py": "d8e043f2f530e7a87a67cce7d5712758b5f97460ea83c2f5a79582265f9a0dc9",
+    "scripts/collector/static_feasibility.py": "079013f2e9d93b2367a6baa32a961c45201261b214c18e788500a11f1cbfa2d8",
+    "scripts/collector/static_habitat.py": "4e8667d5e47fcb4139048c4dc6538a4fe31aadf0e86a3027b81603ba6aa656f8"
+  },
+  "source_hashes_match": true,
+  "source_tracked_status": "",
+  "checkpoint_sha256": "6478820b4fb1a109d5ba62282064257be98dd3fb6f1a3db0195eb1eff03ec09e",
+  "scope": "Read-only production sample and source hashes; research output only"
+}

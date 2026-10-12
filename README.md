@@ -36,6 +36,20 @@
 </div>
 
 
+## EventWM closed-loop SocialNav engineering milestone
+
+This fork includes learned EventWM inference, legal human-history tracking,
+goal-conditioned timed queries, a risk-aware selector, native local control,
+replanning, and validated Habitat RGB visualization. See
+[the EventWM README](README_EVENTWM_CLOSED_LOOP.md) for requirements, commands,
+results, and the isolated EGL workaround.
+
+On the frozen eight-episode development panel, Static and EventWM both achieved
+4/8 navigation success, SPL 0.50, and 4/8 human collisions; PSC was 0.875 and
+0.895 respectively. EventWM changed only two executable action prefixes across
+86 decisions. This is an engineering milestone, with no demonstrated navigation
+performance improvement or SOTA claim. The original Falcon documentation follows.
+
 ## :sparkles: Overview
 
 To navigate safely and efficiently in crowded spaces, robots should not only perceive the current state of the environment but also anticipate future human movements.

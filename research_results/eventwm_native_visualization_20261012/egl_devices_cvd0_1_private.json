@@ -1,0 +1,44 @@
+{
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/graphics_runtime/usr/lib/x86_64-linux-gnu:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib",
+    "__EGL_VENDOR_LIBRARY_FILENAMES": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/graphics_runtime/research_nvidia_egl.json",
+    "MAGNUM_GPU_VALIDATION": null
+  },
+  "devices": [
+    {
+      "egl_index": 0,
+      "extensions": "EGL_NV_device_cuda EGL_EXT_device_drm EGL_EXT_device_drm_render_node EGL_EXT_device_query_name EGL_EXT_device_persistent_id",
+      "cuda_attribute_success": true,
+      "cuda_device": 0,
+      "drm_device": "/dev/dri/card1",
+      "drm_render_node": "/dev/dri/renderD128"
+    },
+    {
+      "egl_index": 1,
+      "extensions": "EGL_NV_device_cuda EGL_EXT_device_drm EGL_EXT_device_drm_render_node EGL_EXT_device_query_name EGL_EXT_device_persistent_id",
+      "cuda_attribute_success": true,
+      "cuda_device": 1,
+      "drm_device": "/dev/dri/card2",
+      "drm_render_node": "/dev/dri/renderD129"
+    }
+  ],
+  "cuda": {
+    "init_status": 0,
+    "count_status": 0,
+    "count": 2
+  },
+  "loaded_libraries": [
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/graphics_runtime/usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.595.91.07",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/graphics_runtime/usr/lib/x86_64-linux-gnu/libnvidia-eglcore.so.595.91.07",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/graphics_runtime/usr/lib/x86_64-linux-gnu/libnvidia-glsi.so.595.91.07",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_native_visualization_20261012/graphics_runtime/usr/lib/x86_64-linux-gnu/libnvidia-gpucomp.so.595.91.07",
+    "/usr/lib/x86_64-linux-gnu/libEGL.so.1.1.0",
+    "/usr/lib/x86_64-linux-gnu/libcuda.so.595.99.02",
+    "/usr/lib/x86_64-linux-gnu/libnvidia-egl-gbm.so.1.1.3",
+    "/usr/lib/x86_64-linux-gnu/libnvidia-egl-wayland2.so.1.0.1",
+    "/usr/lib/x86_64-linux-gnu/libnvidia-egl-xcb.so.1.0.5",
+    "/usr/lib/x86_64-linux-gnu/libnvidia-egl-xlib.so.1.0.5"
+  ]
+}
