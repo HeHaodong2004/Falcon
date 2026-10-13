@@ -1,0 +1,42 @@
+[
+  {
+    "commit": "06e6afe0fa334265337631c1df833c78977a9a86",
+    "pipeline_release": "55aa8ed850e65a01c624ca9cd4ee469222a1669ca4ac5cbd4c7b036726772818",
+    "retained": 1320,
+    "time": 1791540909.038764
+  },
+  {
+    "commit": "44f0f95b96323f83a59728cab7766f0a5f52ad49",
+    "pipeline_release": "9b18dcddb49a85594ad110576fb246c56177eeeaaf24d00a8d62581087fd95f3",
+    "transition": "clean-drain-unchanged-science-validated-cache"
+  },
+  {
+    "commit": "44f0f95b96323f83a59728cab7766f0a5f52ad49",
+    "pipeline_release": "9b18dcddb49a85594ad110576fb246c56177eeeaaf24d00a8d62581087fd95f3",
+    "retained": 12276,
+    "time": 1791551731.5761511
+  },
+  {
+    "commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+    "first_sequence": 8481,
+    "pipeline_release": "25255b0f107954fb06941728fb1b17be5c82ca8e527f31c2d94e766961d6c804",
+    "time": 1791551731.578149,
+    "transition": "clean drain; TRAIN static geometry v2; separate V3 shadow reference coverage"
+  },
+  {
+    "commit": "2e792aa26f677e4d6b83bbbefebb733c0efa8e63",
+    "first_sequence": 30829,
+    "pipeline_release": "a59e2694f232f2b92ab42d29d7567bce30ffea3a8cb340c66a22bf9404d314fb",
+    "resumed_unsealed_roots": 24,
+    "time": 1791627793.3731728,
+    "transition": "diagnosed native float static certification repair; completed roots immutable"
+  },
+  {
+    "commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+    "first_sequence": 52216,
+    "pipeline_release": "03bc17f870cf3a5dfb45674a574d80920660470cbdbf8404df326ecc515f7122",
+    "resumed_unsealed_roots": 43,
+    "time": 1791743172.9148116,
+    "transition": "diagnosed Bullet contact-manifold refresh repair; completed roots immutable; bounded new-epoch attempt for interrupted unsealed work"
+  }
+]

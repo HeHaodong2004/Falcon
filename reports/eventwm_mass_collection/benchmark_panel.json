@@ -1,0 +1,2929 @@
+[
+  {
+    "recipe": {
+      "protocol_version": "eventwm-social-outcome-v3",
+      "case": "001_castle_h0",
+      "seed": 253020,
+      "sampling": {
+        "profile": "wm_train",
+        "sampler_version": "eventwm-wm-train-legal-strata-v1",
+        "human_count": 0,
+        "target_category": "zero",
+        "target_visible_bucket": null,
+        "target_lost_bucket": null,
+        "min_prefix_steps": 37,
+        "max_prefix_steps": 220,
+        "scan_angular_velocity": -6.0,
+        "visible_boundaries_m": [
+          1.0,
+          1.5,
+          3.0
+        ],
+        "lost_boundaries_s": [
+          0.5,
+          1.0
+        ],
+        "allow_visible_inside_1m": false
+      },
+      "sampling_profile": "wm_train",
+      "sampling_profile_family": "targeted",
+      "mechanism": "fresh_process_seeded_episode_plus_exact_prefix",
+      "query_config": {
+        "movement_queries": 8,
+        "max_attempts": 128,
+        "radii": [
+          1.5,
+          1.0,
+          0.65
+        ],
+        "endpoint_separation": 0.3,
+        "include_wait": true
+      },
+      "static_config": {
+        "safety_margin": 0.03,
+        "max_sample_distance": 0.02,
+        "max_sample_angle": 0.04
+      },
+      "debug_static_reference": false,
+      "sampling_audit": true,
+      "root_id": "v3w_9201bf69950dc00c",
+      "prefix_controls": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "case": {
+      "index": 1,
+      "tag": "001_castle_h0",
+      "scene": "castle",
+      "humans": 0,
+      "seed": 2301,
+      "episode": "episodes/001_castle_h0.json",
+      "episode_sha256": "69f03c3359a0af63eafbb2e696e7e64b9c65c28367816ebbc180f55efa3d2e25",
+      "initial_geodesic_m": 5.830727577209473
+    },
+    "episode": {
+      "episode_id": "3001",
+      "scene_id": "data/scene_datasets/habitat-test-scenes/skokloster-castle.glb",
+      "start_position": [
+        -3.9794259071350098,
+        0.20992600917816162,
+        12.958446502685547
+      ],
+      "start_rotation": [
+        0,
+        0.1866979295858669,
+        0,
+        0.9824173670535098
+      ],
+      "goals": [
+        {
+          "position": [
+            -6.117156028747559,
+            0.01800723373889923,
+            7.537131309509277
+          ],
+          "radius": 0.2
+        }
+      ],
+      "info": {
+        "geodesic_distance": 5.830727577209473,
+        "sampling_seed": 2301,
+        "policy_seed": 2301,
+        "scene_dataset": "default",
+        "scene_name": "castle",
+        "island_index": 1,
+        "human_0_waypoint_0_position": [
+          -0.717693030834198,
+          0.05681121349334717,
+          7.782160758972168
+        ],
+        "human_0_waypoint_0_rotation": 1.4611057513760894,
+        "human_0_waypoint_1_position": [
+          -3.7755727767944336,
+          0.20992600917816162,
+          14.261689186096191
+        ],
+        "human_0_waypoint_1_rotation": 6.056884441486718,
+        "human_0_waypoint_2_position": [
+          -5.791604518890381,
+          0.20992600917816162,
+          13.928229331970215
+        ],
+        "human_0_waypoint_2_rotation": 1.058462374308728,
+        "human_1_waypoint_0_position": [
+          -0.8588818907737732,
+          0.12044144421815872,
+          9.777459144592285
+        ],
+        "human_1_waypoint_0_rotation": 2.618309183462002,
+        "human_1_waypoint_1_position": [
+          2.375295639038086,
+          0.12268281728029251,
+          18.764453887939453
+        ],
+        "human_1_waypoint_1_rotation": 5.486227492349009,
+        "human_1_waypoint_2_position": [
+          2.885585308074951,
+          0.10736924409866333,
+          17.345396041870117
+        ],
+        "human_1_waypoint_2_rotation": 2.8389566213248285,
+        "human_2_waypoint_0_position": [
+          -5.9444260597229,
+          0.20992600917816162,
+          16.89299201965332
+        ],
+        "human_2_waypoint_0_rotation": 0.9714319363803882,
+        "human_2_waypoint_1_position": [
+          0.769520103931427,
+          0.04716522991657257,
+          6.802147388458252
+        ],
+        "human_2_waypoint_1_rotation": 3.20137501104094,
+        "human_2_waypoint_2_position": [
+          2.1645450592041016,
+          0.11466693878173828,
+          17.339126586914062
+        ],
+        "human_2_waypoint_2_rotation": 3.233249274741765,
+        "human_3_waypoint_0_position": [
+          -8.273853302001953,
+          0.20992600917816162,
+          8.596429824829102
+        ],
+        "human_3_waypoint_0_rotation": 0.24008926680999887,
+        "human_3_waypoint_1_position": [
+          4.5624284744262695,
+          0.20992600917816162,
+          14.306499481201172
+        ],
+        "human_3_waypoint_1_rotation": 4.887903095403476,
+        "human_3_waypoint_2_position": [
+          -4.750161170959473,
+          0.009925991296768188,
+          5.237032413482666
+        ],
+        "human_3_waypoint_2_rotation": 6.215072588957006,
+        "human_4_waypoint_0_position": [
+          4.593252658843994,
+          0.14977174997329712,
+          6.245725154876709
+        ],
+        "human_4_waypoint_0_rotation": 4.079914028100665,
+        "human_4_waypoint_1_position": [
+          3.5277366638183594,
+          0.15282805263996124,
+          10.1809663772583
+        ],
+        "human_4_waypoint_1_rotation": 0.4775394899752502,
+        "human_4_waypoint_2_position": [
+          -5.997430801391602,
+          0.07325628399848938,
+          9.00978946685791
+        ],
+        "human_4_waypoint_2_rotation": 3.455867008410823,
+        "human_5_waypoint_0_position": [
+          -0.0480932891368866,
+          0.06389231979846954,
+          22.450883865356445
+        ],
+        "human_5_waypoint_0_rotation": 5.419153874499743,
+        "human_5_waypoint_1_position": [
+          2.9480559825897217,
+          0.15994615852832794,
+          16.656604766845703
+        ],
+        "human_5_waypoint_1_rotation": 3.66864820032337,
+        "human_5_waypoint_2_position": [
+          -2.0137956142425537,
+          0.0827290415763855,
+          20.470354080200195
+        ],
+        "human_5_waypoint_2_rotation": 3.9144367894796503,
+        "human_num": 0
+      }
+    },
+    "scene": {
+      "physical_scene_id": "other:skokloster-castle",
+      "name": "castle",
+      "family": "other",
+      "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+      "scene_dataset": "default",
+      "aliases": [
+        "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb"
+      ],
+      "episode_files": [],
+      "present": true,
+      "source_navmesh": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.navmesh",
+      "compatible": true,
+      "reason": null,
+      "scene": {
+        "index": 1,
+        "name": "castle",
+        "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+        "scene_dataset": "default",
+        "family": "Habitat public test",
+        "note": "",
+        "navmesh": "/home/haodong/workspace/projects/eventwm-falcon/evaluation/controlled50/navmeshes/skokloster-castle.navmesh"
+      },
+      "navmesh_sha256": "82a49b9b8fb422297103db565101e4c7e6f6b131765369be912ceb8bac83a3e4",
+      "prepared_cases": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_mass_assets/other_skokloster-castle/prepared/cases.json",
+      "seconds": 4.283728071997757,
+      "compatibility_evidence": "native physics scene load, canonical Spot navmesh recomputation, connected robot/human episode generation; full v3 rollout smoke is separate",
+      "scene_role": "training"
+    },
+    "human_count": 0,
+    "origin": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_9201bf69950dc00c"
+  },
+  {
+    "recipe": {
+      "protocol_version": "eventwm-social-outcome-v3",
+      "case": "002_castle_h1",
+      "seed": 253000,
+      "sampling": {
+        "profile": "wm_train",
+        "sampler_version": "eventwm-wm-train-legal-strata-v1",
+        "human_count": 1,
+        "target_category": "unseen",
+        "target_visible_bucket": null,
+        "target_lost_bucket": null,
+        "min_prefix_steps": 29,
+        "max_prefix_steps": 220,
+        "scan_angular_velocity": -6.0,
+        "visible_boundaries_m": [
+          1.0,
+          1.5,
+          3.0
+        ],
+        "lost_boundaries_s": [
+          0.5,
+          1.0
+        ],
+        "allow_visible_inside_1m": false
+      },
+      "sampling_profile": "wm_train",
+      "sampling_profile_family": "targeted",
+      "mechanism": "fresh_process_seeded_episode_plus_exact_prefix",
+      "query_config": {
+        "movement_queries": 8,
+        "max_attempts": 128,
+        "radii": [
+          1.5,
+          1.0,
+          0.65
+        ],
+        "endpoint_separation": 0.3,
+        "include_wait": true
+      },
+      "static_config": {
+        "safety_margin": 0.03,
+        "max_sample_distance": 0.02,
+        "max_sample_angle": 0.04
+      },
+      "debug_static_reference": false,
+      "sampling_audit": true,
+      "root_id": "v3w_7e1f76ef25d2e59a",
+      "prefix_controls": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "case": {
+      "index": 2,
+      "tag": "002_castle_h1",
+      "scene": "castle",
+      "humans": 1,
+      "seed": 2301,
+      "episode": "episodes/002_castle_h1.json",
+      "episode_sha256": "d650a7bf8e7eeff1844e2cd42688f0c607a6395824e88f77c35401857c06eda8",
+      "initial_geodesic_m": 5.830727577209473
+    },
+    "episode": {
+      "episode_id": "3002",
+      "scene_id": "data/scene_datasets/habitat-test-scenes/skokloster-castle.glb",
+      "start_position": [
+        -3.9794259071350098,
+        0.20992600917816162,
+        12.958446502685547
+      ],
+      "start_rotation": [
+        0,
+        0.1866979295858669,
+        0,
+        0.9824173670535098
+      ],
+      "goals": [
+        {
+          "position": [
+            -6.117156028747559,
+            0.01800723373889923,
+            7.537131309509277
+          ],
+          "radius": 0.2
+        }
+      ],
+      "info": {
+        "geodesic_distance": 5.830727577209473,
+        "sampling_seed": 2301,
+        "policy_seed": 2301,
+        "scene_dataset": "default",
+        "scene_name": "castle",
+        "island_index": 1,
+        "human_0_waypoint_0_position": [
+          -0.717693030834198,
+          0.05681121349334717,
+          7.782160758972168
+        ],
+        "human_0_waypoint_0_rotation": 1.4611057513760894,
+        "human_0_waypoint_1_position": [
+          -3.7755727767944336,
+          0.20992600917816162,
+          14.261689186096191
+        ],
+        "human_0_waypoint_1_rotation": 6.056884441486718,
+        "human_0_waypoint_2_position": [
+          -5.791604518890381,
+          0.20992600917816162,
+          13.928229331970215
+        ],
+        "human_0_waypoint_2_rotation": 1.058462374308728,
+        "human_1_waypoint_0_position": [
+          -0.8588818907737732,
+          0.12044144421815872,
+          9.777459144592285
+        ],
+        "human_1_waypoint_0_rotation": 2.618309183462002,
+        "human_1_waypoint_1_position": [
+          2.375295639038086,
+          0.12268281728029251,
+          18.764453887939453
+        ],
+        "human_1_waypoint_1_rotation": 5.486227492349009,
+        "human_1_waypoint_2_position": [
+          2.885585308074951,
+          0.10736924409866333,
+          17.345396041870117
+        ],
+        "human_1_waypoint_2_rotation": 2.8389566213248285,
+        "human_2_waypoint_0_position": [
+          -5.9444260597229,
+          0.20992600917816162,
+          16.89299201965332
+        ],
+        "human_2_waypoint_0_rotation": 0.9714319363803882,
+        "human_2_waypoint_1_position": [
+          0.769520103931427,
+          0.04716522991657257,
+          6.802147388458252
+        ],
+        "human_2_waypoint_1_rotation": 3.20137501104094,
+        "human_2_waypoint_2_position": [
+          2.1645450592041016,
+          0.11466693878173828,
+          17.339126586914062
+        ],
+        "human_2_waypoint_2_rotation": 3.233249274741765,
+        "human_3_waypoint_0_position": [
+          -8.273853302001953,
+          0.20992600917816162,
+          8.596429824829102
+        ],
+        "human_3_waypoint_0_rotation": 0.24008926680999887,
+        "human_3_waypoint_1_position": [
+          4.5624284744262695,
+          0.20992600917816162,
+          14.306499481201172
+        ],
+        "human_3_waypoint_1_rotation": 4.887903095403476,
+        "human_3_waypoint_2_position": [
+          -4.750161170959473,
+          0.009925991296768188,
+          5.237032413482666
+        ],
+        "human_3_waypoint_2_rotation": 6.215072588957006,
+        "human_4_waypoint_0_position": [
+          4.593252658843994,
+          0.14977174997329712,
+          6.245725154876709
+        ],
+        "human_4_waypoint_0_rotation": 4.079914028100665,
+        "human_4_waypoint_1_position": [
+          3.5277366638183594,
+          0.15282805263996124,
+          10.1809663772583
+        ],
+        "human_4_waypoint_1_rotation": 0.4775394899752502,
+        "human_4_waypoint_2_position": [
+          -5.997430801391602,
+          0.07325628399848938,
+          9.00978946685791
+        ],
+        "human_4_waypoint_2_rotation": 3.455867008410823,
+        "human_5_waypoint_0_position": [
+          -0.0480932891368866,
+          0.06389231979846954,
+          22.450883865356445
+        ],
+        "human_5_waypoint_0_rotation": 5.419153874499743,
+        "human_5_waypoint_1_position": [
+          2.9480559825897217,
+          0.15994615852832794,
+          16.656604766845703
+        ],
+        "human_5_waypoint_1_rotation": 3.66864820032337,
+        "human_5_waypoint_2_position": [
+          -2.0137956142425537,
+          0.0827290415763855,
+          20.470354080200195
+        ],
+        "human_5_waypoint_2_rotation": 3.9144367894796503,
+        "human_num": 1
+      }
+    },
+    "scene": {
+      "physical_scene_id": "other:skokloster-castle",
+      "name": "castle",
+      "family": "other",
+      "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+      "scene_dataset": "default",
+      "aliases": [
+        "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb"
+      ],
+      "episode_files": [],
+      "present": true,
+      "source_navmesh": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.navmesh",
+      "compatible": true,
+      "reason": null,
+      "scene": {
+        "index": 1,
+        "name": "castle",
+        "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+        "scene_dataset": "default",
+        "family": "Habitat public test",
+        "note": "",
+        "navmesh": "/home/haodong/workspace/projects/eventwm-falcon/evaluation/controlled50/navmeshes/skokloster-castle.navmesh"
+      },
+      "navmesh_sha256": "82a49b9b8fb422297103db565101e4c7e6f6b131765369be912ceb8bac83a3e4",
+      "prepared_cases": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_mass_assets/other_skokloster-castle/prepared/cases.json",
+      "seconds": 4.283728071997757,
+      "compatibility_evidence": "native physics scene load, canonical Spot navmesh recomputation, connected robot/human episode generation; full v3 rollout smoke is separate",
+      "scene_role": "training"
+    },
+    "human_count": 1,
+    "origin": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_7e1f76ef25d2e59a"
+  },
+  {
+    "recipe": {
+      "protocol_version": "eventwm-social-outcome-v3",
+      "case": "026_hm3d_NBg5UqG3di3_h0",
+      "seed": 13301,
+      "sampling_profile_family": "targeted",
+      "mechanism": "fresh_process_seeded_episode_plus_exact_prefix",
+      "query_config": {
+        "movement_queries": 8,
+        "max_attempts": 128,
+        "radii": [
+          1.5,
+          1.0,
+          0.65
+        ],
+        "endpoint_separation": 0.3,
+        "include_wait": true
+      },
+      "static_config": {
+        "safety_margin": 0.03,
+        "max_sample_distance": 0.02,
+        "max_sample_angle": 0.04
+      },
+      "debug_static_reference": false,
+      "sampling_audit": true,
+      "root_id": "v3w_9201bf69950dc00c",
+      "prefix_controls": [
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          0.0,
+          5.8274360709333655
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ],
+        [
+          1.2,
+          0.0
+        ]
+      ]
+    },
+    "case": {
+      "index": 26,
+      "tag": "026_hm3d_NBg5UqG3di3_h0",
+      "scene": "hm3d_NBg5UqG3di3",
+      "humans": 0,
+      "seed": 2306,
+      "episode": "episodes/026_hm3d_NBg5UqG3di3_h0.json",
+      "episode_sha256": "543f21a56728e6152a3df83712d62da2711e8377258c20928d8f6f9d9f2dd715",
+      "initial_geodesic_m": 4.930880546569824
+    },
+    "episode": {
+      "episode_id": "3026",
+      "scene_id": "data/scene_datasets/hm3d/example/00770-NBg5UqG3di3/NBg5UqG3di3.basis.glb",
+      "start_position": [
+        -10.393355369567871,
+        0.1068541407585144,
+        10.708727836608887
+      ],
+      "start_rotation": [
+        0,
+        -0.2921278976496943,
+        0,
+        0.9563792612843347
+      ],
+      "goals": [
+        {
+          "position": [
+            -8.022929191589355,
+            0.1068541407585144,
+            7.190558433532715
+          ],
+          "radius": 0.2
+        }
+      ],
+      "info": {
+        "geodesic_distance": 4.930880546569824,
+        "sampling_seed": 2306,
+        "policy_seed": 2306,
+        "scene_dataset": "data/scene_datasets/hm3d/example/hm3d_example_basis.scene_dataset_config.json",
+        "scene_name": "hm3d_NBg5UqG3di3",
+        "island_index": 0,
+        "human_0_waypoint_0_position": [
+          -0.08784659206867218,
+          0.1068541407585144,
+          -3.587714672088623
+        ],
+        "human_0_waypoint_0_rotation": 5.260900229833261,
+        "human_0_waypoint_1_position": [
+          -24.80190086364746,
+          0.1068541407585144,
+          2.82004714012146
+        ],
+        "human_0_waypoint_1_rotation": 4.822645325142797,
+        "human_0_waypoint_2_position": [
+          5.398798942565918,
+          0.1068541407585144,
+          0.7951766848564148
+        ],
+        "human_0_waypoint_2_rotation": 2.1786524361443647,
+        "human_1_waypoint_0_position": [
+          -21.60881805419922,
+          0.1068541407585144,
+          2.274907112121582
+        ],
+        "human_1_waypoint_0_rotation": 6.058624025507922,
+        "human_1_waypoint_1_position": [
+          -11.951309204101562,
+          0.1068541407585144,
+          6.591811180114746
+        ],
+        "human_1_waypoint_1_rotation": 1.6273362665516629,
+        "human_1_waypoint_2_position": [
+          -16.404024124145508,
+          0.1068541407585144,
+          7.444040775299072
+        ],
+        "human_1_waypoint_2_rotation": 1.4124737259032245,
+        "human_2_waypoint_0_position": [
+          4.409860610961914,
+          0.1068541407585144,
+          5.299147605895996
+        ],
+        "human_2_waypoint_0_rotation": 4.575449603621235,
+        "human_2_waypoint_1_position": [
+          -10.859947204589844,
+          0.1068541407585144,
+          7.661712646484375
+        ],
+        "human_2_waypoint_1_rotation": 3.2854982609044443,
+        "human_2_waypoint_2_position": [
+          -10.990516662597656,
+          0.1068541407585144,
+          7.408642768859863
+        ],
+        "human_2_waypoint_2_rotation": 1.0837196891646466,
+        "human_3_waypoint_0_position": [
+          -15.065946578979492,
+          0.1068541407585144,
+          4.379215717315674
+        ],
+        "human_3_waypoint_0_rotation": 4.342343270433824,
+        "human_3_waypoint_1_position": [
+          2.2721967697143555,
+          0.1068541407585144,
+          2.3322649002075195
+        ],
+        "human_3_waypoint_1_rotation": 5.652078641549833,
+        "human_3_waypoint_2_position": [
+          -4.841865062713623,
+          0.1068541407585144,
+          7.930117607116699
+        ],
+        "human_3_waypoint_2_rotation": 5.279487488365323,
+        "human_4_waypoint_0_position": [
+          9.126604080200195,
+          0.1068541407585144,
+          6.929511070251465
+        ],
+        "human_4_waypoint_0_rotation": 0.13158924845947698,
+        "human_4_waypoint_1_position": [
+          -4.4306559562683105,
+          0.1068541407585144,
+          11.504867553710938
+        ],
+        "human_4_waypoint_1_rotation": 4.53732952386743,
+        "human_4_waypoint_2_position": [
+          -11.363306045532227,
+          0.1068541407585144,
+          12.53738021850586
+        ],
+        "human_4_waypoint_2_rotation": 2.342062979220368,
+        "human_5_waypoint_0_position": [
+          3.6994690895080566,
+          0.1068541407585144,
+          0.9376212358474731
+        ],
+        "human_5_waypoint_0_rotation": 2.68630131304936,
+        "human_5_waypoint_1_position": [
+          -3.220806837081909,
+          0.1068541407585144,
+          10.504415512084961
+        ],
+        "human_5_waypoint_1_rotation": 3.3223777825509515,
+        "human_5_waypoint_2_position": [
+          7.582773208618164,
+          0.1068541407585144,
+          3.2284395694732666
+        ],
+        "human_5_waypoint_2_rotation": 4.172192870038503,
+        "human_num": 0
+      }
+    },
+    "scene": {
+      "physical_scene_id": "HM3D:NBg5UqG3di3",
+      "name": "hm3d_NBg5UqG3di3",
+      "family": "HM3D",
+      "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/example/00770-NBg5UqG3di3/NBg5UqG3di3.basis.glb",
+      "scene_dataset": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/train/hm3d_basis.scene_dataset_config.json",
+      "aliases": [
+        "/home/haodong/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/example/00770-NBg5UqG3di3/NBg5UqG3di3.basis.glb",
+        "/home/haodong/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/train/00770-NBg5UqG3di3/NBg5UqG3di3.basis.glb"
+      ],
+      "episode_files": [
+        "/home/haodong/workspace/baselines/Falcon/data/datasets/pointnav/social-hm3d/train/content/NBg5UqG3di3.json.gz"
+      ],
+      "present": true,
+      "source_navmesh": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/train/00770-NBg5UqG3di3/NBg5UqG3di3.basis.navmesh",
+      "compatible": true,
+      "reason": null,
+      "scene": {
+        "index": 6,
+        "name": "hm3d_NBg5UqG3di3",
+        "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/example/00770-NBg5UqG3di3/NBg5UqG3di3.basis.glb",
+        "scene_dataset": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/train/hm3d_basis.scene_dataset_config.json",
+        "family": "HM3D public example",
+        "note": "",
+        "navmesh": "/home/haodong/workspace/projects/eventwm-falcon/evaluation/controlled50/navmeshes/NBg5UqG3di3.navmesh"
+      },
+      "navmesh_sha256": "246701fe00f841bc1a4a1fd80f7caf7c371f5da6ffdda43e62cc1219fe282a59",
+      "prepared_cases": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_mass_assets/hm3d_NBg5UqG3di3/prepared/cases.json",
+      "seconds": 2.9806780039943988,
+      "compatibility_evidence": "native physics scene load, canonical Spot navmesh recomputation, connected robot/human episode generation; full v3 rollout smoke is separate",
+      "scene_role": "training"
+    },
+    "human_count": 0,
+    "origin": "validated noncastle prefix fixture"
+  },
+  {
+    "recipe": {
+      "protocol_version": "eventwm-social-outcome-v3",
+      "case": "003_castle_h2",
+      "seed": 253002,
+      "sampling": {
+        "profile": "wm_train",
+        "sampler_version": "eventwm-wm-train-legal-strata-v1",
+        "human_count": 2,
+        "target_category": "unseen",
+        "target_visible_bucket": null,
+        "target_lost_bucket": null,
+        "min_prefix_steps": 48,
+        "max_prefix_steps": 220,
+        "scan_angular_velocity": -6.0,
+        "visible_boundaries_m": [
+          1.0,
+          1.5,
+          3.0
+        ],
+        "lost_boundaries_s": [
+          0.5,
+          1.0
+        ],
+        "allow_visible_inside_1m": false
+      },
+      "sampling_profile": "wm_train",
+      "sampling_profile_family": "targeted",
+      "mechanism": "fresh_process_seeded_episode_plus_exact_prefix",
+      "query_config": {
+        "movement_queries": 8,
+        "max_attempts": 128,
+        "radii": [
+          1.5,
+          1.0,
+          0.65
+        ],
+        "endpoint_separation": 0.3,
+        "include_wait": true
+      },
+      "static_config": {
+        "safety_margin": 0.03,
+        "max_sample_distance": 0.02,
+        "max_sample_angle": 0.04
+      },
+      "debug_static_reference": false,
+      "sampling_audit": true,
+      "root_id": "v3w_7458fcca87c84b97",
+      "prefix_controls": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "case": {
+      "index": 3,
+      "tag": "003_castle_h2",
+      "scene": "castle",
+      "humans": 2,
+      "seed": 2301,
+      "episode": "episodes/003_castle_h2.json",
+      "episode_sha256": "470b46927d66ed5dfa959eb9e200bfc553d29f912babb31f2972f1238eba989f",
+      "initial_geodesic_m": 5.830727577209473
+    },
+    "episode": {
+      "episode_id": "3003",
+      "scene_id": "data/scene_datasets/habitat-test-scenes/skokloster-castle.glb",
+      "start_position": [
+        -3.9794259071350098,
+        0.20992600917816162,
+        12.958446502685547
+      ],
+      "start_rotation": [
+        0,
+        0.1866979295858669,
+        0,
+        0.9824173670535098
+      ],
+      "goals": [
+        {
+          "position": [
+            -6.117156028747559,
+            0.01800723373889923,
+            7.537131309509277
+          ],
+          "radius": 0.2
+        }
+      ],
+      "info": {
+        "geodesic_distance": 5.830727577209473,
+        "sampling_seed": 2301,
+        "policy_seed": 2301,
+        "scene_dataset": "default",
+        "scene_name": "castle",
+        "island_index": 1,
+        "human_0_waypoint_0_position": [
+          -0.717693030834198,
+          0.05681121349334717,
+          7.782160758972168
+        ],
+        "human_0_waypoint_0_rotation": 1.4611057513760894,
+        "human_0_waypoint_1_position": [
+          -3.7755727767944336,
+          0.20992600917816162,
+          14.261689186096191
+        ],
+        "human_0_waypoint_1_rotation": 6.056884441486718,
+        "human_0_waypoint_2_position": [
+          -5.791604518890381,
+          0.20992600917816162,
+          13.928229331970215
+        ],
+        "human_0_waypoint_2_rotation": 1.058462374308728,
+        "human_1_waypoint_0_position": [
+          -0.8588818907737732,
+          0.12044144421815872,
+          9.777459144592285
+        ],
+        "human_1_waypoint_0_rotation": 2.618309183462002,
+        "human_1_waypoint_1_position": [
+          2.375295639038086,
+          0.12268281728029251,
+          18.764453887939453
+        ],
+        "human_1_waypoint_1_rotation": 5.486227492349009,
+        "human_1_waypoint_2_position": [
+          2.885585308074951,
+          0.10736924409866333,
+          17.345396041870117
+        ],
+        "human_1_waypoint_2_rotation": 2.8389566213248285,
+        "human_2_waypoint_0_position": [
+          -5.9444260597229,
+          0.20992600917816162,
+          16.89299201965332
+        ],
+        "human_2_waypoint_0_rotation": 0.9714319363803882,
+        "human_2_waypoint_1_position": [
+          0.769520103931427,
+          0.04716522991657257,
+          6.802147388458252
+        ],
+        "human_2_waypoint_1_rotation": 3.20137501104094,
+        "human_2_waypoint_2_position": [
+          2.1645450592041016,
+          0.11466693878173828,
+          17.339126586914062
+        ],
+        "human_2_waypoint_2_rotation": 3.233249274741765,
+        "human_3_waypoint_0_position": [
+          -8.273853302001953,
+          0.20992600917816162,
+          8.596429824829102
+        ],
+        "human_3_waypoint_0_rotation": 0.24008926680999887,
+        "human_3_waypoint_1_position": [
+          4.5624284744262695,
+          0.20992600917816162,
+          14.306499481201172
+        ],
+        "human_3_waypoint_1_rotation": 4.887903095403476,
+        "human_3_waypoint_2_position": [
+          -4.750161170959473,
+          0.009925991296768188,
+          5.237032413482666
+        ],
+        "human_3_waypoint_2_rotation": 6.215072588957006,
+        "human_4_waypoint_0_position": [
+          4.593252658843994,
+          0.14977174997329712,
+          6.245725154876709
+        ],
+        "human_4_waypoint_0_rotation": 4.079914028100665,
+        "human_4_waypoint_1_position": [
+          3.5277366638183594,
+          0.15282805263996124,
+          10.1809663772583
+        ],
+        "human_4_waypoint_1_rotation": 0.4775394899752502,
+        "human_4_waypoint_2_position": [
+          -5.997430801391602,
+          0.07325628399848938,
+          9.00978946685791
+        ],
+        "human_4_waypoint_2_rotation": 3.455867008410823,
+        "human_5_waypoint_0_position": [
+          -0.0480932891368866,
+          0.06389231979846954,
+          22.450883865356445
+        ],
+        "human_5_waypoint_0_rotation": 5.419153874499743,
+        "human_5_waypoint_1_position": [
+          2.9480559825897217,
+          0.15994615852832794,
+          16.656604766845703
+        ],
+        "human_5_waypoint_1_rotation": 3.66864820032337,
+        "human_5_waypoint_2_position": [
+          -2.0137956142425537,
+          0.0827290415763855,
+          20.470354080200195
+        ],
+        "human_5_waypoint_2_rotation": 3.9144367894796503,
+        "human_num": 2
+      }
+    },
+    "scene": {
+      "physical_scene_id": "other:skokloster-castle",
+      "name": "castle",
+      "family": "other",
+      "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+      "scene_dataset": "default",
+      "aliases": [
+        "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb"
+      ],
+      "episode_files": [],
+      "present": true,
+      "source_navmesh": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.navmesh",
+      "compatible": true,
+      "reason": null,
+      "scene": {
+        "index": 1,
+        "name": "castle",
+        "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+        "scene_dataset": "default",
+        "family": "Habitat public test",
+        "note": "",
+        "navmesh": "/home/haodong/workspace/projects/eventwm-falcon/evaluation/controlled50/navmeshes/skokloster-castle.navmesh"
+      },
+      "navmesh_sha256": "82a49b9b8fb422297103db565101e4c7e6f6b131765369be912ceb8bac83a3e4",
+      "prepared_cases": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_mass_assets/other_skokloster-castle/prepared/cases.json",
+      "seconds": 4.283728071997757,
+      "compatibility_evidence": "native physics scene load, canonical Spot navmesh recomputation, connected robot/human episode generation; full v3 rollout smoke is separate",
+      "scene_role": "training"
+    },
+    "human_count": 2,
+    "origin": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_7458fcca87c84b97"
+  },
+  {
+    "recipe": {
+      "protocol_version": "eventwm-social-outcome-v3",
+      "case": "004_castle_h4",
+      "seed": 253005,
+      "sampling": {
+        "profile": "wm_train",
+        "sampler_version": "eventwm-wm-train-legal-strata-v1",
+        "human_count": 4,
+        "target_category": "visible",
+        "target_visible_bucket": "far",
+        "target_lost_bucket": null,
+        "min_prefix_steps": 10,
+        "max_prefix_steps": 220,
+        "scan_angular_velocity": 6.0,
+        "visible_boundaries_m": [
+          1.0,
+          1.5,
+          3.0
+        ],
+        "lost_boundaries_s": [
+          0.5,
+          1.0
+        ],
+        "allow_visible_inside_1m": false
+      },
+      "sampling_profile": "wm_train",
+      "sampling_profile_family": "targeted",
+      "mechanism": "fresh_process_seeded_episode_plus_exact_prefix",
+      "query_config": {
+        "movement_queries": 8,
+        "max_attempts": 128,
+        "radii": [
+          1.5,
+          1.0,
+          0.65
+        ],
+        "endpoint_separation": 0.3,
+        "include_wait": true
+      },
+      "static_config": {
+        "safety_margin": 0.03,
+        "max_sample_distance": 0.02,
+        "max_sample_angle": 0.04
+      },
+      "debug_static_reference": false,
+      "sampling_audit": true,
+      "root_id": "v3w_518836ed8fc7c5d9",
+      "prefix_controls": [
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "case": {
+      "index": 4,
+      "tag": "004_castle_h4",
+      "scene": "castle",
+      "humans": 4,
+      "seed": 2301,
+      "episode": "episodes/004_castle_h4.json",
+      "episode_sha256": "5eef4002c732226db8169e897bea0097ffc1e1c62ff3fbf2117e710c590c12f0",
+      "initial_geodesic_m": 5.830727577209473
+    },
+    "episode": {
+      "episode_id": "3004",
+      "scene_id": "data/scene_datasets/habitat-test-scenes/skokloster-castle.glb",
+      "start_position": [
+        -3.9794259071350098,
+        0.20992600917816162,
+        12.958446502685547
+      ],
+      "start_rotation": [
+        0,
+        0.1866979295858669,
+        0,
+        0.9824173670535098
+      ],
+      "goals": [
+        {
+          "position": [
+            -6.117156028747559,
+            0.01800723373889923,
+            7.537131309509277
+          ],
+          "radius": 0.2
+        }
+      ],
+      "info": {
+        "geodesic_distance": 5.830727577209473,
+        "sampling_seed": 2301,
+        "policy_seed": 2301,
+        "scene_dataset": "default",
+        "scene_name": "castle",
+        "island_index": 1,
+        "human_0_waypoint_0_position": [
+          -0.717693030834198,
+          0.05681121349334717,
+          7.782160758972168
+        ],
+        "human_0_waypoint_0_rotation": 1.4611057513760894,
+        "human_0_waypoint_1_position": [
+          -3.7755727767944336,
+          0.20992600917816162,
+          14.261689186096191
+        ],
+        "human_0_waypoint_1_rotation": 6.056884441486718,
+        "human_0_waypoint_2_position": [
+          -5.791604518890381,
+          0.20992600917816162,
+          13.928229331970215
+        ],
+        "human_0_waypoint_2_rotation": 1.058462374308728,
+        "human_1_waypoint_0_position": [
+          -0.8588818907737732,
+          0.12044144421815872,
+          9.777459144592285
+        ],
+        "human_1_waypoint_0_rotation": 2.618309183462002,
+        "human_1_waypoint_1_position": [
+          2.375295639038086,
+          0.12268281728029251,
+          18.764453887939453
+        ],
+        "human_1_waypoint_1_rotation": 5.486227492349009,
+        "human_1_waypoint_2_position": [
+          2.885585308074951,
+          0.10736924409866333,
+          17.345396041870117
+        ],
+        "human_1_waypoint_2_rotation": 2.8389566213248285,
+        "human_2_waypoint_0_position": [
+          -5.9444260597229,
+          0.20992600917816162,
+          16.89299201965332
+        ],
+        "human_2_waypoint_0_rotation": 0.9714319363803882,
+        "human_2_waypoint_1_position": [
+          0.769520103931427,
+          0.04716522991657257,
+          6.802147388458252
+        ],
+        "human_2_waypoint_1_rotation": 3.20137501104094,
+        "human_2_waypoint_2_position": [
+          2.1645450592041016,
+          0.11466693878173828,
+          17.339126586914062
+        ],
+        "human_2_waypoint_2_rotation": 3.233249274741765,
+        "human_3_waypoint_0_position": [
+          -8.273853302001953,
+          0.20992600917816162,
+          8.596429824829102
+        ],
+        "human_3_waypoint_0_rotation": 0.24008926680999887,
+        "human_3_waypoint_1_position": [
+          4.5624284744262695,
+          0.20992600917816162,
+          14.306499481201172
+        ],
+        "human_3_waypoint_1_rotation": 4.887903095403476,
+        "human_3_waypoint_2_position": [
+          -4.750161170959473,
+          0.009925991296768188,
+          5.237032413482666
+        ],
+        "human_3_waypoint_2_rotation": 6.215072588957006,
+        "human_4_waypoint_0_position": [
+          4.593252658843994,
+          0.14977174997329712,
+          6.245725154876709
+        ],
+        "human_4_waypoint_0_rotation": 4.079914028100665,
+        "human_4_waypoint_1_position": [
+          3.5277366638183594,
+          0.15282805263996124,
+          10.1809663772583
+        ],
+        "human_4_waypoint_1_rotation": 0.4775394899752502,
+        "human_4_waypoint_2_position": [
+          -5.997430801391602,
+          0.07325628399848938,
+          9.00978946685791
+        ],
+        "human_4_waypoint_2_rotation": 3.455867008410823,
+        "human_5_waypoint_0_position": [
+          -0.0480932891368866,
+          0.06389231979846954,
+          22.450883865356445
+        ],
+        "human_5_waypoint_0_rotation": 5.419153874499743,
+        "human_5_waypoint_1_position": [
+          2.9480559825897217,
+          0.15994615852832794,
+          16.656604766845703
+        ],
+        "human_5_waypoint_1_rotation": 3.66864820032337,
+        "human_5_waypoint_2_position": [
+          -2.0137956142425537,
+          0.0827290415763855,
+          20.470354080200195
+        ],
+        "human_5_waypoint_2_rotation": 3.9144367894796503,
+        "human_num": 4
+      }
+    },
+    "scene": {
+      "physical_scene_id": "other:skokloster-castle",
+      "name": "castle",
+      "family": "other",
+      "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+      "scene_dataset": "default",
+      "aliases": [
+        "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb"
+      ],
+      "episode_files": [],
+      "present": true,
+      "source_navmesh": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.navmesh",
+      "compatible": true,
+      "reason": null,
+      "scene": {
+        "index": 1,
+        "name": "castle",
+        "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+        "scene_dataset": "default",
+        "family": "Habitat public test",
+        "note": "",
+        "navmesh": "/home/haodong/workspace/projects/eventwm-falcon/evaluation/controlled50/navmeshes/skokloster-castle.navmesh"
+      },
+      "navmesh_sha256": "82a49b9b8fb422297103db565101e4c7e6f6b131765369be912ceb8bac83a3e4",
+      "prepared_cases": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_mass_assets/other_skokloster-castle/prepared/cases.json",
+      "seconds": 4.283728071997757,
+      "compatibility_evidence": "native physics scene load, canonical Spot navmesh recomputation, connected robot/human episode generation; full v3 rollout smoke is separate",
+      "scene_role": "training"
+    },
+    "human_count": 4,
+    "origin": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_518836ed8fc7c5d9"
+  },
+  {
+    "recipe": {
+      "protocol_version": "eventwm-social-outcome-v3",
+      "case": "005_castle_h6",
+      "seed": 253011,
+      "sampling": {
+        "profile": "wm_train",
+        "sampler_version": "eventwm-wm-train-legal-strata-v1",
+        "human_count": 6,
+        "target_category": "lost",
+        "target_visible_bucket": null,
+        "target_lost_bucket": "recent",
+        "min_prefix_steps": 10,
+        "max_prefix_steps": 220,
+        "scan_angular_velocity": 6.0,
+        "visible_boundaries_m": [
+          1.0,
+          1.5,
+          3.0
+        ],
+        "lost_boundaries_s": [
+          0.5,
+          1.0
+        ],
+        "allow_visible_inside_1m": false
+      },
+      "sampling_profile": "wm_train",
+      "sampling_profile_family": "targeted",
+      "mechanism": "fresh_process_seeded_episode_plus_exact_prefix",
+      "query_config": {
+        "movement_queries": 8,
+        "max_attempts": 128,
+        "radii": [
+          1.5,
+          1.0,
+          0.65
+        ],
+        "endpoint_separation": 0.3,
+        "include_wait": true
+      },
+      "static_config": {
+        "safety_margin": 0.03,
+        "max_sample_distance": 0.02,
+        "max_sample_angle": 0.04
+      },
+      "debug_static_reference": false,
+      "sampling_audit": true,
+      "root_id": "v3w_835086743aa3d17c",
+      "prefix_controls": [
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "case": {
+      "index": 5,
+      "tag": "005_castle_h6",
+      "scene": "castle",
+      "humans": 6,
+      "seed": 2301,
+      "episode": "episodes/005_castle_h6.json",
+      "episode_sha256": "69034cd0869e9877139148b251bd9db487a0b3cf8bb338791dd2777059c3a14d",
+      "initial_geodesic_m": 5.830727577209473
+    },
+    "episode": {
+      "episode_id": "3005",
+      "scene_id": "data/scene_datasets/habitat-test-scenes/skokloster-castle.glb",
+      "start_position": [
+        -3.9794259071350098,
+        0.20992600917816162,
+        12.958446502685547
+      ],
+      "start_rotation": [
+        0,
+        0.1866979295858669,
+        0,
+        0.9824173670535098
+      ],
+      "goals": [
+        {
+          "position": [
+            -6.117156028747559,
+            0.01800723373889923,
+            7.537131309509277
+          ],
+          "radius": 0.2
+        }
+      ],
+      "info": {
+        "geodesic_distance": 5.830727577209473,
+        "sampling_seed": 2301,
+        "policy_seed": 2301,
+        "scene_dataset": "default",
+        "scene_name": "castle",
+        "island_index": 1,
+        "human_0_waypoint_0_position": [
+          -0.717693030834198,
+          0.05681121349334717,
+          7.782160758972168
+        ],
+        "human_0_waypoint_0_rotation": 1.4611057513760894,
+        "human_0_waypoint_1_position": [
+          -3.7755727767944336,
+          0.20992600917816162,
+          14.261689186096191
+        ],
+        "human_0_waypoint_1_rotation": 6.056884441486718,
+        "human_0_waypoint_2_position": [
+          -5.791604518890381,
+          0.20992600917816162,
+          13.928229331970215
+        ],
+        "human_0_waypoint_2_rotation": 1.058462374308728,
+        "human_1_waypoint_0_position": [
+          -0.8588818907737732,
+          0.12044144421815872,
+          9.777459144592285
+        ],
+        "human_1_waypoint_0_rotation": 2.618309183462002,
+        "human_1_waypoint_1_position": [
+          2.375295639038086,
+          0.12268281728029251,
+          18.764453887939453
+        ],
+        "human_1_waypoint_1_rotation": 5.486227492349009,
+        "human_1_waypoint_2_position": [
+          2.885585308074951,
+          0.10736924409866333,
+          17.345396041870117
+        ],
+        "human_1_waypoint_2_rotation": 2.8389566213248285,
+        "human_2_waypoint_0_position": [
+          -5.9444260597229,
+          0.20992600917816162,
+          16.89299201965332
+        ],
+        "human_2_waypoint_0_rotation": 0.9714319363803882,
+        "human_2_waypoint_1_position": [
+          0.769520103931427,
+          0.04716522991657257,
+          6.802147388458252
+        ],
+        "human_2_waypoint_1_rotation": 3.20137501104094,
+        "human_2_waypoint_2_position": [
+          2.1645450592041016,
+          0.11466693878173828,
+          17.339126586914062
+        ],
+        "human_2_waypoint_2_rotation": 3.233249274741765,
+        "human_3_waypoint_0_position": [
+          -8.273853302001953,
+          0.20992600917816162,
+          8.596429824829102
+        ],
+        "human_3_waypoint_0_rotation": 0.24008926680999887,
+        "human_3_waypoint_1_position": [
+          4.5624284744262695,
+          0.20992600917816162,
+          14.306499481201172
+        ],
+        "human_3_waypoint_1_rotation": 4.887903095403476,
+        "human_3_waypoint_2_position": [
+          -4.750161170959473,
+          0.009925991296768188,
+          5.237032413482666
+        ],
+        "human_3_waypoint_2_rotation": 6.215072588957006,
+        "human_4_waypoint_0_position": [
+          4.593252658843994,
+          0.14977174997329712,
+          6.245725154876709
+        ],
+        "human_4_waypoint_0_rotation": 4.079914028100665,
+        "human_4_waypoint_1_position": [
+          3.5277366638183594,
+          0.15282805263996124,
+          10.1809663772583
+        ],
+        "human_4_waypoint_1_rotation": 0.4775394899752502,
+        "human_4_waypoint_2_position": [
+          -5.997430801391602,
+          0.07325628399848938,
+          9.00978946685791
+        ],
+        "human_4_waypoint_2_rotation": 3.455867008410823,
+        "human_5_waypoint_0_position": [
+          -0.0480932891368866,
+          0.06389231979846954,
+          22.450883865356445
+        ],
+        "human_5_waypoint_0_rotation": 5.419153874499743,
+        "human_5_waypoint_1_position": [
+          2.9480559825897217,
+          0.15994615852832794,
+          16.656604766845703
+        ],
+        "human_5_waypoint_1_rotation": 3.66864820032337,
+        "human_5_waypoint_2_position": [
+          -2.0137956142425537,
+          0.0827290415763855,
+          20.470354080200195
+        ],
+        "human_5_waypoint_2_rotation": 3.9144367894796503,
+        "human_num": 6
+      }
+    },
+    "scene": {
+      "physical_scene_id": "other:skokloster-castle",
+      "name": "castle",
+      "family": "other",
+      "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+      "scene_dataset": "default",
+      "aliases": [
+        "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb"
+      ],
+      "episode_files": [],
+      "present": true,
+      "source_navmesh": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.navmesh",
+      "compatible": true,
+      "reason": null,
+      "scene": {
+        "index": 1,
+        "name": "castle",
+        "scene_id": "/home/haodong/workspace/baselines/Falcon/data/versioned_data/habitat_test_scenes/skokloster-castle.glb",
+        "scene_dataset": "default",
+        "family": "Habitat public test",
+        "note": "",
+        "navmesh": "/home/haodong/workspace/projects/eventwm-falcon/evaluation/controlled50/navmeshes/skokloster-castle.navmesh"
+      },
+      "navmesh_sha256": "82a49b9b8fb422297103db565101e4c7e6f6b131765369be912ceb8bac83a3e4",
+      "prepared_cases": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_mass_assets/other_skokloster-castle/prepared/cases.json",
+      "seconds": 4.283728071997757,
+      "compatibility_evidence": "native physics scene load, canonical Spot navmesh recomputation, connected robot/human episode generation; full v3 rollout smoke is separate",
+      "scene_role": "training"
+    },
+    "human_count": 6,
+    "origin": "/home/haodong/workspace/projects/eventwm-falcon/datasets/raw/eventwm_social_outcome_v3_wm_train_pilot_01/roots/v3w_835086743aa3d17c"
+  }
+]

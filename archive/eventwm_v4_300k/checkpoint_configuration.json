@@ -1,0 +1,209 @@
+{
+  "branch_truth_encoding": "jsonl-gzip-v1",
+  "checker": "eventwm-static-swept-v2.4-native-contact-refresh",
+  "collector_storage_profile": "production",
+  "contact_serialization": "sorted-exact-multiset-v1",
+  "frozen_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+  "master_seed": 731000000,
+  "max_attempts": 2,
+  "native_limit": 24,
+  "operational_overrides": {
+    "backlog": 36,
+    "launcher": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_control/run_geometry_300k.sh",
+    "measured_max_pilot_full_stage_gb": 1.333030765,
+    "working_space_reserve_gb": 80
+  },
+  "operational_setting_epochs": [
+    {
+      "after_backlog": 36,
+      "before": {
+        "backlog": 72,
+        "concurrency": 36,
+        "fixture_digest": null,
+        "max_proposals": null,
+        "prefetch": 8,
+        "preparers": 4,
+        "target": 300000,
+        "validators": 2
+      },
+      "reason": "Measured native pilot maximum full staged root 1.333 GB; bound running+staged roots at36 with80GB working reserve",
+      "time": 1791551731.576153
+    }
+  ],
+  "pipeline_release": "03bc17f870cf3a5dfb45674a574d80920660470cbdbf8404df326ecc515f7122",
+  "pipeline_settings": {
+    "backlog": 36,
+    "concurrency": 36,
+    "fixture_digest": null,
+    "max_proposals": null,
+    "prefetch": 8,
+    "preparers": 4,
+    "target": 300000,
+    "validators": 2
+  },
+  "pipeline_version": 1,
+  "prefix_truth_encoding": "json-gzip-v1",
+  "production_geometry_sampler": true,
+  "protocol_version": "eventwm-social-outcome-v3",
+  "query_config": {
+    "endpoint_separation": 0.3,
+    "include_wait": true,
+    "max_attempts": 128,
+    "movement_queries": 8,
+    "radii": [
+      1.5,
+      1.0,
+      0.65
+    ]
+  },
+  "root_timeout_seconds": 12000,
+  "schema_version": 4,
+  "sessions": [
+    {
+      "architecture": "PIPELINE_V1",
+      "initial_queries": 0,
+      "io_metrics": {
+        "export_seconds": 0.39081556000746787,
+        "flush_seconds": 46.28099828021368,
+        "root_records_written": 3710,
+        "transactions": 5174
+      },
+      "seconds": 1649.509773007012,
+      "settings": {
+        "backlog": 72,
+        "concurrency": 36,
+        "fixture_digest": null,
+        "max_proposals": null,
+        "prefetch": 8,
+        "preparers": 4,
+        "target": 300000,
+        "validators": 2
+      },
+      "started": 1791539255.1449246,
+      "state": "stopped_by_user"
+    },
+    {
+      "architecture": "PIPELINE_V1",
+      "initial_queries": 1320,
+      "io_metrics": {
+        "export_seconds": 11.747739466198254,
+        "flush_seconds": 290.8646612833836,
+        "root_records_written": 47761,
+        "transactions": 57655
+      },
+      "seconds": 10813.18314296595,
+      "settings": {
+        "backlog": 72,
+        "concurrency": 36,
+        "fixture_digest": null,
+        "max_proposals": null,
+        "prefetch": 8,
+        "preparers": 4,
+        "target": 300000,
+        "validators": 2
+      },
+      "started": 1791540914.8505833,
+      "state": "stopped_by_user"
+    },
+    {
+      "architecture": "PIPELINE_V1",
+      "initial_queries": 12276,
+      "io_metrics": {
+        "export_seconds": 171.72599848901154,
+        "flush_seconds": 1095.0076590038952,
+        "root_records_written": 141282,
+        "transactions": 170787
+      },
+      "seconds": 38843.43298916699,
+      "settings": {
+        "backlog": 36,
+        "concurrency": 36,
+        "fixture_digest": null,
+        "max_proposals": null,
+        "prefetch": 8,
+        "preparers": 4,
+        "target": 300000,
+        "validators": 2
+      },
+      "started": 1791551784.7398055,
+      "state": "interrupted_error"
+    },
+    {
+      "architecture": "PIPELINE_V1",
+      "initial_queries": 73524,
+      "io_metrics": {
+        "export_seconds": 343.01396616274724,
+        "flush_seconds": 1251.2676342425984,
+        "root_records_written": 157899,
+        "transactions": 164070
+      },
+      "seconds": 38121.69479865598,
+      "settings": {
+        "backlog": 36,
+        "concurrency": 36,
+        "fixture_digest": null,
+        "max_proposals": null,
+        "prefetch": 8,
+        "preparers": 4,
+        "target": 300000,
+        "validators": 2
+      },
+      "started": 1791628492.1565292,
+      "state": "interrupted_error"
+    },
+    {
+      "architecture": "PIPELINE_V1",
+      "initial_queries": 127578,
+      "io_metrics": {
+        "export_seconds": 3.1922457419568673,
+        "flush_seconds": 7.4847616670886055,
+        "root_records_written": 52445,
+        "transactions": 374
+      },
+      "seconds": 130.03321130399127,
+      "settings": {
+        "backlog": 36,
+        "concurrency": 36,
+        "fixture_digest": null,
+        "max_proposals": null,
+        "prefetch": 8,
+        "preparers": 4,
+        "target": 300000,
+        "validators": 2
+      },
+      "started": 1791741135.9608972,
+      "state": "interrupted_error"
+    },
+    {
+      "architecture": "PIPELINE_V1",
+      "initial_queries": 127611,
+      "io_metrics": {
+        "export_seconds": 2190.8442190515343,
+        "flush_seconds": 3785.2077141951304,
+        "root_records_written": 401377,
+        "transactions": 471280
+      },
+      "seconds": 127991.312892452,
+      "settings": {
+        "backlog": 36,
+        "concurrency": 36,
+        "fixture_digest": null,
+        "max_proposals": null,
+        "prefetch": 8,
+        "preparers": 4,
+        "target": 300000,
+        "validators": 2
+      },
+      "started": 1791744222.8291528,
+      "state": "stopped_by_user"
+    }
+  ],
+  "sr_contract_version": "binary-execution-safety-v1",
+  "static_config": {
+    "max_sample_angle": 0.04,
+    "max_sample_distance": 0.02,
+    "safety_margin": 0.03
+  },
+  "storage_profile": "structured_production",
+  "target_primary_queries": 300000
+}

@@ -1,0 +1,18 @@
+{
+  "purpose": "wm_train_targeted_pilot",
+  "master_seed": 253000,
+  "attempts": 60,
+  "max_completed_roots": 40,
+  "movement_queries": 8,
+  "root_target_percent": {"zero": 10, "unseen": 15, "visible": 30, "lost": 30, "visible_lost": 15},
+  "visible_target_percent": {"near": 30, "medium": 50, "far": 20},
+  "lost_target_percent": {"recent": 50, "medium": 35, "stale": 15},
+  "visible_boundaries_m": [1.0, 1.5, 3.0],
+  "lost_boundaries_s": [0.5, 1.0],
+  "human_counts": [1, 2, 4, 6],
+  "max_prefix_steps": 220,
+  "allow_visible_inside_1m": false,
+  "max_root_processes": 2,
+  "gpu_devices": [0, 1],
+  "visualization": false
+}

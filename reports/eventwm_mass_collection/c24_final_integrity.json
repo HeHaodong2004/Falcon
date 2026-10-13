@@ -1,0 +1,163 @@
+{
+  "output": "/home/haodong/workspace/projects/eventwm-falcon/output/mass_collection_checkout/output/eventwm_social_outcome_v3_benchmark_c24",
+  "completed_roots": 24,
+  "failures": 0,
+  "primary_queries": 792,
+  "labels_recomputed": 864,
+  "sealed_files_verified": 8400,
+  "root_results": [
+    {
+      "root_id": "bench_a1eeed2dc891fd018e67",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_b26ebc1ce1c01a55d1e8",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_e8412b755ac603e4d872",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_4fc70ea6eaa9e610c539",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_3a121c1c53dbcd1db32c",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_a6c60bcdb16bc918dcb3",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_c129ec57f065be0c9356",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_6e37136c84d9c35bcfca",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_95255a738741f2249704",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_a6cf955589f2ae2245c5",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_be4bd540e9d91d9b8690",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_c591b4965f049e5d5c44",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_304935bb5cae5576fcaf",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_20c9616f28f2b5f75f67",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_c301fe3e3afbe4852b08",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_77f7b403b00e259c0a84",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_2ee17351299a12d5fb11",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_11b0d9c2abde7dbf9a75",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_bf3cea4d89cf0eb27fda",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_8ec1102d0e8facb8a1f1",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_98c71df83dcf0d38d6ac",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_b1f32124029314274b7f",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_516aa3fb1c86abb5b2e0",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    },
+    {
+      "root_id": "bench_f6193986e4de8026cbd6",
+      "primary": 33,
+      "labels": 36,
+      "status": "PASS"
+    }
+  ],
+  "replay_restore": "PASS",
+  "query_immutability": "PASS",
+  "static_certificates": "PASS",
+  "static_violations": 0,
+  "label_recomputation": "PASS",
+  "duplicate_primary_branches": 0,
+  "worker_corruption": 0,
+  "collector_source_hashes": "PASS",
+  "overall": "PASS"
+}

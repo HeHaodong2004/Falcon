@@ -127,3 +127,37 @@ data/
 output_test/
 docs/
 res/
+# Generated release identity and measured production plan (avoid commit self-reference).
+/reports/eventwm_mass_collection/release.json
+/reports/eventwm_mass_collection/production_plan_metrics.json
+/reports/eventwm_mass_collection/terminal_summary.txt
+# Archival publication: external data, credentials and generated runtime state.
+.archive-runtime/
+.local_notes/
+.env
+.env.*
+!.env.example
+.aws/
+.ssh/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.pth
+*.pt
+*.ckpt
+*.pyc
+__pycache__/
+*.log
+*.mp4
+*.avi
+*.webm
+*.npz
+*.tar
+*.tar.gz
+*.zip
+conda-env/
+envs/
+tmp/
+production/
+publication/
+recovery/

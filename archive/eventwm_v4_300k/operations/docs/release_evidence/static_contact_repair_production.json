@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "time": 1791744774.2941895,
+  "collector_pid": 3296093,
+  "scientific_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+  "total_retained": 157773,
+  "new_retained": 127743,
+  "legacy_retained": 30030,
+  "native_pool_workers": 36,
+  "native_executing_slots": 24,
+  "native_limit": 24,
+  "cpu_busy_percent": 74.98610339077266,
+  "observation_seconds": 481.3326196670532,
+  "published_during_observation": 132,
+  "observed_queries_per_hour": 987.2590815239257,
+  "duplicate_query_ids": 0,
+  "duplicate_root_ids": 0,
+  "original_completed_roots_unchanged": 3866,
+  "original_total_retained_preserved": 157608,
+  "sqlite_quick_check": "ok",
+  "offending_root_rejected": true,
+  "guard": {
+    "enabled": true,
+    "restarts": [],
+    "status": "watching",
+    "reason": null,
+    "time": 1791744762.958678,
+    "collector_pid": 3296093
+  },
+  "new_log": "/tmp/eventwm_v4_300k/logs/20261011_194342_3296093",
+  "check": {
+    "published_new_queries": 127743,
+    "legacy_queries": 30030,
+    "total_retained": 157773,
+    "duplicate_query_ids": 0,
+    "source_epochs": [
+      "06e6afe0fa334265337631c1df833c78977a9a86",
+      "2e792aa26f677e4d6b83bbbefebb733c0efa8e63",
+      "44f0f95b96323f83a59728cab7766f0a5f52ad49",
+      "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+      "eac1c27813a753d26fc1756671d8d0bd198a65c6"
+    ],
+    "next_sequence": 52464,
+    "master_seed": 731000000,
+    "output_free_gb": 448.48760832,
+    "aggregate_free_gb": 654.618308608,
+    "conservative_required_gb": 611.5395106825454,
+    "passed": true,
+    "release_version": "eventwm-v4-300k-native-static-contact-repair-2",
+    "scientific_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+    "protected_hashes": 29,
+    "implementation_hashes": 479,
+    "active": {
+      "pid": 3296093,
+      "worktree": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-300k/recovery/eventwm-v4-static-contact-repair",
+      "branch": "",
+      "source_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6"
+    },
+    "config": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-300k/recovery/eventwm-v4-ops-recovery/configs/eventwm_300k_production.json",
+    "native_limit": 24
+  }
+}

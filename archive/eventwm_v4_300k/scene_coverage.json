@@ -1,0 +1,3994 @@
+{
+  "eligible_new_scenes": 952,
+  "retained_physical_scenes": 530,
+  "scenes": {
+    "HM3D:12e6joG2B2T": {
+      "queries": 561,
+      "roles": {
+        "natural_reference": 33,
+        "train": 528
+      },
+      "roots": 17
+    },
+    "HM3D:16tymPtM7uS": {
+      "queries": 231,
+      "roles": {
+        "natural_reference": 33,
+        "train": 198
+      },
+      "roots": 7
+    },
+    "HM3D:1EiJpeRNEs1": {
+      "queries": 1617,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1584
+      },
+      "roots": 49
+    },
+    "HM3D:1K7P6ZQS4VM": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:1Rg1SS1dRpG": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:1S7LAXRdDqK": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:1SedVoP7zLu": {
+      "queries": 396,
+      "roles": {
+        "train": 396
+      },
+      "roots": 12
+    },
+    "HM3D:1W61QJVDBqe": {
+      "queries": 1320,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1221
+      },
+      "roots": 40
+    },
+    "HM3D:1k479icNeHW": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 66,
+        "train": 363
+      },
+      "roots": 13
+    },
+    "HM3D:1sM6KvYg3J5": {
+      "queries": 1023,
+      "roles": {
+        "natural_reference": 66,
+        "train": 957
+      },
+      "roots": 31
+    },
+    "HM3D:1sPp3Wz8TCB": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:1xGrZPxG1Hz": {
+      "queries": 1254,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1122
+      },
+      "roots": 38
+    },
+    "HM3D:1zDbEdygBeW": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 132,
+        "train": 792
+      },
+      "roots": 28
+    },
+    "HM3D:226REUyJh2K": {
+      "queries": 1221,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1155
+      },
+      "roots": 37
+    },
+    "HM3D:2Pc8W48bu21": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:2XVvKEDd54w": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 99,
+        "train": 660
+      },
+      "roots": 23
+    },
+    "HM3D:2ihrkjrbHVf": {
+      "queries": 132,
+      "roles": {
+        "unseen_evaluation": 132
+      },
+      "roots": 4
+    },
+    "HM3D:315QujoX279": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 132,
+        "train": 792
+      },
+      "roots": 28
+    },
+    "HM3D:31DHHWieDMS": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:33ypawbKCQf": {
+      "queries": 297,
+      "roles": {
+        "unseen_evaluation": 297
+      },
+      "roots": 9
+    },
+    "HM3D:37c5w29pYm3": {
+      "queries": 330,
+      "roles": {
+        "natural_reference": 99,
+        "train": 231
+      },
+      "roots": 10
+    },
+    "HM3D:3Ao63EY7J83": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:3CBBjsNkhqW": {
+      "queries": 330,
+      "roles": {
+        "unseen_evaluation": 330
+      },
+      "roots": 10
+    },
+    "HM3D:3XYAD64HpDr": {
+      "queries": 33,
+      "roles": {
+        "unseen_evaluation": 33
+      },
+      "roots": 1
+    },
+    "HM3D:3YSDRj9kTU7": {
+      "queries": 1221,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1089
+      },
+      "roots": 37
+    },
+    "HM3D:3goH1WRaCYC": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 66,
+        "train": 759
+      },
+      "roots": 25
+    },
+    "HM3D:3iZkJUc7KhX": {
+      "queries": 495,
+      "roles": {
+        "train": 495
+      },
+      "roots": 15
+    },
+    "HM3D:3t8DB4Uzvkt": {
+      "queries": 330,
+      "roles": {
+        "train": 330
+      },
+      "roots": 10
+    },
+    "HM3D:3z5dc2yzyCb": {
+      "queries": 231,
+      "roles": {
+        "natural_reference": 33,
+        "train": 198
+      },
+      "roots": 7
+    },
+    "HM3D:4GfZ9TTZUwL": {
+      "queries": 858,
+      "roles": {
+        "natural_reference": 132,
+        "train": 726
+      },
+      "roots": 26
+    },
+    "HM3D:4J8N2Ah1a6o": {
+      "queries": 627,
+      "roles": {
+        "train": 627
+      },
+      "roots": 19
+    },
+    "HM3D:4L4peQsMgfR": {
+      "queries": 528,
+      "roles": {
+        "train": 528
+      },
+      "roots": 16
+    },
+    "HM3D:4MRLu1yET6a": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 33,
+        "train": 231
+      },
+      "roots": 8
+    },
+    "HM3D:4dbCzNN5L5t": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 66,
+        "train": 759
+      },
+      "roots": 25
+    },
+    "HM3D:4tdJ3qe1x7P": {
+      "queries": 33,
+      "roles": {
+        "natural_reference": 33
+      },
+      "roots": 1
+    },
+    "HM3D:4vwGX7U38Ux": {
+      "queries": 165,
+      "roles": {
+        "unseen_evaluation": 165
+      },
+      "roots": 5
+    },
+    "HM3D:4wCTuaUNWEd": {
+      "queries": 627,
+      "roles": {
+        "unseen_evaluation": 627
+      },
+      "roots": 19
+    },
+    "HM3D:53jtKd53a1X": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 99,
+        "train": 363
+      },
+      "roots": 14
+    },
+    "HM3D:58NLZxWBSpk": {
+      "queries": 1188,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1122
+      },
+      "roots": 36
+    },
+    "HM3D:5Poh4Qz68hd": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1023
+      },
+      "roots": 33
+    },
+    "HM3D:5RtSdesLuHt": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:5hGmubEE6ZF": {
+      "queries": 1023,
+      "roles": {
+        "unseen_evaluation": 1023
+      },
+      "roots": 31
+    },
+    "HM3D:5jp3fCRSRjc": {
+      "queries": 132,
+      "roles": {
+        "unseen_evaluation": 132
+      },
+      "roots": 4
+    },
+    "HM3D:5m6t1y5EvsT": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:5uXtMs57HmZ": {
+      "queries": 495,
+      "roles": {
+        "train": 495
+      },
+      "roots": 15
+    },
+    "HM3D:5vUupbRRdyH": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:66seV3BWPoX": {
+      "queries": 1947,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1848
+      },
+      "roots": 59
+    },
+    "HM3D:67ADtrTrBK2": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:6BReaxZUoMg": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:6D36GQHuP8H": {
+      "queries": 165,
+      "roles": {
+        "unseen_evaluation": 165
+      },
+      "roots": 5
+    },
+    "HM3D:6HMiy15cxis": {
+      "queries": 792,
+      "roles": {
+        "natural_reference": 132,
+        "train": 660
+      },
+      "roots": 24
+    },
+    "HM3D:6HRFAUDqpTb": {
+      "queries": 594,
+      "roles": {
+        "natural_reference": 66,
+        "train": 528
+      },
+      "roots": 18
+    },
+    "HM3D:6TPCFES8fhh": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 33,
+        "train": 264
+      },
+      "roots": 9
+    },
+    "HM3D:6YtDG3FhNvx": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:6imZUJGRUq4": {
+      "queries": 1320,
+      "roles": {
+        "natural_reference": 165,
+        "train": 1155
+      },
+      "roots": 40
+    },
+    "HM3D:6nvpJEZ8ox5": {
+      "queries": 66,
+      "roles": {
+        "unseen_evaluation": 66
+      },
+      "roots": 2
+    },
+    "HM3D:6ySDHVkso9e": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:77mMEyxhs44": {
+      "queries": 693,
+      "roles": {
+        "train": 693
+      },
+      "roots": 21
+    },
+    "HM3D:7CXbc73tDRf": {
+      "queries": 231,
+      "roles": {
+        "unseen_evaluation": 231
+      },
+      "roots": 7
+    },
+    "HM3D:7GAhQPFzMot": {
+      "queries": 594,
+      "roles": {
+        "natural_reference": 33,
+        "train": 561
+      },
+      "roots": 18
+    },
+    "HM3D:7PZPFHR3oJc": {
+      "queries": 2178,
+      "roles": {
+        "natural_reference": 66,
+        "train": 2112
+      },
+      "roots": 66
+    },
+    "HM3D:7UdY7HiDnUi": {
+      "queries": 33,
+      "roles": {
+        "natural_reference": 33
+      },
+      "roots": 1
+    },
+    "HM3D:7UrtFsADwob": {
+      "queries": 1419,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1287
+      },
+      "roots": 43
+    },
+    "HM3D:8B43pG641ff": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:8CRYizAb6yd": {
+      "queries": 1386,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1287
+      },
+      "roots": 42
+    },
+    "HM3D:8LLjiNrWzJ9": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:8QtyGUUtacf": {
+      "queries": 297,
+      "roles": {
+        "unseen_evaluation": 297
+      },
+      "roots": 9
+    },
+    "HM3D:8nSVqHLMRwQ": {
+      "queries": 396,
+      "roles": {
+        "train": 396
+      },
+      "roots": 12
+    },
+    "HM3D:8oSQng53cGV": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 132,
+        "train": 792
+      },
+      "roots": 28
+    },
+    "HM3D:99ML7CGPqsQ": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 33,
+        "train": 264
+      },
+      "roots": 9
+    },
+    "HM3D:9K1WbyTZ456": {
+      "queries": 495,
+      "roles": {
+        "natural_reference": 99,
+        "train": 396
+      },
+      "roots": 15
+    },
+    "HM3D:9SpHCfHaNiG": {
+      "queries": 1089,
+      "roles": {
+        "train": 1089
+      },
+      "roots": 33
+    },
+    "HM3D:9hJwm8k7Gka": {
+      "queries": 33,
+      "roles": {
+        "unseen_evaluation": 33
+      },
+      "roots": 1
+    },
+    "HM3D:A1jHexSJuAW": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 33,
+        "train": 495
+      },
+      "roots": 16
+    },
+    "HM3D:A9yB3w3UxXV": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:AMEM2eWycTq": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 132,
+        "train": 627
+      },
+      "roots": 23
+    },
+    "HM3D:ANmWrL7Kz7h": {
+      "queries": 957,
+      "roles": {
+        "natural_reference": 66,
+        "train": 891
+      },
+      "roots": 29
+    },
+    "HM3D:APXAdV48nKT": {
+      "queries": 1287,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1254
+      },
+      "roots": 39
+    },
+    "HM3D:ASKXmHbw68X": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:AYpsNQsWncn": {
+      "queries": 660,
+      "roles": {
+        "natural_reference": 33,
+        "train": 627
+      },
+      "roots": 20
+    },
+    "HM3D:AdNTcRg3THp": {
+      "queries": 1848,
+      "roles": {
+        "natural_reference": 165,
+        "train": 1683
+      },
+      "roots": 56
+    },
+    "HM3D:AeBfp3hTadB": {
+      "queries": 1716,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1584
+      },
+      "roots": 52
+    },
+    "HM3D:AfKhsVmG8L4": {
+      "queries": 561,
+      "roles": {
+        "natural_reference": 99,
+        "train": 462
+      },
+      "roots": 17
+    },
+    "HM3D:AuGMayXVFkc": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "HM3D:BCWtGkh8CHv": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:BEuB32yj7Fb": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:BFRyYbPCCPE": {
+      "queries": 297,
+      "roles": {
+        "unseen_evaluation": 297
+      },
+      "roots": 9
+    },
+    "HM3D:BHXhpBwSMLh": {
+      "queries": 231,
+      "roles": {
+        "natural_reference": 33,
+        "train": 198
+      },
+      "roots": 7
+    },
+    "HM3D:BJovXQkqbC3": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 33,
+        "train": 429
+      },
+      "roots": 14
+    },
+    "HM3D:BLhX6Do8f1t": {
+      "queries": 594,
+      "roles": {
+        "natural_reference": 33,
+        "train": 561
+      },
+      "roots": 18
+    },
+    "HM3D:BcZUZQ9t4Fe": {
+      "queries": 1122,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1089
+      },
+      "roots": 34
+    },
+    "HM3D:Bnq6SeZGL5b": {
+      "queries": 627,
+      "roles": {
+        "train": 627
+      },
+      "roots": 19
+    },
+    "HM3D:C3ifY177Ldq": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 33,
+        "train": 363
+      },
+      "roots": 12
+    },
+    "HM3D:C5RbHBQ76DE": {
+      "queries": 99,
+      "roles": {
+        "natural_reference": 33,
+        "train": 66
+      },
+      "roots": 3
+    },
+    "HM3D:C7xtw9uhYFn": {
+      "queries": 330,
+      "roles": {
+        "natural_reference": 33,
+        "train": 297
+      },
+      "roots": 10
+    },
+    "HM3D:CFVBbU9Rsyb": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:CKbwkKufMWM": {
+      "queries": 99,
+      "roles": {
+        "unseen_evaluation": 99
+      },
+      "roots": 3
+    },
+    "HM3D:CQWES1bawee": {
+      "queries": 1221,
+      "roles": {
+        "train": 1221
+      },
+      "roots": 37
+    },
+    "HM3D:Coer9RdivP7": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:CrMo8WxCyVb": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:CxxHb5C8ZsP": {
+      "queries": 99,
+      "roles": {
+        "natural_reference": 33,
+        "train": 66
+      },
+      "roots": 3
+    },
+    "HM3D:D2PqRE5ZvyQ": {
+      "queries": 693,
+      "roles": {
+        "natural_reference": 66,
+        "train": 627
+      },
+      "roots": 21
+    },
+    "HM3D:D5dEbkUphhr": {
+      "queries": 198,
+      "roles": {
+        "natural_reference": 33,
+        "train": 165
+      },
+      "roots": 6
+    },
+    "HM3D:D8aaq3PH6dG": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:DACaFbApXUe": {
+      "queries": 1056,
+      "roles": {
+        "natural_reference": 66,
+        "train": 990
+      },
+      "roots": 32
+    },
+    "HM3D:DBBESbk4Y3k": {
+      "queries": 1485,
+      "roles": {
+        "natural_reference": 165,
+        "train": 1320
+      },
+      "roots": 45
+    },
+    "HM3D:DBjEcHFg4oq": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 33,
+        "train": 231
+      },
+      "roots": 8
+    },
+    "HM3D:DS3nSAaa3Nr": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 99,
+        "train": 660
+      },
+      "roots": 23
+    },
+    "HM3D:DWsM2ficpne": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:DYehNKdT76V": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:DZsJKHoqEYg": {
+      "queries": 759,
+      "roles": {
+        "train": 759
+      },
+      "roots": 23
+    },
+    "HM3D:DfUQLukPMPc": {
+      "queries": 132,
+      "roles": {
+        "unseen_evaluation": 132
+      },
+      "roots": 4
+    },
+    "HM3D:Dj6sJyU7qmd": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 33,
+        "train": 429
+      },
+      "roots": 14
+    },
+    "HM3D:DsEJeNPcZtE": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:DwDDvGo9QdA": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 33,
+        "train": 495
+      },
+      "roots": 16
+    },
+    "HM3D:E64sjs3Dyfd": {
+      "queries": 990,
+      "roles": {
+        "train": 990
+      },
+      "roots": 30
+    },
+    "HM3D:E9hxHD5h4FY": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:ECStCRoCNWM": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:EN7GiDgxdQ2": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 33,
+        "train": 330
+      },
+      "roots": 11
+    },
+    "HM3D:ENhuWpDE5EB": {
+      "queries": 132,
+      "roles": {
+        "unseen_evaluation": 132
+      },
+      "roots": 4
+    },
+    "HM3D:ENiCjXWB6aQ": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:EU6QPFpqdoU": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:EgzWe8N3jZG": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:EqZacbtdApE": {
+      "queries": 594,
+      "roles": {
+        "train": 594
+      },
+      "roots": 18
+    },
+    "HM3D:F1Vhvu3osn6": {
+      "queries": 198,
+      "roles": {
+        "natural_reference": 33,
+        "train": 165
+      },
+      "roots": 6
+    },
+    "HM3D:FXuXGH9YQTW": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:FgXPKxNp5kK": {
+      "queries": 1947,
+      "roles": {
+        "natural_reference": 231,
+        "train": 1716
+      },
+      "roots": 59
+    },
+    "HM3D:FnDDfrBZPhh": {
+      "queries": 1023,
+      "roles": {
+        "natural_reference": 99,
+        "train": 924
+      },
+      "roots": 31
+    },
+    "HM3D:FnSn2KSrALj": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 99,
+        "train": 627
+      },
+      "roots": 22
+    },
+    "HM3D:FxCkHAfgh7A": {
+      "queries": 792,
+      "roles": {
+        "train": 792
+      },
+      "roots": 24
+    },
+    "HM3D:GCEb4nmNi7j": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:GMwtBqNLGBs": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:GTV2Y73Sn5t": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 33,
+        "train": 231
+      },
+      "roots": 8
+    },
+    "HM3D:GZRLndzSrdn": {
+      "queries": 627,
+      "roles": {
+        "unseen_evaluation": 627
+      },
+      "roots": 19
+    },
+    "HM3D:Gg8W275oKZE": {
+      "queries": 1056,
+      "roles": {
+        "natural_reference": 132,
+        "train": 924
+      },
+      "roots": 32
+    },
+    "HM3D:GsQBY83r3hb": {
+      "queries": 759,
+      "roles": {
+        "unseen_evaluation": 759
+      },
+      "roots": 23
+    },
+    "HM3D:GtM3JtRvvvR": {
+      "queries": 1023,
+      "roles": {
+        "natural_reference": 99,
+        "train": 924
+      },
+      "roots": 31
+    },
+    "HM3D:GtqoUWABJ11": {
+      "queries": 429,
+      "roles": {
+        "train": 429
+      },
+      "roots": 13
+    },
+    "HM3D:H77MhktmmAF": {
+      "queries": 495,
+      "roles": {
+        "train": 495
+      },
+      "roots": 15
+    },
+    "HM3D:H8rQCnvBgo6": {
+      "queries": 165,
+      "roles": {
+        "natural_reference": 33,
+        "train": 132
+      },
+      "roots": 5
+    },
+    "HM3D:HLBJGGyicLV": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:HPrcqBkKzuy": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 66,
+        "train": 198
+      },
+      "roots": 8
+    },
+    "HM3D:HZ2iMMBsBQ9": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 66,
+        "train": 759
+      },
+      "roots": 25
+    },
+    "HM3D:HeSYRw7eMtG": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:HfMobPm86Xn": {
+      "queries": 561,
+      "roles": {
+        "natural_reference": 66,
+        "train": 495
+      },
+      "roots": 17
+    },
+    "HM3D:HjxjHvpdeoM": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 33,
+        "train": 495
+      },
+      "roots": 16
+    },
+    "HM3D:HkseAnWCgqk": {
+      "queries": 1023,
+      "roles": {
+        "natural_reference": 33,
+        "train": 990
+      },
+      "roots": 31
+    },
+    "HM3D:HneuS3CYDFG": {
+      "queries": 1155,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1056
+      },
+      "roots": 35
+    },
+    "HM3D:HsYeeztxPG6": {
+      "queries": 528,
+      "roles": {
+        "train": 528
+      },
+      "roots": 16
+    },
+    "HM3D:Hsk3jDzNySy": {
+      "queries": 990,
+      "roles": {
+        "natural_reference": 33,
+        "train": 957
+      },
+      "roots": 30
+    },
+    "HM3D:HxmXPBbFCkH": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 33,
+        "train": 330
+      },
+      "roots": 11
+    },
+    "HM3D:J5SkB2o1ckv": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 66,
+        "train": 858
+      },
+      "roots": 28
+    },
+    "HM3D:J9adB1bm54A": {
+      "queries": 1980,
+      "roles": {
+        "natural_reference": 231,
+        "train": 1749
+      },
+      "roots": 60
+    },
+    "HM3D:JHHVv6QZJMm": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:JPMDv7zL4bF": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:JUANmB8jduD": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:JWWJBQWHv64": {
+      "queries": 1056,
+      "roles": {
+        "natural_reference": 99,
+        "train": 957
+      },
+      "roots": 32
+    },
+    "HM3D:JiHGQpwKUvd": {
+      "queries": 726,
+      "roles": {
+        "train": 726
+      },
+      "roots": 22
+    },
+    "HM3D:JptJPosx1Z6": {
+      "queries": 957,
+      "roles": {
+        "train": 957
+      },
+      "roots": 29
+    },
+    "HM3D:KAzjXJvZtR3": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 66,
+        "train": 396
+      },
+      "roots": 14
+    },
+    "HM3D:KHhgcNqsc9h": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 33,
+        "train": 792
+      },
+      "roots": 25
+    },
+    "HM3D:KJxdMPgweZG": {
+      "queries": 198,
+      "roles": {
+        "natural_reference": 33,
+        "train": 165
+      },
+      "roots": 6
+    },
+    "HM3D:KWoYKrff5L4": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:KjZrPggnHm8": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:KsD3yx9nZCv": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:LEFTm3JecaC": {
+      "queries": 825,
+      "roles": {
+        "unseen_evaluation": 825
+      },
+      "roots": 25
+    },
+    "HM3D:LGGnLUDPz37": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 33,
+        "train": 231
+      },
+      "roots": 8
+    },
+    "HM3D:LLecyBe5Eq2": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 66,
+        "train": 231
+      },
+      "roots": 9
+    },
+    "HM3D:LPwS1aEGXBb": {
+      "queries": 396,
+      "roles": {
+        "train": 396
+      },
+      "roots": 12
+    },
+    "HM3D:LQy8D2nmZ4x": {
+      "queries": 660,
+      "roles": {
+        "natural_reference": 33,
+        "train": 627
+      },
+      "roots": 20
+    },
+    "HM3D:LT9Jq6dN3Ea": {
+      "queries": 1188,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1056
+      },
+      "roots": 36
+    },
+    "HM3D:LcAd9dhvVwh": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 66,
+        "train": 462
+      },
+      "roots": 16
+    },
+    "HM3D:LqsTKpxKVP2": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:Lva3QmSMsTr": {
+      "queries": 165,
+      "roles": {
+        "natural_reference": 66,
+        "train": 99
+      },
+      "roots": 5
+    },
+    "HM3D:M8PMwoYQTUV": {
+      "queries": 1452,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1419
+      },
+      "roots": 44
+    },
+    "HM3D:MHYu4LWb6qP": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 33,
+        "train": 429
+      },
+      "roots": 14
+    },
+    "HM3D:MLVm7dZk7dp": {
+      "queries": 1221,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1155
+      },
+      "roots": 37
+    },
+    "HM3D:MPPDV4Gvybr": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:MVStfLiYYQv": {
+      "queries": 1056,
+      "roles": {
+        "natural_reference": 99,
+        "train": 957
+      },
+      "roots": 32
+    },
+    "HM3D:MyxM6trMBUH": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:N17ddiDvJr9": {
+      "queries": 1452,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1386
+      },
+      "roots": 44
+    },
+    "HM3D:NBWrHFXBF5p": {
+      "queries": 1617,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1485
+      },
+      "roots": 49
+    },
+    "HM3D:NBg5UqG3di3": {
+      "queries": 1452,
+      "roles": {
+        "natural_reference": 198,
+        "train": 1254
+      },
+      "roots": 44
+    },
+    "HM3D:NBuk4gePdJm": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:NcK5aACg44h": {
+      "queries": 396,
+      "roles": {
+        "train": 396
+      },
+      "roots": 12
+    },
+    "HM3D:Nf3aGQTDAA1": {
+      "queries": 2079,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1980
+      },
+      "roots": 63
+    },
+    "HM3D:Nfvxx8J5NCo": {
+      "queries": 693,
+      "roles": {
+        "natural_reference": 33,
+        "train": 660
+      },
+      "roots": 21
+    },
+    "HM3D:NjyeoK5BLx3": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:NpCFg9NdUgL": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 33,
+        "train": 693
+      },
+      "roots": 22
+    },
+    "HM3D:P8XJUpcAUkf": {
+      "queries": 957,
+      "roles": {
+        "train": 957
+      },
+      "roots": 29
+    },
+    "HM3D:PE6kVEtrxtj": {
+      "queries": 594,
+      "roles": {
+        "train": 594
+      },
+      "roots": 18
+    },
+    "HM3D:PK83UqrXjd3": {
+      "queries": 594,
+      "roles": {
+        "unseen_evaluation": 594
+      },
+      "roots": 18
+    },
+    "HM3D:PM558qFsyi8": {
+      "queries": 1518,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1452
+      },
+      "roots": 46
+    },
+    "HM3D:PXAfUkZGMdU": {
+      "queries": 726,
+      "roles": {
+        "train": 726
+      },
+      "roots": 22
+    },
+    "HM3D:PuFu1zFVc4k": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:PyZonHqd5gy": {
+      "queries": 627,
+      "roles": {
+        "train": 627
+      },
+      "roots": 19
+    },
+    "HM3D:QDvRVeWFCjM": {
+      "queries": 462,
+      "roles": {
+        "unseen_evaluation": 462
+      },
+      "roots": 14
+    },
+    "HM3D:QFjJExB2jgE": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:QHhQZWdMpGJ": {
+      "queries": 792,
+      "roles": {
+        "natural_reference": 33,
+        "train": 759
+      },
+      "roots": 24
+    },
+    "HM3D:QKfBMSSy7Hy": {
+      "queries": 231,
+      "roles": {
+        "unseen_evaluation": 231
+      },
+      "roots": 7
+    },
+    "HM3D:QaLdnwvtxbs": {
+      "queries": 594,
+      "roles": {
+        "train": 594
+      },
+      "roots": 18
+    },
+    "HM3D:Qkm4CooNoPi": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:Qpor2mEya8F": {
+      "queries": 396,
+      "roles": {
+        "train": 396
+      },
+      "roots": 12
+    },
+    "HM3D:R6Byftz8wRN": {
+      "queries": 693,
+      "roles": {
+        "train": 693
+      },
+      "roots": 21
+    },
+    "HM3D:R9fYpvCUkV7": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 99,
+        "train": 825
+      },
+      "roots": 28
+    },
+    "HM3D:RHdkyzXFp1k": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 99,
+        "train": 297
+      },
+      "roots": 12
+    },
+    "HM3D:RHrFkyC59tf": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:RJaJt8UjXav": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 66,
+        "train": 297
+      },
+      "roots": 11
+    },
+    "HM3D:RamZzGBBPbT": {
+      "queries": 132,
+      "roles": {
+        "natural_reference": 33,
+        "train": 99
+      },
+      "roots": 4
+    },
+    "HM3D:RfNGMBdVbAZ": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:RiwBKy2YdQ7": {
+      "queries": 660,
+      "roles": {
+        "unseen_evaluation": 660
+      },
+      "roots": 20
+    },
+    "HM3D:S3BfyR31Wc9": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "HM3D:S3YyrKoJ7k6": {
+      "queries": 1980,
+      "roles": {
+        "natural_reference": 165,
+        "train": 1815
+      },
+      "roots": 60
+    },
+    "HM3D:S9M7ybC5ZHu": {
+      "queries": 1386,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1320
+      },
+      "roots": 42
+    },
+    "HM3D:SBHLgvFTVMZ": {
+      "queries": 198,
+      "roles": {
+        "natural_reference": 66,
+        "train": 132
+      },
+      "roots": 6
+    },
+    "HM3D:SSwbmq72C21": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 33,
+        "train": 330
+      },
+      "roots": 11
+    },
+    "HM3D:SgkmkWjjmDJ": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:SrHVAbHUpUX": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:T4G9hTR5WSv": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 33,
+        "train": 264
+      },
+      "roots": 9
+    },
+    "HM3D:TEEsavR23oF": {
+      "queries": 330,
+      "roles": {
+        "train": 330
+      },
+      "roots": 10
+    },
+    "HM3D:TQSiMZJawkS": {
+      "queries": 594,
+      "roles": {
+        "train": 594
+      },
+      "roots": 18
+    },
+    "HM3D:TYDavTf8oyy": {
+      "queries": 66,
+      "roles": {
+        "unseen_evaluation": 66
+      },
+      "roots": 2
+    },
+    "HM3D:TZ2jsvNG2nt": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 33,
+        "train": 495
+      },
+      "roots": 16
+    },
+    "HM3D:TgWKHxhJAng": {
+      "queries": 561,
+      "roles": {
+        "natural_reference": 99,
+        "train": 462
+      },
+      "roots": 17
+    },
+    "HM3D:TiWanpmC63V": {
+      "queries": 1353,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1287
+      },
+      "roots": 41
+    },
+    "HM3D:Ty7djLDxQu3": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:TzQLNfWugiZ": {
+      "queries": 792,
+      "roles": {
+        "natural_reference": 33,
+        "train": 759
+      },
+      "roots": 24
+    },
+    "HM3D:TziyvKgzdAs": {
+      "queries": 726,
+      "roles": {
+        "unseen_evaluation": 726
+      },
+      "roots": 22
+    },
+    "HM3D:UAGeBzZJgkU": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:UQ5EhY5wve1": {
+      "queries": 1188,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1089
+      },
+      "roots": 36
+    },
+    "HM3D:UVdNNRcVyV1": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 33,
+        "train": 891
+      },
+      "roots": 28
+    },
+    "HM3D:UYrgg12a7QN": {
+      "queries": 165,
+      "roles": {
+        "unseen_evaluation": 165
+      },
+      "roots": 5
+    },
+    "HM3D:UbsJXeCkJBA": {
+      "queries": 2046,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1947
+      },
+      "roots": 62
+    },
+    "HM3D:UrFKpVJpvHi": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:VhissfC8ggN": {
+      "queries": 132,
+      "roles": {
+        "unseen_evaluation": 132
+      },
+      "roots": 4
+    },
+    "HM3D:VoVGtfYrpuQ": {
+      "queries": 330,
+      "roles": {
+        "train": 330
+      },
+      "roots": 10
+    },
+    "HM3D:VqCaAuuoeWk": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:W3J8ruZTQic": {
+      "queries": 165,
+      "roles": {
+        "natural_reference": 33,
+        "train": 132
+      },
+      "roots": 5
+    },
+    "HM3D:W4r5JssudHR": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:W9YAR9qcuvN": {
+      "queries": 495,
+      "roles": {
+        "natural_reference": 66,
+        "train": 429
+      },
+      "roots": 15
+    },
+    "HM3D:WPzCkWEorzk": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 99,
+        "train": 726
+      },
+      "roots": 25
+    },
+    "HM3D:WRphMcFxfhe": {
+      "queries": 1782,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1650
+      },
+      "roots": 54
+    },
+    "HM3D:WT4QWwXrMzs": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 33,
+        "train": 330
+      },
+      "roots": 11
+    },
+    "HM3D:WZDzPCybQvS": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 99,
+        "train": 264
+      },
+      "roots": 11
+    },
+    "HM3D:WeyCwVzL53K": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:WhNyDTnd9g5": {
+      "queries": 165,
+      "roles": {
+        "unseen_evaluation": 165
+      },
+      "roots": 5
+    },
+    "HM3D:Wo6kuutE9i7": {
+      "queries": 99,
+      "roles": {
+        "unseen_evaluation": 99
+      },
+      "roots": 3
+    },
+    "HM3D:WpVxtsP4xxA": {
+      "queries": 792,
+      "roles": {
+        "unseen_evaluation": 792
+      },
+      "roots": 24
+    },
+    "HM3D:X4qjx5vquwH": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:X6Pct1msZv5": {
+      "queries": 957,
+      "roles": {
+        "train": 957
+      },
+      "roots": 29
+    },
+    "HM3D:XKqDR74W1JU": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 66,
+        "train": 660
+      },
+      "roots": 22
+    },
+    "HM3D:XMHNu9rRQ1y": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 33,
+        "train": 792
+      },
+      "roots": 25
+    },
+    "HM3D:XRHpoTZjtj7": {
+      "queries": 495,
+      "roles": {
+        "natural_reference": 33,
+        "train": 462
+      },
+      "roots": 15
+    },
+    "HM3D:XVSZJAtHKdi": {
+      "queries": 990,
+      "roles": {
+        "train": 990
+      },
+      "roots": 30
+    },
+    "HM3D:XYQdAu1qsK9": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 99,
+        "train": 660
+      },
+      "roots": 23
+    },
+    "HM3D:XvJjCZv6SYp": {
+      "queries": 924,
+      "roles": {
+        "train": 924
+      },
+      "roots": 28
+    },
+    "HM3D:XxbS57Z6PDU": {
+      "queries": 1188,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1089
+      },
+      "roots": 36
+    },
+    "HM3D:Y4L8fjz2yH7": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "HM3D:Y4idBN66BqG": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:Y6WjWkVEUks": {
+      "queries": 1056,
+      "roles": {
+        "natural_reference": 132,
+        "train": 924
+      },
+      "roots": 32
+    },
+    "HM3D:Y8Y6ukxGMvn": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1023
+      },
+      "roots": 33
+    },
+    "HM3D:YJDUB7hWg9h": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:YMNvYDhK8mB": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 66,
+        "train": 363
+      },
+      "roots": 13
+    },
+    "HM3D:YRUkbU5xsYj": {
+      "queries": 990,
+      "roles": {
+        "natural_reference": 66,
+        "train": 924
+      },
+      "roots": 30
+    },
+    "HM3D:YWy9hV7RfQB": {
+      "queries": 1287,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1188
+      },
+      "roots": 39
+    },
+    "HM3D:YY8rqV6L6rf": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:Z2DQddYp1fn": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 33,
+        "train": 429
+      },
+      "roots": 14
+    },
+    "HM3D:ZB8o8rMmPdB": {
+      "queries": 957,
+      "roles": {
+        "natural_reference": 33,
+        "train": 924
+      },
+      "roots": 29
+    },
+    "HM3D:ZVPMj4YoZtK": {
+      "queries": 429,
+      "roles": {
+        "train": 429
+      },
+      "roots": 13
+    },
+    "HM3D:ZVScmfktNQ1": {
+      "queries": 1287,
+      "roles": {
+        "train": 1287
+      },
+      "roots": 39
+    },
+    "HM3D:Ze6tkhg7Wvc": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:ZxkSUELrWtQ": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:aCtdWA5n56Z": {
+      "queries": 132,
+      "roles": {
+        "natural_reference": 33,
+        "train": 99
+      },
+      "roots": 4
+    },
+    "HM3D:aJg466zMSNt": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 66,
+        "train": 660
+      },
+      "roots": 22
+    },
+    "HM3D:aRKASs4e8j1": {
+      "queries": 165,
+      "roles": {
+        "natural_reference": 66,
+        "train": 99
+      },
+      "roots": 5
+    },
+    "HM3D:aYhkzj2fEhP": {
+      "queries": 330,
+      "roles": {
+        "natural_reference": 33,
+        "train": 297
+      },
+      "roots": 10
+    },
+    "HM3D:adgwjGh4NQK": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:aosjAwX5Lnq": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:as8Y8AYx6yW": {
+      "queries": 660,
+      "roles": {
+        "natural_reference": 33,
+        "train": 627
+      },
+      "roots": 20
+    },
+    "HM3D:auFeVz9Go4m": {
+      "queries": 330,
+      "roles": {
+        "natural_reference": 33,
+        "train": 297
+      },
+      "roots": 10
+    },
+    "HM3D:awcRF7AZnJu": {
+      "queries": 1716,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1584
+      },
+      "roots": 52
+    },
+    "HM3D:b2e31HFFizw": {
+      "queries": 1980,
+      "roles": {
+        "natural_reference": 198,
+        "train": 1782
+      },
+      "roots": 60
+    },
+    "HM3D:b3WpMbPFB6q": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 33,
+        "train": 363
+      },
+      "roots": 12
+    },
+    "HM3D:bAdy4hKf1a1": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "HM3D:bB6nKqfsb1z": {
+      "queries": 495,
+      "roles": {
+        "unseen_evaluation": 495
+      },
+      "roots": 15
+    },
+    "HM3D:bDTsgcSK5Qr": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:bEdki9cbHDG": {
+      "queries": 132,
+      "roles": {
+        "unseen_evaluation": 132
+      },
+      "roots": 4
+    },
+    "HM3D:bMvM1KL4WsR": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 99,
+        "train": 990
+      },
+      "roots": 33
+    },
+    "HM3D:bXu6SSWkJY8": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 66,
+        "train": 231
+      },
+      "roots": 9
+    },
+    "HM3D:bpqKLXHnxei": {
+      "queries": 1254,
+      "roles": {
+        "natural_reference": 165,
+        "train": 1089
+      },
+      "roots": 38
+    },
+    "HM3D:bwoBmU23M2N": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:bxsVRursffK": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:bxwHR9ipFG8": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:by8SK9u18S8": {
+      "queries": 1023,
+      "roles": {
+        "train": 1023
+      },
+      "roots": 31
+    },
+    "HM3D:c5eTyR3Rxyh": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 66,
+        "train": 759
+      },
+      "roots": 25
+    },
+    "HM3D:c9DeZf2fcDf": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "HM3D:cHumXFzhHUR": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:cWfRoQnzNiM": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:cvZr5TUy5C5": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 99,
+        "train": 429
+      },
+      "roots": 16
+    },
+    "HM3D:d5faFfQRphr": {
+      "queries": 165,
+      "roles": {
+        "unseen_evaluation": 165
+      },
+      "roots": 5
+    },
+    "HM3D:d88Sc1udFcZ": {
+      "queries": 627,
+      "roles": {
+        "natural_reference": 33,
+        "train": 594
+      },
+      "roots": 19
+    },
+    "HM3D:dD37vuCa4FE": {
+      "queries": 231,
+      "roles": {
+        "natural_reference": 33,
+        "train": 198
+      },
+      "roots": 7
+    },
+    "HM3D:dKySjDYsya1": {
+      "queries": 957,
+      "roles": {
+        "natural_reference": 132,
+        "train": 825
+      },
+      "roots": 29
+    },
+    "HM3D:dTzYwo8Hppu": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 99,
+        "train": 627
+      },
+      "roots": 22
+    },
+    "HM3D:dVW2D7TDctW": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 66,
+        "train": 330
+      },
+      "roots": 12
+    },
+    "HM3D:deNrXzuSss5": {
+      "queries": 1188,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1122
+      },
+      "roots": 36
+    },
+    "HM3D:drvaU627cQh": {
+      "queries": 825,
+      "roles": {
+        "natural_reference": 66,
+        "train": 759
+      },
+      "roots": 25
+    },
+    "HM3D:duthTPisf28": {
+      "queries": 594,
+      "roles": {
+        "train": 594
+      },
+      "roots": 18
+    },
+    "HM3D:eAUmfFLZDR3": {
+      "queries": 396,
+      "roles": {
+        "train": 396
+      },
+      "roots": 12
+    },
+    "HM3D:eF36g7L6Z9M": {
+      "queries": 792,
+      "roles": {
+        "natural_reference": 33,
+        "train": 759
+      },
+      "roots": 24
+    },
+    "HM3D:eip6PNoeCPr": {
+      "queries": 1650,
+      "roles": {
+        "unseen_evaluation": 1650
+      },
+      "roots": 50
+    },
+    "HM3D:enfahKs8XHw": {
+      "queries": 1320,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1188
+      },
+      "roots": 40
+    },
+    "HM3D:fKP4sxcoxpL": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:fQHGxvurx9L": {
+      "queries": 396,
+      "roles": {
+        "train": 396
+      },
+      "roots": 12
+    },
+    "HM3D:fRZhp6vWGw7": {
+      "queries": 561,
+      "roles": {
+        "natural_reference": 66,
+        "train": 495
+      },
+      "roots": 17
+    },
+    "HM3D:fbUcgfPMBDr": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:fdfRpE6Cfsr": {
+      "queries": 693,
+      "roles": {
+        "natural_reference": 33,
+        "train": 660
+      },
+      "roots": 21
+    },
+    "HM3D:fxbzYAGkrtm": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:g7hUFVNac26": {
+      "queries": 198,
+      "roles": {
+        "unseen_evaluation": 198
+      },
+      "roots": 6
+    },
+    "HM3D:g8Xrdbe9fir": {
+      "queries": 132,
+      "roles": {
+        "natural_reference": 66,
+        "train": 66
+      },
+      "roots": 4
+    },
+    "HM3D:gDDiZeyaVc2": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 66,
+        "train": 693
+      },
+      "roots": 23
+    },
+    "HM3D:ggNAcMh8JPT": {
+      "queries": 891,
+      "roles": {
+        "unseen_evaluation": 891
+      },
+      "roots": 27
+    },
+    "HM3D:giViJCyCH2C": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "HM3D:gjhYih4upQ9": {
+      "queries": 660,
+      "roles": {
+        "natural_reference": 33,
+        "train": 627
+      },
+      "roots": 20
+    },
+    "HM3D:gmLDom6XSo7": {
+      "queries": 1287,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1155
+      },
+      "roots": 39
+    },
+    "HM3D:gxttMtT5ZGK": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 99,
+        "train": 627
+      },
+      "roots": 22
+    },
+    "HM3D:gyK27yu7CP4": {
+      "queries": 1485,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1386
+      },
+      "roots": 45
+    },
+    "HM3D:h5VYFcePkbn": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 33,
+        "train": 363
+      },
+      "roots": 12
+    },
+    "HM3D:hTTnuAeSN6d": {
+      "queries": 561,
+      "roles": {
+        "unseen_evaluation": 561
+      },
+      "roots": 17
+    },
+    "HM3D:hXHUtviUKBu": {
+      "queries": 561,
+      "roles": {
+        "train": 561
+      },
+      "roots": 17
+    },
+    "HM3D:hkr2MGpHD6B": {
+      "queries": 1023,
+      "roles": {
+        "natural_reference": 33,
+        "train": 990
+      },
+      "roots": 31
+    },
+    "HM3D:iLDo95ZbDJq": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:iNpfPhK1sRz": {
+      "queries": 330,
+      "roles": {
+        "train": 330
+      },
+      "roots": 10
+    },
+    "HM3D:iQPq34e8hJX": {
+      "queries": 858,
+      "roles": {
+        "natural_reference": 33,
+        "train": 825
+      },
+      "roots": 26
+    },
+    "HM3D:iePHCSf119p": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 66,
+        "train": 660
+      },
+      "roots": 22
+    },
+    "HM3D:iigzG1rtanx": {
+      "queries": 858,
+      "roles": {
+        "natural_reference": 132,
+        "train": 726
+      },
+      "roots": 26
+    },
+    "HM3D:ikChNYDHtRf": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 33,
+        "train": 330
+      },
+      "roots": 11
+    },
+    "HM3D:j2DKmTV5TPV": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:j2eqyxdYAFW": {
+      "queries": 363,
+      "roles": {
+        "unseen_evaluation": 363
+      },
+      "roots": 11
+    },
+    "HM3D:j6fHrce9pHR": {
+      "queries": 627,
+      "roles": {
+        "natural_reference": 66,
+        "train": 561
+      },
+      "roots": 19
+    },
+    "HM3D:jAzZDvf6i67": {
+      "queries": 198,
+      "roles": {
+        "unseen_evaluation": 198
+      },
+      "roots": 6
+    },
+    "HM3D:jG9pucmJVBZ": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:jTTGECZYKRA": {
+      "queries": 495,
+      "roles": {
+        "train": 495
+      },
+      "roots": 15
+    },
+    "HM3D:jgPBycuV1Jq": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 33,
+        "train": 264
+      },
+      "roots": 9
+    },
+    "HM3D:k17yptqNRAn": {
+      "queries": 1155,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1056
+      },
+      "roots": 35
+    },
+    "HM3D:k1cupFYWXJ6": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:k3ohRuM6bso": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "HM3D:k9UfRPqLm3j": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:kA2nG18hCAr": {
+      "queries": 1221,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1155
+      },
+      "roots": 37
+    },
+    "HM3D:kAMF2R7PCqX": {
+      "queries": 330,
+      "roles": {
+        "train": 330
+      },
+      "roots": 10
+    },
+    "HM3D:kDgLKdMd5X8": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:kJJyRFXVpx2": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:kXAEFtUBNFZ": {
+      "queries": 660,
+      "roles": {
+        "natural_reference": 33,
+        "train": 627
+      },
+      "roots": 20
+    },
+    "HM3D:kZhZfAhdnNN": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:kdFEfVoT1WE": {
+      "queries": 363,
+      "roles": {
+        "train": 363
+      },
+      "roots": 11
+    },
+    "HM3D:kdw2Uapns3b": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:kjUg7BaQF1C": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 132,
+        "train": 627
+      },
+      "roots": 23
+    },
+    "HM3D:knPYW3fibqY": {
+      "queries": 693,
+      "roles": {
+        "natural_reference": 66,
+        "train": 627
+      },
+      "roots": 21
+    },
+    "HM3D:krsjseyn6fd": {
+      "queries": 858,
+      "roles": {
+        "natural_reference": 99,
+        "train": 759
+      },
+      "roots": 26
+    },
+    "HM3D:kubNyvKJBUX": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:kxWk8ZMDE1N": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:kyoZhaD9HuW": {
+      "queries": 198,
+      "roles": {
+        "natural_reference": 66,
+        "train": 132
+      },
+      "roots": 6
+    },
+    "HM3D:m49MsVC7BwA": {
+      "queries": 495,
+      "roles": {
+        "train": 495
+      },
+      "roots": 15
+    },
+    "HM3D:mDPCxA7W1WN": {
+      "queries": 858,
+      "roles": {
+        "natural_reference": 132,
+        "train": 726
+      },
+      "roots": 26
+    },
+    "HM3D:mDdyQ6azhVD": {
+      "queries": 330,
+      "roles": {
+        "unseen_evaluation": 330
+      },
+      "roots": 10
+    },
+    "HM3D:mWqBmEyXcXN": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 99,
+        "train": 363
+      },
+      "roots": 14
+    },
+    "HM3D:mggziYKSc6S": {
+      "queries": 429,
+      "roles": {
+        "train": 429
+      },
+      "roots": 13
+    },
+    "HM3D:mjvN6RDLsPm": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:n2Tt2eJdqnT": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 33,
+        "train": 363
+      },
+      "roots": 12
+    },
+    "HM3D:n8AnEznQQpv": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:nJTPfwbAj4S": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 33,
+        "train": 231
+      },
+      "roots": 8
+    },
+    "HM3D:nMeXfQU4PMS": {
+      "queries": 198,
+      "roles": {
+        "unseen_evaluation": 198
+      },
+      "roots": 6
+    },
+    "HM3D:nvjM2xMma91": {
+      "queries": 330,
+      "roles": {
+        "natural_reference": 66,
+        "train": 264
+      },
+      "roots": 10
+    },
+    "HM3D:nzuiinFMXvf": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 66,
+        "train": 858
+      },
+      "roots": 28
+    },
+    "HM3D:o1F5JVHc6mb": {
+      "queries": 231,
+      "roles": {
+        "train": 231
+      },
+      "roots": 7
+    },
+    "HM3D:oKFJo8jpzRW": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:oQPVc6vwgaq": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:oahi4u45xMf": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 33,
+        "train": 495
+      },
+      "roots": 16
+    },
+    "HM3D:ochRmQAHtkF": {
+      "queries": 990,
+      "roles": {
+        "natural_reference": 165,
+        "train": 825
+      },
+      "roots": 30
+    },
+    "HM3D:ooq3SnvC79d": {
+      "queries": 198,
+      "roles": {
+        "natural_reference": 33,
+        "train": 165
+      },
+      "roots": 6
+    },
+    "HM3D:osQy15y8EVT": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1056
+      },
+      "roots": 33
+    },
+    "HM3D:otTm4oTrHvc": {
+      "queries": 693,
+      "roles": {
+        "natural_reference": 33,
+        "train": 660
+      },
+      "roots": 21
+    },
+    "HM3D:p32JzpQyhPk": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 33,
+        "train": 693
+      },
+      "roots": 22
+    },
+    "HM3D:p53SfW6mjZe": {
+      "queries": 429,
+      "roles": {
+        "train": 429
+      },
+      "roots": 13
+    },
+    "HM3D:p6RF8AUer2e": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 99,
+        "train": 429
+      },
+      "roots": 16
+    },
+    "HM3D:pAjDzi9kWjE": {
+      "queries": 1353,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1320
+      },
+      "roots": 41
+    },
+    "HM3D:pMntW4YkvvB": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 33,
+        "train": 726
+      },
+      "roots": 23
+    },
+    "HM3D:pUneSGJDrvY": {
+      "queries": 594,
+      "roles": {
+        "natural_reference": 33,
+        "train": 561
+      },
+      "roots": 18
+    },
+    "HM3D:pVnwDTdMD3h": {
+      "queries": 1353,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1320
+      },
+      "roots": 41
+    },
+    "HM3D:pYGGNqSbHp1": {
+      "queries": 1353,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1254
+      },
+      "roots": 41
+    },
+    "HM3D:panm7DRsmDn": {
+      "queries": 858,
+      "roles": {
+        "train": 858
+      },
+      "roots": 26
+    },
+    "HM3D:q28T9C3q2dv": {
+      "queries": 165,
+      "roles": {
+        "unseen_evaluation": 165
+      },
+      "roots": 5
+    },
+    "HM3D:q33GehreMrX": {
+      "queries": 990,
+      "roles": {
+        "natural_reference": 66,
+        "train": 924
+      },
+      "roots": 30
+    },
+    "HM3D:q6tn1ZjSsG4": {
+      "queries": 1155,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1089
+      },
+      "roots": 35
+    },
+    "HM3D:qAwGYe2GoZp": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:qQgcM8T4hiD": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 33,
+        "train": 396
+      },
+      "roots": 13
+    },
+    "HM3D:qWP3MMQM3eJ": {
+      "queries": 1353,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1287
+      },
+      "roots": 41
+    },
+    "HM3D:qZ4B7U6XE5Y": {
+      "queries": 1386,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1320
+      },
+      "roots": 42
+    },
+    "HM3D:qgZhhx1MpTi": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:qk9eeNeR4vw": {
+      "queries": 66,
+      "roles": {
+        "unseen_evaluation": 66
+      },
+      "roots": 2
+    },
+    "HM3D:qpcpnP8TosR": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 33,
+        "train": 495
+      },
+      "roots": 16
+    },
+    "HM3D:qvNra81N8BU": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:qxwfVS8MQ67": {
+      "queries": 1848,
+      "roles": {
+        "natural_reference": 198,
+        "train": 1650
+      },
+      "roots": 56
+    },
+    "HM3D:qyAac8rV8Zk": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:qz3829g1Lzf": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:r77mpaAYUEc": {
+      "queries": 1353,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1320
+      },
+      "roots": 41
+    },
+    "HM3D:r8b8sRuxdt2": {
+      "queries": 1056,
+      "roles": {
+        "train": 1056
+      },
+      "roots": 32
+    },
+    "HM3D:rK4jPRTUw15": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:rPwrKEnR3fk": {
+      "queries": 66,
+      "roles": {
+        "unseen_evaluation": 66
+      },
+      "roots": 2
+    },
+    "HM3D:rWHyWNc6ZbZ": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 33,
+        "train": 429
+      },
+      "roots": 14
+    },
+    "HM3D:reHtN7VMWkg": {
+      "queries": 660,
+      "roles": {
+        "train": 660
+      },
+      "roots": 20
+    },
+    "HM3D:rihBP3nC6p4": {
+      "queries": 231,
+      "roles": {
+        "unseen_evaluation": 231
+      },
+      "roots": 7
+    },
+    "HM3D:rp42RknmRV8": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:rrjjmoZhZCo": {
+      "queries": 627,
+      "roles": {
+        "natural_reference": 33,
+        "train": 594
+      },
+      "roots": 19
+    },
+    "HM3D:rsggHU7g7dh": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 33,
+        "train": 231
+      },
+      "roots": 8
+    },
+    "HM3D:rxGLNxH6eoJ": {
+      "queries": 561,
+      "roles": {
+        "train": 561
+      },
+      "roots": 17
+    },
+    "HM3D:s19Uyn7AWwv": {
+      "queries": 660,
+      "roles": {
+        "natural_reference": 33,
+        "train": 627
+      },
+      "roots": 20
+    },
+    "HM3D:s7kPJndncRy": {
+      "queries": 1617,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1485
+      },
+      "roots": 49
+    },
+    "HM3D:sCCThjhioJC": {
+      "queries": 198,
+      "roles": {
+        "natural_reference": 33,
+        "train": 165
+      },
+      "roots": 6
+    },
+    "HM3D:sLwz8nKD3wF": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:sNikFfBW8zM": {
+      "queries": 924,
+      "roles": {
+        "natural_reference": 165,
+        "train": 759
+      },
+      "roots": 28
+    },
+    "HM3D:sWAdxSLVPQC": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 165,
+        "train": 561
+      },
+      "roots": 22
+    },
+    "HM3D:sX9xad6ULKc": {
+      "queries": 561,
+      "roles": {
+        "natural_reference": 33,
+        "train": 528
+      },
+      "roots": 17
+    },
+    "HM3D:saBtfCeVoJ4": {
+      "queries": 726,
+      "roles": {
+        "unseen_evaluation": 726
+      },
+      "roots": 22
+    },
+    "HM3D:sfbj7jspYWj": {
+      "queries": 231,
+      "roles": {
+        "unseen_evaluation": 231
+      },
+      "roots": 7
+    },
+    "HM3D:suQdyWFG8g9": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:t85xiAt9pao": {
+      "queries": 330,
+      "roles": {
+        "train": 330
+      },
+      "roots": 10
+    },
+    "HM3D:t8wCA6Qe8uT": {
+      "queries": 66,
+      "roles": {
+        "unseen_evaluation": 66
+      },
+      "roots": 2
+    },
+    "HM3D:tEafuWwhhwr": {
+      "queries": 264,
+      "roles": {
+        "natural_reference": 33,
+        "train": 231
+      },
+      "roots": 8
+    },
+    "HM3D:tJ7XVoEN82a": {
+      "queries": 495,
+      "roles": {
+        "natural_reference": 66,
+        "train": 429
+      },
+      "roots": 15
+    },
+    "HM3D:tTcuEfoAQXv": {
+      "queries": 627,
+      "roles": {
+        "natural_reference": 99,
+        "train": 528
+      },
+      "roots": 19
+    },
+    "HM3D:tj8ngv3woJ3": {
+      "queries": 264,
+      "roles": {
+        "unseen_evaluation": 264
+      },
+      "roots": 8
+    },
+    "HM3D:u3zrj4Nojev": {
+      "queries": 891,
+      "roles": {
+        "train": 891
+      },
+      "roots": 27
+    },
+    "HM3D:u5atqC7vRCY": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 33,
+        "train": 264
+      },
+      "roots": 9
+    },
+    "HM3D:u9LiqMn6kA6": {
+      "queries": 693,
+      "roles": {
+        "train": 693
+      },
+      "roots": 21
+    },
+    "HM3D:u9rPN5cHWBg": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:uFCiZVVks57": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:uXh7Yr7x12L": {
+      "queries": 99,
+      "roles": {
+        "train": 99
+      },
+      "roots": 3
+    },
+    "HM3D:udze1CSof5C": {
+      "queries": 231,
+      "roles": {
+        "natural_reference": 33,
+        "train": 198
+      },
+      "roots": 7
+    },
+    "HM3D:uvveHdpUZis": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 66,
+        "train": 363
+      },
+      "roots": 13
+    },
+    "HM3D:v3tsKAPVLJS": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1023
+      },
+      "roots": 33
+    },
+    "HM3D:v46TaF2rxHK": {
+      "queries": 594,
+      "roles": {
+        "train": 594
+      },
+      "roots": 18
+    },
+    "HM3D:v7DzfFFEpsD": {
+      "queries": 165,
+      "roles": {
+        "natural_reference": 33,
+        "train": 132
+      },
+      "roots": 5
+    },
+    "HM3D:vBMLrTe4uLA": {
+      "queries": 66,
+      "roles": {
+        "unseen_evaluation": 66
+      },
+      "roots": 2
+    },
+    "HM3D:vCfHLVSyL21": {
+      "queries": 561,
+      "roles": {
+        "natural_reference": 33,
+        "train": 528
+      },
+      "roots": 17
+    },
+    "HM3D:vLpv2VX547B": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:vd3HHTEpmyA": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:w7QyjJ3H9Bp": {
+      "queries": 627,
+      "roles": {
+        "natural_reference": 66,
+        "train": 561
+      },
+      "roots": 19
+    },
+    "HM3D:w8GiikYuFRk": {
+      "queries": 429,
+      "roles": {
+        "unseen_evaluation": 429
+      },
+      "roots": 13
+    },
+    "HM3D:wCqnXzoru3X": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:wDDRygUCLMm": {
+      "queries": 1056,
+      "roles": {
+        "natural_reference": 99,
+        "train": 957
+      },
+      "roots": 32
+    },
+    "HM3D:wPLokgvCnuk": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:wcJYziD5pmF": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:wrq3kiEU4VR": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 66,
+        "train": 660
+      },
+      "roots": 22
+    },
+    "HM3D:wtaQdtXzYtD": {
+      "queries": 1155,
+      "roles": {
+        "natural_reference": 165,
+        "train": 990
+      },
+      "roots": 35
+    },
+    "HM3D:wuKkTq5GJbi": {
+      "queries": 660,
+      "roles": {
+        "natural_reference": 33,
+        "train": 627
+      },
+      "roots": 20
+    },
+    "HM3D:wwX4MFiTTrt": {
+      "queries": 429,
+      "roles": {
+        "train": 429
+      },
+      "roots": 13
+    },
+    "HM3D:x4LVLSsYWcV": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:xAHnY3QzFUN": {
+      "queries": 495,
+      "roles": {
+        "natural_reference": 66,
+        "train": 429
+      },
+      "roots": 15
+    },
+    "HM3D:xGnehmjiCSA": {
+      "queries": 726,
+      "roles": {
+        "natural_reference": 99,
+        "train": 627
+      },
+      "roots": 22
+    },
+    "HM3D:xc2kFoo9nbw": {
+      "queries": 462,
+      "roles": {
+        "train": 462
+      },
+      "roots": 14
+    },
+    "HM3D:xccdSFAEPau": {
+      "queries": 1155,
+      "roles": {
+        "train": 1155
+      },
+      "roots": 35
+    },
+    "HM3D:xgLmjqzoAzF": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "HM3D:xp4FyfQ6Wr5": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "HM3D:xvDx98avcwd": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:y3K5dmhuukt": {
+      "queries": 165,
+      "roles": {
+        "train": 165
+      },
+      "roots": 5
+    },
+    "HM3D:y4YiUQwvWGH": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1056
+      },
+      "roots": 33
+    },
+    "HM3D:yA3RqPqMrGE": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:yZME6UR9dUN": {
+      "queries": 1419,
+      "roles": {
+        "natural_reference": 66,
+        "train": 1353
+      },
+      "roots": 43
+    },
+    "HM3D:yogvKWUrdnw": {
+      "queries": 858,
+      "roles": {
+        "train": 858
+      },
+      "roots": 26
+    },
+    "HM3D:yqNxxJnA3iL": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "HM3D:ytXtEYghmvL": {
+      "queries": 429,
+      "roles": {
+        "natural_reference": 66,
+        "train": 363
+      },
+      "roots": 13
+    },
+    "HM3D:z8SrvZ4eyqV": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "HM3D:z9VLaZqCsW5": {
+      "queries": 330,
+      "roles": {
+        "natural_reference": 33,
+        "train": 297
+      },
+      "roots": 10
+    },
+    "HM3D:zJ3fVx3BZYR": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 99,
+        "train": 660
+      },
+      "roots": 23
+    },
+    "HM3D:zJEEFaNaRbB": {
+      "queries": 759,
+      "roles": {
+        "unseen_evaluation": 759
+      },
+      "roots": 23
+    },
+    "HM3D:zR6kPe1PsyS": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 33,
+        "train": 264
+      },
+      "roots": 9
+    },
+    "HM3D:zUG6FL9TYeR": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 33,
+        "train": 363
+      },
+      "roots": 12
+    },
+    "HM3D:zhzot8MvSjF": {
+      "queries": 66,
+      "roles": {
+        "train": 66
+      },
+      "roots": 2
+    },
+    "HM3D:zmZvNTCxMZE": {
+      "queries": 1617,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1485
+      },
+      "roots": 49
+    },
+    "HM3D:zt1RVoi7PcG": {
+      "queries": 1056,
+      "roles": {
+        "natural_reference": 99,
+        "train": 957
+      },
+      "roots": 32
+    },
+    "HM3D:zwzTbNq7xoW": {
+      "queries": 363,
+      "roles": {
+        "unseen_evaluation": 363
+      },
+      "roots": 11
+    },
+    "MP3D:1LXtFkjw3qL": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "MP3D:29hnd4uzFmX": {
+      "queries": 1320,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1188
+      },
+      "roots": 40
+    },
+    "MP3D:2azQ1b91cZZ": {
+      "queries": 594,
+      "roles": {
+        "natural_reference": 33,
+        "train": 561
+      },
+      "roots": 18
+    },
+    "MP3D:2n8kARJN3HM": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1056
+      },
+      "roots": 33
+    },
+    "MP3D:2t7WUuJeko7": {
+      "queries": 1716,
+      "roles": {
+        "natural_reference": 33,
+        "train": 1683
+      },
+      "roots": 52
+    },
+    "MP3D:5q7pvUzZiYa": {
+      "queries": 132,
+      "roles": {
+        "natural_reference": 33,
+        "train": 99
+      },
+      "roots": 4
+    },
+    "MP3D:759xd9YjKW5": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 66,
+        "train": 330
+      },
+      "roots": 12
+    },
+    "MP3D:8194nk5LbLH": {
+      "queries": 792,
+      "roles": {
+        "natural_reference": 66,
+        "train": 726
+      },
+      "roots": 24
+    },
+    "MP3D:8WUmhLawc2A": {
+      "queries": 198,
+      "roles": {
+        "train": 198
+      },
+      "roots": 6
+    },
+    "MP3D:D7N2EKCX4Sj": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 66,
+        "train": 231
+      },
+      "roots": 9
+    },
+    "MP3D:E9uDoFAP3SH": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 33,
+        "train": 363
+      },
+      "roots": 12
+    },
+    "MP3D:EDJbREhghzL": {
+      "queries": 231,
+      "roles": {
+        "natural_reference": 33,
+        "train": 198
+      },
+      "roots": 7
+    },
+    "MP3D:EU6Fwq7SyZv": {
+      "queries": 66,
+      "roles": {
+        "unseen_evaluation": 66
+      },
+      "roots": 2
+    },
+    "MP3D:GdvgFV5R1Z5": {
+      "queries": 594,
+      "roles": {
+        "natural_reference": 33,
+        "train": 561
+      },
+      "roots": 18
+    },
+    "MP3D:JmbYfDe2QKZ": {
+      "queries": 33,
+      "roles": {
+        "unseen_evaluation": 33
+      },
+      "roots": 1
+    },
+    "MP3D:Pm6F8kyY3z2": {
+      "queries": 132,
+      "roles": {
+        "train": 132
+      },
+      "roots": 4
+    },
+    "MP3D:PuKPg4mmafe": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 66,
+        "train": 330
+      },
+      "roots": 12
+    },
+    "MP3D:QUCTc6BB5sX": {
+      "queries": 396,
+      "roles": {
+        "natural_reference": 33,
+        "train": 363
+      },
+      "roots": 12
+    },
+    "MP3D:S9hNv5qa7GM": {
+      "queries": 165,
+      "roles": {
+        "unseen_evaluation": 165
+      },
+      "roots": 5
+    },
+    "MP3D:SN83YJsR3w2": {
+      "queries": 33,
+      "roles": {
+        "train": 33
+      },
+      "roots": 1
+    },
+    "MP3D:TbHJrupSAjP": {
+      "queries": 297,
+      "roles": {
+        "train": 297
+      },
+      "roots": 9
+    },
+    "MP3D:V2XKFyX4ASd": {
+      "queries": 297,
+      "roles": {
+        "natural_reference": 66,
+        "train": 231
+      },
+      "roots": 9
+    },
+    "MP3D:VFuaQ6m2Qom": {
+      "queries": 957,
+      "roles": {
+        "natural_reference": 66,
+        "train": 891
+      },
+      "roots": 29
+    },
+    "MP3D:VLzqgDo317F": {
+      "queries": 33,
+      "roles": {
+        "unseen_evaluation": 33
+      },
+      "roots": 1
+    },
+    "MP3D:VVfe2KiqLaN": {
+      "queries": 1452,
+      "roles": {
+        "train": 1452
+      },
+      "roots": 44
+    },
+    "MP3D:Vt2qJdWjCF2": {
+      "queries": 1089,
+      "roles": {
+        "natural_reference": 99,
+        "train": 990
+      },
+      "roots": 33
+    },
+    "MP3D:VzqfbhrpDEA": {
+      "queries": 1683,
+      "roles": {
+        "natural_reference": 231,
+        "train": 1452
+      },
+      "roots": 51
+    },
+    "MP3D:WYY7iVyf5p8": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "MP3D:X7HyMhZNoso": {
+      "queries": 429,
+      "roles": {
+        "train": 429
+      },
+      "roots": 13
+    },
+    "MP3D:ZMojNkEp431": {
+      "queries": 957,
+      "roles": {
+        "natural_reference": 66,
+        "train": 891
+      },
+      "roots": 29
+    },
+    "MP3D:ac26ZMwG7aT": {
+      "queries": 594,
+      "roles": {
+        "natural_reference": 33,
+        "train": 561
+      },
+      "roots": 18
+    },
+    "MP3D:cV4RVeZvu5T": {
+      "queries": 792,
+      "roles": {
+        "natural_reference": 99,
+        "train": 693
+      },
+      "roots": 24
+    },
+    "MP3D:gTV8FGcVJC9": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 66,
+        "train": 297
+      },
+      "roots": 11
+    },
+    "MP3D:gYvKGZ5eRqb": {
+      "queries": 363,
+      "roles": {
+        "natural_reference": 33,
+        "train": 330
+      },
+      "roots": 11
+    },
+    "MP3D:gxdoqLR6rwA": {
+      "queries": 1716,
+      "roles": {
+        "natural_reference": 264,
+        "train": 1452
+      },
+      "roots": 52
+    },
+    "MP3D:jtcxE69GiFV": {
+      "queries": 528,
+      "roles": {
+        "natural_reference": 33,
+        "train": 495
+      },
+      "roots": 16
+    },
+    "MP3D:mJXqzFtmKg4": {
+      "queries": 132,
+      "roles": {
+        "natural_reference": 33,
+        "train": 99
+      },
+      "roots": 4
+    },
+    "MP3D:p5wJjkQkbXX": {
+      "queries": 1386,
+      "roles": {
+        "natural_reference": 132,
+        "train": 1254
+      },
+      "roots": 42
+    },
+    "MP3D:pLe4wQe7qrG": {
+      "queries": 330,
+      "roles": {
+        "train": 330
+      },
+      "roots": 10
+    },
+    "MP3D:qoiz87JEwZ2": {
+      "queries": 330,
+      "roles": {
+        "natural_reference": 33,
+        "train": 297
+      },
+      "roots": 10
+    },
+    "MP3D:r47D5H71a5s": {
+      "queries": 1023,
+      "roles": {
+        "natural_reference": 99,
+        "train": 924
+      },
+      "roots": 31
+    },
+    "MP3D:rqfALeAoiTq": {
+      "queries": 1122,
+      "roles": {
+        "natural_reference": 99,
+        "train": 1023
+      },
+      "roots": 34
+    },
+    "MP3D:s8pcmisQ38h": {
+      "queries": 759,
+      "roles": {
+        "natural_reference": 132,
+        "train": 627
+      },
+      "roots": 23
+    },
+    "MP3D:uNb9QFRL6hY": {
+      "queries": 264,
+      "roles": {
+        "train": 264
+      },
+      "roots": 8
+    },
+    "MP3D:ur6pFq6Qu1A": {
+      "queries": 1122,
+      "roles": {
+        "natural_reference": 198,
+        "train": 924
+      },
+      "roots": 34
+    },
+    "MP3D:yqstnuAEVhm": {
+      "queries": 429,
+      "roles": {
+        "train": 429
+      },
+      "roots": 13
+    },
+    "MP3D:zsNo4HB9uLZ": {
+      "queries": 462,
+      "roles": {
+        "train": 462
+      },
+      "roots": 14
+    },
+    "other:skokloster-castle": {
+      "queries": 462,
+      "roles": {
+        "natural_reference": 66,
+        "train": 396
+      },
+      "roots": 14
+    }
+  }
+}

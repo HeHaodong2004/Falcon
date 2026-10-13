@@ -1,0 +1,14 @@
+{
+  "episode_files": 929,
+  "social_mp3d": {
+    "files": 73,
+    "episodes": 4455818,
+    "unique_referenced_physical_scenes": 71
+  },
+  "social_hm3d": {
+    "files": 856,
+    "episodes": 7646425,
+    "unique_referenced_physical_scenes": 843
+  },
+  "method": "Full gzip JSON parse of every data/datasets episode file; scene_id set, independently checked after prefix inventory"
+}

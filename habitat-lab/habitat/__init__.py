@@ -4,6 +4,10 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# The Habitat-Sim 0.3.1 Conda build must load its native bindings before
+# Magnum. Reversing this order causes duplicate plugins and a shutdown abort.
+import habitat_sim  # noqa: F401
+
 from habitat.config import get_config, read_write
 from habitat.core.agent import Agent
 from habitat.core.benchmark import Benchmark

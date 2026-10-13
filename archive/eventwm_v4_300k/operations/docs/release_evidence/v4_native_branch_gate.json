@@ -1,0 +1,618 @@
+{
+  "passed": true,
+  "errors": [],
+  "source_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+  "geometry_version": "geometry-aware-v4-clearance-mixture-v2-shadow-reference",
+  "retained_native_primary_queries": 132,
+  "counted_in_production": false,
+  "rows": [
+    {
+      "root_id": "v4g2_b2b61eb77be46fe4c33b",
+      "source_sequence": 0,
+      "role": "train",
+      "human_count": 1,
+      "primary_queries": 33,
+      "preparation": {
+        "error": null,
+        "start_region": "3_0_-2",
+        "episode_sha256": "d75e8a592fd55431cb268e160c2f2f49b599d6c3870e9081af7202cda4064a1f",
+        "seconds": 1.5085434920038097,
+        "v3_shadow_start_region": "3_0_-2",
+        "v3_shadow_episode_digest": "f44a69a2aad69d6bb42c2997fadc83858b402457920d3d863cbcd0c4f81b7028",
+        "v3_shadow_preparation_error": null
+      },
+      "audits": {
+        "query_immutability": {
+          "status": "PASS",
+          "details": "Canonical SHA256 before/after every branch and persisted query"
+        },
+        "same_root": {
+          "status": "PASS",
+          "details": "Exact root physical/controller/RNG/history/image fingerprint in every fresh process"
+        },
+        "same_query_reproducibility": {
+          "status": "PASS",
+          "details": "Two queries replayed exactly, including all native truth, controls and legal metadata"
+        },
+        "branch_order_independence": {
+          "status": "PASS",
+          "details": "Original order 0,1,...; repeated order 1,0 in independent fresh processes"
+        },
+        "generator_privileged_boundary": {
+          "status": "PASS",
+          "details": "Typed whitelist excludes adversarial GT/future/goal fields; runtime generation additionally uses a separate static PathFinder"
+        },
+        "hidden_gt_not_in_legal_input": {
+          "status": "PASS",
+          "details": "Injected raw hidden/future sensors excluded; structured tracks have an explicit nested whitelist; visibility and tracking audited separately"
+        },
+        "offline_label_recomputation": {
+          "status": "PASS",
+          "details": "All labels recomputed solely from saved raw truth"
+        },
+        "truncation_censoring": {
+          "status": "PASS",
+          "details": {
+            "truncated_wait": {
+              "branch_id": "truncated_wait",
+              "query_id": "q_b698a2ec8eb2",
+              "native_robot_human_contact": false,
+              "research_disc_contact": false,
+              "human_collision_event": false,
+              "first_event_time": null,
+              "first_native_event_time": null,
+              "first_disc_event_time": null,
+              "static_contact": false,
+              "first_static_event_time": null,
+              "minimum_human_clearance": 2.423899131552472,
+              "near_threshold": 0.5,
+              "near_exposure_seconds": 0.0,
+              "exposure_convention": "right_endpoint_piecewise_constant_native_samples",
+              "completed": false,
+              "censored": true,
+              "full_query_safe": null,
+              "event_observed": false,
+              "planned_duration": 5.937333333333333,
+              "observed_duration": 0.48800000000000043,
+              "termination_reason": "timeout",
+              "static_feasibility_violation": false,
+              "full_horizon_observed": false,
+              "static_checker_version": "eventwm-static-swept-v2.2",
+              "protocol_version": "eventwm-social-outcome-v3",
+              "sr_contract_version": "binary-execution-safety-v1",
+              "sr_valid": false,
+              "sr_label": null,
+              "sr_invalid_reason": "timeout",
+              "social_metric_version": "falcon-psc-geodesic-fallback-lt1-native-samples-v1",
+              "social_threshold": 1.0,
+              "social_outcome_valid": false,
+              "social_outcome_class": null,
+              "social_outcome_name": null,
+              "invalid_reason": "incomplete_or_invalid_nonhuman_outcome",
+              "native_human_collision": false,
+              "direct_human_collision": false,
+              "direct_human_collision_detector": "native_articulated_contact_only",
+              "research_disc_collision": false,
+              "social_distance_violation": false,
+              "first_human_collision_time": null,
+              "first_social_violation_time": null,
+              "min_human_distance": 2.973899131552472,
+              "min_human_clearance": 2.423899131552472,
+              "human_clearance_definition": "horizontal_research_disc_center_distance_minus_0.25_minus_0.30_not_mesh_surface",
+              "min_social_distance": 3.358882427215576,
+              "min_social_clearance": 2.358882427215576,
+              "social_violation_duration": 0.0,
+              "social_violation_count": 0,
+              "social_evidence_error": null,
+              "static_collision": false,
+              "query_completed": false
+            }
+          }
+        },
+        "timestamps": {
+          "status": "PASS",
+          "details": "Nominal dt = task physics request + four native substeps; <=8 ms clock quantization; recording gaps <=24 ms; control integration 1/120 s"
+        },
+        "static_feasibility_certificates": {
+          "status": "PASS",
+          "details": "Every immutable fixed variant checked before branch execution"
+        },
+        "zero_unexpected_static_collisions": {
+          "status": "PASS",
+          "details": "Static contact invalidates any human outcome and stops collection"
+        },
+        "zero_human_invariant": {
+          "status": "PASS",
+          "details": "Zero humans cannot have a positive human event"
+        },
+        "v3_primary_labels": {
+          "status": "PASS",
+          "details": "Determined outcomes retained; unrelated incomplete non-collision outcomes explicitly excluded"
+        },
+        "human_reactivity": {
+          "status": "FAIL",
+          "details": {
+            "max_deviation_m": 0.0,
+            "minimum_active_clearance": -0.0522740062060269,
+            "interpretation": "No robot reactivity observed. Native avoidance excludes agent 0; semantics unchanged."
+          }
+        }
+      },
+      "validation": {
+        "result": {
+          "root_id": "v4g2_b2b61eb77be46fe4c33b",
+          "output": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_branch_gate/roots/v4g2_b2b61eb77be46fe4c33b/attempt_01",
+          "timings": {
+            "load_records": 4.995484589016996,
+            "persistence": 5.610789831029251,
+            "labels": 0.23411542701069266,
+            "validation": 3.0107798630488105,
+            "seal": 0.048899469955358654,
+            "compact_and_pack": 5.253223176987376
+          },
+          "retained": 33
+        },
+        "error": null,
+        "seconds": 19.35626711999066
+      },
+      "bytes": 17231147
+    },
+    {
+      "root_id": "v4g2_2e3196091acb446f7ca1",
+      "source_sequence": 6,
+      "role": "train",
+      "human_count": 0,
+      "primary_queries": 33,
+      "preparation": {
+        "error": null,
+        "start_region": "0_-2_0",
+        "episode_sha256": "1320d21837af26021c9404bfc636a343fb2697f7277a8ff6f530c8acd3b37d25",
+        "seconds": 0.027283489995170385,
+        "v3_shadow_start_region": "0_0_2",
+        "v3_shadow_episode_digest": "aa1e54c26ce1e42a14eed0aa5c063352010bb2a5178c4ede2b4c71ef4fb3177d",
+        "v3_shadow_preparation_error": null
+      },
+      "audits": {
+        "query_immutability": {
+          "status": "PASS",
+          "details": "Canonical SHA256 before/after every branch and persisted query"
+        },
+        "same_root": {
+          "status": "PASS",
+          "details": "Exact root physical/controller/RNG/history/image fingerprint in every fresh process"
+        },
+        "same_query_reproducibility": {
+          "status": "PASS",
+          "details": "Two queries replayed exactly, including all native truth, controls and legal metadata"
+        },
+        "branch_order_independence": {
+          "status": "PASS",
+          "details": "Original order 0,1,...; repeated order 1,0 in independent fresh processes"
+        },
+        "generator_privileged_boundary": {
+          "status": "PASS",
+          "details": "Typed whitelist excludes adversarial GT/future/goal fields; runtime generation additionally uses a separate static PathFinder"
+        },
+        "hidden_gt_not_in_legal_input": {
+          "status": "PASS",
+          "details": "Injected raw hidden/future sensors excluded; structured tracks have an explicit nested whitelist; visibility and tracking audited separately"
+        },
+        "offline_label_recomputation": {
+          "status": "PASS",
+          "details": "All labels recomputed solely from saved raw truth"
+        },
+        "truncation_censoring": {
+          "status": "PASS",
+          "details": {
+            "truncated_wait": {
+              "branch_id": "truncated_wait",
+              "query_id": "q_a2a11a159cfa",
+              "native_robot_human_contact": false,
+              "research_disc_contact": false,
+              "human_collision_event": false,
+              "first_event_time": null,
+              "first_native_event_time": null,
+              "first_disc_event_time": null,
+              "static_contact": false,
+              "first_static_event_time": null,
+              "minimum_human_clearance": null,
+              "near_threshold": 0.5,
+              "near_exposure_seconds": 0.0,
+              "exposure_convention": "right_endpoint_piecewise_constant_native_samples",
+              "completed": false,
+              "censored": true,
+              "full_query_safe": null,
+              "event_observed": false,
+              "planned_duration": 5.937333333333333,
+              "observed_duration": 0.48800000000000043,
+              "termination_reason": "timeout",
+              "static_feasibility_violation": false,
+              "full_horizon_observed": false,
+              "static_checker_version": "eventwm-static-swept-v2.2",
+              "protocol_version": "eventwm-social-outcome-v3",
+              "sr_contract_version": "binary-execution-safety-v1",
+              "sr_valid": false,
+              "sr_label": null,
+              "sr_invalid_reason": "timeout",
+              "social_metric_version": "falcon-psc-geodesic-fallback-lt1-native-samples-v1",
+              "social_threshold": 1.0,
+              "social_outcome_valid": false,
+              "social_outcome_class": null,
+              "social_outcome_name": null,
+              "invalid_reason": "incomplete_or_invalid_nonhuman_outcome",
+              "native_human_collision": false,
+              "direct_human_collision": false,
+              "direct_human_collision_detector": "native_articulated_contact_only",
+              "research_disc_collision": false,
+              "social_distance_violation": false,
+              "first_human_collision_time": null,
+              "first_social_violation_time": null,
+              "min_human_distance": null,
+              "min_human_clearance": null,
+              "human_clearance_definition": "horizontal_research_disc_center_distance_minus_0.25_minus_0.30_not_mesh_surface",
+              "min_social_distance": null,
+              "min_social_clearance": null,
+              "social_violation_duration": 0.0,
+              "social_violation_count": 0,
+              "social_evidence_error": null,
+              "static_collision": false,
+              "query_completed": false
+            }
+          }
+        },
+        "timestamps": {
+          "status": "PASS",
+          "details": "Nominal dt = task physics request + four native substeps; <=8 ms clock quantization; recording gaps <=24 ms; control integration 1/120 s"
+        },
+        "static_feasibility_certificates": {
+          "status": "PASS",
+          "details": "Every immutable fixed variant checked before branch execution"
+        },
+        "zero_unexpected_static_collisions": {
+          "status": "PASS",
+          "details": "Static contact invalidates any human outcome and stops collection"
+        },
+        "zero_human_invariant": {
+          "status": "PASS",
+          "details": "Zero humans cannot have a positive human event"
+        },
+        "v3_primary_labels": {
+          "status": "PASS",
+          "details": "Determined outcomes retained; unrelated incomplete non-collision outcomes explicitly excluded"
+        },
+        "human_reactivity": {
+          "status": "FAIL",
+          "details": {
+            "max_deviation_m": 0.0,
+            "minimum_active_clearance": null,
+            "interpretation": "No robot reactivity observed. Native avoidance excludes agent 0; semantics unchanged."
+          }
+        }
+      },
+      "validation": {
+        "result": {
+          "root_id": "v4g2_2e3196091acb446f7ca1",
+          "output": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_branch_gate/roots/v4g2_2e3196091acb446f7ca1/attempt_01",
+          "timings": {
+            "load_records": 1.1385082199703902,
+            "persistence": 0.9584320170106366,
+            "labels": 0.13430970202898607,
+            "validation": 0.25962572504067793,
+            "seal": 0.037714165984652936,
+            "compact_and_pack": 1.1597449600230902
+          },
+          "retained": 33
+        },
+        "error": null,
+        "seconds": 3.74048998701619
+      },
+      "bytes": 8862886
+    },
+    {
+      "root_id": "v4g2_46a4d2c983b2c9670e34",
+      "source_sequence": 9,
+      "role": "train",
+      "human_count": 6,
+      "primary_queries": 33,
+      "preparation": {
+        "error": null,
+        "start_region": "5_0_-1",
+        "episode_sha256": "328bcb0adcf6093695772f2e5d005c692ebc8538acfaea8c54cd5c6e6aa88c43",
+        "seconds": 0.04673260904382914,
+        "v3_shadow_start_region": "3_0_2",
+        "v3_shadow_episode_digest": "6f7423952f8df189477c2816c115b02dedb0a67e14702496e2ce205fa29c7dcb",
+        "v3_shadow_preparation_error": null
+      },
+      "audits": {
+        "query_immutability": {
+          "status": "PASS",
+          "details": "Canonical SHA256 before/after every branch and persisted query"
+        },
+        "same_root": {
+          "status": "PASS",
+          "details": "Exact root physical/controller/RNG/history/image fingerprint in every fresh process"
+        },
+        "same_query_reproducibility": {
+          "status": "PASS",
+          "details": "Two queries replayed exactly, including all native truth, controls and legal metadata"
+        },
+        "branch_order_independence": {
+          "status": "PASS",
+          "details": "Original order 0,1,...; repeated order 1,0 in independent fresh processes"
+        },
+        "generator_privileged_boundary": {
+          "status": "PASS",
+          "details": "Typed whitelist excludes adversarial GT/future/goal fields; runtime generation additionally uses a separate static PathFinder"
+        },
+        "hidden_gt_not_in_legal_input": {
+          "status": "PASS",
+          "details": "Injected raw hidden/future sensors excluded; structured tracks have an explicit nested whitelist; visibility and tracking audited separately"
+        },
+        "offline_label_recomputation": {
+          "status": "PASS",
+          "details": "All labels recomputed solely from saved raw truth"
+        },
+        "truncation_censoring": {
+          "status": "PASS",
+          "details": {
+            "truncated_wait": {
+              "branch_id": "truncated_wait",
+              "query_id": "q_db1ab6a3911f",
+              "native_robot_human_contact": false,
+              "research_disc_contact": false,
+              "human_collision_event": false,
+              "first_event_time": null,
+              "first_native_event_time": null,
+              "first_disc_event_time": null,
+              "static_contact": false,
+              "first_static_event_time": null,
+              "minimum_human_clearance": 2.052985603802543,
+              "near_threshold": 0.5,
+              "near_exposure_seconds": 0.0,
+              "exposure_convention": "right_endpoint_piecewise_constant_native_samples",
+              "completed": false,
+              "censored": true,
+              "full_query_safe": null,
+              "event_observed": false,
+              "planned_duration": 5.937333333333333,
+              "observed_duration": 0.488,
+              "termination_reason": "timeout",
+              "static_feasibility_violation": false,
+              "full_horizon_observed": false,
+              "static_checker_version": "eventwm-static-swept-v2.2",
+              "protocol_version": "eventwm-social-outcome-v3",
+              "sr_contract_version": "binary-execution-safety-v1",
+              "sr_valid": false,
+              "sr_label": null,
+              "sr_invalid_reason": "timeout",
+              "social_metric_version": "falcon-psc-geodesic-fallback-lt1-native-samples-v1",
+              "social_threshold": 1.0,
+              "social_outcome_valid": false,
+              "social_outcome_class": null,
+              "social_outcome_name": null,
+              "invalid_reason": "incomplete_or_invalid_nonhuman_outcome",
+              "native_human_collision": false,
+              "direct_human_collision": false,
+              "direct_human_collision_detector": "native_articulated_contact_only",
+              "research_disc_collision": false,
+              "social_distance_violation": false,
+              "first_human_collision_time": null,
+              "first_social_violation_time": null,
+              "min_human_distance": 2.602985603802543,
+              "min_human_clearance": 2.052985603802543,
+              "human_clearance_definition": "horizontal_research_disc_center_distance_minus_0.25_minus_0.30_not_mesh_surface",
+              "min_social_distance": 2.6029856204986572,
+              "min_social_clearance": 1.6029856204986572,
+              "social_violation_duration": 0.0,
+              "social_violation_count": 0,
+              "social_evidence_error": null,
+              "static_collision": false,
+              "query_completed": false
+            }
+          }
+        },
+        "timestamps": {
+          "status": "PASS",
+          "details": "Nominal dt = task physics request + four native substeps; <=8 ms clock quantization; recording gaps <=24 ms; control integration 1/120 s"
+        },
+        "static_feasibility_certificates": {
+          "status": "PASS",
+          "details": "Every immutable fixed variant checked before branch execution"
+        },
+        "zero_unexpected_static_collisions": {
+          "status": "PASS",
+          "details": "Static contact invalidates any human outcome and stops collection"
+        },
+        "zero_human_invariant": {
+          "status": "PASS",
+          "details": "Zero humans cannot have a positive human event"
+        },
+        "v3_primary_labels": {
+          "status": "PASS",
+          "details": "Determined outcomes retained; unrelated incomplete non-collision outcomes explicitly excluded"
+        },
+        "human_reactivity": {
+          "status": "FAIL",
+          "details": {
+            "max_deviation_m": 0.0,
+            "minimum_active_clearance": 2.0241326625538405,
+            "interpretation": "No robot reactivity observed. Native avoidance excludes agent 0; semantics unchanged."
+          }
+        }
+      },
+      "validation": {
+        "result": {
+          "root_id": "v4g2_46a4d2c983b2c9670e34",
+          "output": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_branch_gate/roots/v4g2_46a4d2c983b2c9670e34/attempt_01",
+          "timings": {
+            "load_records": 25.76455126196379,
+            "persistence": 38.64432541298447,
+            "labels": 1.0631615580059588,
+            "validation": 2.6945346309803426,
+            "seal": 0.07389548397623003,
+            "compact_and_pack": 26.305526067037135
+          },
+          "retained": 33
+        },
+        "error": null,
+        "seconds": 95.41641733102733
+      },
+      "bytes": 173434340
+    },
+    {
+      "root_id": "v4g2_81611923b0cd90ae2b8b",
+      "source_sequence": 19,
+      "role": "train",
+      "human_count": 4,
+      "primary_queries": 33,
+      "preparation": {
+        "error": null,
+        "start_region": "-2_1_-1",
+        "episode_sha256": "f84bb0826ae97777b34273eef70f09d80ae838ff7e8d948c4e6d52b219257cc3",
+        "seconds": 0.038359804020728916,
+        "v3_shadow_start_region": "-2_1_-1",
+        "v3_shadow_episode_digest": "529aaa0aead4ad72f68b0e970f1a17999abfb89815179e7fa937a72c96e51586",
+        "v3_shadow_preparation_error": null
+      },
+      "audits": {
+        "query_immutability": {
+          "status": "PASS",
+          "details": "Canonical SHA256 before/after every branch and persisted query"
+        },
+        "same_root": {
+          "status": "PASS",
+          "details": "Exact root physical/controller/RNG/history/image fingerprint in every fresh process"
+        },
+        "same_query_reproducibility": {
+          "status": "PASS",
+          "details": "Two queries replayed exactly, including all native truth, controls and legal metadata"
+        },
+        "branch_order_independence": {
+          "status": "PASS",
+          "details": "Original order 0,1,...; repeated order 1,0 in independent fresh processes"
+        },
+        "generator_privileged_boundary": {
+          "status": "PASS",
+          "details": "Typed whitelist excludes adversarial GT/future/goal fields; runtime generation additionally uses a separate static PathFinder"
+        },
+        "hidden_gt_not_in_legal_input": {
+          "status": "PASS",
+          "details": "Injected raw hidden/future sensors excluded; structured tracks have an explicit nested whitelist; visibility and tracking audited separately"
+        },
+        "offline_label_recomputation": {
+          "status": "PASS",
+          "details": "All labels recomputed solely from saved raw truth"
+        },
+        "truncation_censoring": {
+          "status": "PASS",
+          "details": {
+            "truncated_wait": {
+              "branch_id": "truncated_wait",
+              "query_id": "q_2241484f5463",
+              "native_robot_human_contact": false,
+              "research_disc_contact": false,
+              "human_collision_event": false,
+              "first_event_time": null,
+              "first_native_event_time": null,
+              "first_disc_event_time": null,
+              "static_contact": false,
+              "first_static_event_time": null,
+              "minimum_human_clearance": 1.2704021897536615,
+              "near_threshold": 0.5,
+              "near_exposure_seconds": 0.0,
+              "exposure_convention": "right_endpoint_piecewise_constant_native_samples",
+              "completed": false,
+              "censored": true,
+              "full_query_safe": null,
+              "event_observed": false,
+              "planned_duration": 6.472666666666666,
+              "observed_duration": 0.48800000000000043,
+              "termination_reason": "timeout",
+              "static_feasibility_violation": false,
+              "full_horizon_observed": false,
+              "static_checker_version": "eventwm-static-swept-v2.2",
+              "protocol_version": "eventwm-social-outcome-v3",
+              "sr_contract_version": "binary-execution-safety-v1",
+              "sr_valid": false,
+              "sr_label": null,
+              "sr_invalid_reason": "timeout",
+              "social_metric_version": "falcon-psc-geodesic-fallback-lt1-native-samples-v1",
+              "social_threshold": 1.0,
+              "social_outcome_valid": false,
+              "social_outcome_class": null,
+              "social_outcome_name": null,
+              "invalid_reason": "incomplete_or_invalid_nonhuman_outcome",
+              "native_human_collision": false,
+              "direct_human_collision": false,
+              "direct_human_collision_detector": "native_articulated_contact_only",
+              "research_disc_collision": false,
+              "social_distance_violation": false,
+              "first_human_collision_time": null,
+              "first_social_violation_time": null,
+              "min_human_distance": 1.8204021897536773,
+              "min_human_clearance": 1.2704021897536615,
+              "human_clearance_definition": "horizontal_research_disc_center_distance_minus_0.25_minus_0.30_not_mesh_surface",
+              "min_social_distance": 1.8204022645950317,
+              "min_social_clearance": 0.8204022645950317,
+              "social_violation_duration": 0.0,
+              "social_violation_count": 0,
+              "social_evidence_error": null,
+              "static_collision": false,
+              "query_completed": false
+            }
+          }
+        },
+        "timestamps": {
+          "status": "PASS",
+          "details": "Nominal dt = task physics request + four native substeps; <=8 ms clock quantization; recording gaps <=24 ms; control integration 1/120 s"
+        },
+        "static_feasibility_certificates": {
+          "status": "PASS",
+          "details": "Every immutable fixed variant checked before branch execution"
+        },
+        "zero_unexpected_static_collisions": {
+          "status": "PASS",
+          "details": "Static contact invalidates any human outcome and stops collection"
+        },
+        "zero_human_invariant": {
+          "status": "PASS",
+          "details": "Zero humans cannot have a positive human event"
+        },
+        "v3_primary_labels": {
+          "status": "PASS",
+          "details": "Determined outcomes retained; unrelated incomplete non-collision outcomes explicitly excluded"
+        },
+        "human_reactivity": {
+          "status": "FAIL",
+          "details": {
+            "max_deviation_m": 0.0,
+            "minimum_active_clearance": -0.34350023747229286,
+            "interpretation": "No robot reactivity observed. Native avoidance excludes agent 0; semantics unchanged."
+          }
+        }
+      },
+      "validation": {
+        "result": {
+          "root_id": "v4g2_81611923b0cd90ae2b8b",
+          "output": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_branch_gate/roots/v4g2_81611923b0cd90ae2b8b/attempt_01",
+          "timings": {
+            "load_records": 18.712330762005877,
+            "persistence": 31.902200300013646,
+            "labels": 0.8839044240303338,
+            "validation": 5.459615989006124,
+            "seal": 0.03461510199122131,
+            "compact_and_pack": 20.381432848982513
+          },
+          "retained": 33
+        },
+        "error": null,
+        "seconds": 78.31877467996674
+      },
+      "bytes": 126733275
+    }
+  ],
+  "elapsed_seconds": 847.7243547280086,
+  "native_cpu_seconds": 755.4965402099999,
+  "selection": "First four TRAIN root successes of completed contiguous128 proposal experiment; no branch outcome selection",
+  "physics_history_matches": true
+}

@@ -1,0 +1,134 @@
+{
+  "timestamp": 1791556025.1009052,
+  "now_london": "2026-10-09T15:27:05.100905+01:00",
+  "active": {
+    "pid": 2444471,
+    "worktree": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_v4_checkout",
+    "branch": "research/eventwm-72h-geometry-production",
+    "source_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7"
+  },
+  "checkpoint_state": "running",
+  "dataset": "/tmp/eventwm_v4_300k",
+  "archive": "/home/haodong/workspace/datasets/eventwm-falcon/raw/eventwm_v4_300k_archive",
+  "total_retained": 49071,
+  "legacy_retained": 30030,
+  "new_retained": 19041,
+  "v4_epoch_retained": 6765,
+  "geometry_train_retained": 6072,
+  "roles": {
+    "train": 35409,
+    "natural_reference": 6435,
+    "unseen_evaluation": 7227
+  },
+  "sr": {
+    "1": 41623,
+    "0": 7448
+  },
+  "worker_pool": 36,
+  "native_limit": 24,
+  "native_metrics": {
+    "timestamp": 1791555947.1113658,
+    "source_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+    "retained_since_resume": 6765,
+    "native_slot_busy_fraction": 0.9422374832224142,
+    "completed_job_slot_seconds_per_retained_query": 13.796870635766659,
+    "totals": {
+      "native_jobs": 10272,
+      "root_jobs": 2225,
+      "failed_root_jobs": 2000,
+      "slot_seconds": 93335.82985096145,
+      "native_wall_seconds": 77378.44718225021,
+      "native_cpu_seconds": 77259.80705076676,
+      "phase_config_template_misses": 36.0,
+      "phase_config": 303.8201012921054,
+      "phase_runtime_write_subset": 6148.168109530932,
+      "phase_native_backend_constructions": 754.0,
+      "phase_renderer_present": 0.0,
+      "phase_visual_sensors": 0,
+      "phase_native_construct_subset": 3044.6086235998664,
+      "phase_env_construct": 3963.205518180388,
+      "phase_scene_robot_reconfigure_subset": 149.89239300531335,
+      "phase_sensor_render_subset": 12.878101497830357,
+      "phase_reset": 396.2782400691067,
+      "phase_actual_root_available_seconds": 11941.19239596458,
+      "phase_exact_gate_including_io": 2.0334403086453676,
+      "phase_prefix_inclusive": 21064.97749709338,
+      "phase_diagnostic_terminal_capture": 37.2845054268837,
+      "phase_prefix_env_step_subset": 20755.890657318116,
+      "phase_checkpoint_capture": 33.05510869977297,
+      "phase_query_generation": 12038.349952806893,
+      "branch_audit_jobs": 8047,
+      "phase_checkpoint_restore_fork": 375.9484118585242,
+      "phase_rollout_env_step_subset": 29081.854813956365,
+      "phase_config_template_hits": 2189.0,
+      "phase_fresh_world_rebuilds": 1471.0,
+      "phase_native_owner_recycles": 718.0
+    },
+    "last_queue": {
+      "time": 4161.416251188028,
+      "kind": "queue",
+      "busy": 24,
+      "idle": 12,
+      "native_limit": 24,
+      "native_roots": 20,
+      "preparing": 0,
+      "ready": 40,
+      "staged": 16,
+      "packing": 0,
+      "committed_queries": 19041
+    },
+    "preparation_mean_seconds": 0.06685894277411014,
+    "validation_mean_seconds": 37.92886310159316,
+    "scope": "New geometry source epoch only; phase timers overlap; unfinished and unpublished costs affect denominator"
+  },
+  "windows": {
+    "15": {
+      "seconds": 903.1853678226471,
+      "retained": 1221,
+      "qph": 4866.7750348930995
+    },
+    "30": {
+      "seconds": 1804.8299074172974,
+      "retained": 2739,
+      "qph": 5463.340317819857
+    },
+    "60": {
+      "seconds": 3607.8328261375427,
+      "retained": 6270,
+      "qph": 6256.387445802202
+    }
+  },
+  "startup_inclusive_30_min": {
+    "timestamp": 1791553538.8141491,
+    "source_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+    "state": "running",
+    "seconds": 1806.560308933258,
+    "retained_since_checkpoint": 2904,
+    "actual_publication_qph_including_resume_startup": 5786.908938663187,
+    "total_retained": 45210,
+    "total_train": 32010,
+    "required_qph": 3827.252846401617,
+    "remaining_hours": 66.57255483905475,
+    "deadline_pace_met": true,
+    "projected_finish_london": "2026-10-11T10:47:22.085886+01:00"
+  },
+  "preferred_qph": 6256.387445802202,
+  "rate_basis": "post-V4 publication window",
+  "required_qph": 3808.7689862950147,
+  "estimated_completion_london": "2026-10-11T07:33:32.642090+01:00",
+  "storage": {
+    "output": {
+      "path": "/tmp/eventwm_v4_300k",
+      "free_gb": 621.986582528,
+      "device": 66307
+    },
+    "archive": {
+      "path": "/home/haodong/workspace/datasets/eventwm-falcon/raw/eventwm_v4_300k_archive",
+      "free_gb": 278.546362368,
+      "device": 66308
+    }
+  },
+  "aggregate_free_gb": 900.532944896,
+  "deeply_verified_retained": 49071,
+  "integrity_passed": true
+}

@@ -1,0 +1,27 @@
+{
+  "time": 1791743229.0456846,
+  "release_commit": "80b906c53f1bd1f5b809a7f403bb05207d07ad21",
+  "release_version": "eventwm-v4-300k-native-static-contact-repair-2",
+  "scientific_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+  "config": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-300k/recovery/eventwm-v4-ops-recovery/configs/eventwm_300k_production.json",
+  "args": [
+    "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
+    "-u",
+    "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-300k/recovery/eventwm-v4-static-contact-repair/scripts/eventwm_pipeline_runner.py",
+    "run",
+    "--output",
+    "/tmp/eventwm_v4_300k",
+    "--target",
+    "300000",
+    "--concurrency",
+    "36",
+    "--preparers",
+    "4",
+    "--validators",
+    "2",
+    "--prefetch",
+    "8",
+    "--backlog",
+    "36"
+  ]
+}

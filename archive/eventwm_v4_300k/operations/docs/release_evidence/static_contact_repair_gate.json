@@ -1,0 +1,127 @@
+{
+  "passed": true,
+  "retained_native_primary_queries": 132,
+  "static_feasibility_violations": 0,
+  "fresh_cow_query_pairs": 8,
+  "original_failure_rejected": true,
+  "results": [
+    {
+      "root_id": "v3m_e7c6987aa64211d2f63c",
+      "role": "natural_reference",
+      "scene": "hm3d_KJxdMPgweZG",
+      "retained": 33,
+      "fresh_cow_matches": [
+        "q_86edce101c0d",
+        "q_32e55c6e4220"
+      ],
+      "validation": {
+        "root_id": "v3m_e7c6987aa64211d2f63c",
+        "output": "/tmp/eventwm_static_contact_repair_20261011/native_gate/roots/v3m_e7c6987aa64211d2f63c",
+        "timings": {
+          "load_records": 2.36136057600379,
+          "persistence": 2.545499460073188,
+          "labels": 0.17113681405317038,
+          "validation": 2.651017962023616,
+          "seal": 0.06429580203257501,
+          "compact_and_pack": 3.3635943830013275
+        },
+        "retained": 33
+      }
+    },
+    {
+      "root_id": "v4g2_27f0327211f9b8a70e7b",
+      "role": "train",
+      "scene": "hm3d_226REUyJh2K",
+      "retained": 33,
+      "fresh_cow_matches": [
+        "q_a3affd00ba23",
+        "q_f297cd7ba4f6"
+      ],
+      "validation": {
+        "root_id": "v4g2_27f0327211f9b8a70e7b",
+        "output": "/tmp/eventwm_static_contact_repair_20261011/native_gate/roots/v4g2_27f0327211f9b8a70e7b",
+        "timings": {
+          "load_records": 12.053177094087005,
+          "persistence": 18.172959950054064,
+          "labels": 0.6048196830088273,
+          "validation": 1.9262218889780343,
+          "seal": 0.07190361991524696,
+          "compact_and_pack": 16.276318266056478
+        },
+        "retained": 33
+      }
+    },
+    {
+      "root_id": "v3m_fdac80e857829ed353cd",
+      "role": "natural_reference",
+      "scene": "hm3d_y4YiUQwvWGH",
+      "retained": 33,
+      "fresh_cow_matches": [
+        "q_671a588c52c9",
+        "q_8184ee90c425"
+      ],
+      "validation": {
+        "root_id": "v3m_fdac80e857829ed353cd",
+        "output": "/tmp/eventwm_static_contact_repair_20261011/native_gate/roots/v3m_fdac80e857829ed353cd",
+        "timings": {
+          "load_records": 6.870586885954253,
+          "persistence": 7.282979388954118,
+          "labels": 0.39696995995473117,
+          "validation": 0.9296586110722274,
+          "seal": 0.05717639497015625,
+          "compact_and_pack": 9.759543415042572
+        },
+        "retained": 33
+      }
+    },
+    {
+      "root_id": "v3m_11f375f1a834b785282e",
+      "role": "unseen_evaluation",
+      "scene": "hm3d_w8GiikYuFRk",
+      "retained": 33,
+      "fresh_cow_matches": [
+        "q_91e0108f63e7",
+        "q_db258ce62bc1"
+      ],
+      "validation": {
+        "root_id": "v3m_11f375f1a834b785282e",
+        "output": "/tmp/eventwm_static_contact_repair_20261011/native_gate/roots/v3m_11f375f1a834b785282e",
+        "timings": {
+          "load_records": 2.960774032981135,
+          "persistence": 4.037410318036564,
+          "labels": 0.26706273201853037,
+          "validation": 0.7222744020400569,
+          "seal": 0.04884126898832619,
+          "compact_and_pack": 5.305347610032186
+        },
+        "retained": 33
+      }
+    }
+  ],
+  "seconds": 374.14827036857605,
+  "source_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+  "preserved_valid_query_controls": 132,
+  "preserved_valid_native_traces": 132,
+  "duplicate_query_ids": 0,
+  "duplicate_root_ids": 0,
+  "regression": {
+    "root": "v4g2_2cc61907376608bec99f",
+    "query": "q_4c518149379d",
+    "original_fresh_cow_static_event_seconds": 3.959999999999746,
+    "rejected_segment": 81,
+    "rejected_collision_pass": 2,
+    "repaired_root_outcome": "insufficient_static_feasible_queries"
+  },
+  "tests": {
+    "static_contact_refresh": 3,
+    "v2_science": 24,
+    "v3_science": 32,
+    "pipeline": 11,
+    "science_recovery": 2,
+    "operational_guard": 8,
+    "production_control": 30,
+    "epoch_transition": 8
+  },
+  "evidence": "/tmp/eventwm_static_contact_repair_20261011",
+  "time": 1791742862.721609
+}

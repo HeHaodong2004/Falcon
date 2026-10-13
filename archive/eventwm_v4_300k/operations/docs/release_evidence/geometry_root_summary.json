@@ -1,0 +1,55 @@
+{
+  "scope": "ROOT ONLY; zero retained primary queries; no collection q/h claim",
+  "source_commit": "09ec6da8938114b09f42c459d195c760e6fc965e",
+  "geometry_version": "geometry-aware-v4-clearance-mixture-v1",
+  "master_seed": 733000000,
+  "count": 128,
+  "slots": 2,
+  "preparation_wall_seconds": 14.874960180022754,
+  "preparation_cpu_seconds": 11.953274411,
+  "native_elapsed_seconds": 2182.6139389279997,
+  "summaries": {
+    "v3": {
+      "proposals": 128,
+      "accepted_roots": 9,
+      "acceptance": 0.0703125,
+      "native_root_cpu_seconds": 3547.9513295639995,
+      "accepted_roots_per_native_root_cpu_hour": 9.132030569309295,
+      "role_counts": {
+        "train": 96,
+        "natural_reference": 15,
+        "unseen_evaluation": 17
+      },
+      "accepted_roles": {
+        "train": 7,
+        "natural_reference": 2
+      },
+      "administrative_errors": 0
+    },
+    "v4_geometry": {
+      "proposals": 128,
+      "accepted_roots": 20,
+      "acceptance": 0.15625,
+      "native_root_cpu_seconds": 4088.0262743850003,
+      "accepted_roots_per_native_root_cpu_hour": 17.612411263386907,
+      "role_counts": {
+        "train": 96,
+        "natural_reference": 15,
+        "unseen_evaluation": 17
+      },
+      "accepted_roles": {
+        "train": 18,
+        "natural_reference": 2
+      },
+      "administrative_errors": 0
+    }
+  },
+  "reused_valid_native_records": 150,
+  "invalid_saved_records": [],
+  "diagnostic_root_wall_timeout_seconds": 900,
+  "production_timeout_unchanged_seconds": 300,
+  "production_sampler_changed": false,
+  "importance_weights": "Not estimated; V4 law is explicitly different. Preserve V3 support component and report clearance/region strata.",
+  "original_evidence_file": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_geometry_native_v2/RESULT.json",
+  "original_evidence_sha256": "6f470d4ca1e8eb0363423a52ab9b0dcf29918cff003f35aa1775990c9604dccd"
+}

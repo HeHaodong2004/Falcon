@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "timestamp": 1791872538.233924,
+  "roots": 9111,
+  "queries": 300663,
+  "counts": {
+    "sr_1": 253688,
+    "velocity_vectors": 3383874,
+    "moving_velocity_vectors": 1328085,
+    "sr_0": 46975
+  },
+  "horizons": {
+    "0.25": {
+      "valid": 297496,
+      "censored": 3167,
+      "determined_early_collision": 3167
+    },
+    "0.5": {
+      "valid": 293760,
+      "censored": 6903,
+      "determined_early_collision": 6903
+    },
+    "1.0": {
+      "valid": 285254,
+      "censored": 15409,
+      "determined_early_collision": 15409
+    },
+    "2.0": {
+      "valid": 243802,
+      "censored": 56861,
+      "determined_early_collision": 32049
+    },
+    "3.0": {
+      "valid": 157217,
+      "censored": 143446,
+      "determined_early_collision": 41471
+    }
+  },
+  "seconds": 40.873114585876465,
+  "scope": "All currently emitted supervision artifacts; no raw or model-input changes",
+  "velocities_from_timestamps_and_positions": true
+}
