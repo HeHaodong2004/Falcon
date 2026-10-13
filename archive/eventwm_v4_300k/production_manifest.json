@@ -1,0 +1,307 @@
+{
+  "accepted_new_root_records_sha256": "f88f359aa74441af0b85303aafaa80f03fc9532d43e5369dcc043ccfa792be95",
+  "archive_version": "eventwm-v4-300k-collector-20261013",
+  "completion": {
+    "collector_state": "stopped_by_user",
+    "first_verified_target_observed_london": "2026-10-13T07:12:54.074260+01:00",
+    "fully_audited_completion_london": "2026-10-13T07:22:18.299449+01:00",
+    "fully_audited_completion_timestamp": 1791872538.2994494,
+    "original_deadline_london": "2026-10-12T09:20:00+01:00",
+    "within_original_deadline": false
+  },
+  "configuration": {
+    "canonical_scientific_release_sha256": "03bc17f870cf3a5dfb45674a574d80920660470cbdbf8404df326ecc515f7122",
+    "identifier": "eventwm-v4-300k-native-static-contact-repair-2",
+    "operational_file": "operations/configs/eventwm_300k_production.json",
+    "operational_file_sha256": "e30bd932f2aaf1b39fbbed23d0387b30c5d73cec9e2f6001345f1c644c1dbef2",
+    "scientific_release_file": "../../configs/eventwm_pipeline_release.json",
+    "scientific_release_sha256": "af11e144fbb7674b944a34f8873d8a2000311f0b2042ccc6d4ea6e5ca239b9ce"
+  },
+  "dataset_name": "EventWM V4 300k",
+  "effective_native_limit": 24,
+  "effective_pipeline_settings": {
+    "backlog": 36,
+    "concurrency": 36,
+    "fixture_digest": null,
+    "max_proposals": null,
+    "prefetch": 8,
+    "preparers": 4,
+    "target": 300000,
+    "validators": 2
+  },
+  "eligible_new_scenes": 952,
+  "final_audits": {
+    "duplicate_accepted_root_seeds": 0,
+    "duplicate_query_ids": 0,
+    "duplicate_root_ids": 0,
+    "integrity": "PASS",
+    "legal_input_boundary": "PASS",
+    "physical_scene_role_conflicts": 0,
+    "retained_static_violations": 0,
+    "successor": "PASS"
+  },
+  "final_launch_operational_commit": "80b906c53f1bd1f5b809a7f403bb05207d07ad21",
+  "final_operational_commit": "6c869911e0c232bc309e1394eee8265a55ec7ce1",
+  "final_operational_worktree": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-300k/recovery/eventwm-v4-ops-recovery",
+  "final_scientific_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+  "final_scientific_worktree": "/home/haodong/workspace/projects/eventwm-falcon/production/eventwm-v4-300k/recovery/eventwm-v4-static-contact-repair",
+  "formal_dataset_version": "unavailable: no separate formal dataset-version field in production checkpoint",
+  "hotfixes": [
+    {
+      "commit": "b2bfea873e5c247100d32472d301fc76fa70251e",
+      "purpose": "Lossless direct canonical gzip and verified compaction; included in later scientific epochs"
+    },
+    {
+      "commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+      "purpose": "TRAIN-only geometry mixture with separate V3 shadow coverage; natural/unseen reference recipes unchanged"
+    },
+    {
+      "commit": "2e792aa26f677e4d6b83bbbefebb733c0efa8e63",
+      "purpose": "Native float controller transforms in static certification"
+    },
+    {
+      "commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+      "purpose": "Repeated native collision detection refresh for persistent Bullet contact manifolds"
+    },
+    {
+      "commit": "b266128",
+      "purpose": "Bounded operational recovery guard; integrity failures block automatic resume"
+    }
+  ],
+  "legacy_master_seed": 410000,
+  "legacy_queries": 30030,
+  "legacy_roots": 910,
+  "limitations": [
+    "Native external assets, licensed scenes, human motion data and model weights are not distributed.",
+    "Unmodified production launchers pin cv-w06, absolute paths, Python and Git branch/source identities.",
+    "Replaying all six source epochs requires their original recipes, checkpoints and source-transition history; final source alone is not the entire dataset provenance.",
+    "Native human motion is exogenous; TRAIN mixture importance weights were not estimated.",
+    "No byte-identical dataset regeneration or new native collection was performed during archival.",
+    "Exact collector-stop wall-clock timestamp is unavailable in the final session summary; completion timestamps are the recorded verification observations."
+  ],
+  "new_master_seed": 731000000,
+  "new_queries": 270633,
+  "new_roots": 8201,
+  "nominal_target": 300000,
+  "recorded_artifacts": {
+    "combined_integrity.json": {
+      "bytes": 998,
+      "sha256": "ce1c126775c517f9b1f51869f0823f92f018b6a0693c5daeb5b8bc96bb520eef",
+      "source_path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_300k_combined_index/integrity.json"
+    },
+    "final_launch.json": {
+      "bytes": 870,
+      "sha256": "1f5af2cb3f51d67e0ce5656ed9cd1b0be036699608a5768ad72391a5af85d78f",
+      "source_path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_300k_logs/last_launch.json"
+    },
+    "final_session_summary.json": {
+      "bytes": 258,
+      "sha256": "7825e61cf0ffd9ce55d7fb6f3fc8c8e31b171b3611120b793cd821c09410f900",
+      "source_path": "/tmp/eventwm_v4_300k/logs/20261011_194342_3296093/SUMMARY.json"
+    },
+    "mission_result.json": {
+      "bytes": 1779,
+      "sha256": "a3c288ba5f09162478b42b866e9df4363ad453ce8dc1c4527ecb9031ee98b17e",
+      "source_path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_MISSION_RESULT.json"
+    },
+    "native_limit.json": {
+      "bytes": 118,
+      "sha256": "a649a10cc1af43a8a4f5f4151fb95e75c9af65dd3d012188d9f8ac03af779a5e",
+      "source_path": "/tmp/eventwm_v4_300k/native_limit.json"
+    },
+    "new_dataset_aggregate.json": {
+      "bytes": 12895,
+      "sha256": "f1b0466baa301faaa198b21af3264a841ce847f0ed1fd9aa44089ca4f722ddd4",
+      "source_path": "/tmp/eventwm_v4_300k/aggregate.json"
+    },
+    "public_input_audit.json": {
+      "bytes": 458,
+      "sha256": "708df4c0db21cd252f391b39b697f0d4cd6c35cf87bdc05530fbe4f34d03f1f6",
+      "source_path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_combined_input_audit.json"
+    },
+    "successor_audit.json": {
+      "bytes": 965,
+      "sha256": "1726b04b3da0decf034c60585cad34beb262290ccffe13bb54d139faeb2d11fc",
+      "source_path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_72h_successor_audit.json"
+    }
+  },
+  "retained_queries": 300663,
+  "roles": {
+    "natural_reference": 19866,
+    "train": 259545,
+    "unseen_evaluation": 21252
+  },
+  "roots": 9111,
+  "scene_count": 530,
+  "scene_coverage_file": "scene_coverage.json",
+  "schema": {
+    "branch_truth": "jsonl-gzip-v1",
+    "contact_serialization": "sorted-exact-multiset-v1",
+    "dataset": 4,
+    "diagnostic_v2_audit_query": 2,
+    "prefix_truth": "json-gzip-v1",
+    "protocol": "eventwm-social-outcome-v3",
+    "query": 3,
+    "sr_contract": "binary-execution-safety-v1"
+  },
+  "social_outcome_distribution": {
+    "0": 216529,
+    "1": 37159,
+    "2": 46975
+  },
+  "source_epochs": [
+    {
+      "hash_manifest": "source_epochs/06e6afe0fa334265337631c1df833c78977a9a86.json",
+      "queries": 1320,
+      "retained_scenes": 40,
+      "roles": {
+        "natural_reference": 198,
+        "train": 990,
+        "unseen_evaluation": 132
+      },
+      "root_source_scope": "completed root source_commit",
+      "roots": 40,
+      "source_commit": "06e6afe0fa334265337631c1df833c78977a9a86",
+      "sr": {
+        "0": 208,
+        "1": 1112
+      },
+      "verified_source_files": 474
+    },
+    {
+      "hash_manifest": "source_epochs/44f0f95b96323f83a59728cab7766f0a5f52ad49.json",
+      "queries": 10956,
+      "retained_scenes": 221,
+      "roles": {
+        "natural_reference": 1551,
+        "train": 7854,
+        "unseen_evaluation": 1551
+      },
+      "root_source_scope": "completed root source_commit",
+      "roots": 332,
+      "source_commit": "44f0f95b96323f83a59728cab7766f0a5f52ad49",
+      "sr": {
+        "0": 1860,
+        "1": 9096
+      },
+      "verified_source_files": 476
+    },
+    {
+      "hash_manifest": "source_epochs/58b4b0a17c90c5c7de420834b8ef62c44194eee7.json",
+      "queries": 61248,
+      "retained_scenes": 463,
+      "roles": {
+        "natural_reference": 3300,
+        "train": 54714,
+        "unseen_evaluation": 3234
+      },
+      "root_source_scope": "completed root source_commit",
+      "roots": 1856,
+      "source_commit": "58b4b0a17c90c5c7de420834b8ef62c44194eee7",
+      "sr": {
+        "0": 9849,
+        "1": 51399
+      },
+      "verified_source_files": 478
+    },
+    {
+      "hash_manifest": "source_epochs/2e792aa26f677e4d6b83bbbefebb733c0efa8e63.json",
+      "queries": 54087,
+      "retained_scenes": 455,
+      "roles": {
+        "natural_reference": 2640,
+        "train": 48510,
+        "unseen_evaluation": 2937
+      },
+      "root_source_scope": "completed root source_commit",
+      "roots": 1639,
+      "source_commit": "2e792aa26f677e4d6b83bbbefebb733c0efa8e63",
+      "sr": {
+        "0": 8803,
+        "1": 45284
+      },
+      "verified_source_files": 478
+    },
+    {
+      "hash_manifest": "source_epochs/eac1c27813a753d26fc1756671d8d0bd198a65c6.json",
+      "queries": 143022,
+      "retained_scenes": 505,
+      "roles": {
+        "natural_reference": 7788,
+        "train": 126984,
+        "unseen_evaluation": 8250
+      },
+      "root_source_scope": "completed root source_commit",
+      "roots": 4334,
+      "source_commit": "eac1c27813a753d26fc1756671d8d0bd198a65c6",
+      "sr": {
+        "0": 22152,
+        "1": 120870
+      },
+      "verified_source_files": 479
+    },
+    {
+      "hash_manifest": "source_epochs/4b01a7a699462967172c9d61485dea4b40a41f78.json",
+      "queries": 30030,
+      "retained_scenes": 367,
+      "roles": {
+        "natural_reference": 4389,
+        "train": 20493,
+        "unseen_evaluation": 5148
+      },
+      "root_source_scope": "legacy roots inherit the manifest frozen_commit",
+      "roots": 910,
+      "source_commit": "4b01a7a699462967172c9d61485dea4b40a41f78",
+      "sr": {
+        "0": 4103,
+        "1": 25927
+      },
+      "verified_source_files": 460
+    }
+  ],
+  "sr_distribution": {
+    "0": 46975,
+    "1": 253688
+  },
+  "successor": {
+    "availability": {
+      "0.25": {
+        "censored": 3167,
+        "determined_early_collision": 3167,
+        "valid": 297496
+      },
+      "0.5": {
+        "censored": 6903,
+        "determined_early_collision": 6903,
+        "valid": 293760
+      },
+      "1.0": {
+        "censored": 15409,
+        "determined_early_collision": 15409,
+        "valid": 285254
+      },
+      "2.0": {
+        "censored": 56861,
+        "determined_early_collision": 32049,
+        "valid": 243802
+      },
+      "3.0": {
+        "censored": 143446,
+        "determined_early_collision": 41471,
+        "valid": 157217
+      }
+    },
+    "horizons_seconds": [
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      3.0
+    ],
+    "schema": "eventwm-successor-horizons-v1",
+    "verified_queries": 300663,
+    "verified_roots": 9111
+  },
+  "uncommitted_generation_changes": "none detected: final worktree is clean and every checkpoint source hash matches; current editable Habitat import providers also match all 413 recorded library hashes",
+  "whole_root_drain_overshoot": 663
+}

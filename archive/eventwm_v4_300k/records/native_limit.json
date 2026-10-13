@@ -1,0 +1,5 @@
+{
+  "limit": 24,
+  "controller": "engineering-freeze",
+  "reason": "eventwm-v4-300k-native-static-contact-repair-2"
+}

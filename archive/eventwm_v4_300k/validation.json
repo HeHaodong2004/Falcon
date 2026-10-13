@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "date": "2026-10-13",
+  "scientific_implementation_files_verified": 479,
+  "operational_files_verified": 44,
+  "source_epochs_verified": 6,
+  "epoch_file_hashes_verified": 2845,
+  "syntax_files": 374,
+  "regression_tests": {
+    "passed": 70,
+    "modules": [
+      "test_v2",
+      "test_v3",
+      "test_static_contact_refresh",
+      "test_pipeline_runner"
+    ],
+    "command": "PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' PYTHONPATH=tests/collector /home/haodong/miniforge3/envs/eventwm-falcon/bin/python -m unittest test_v2 test_v3 test_static_contact_refresh test_pipeline_runner",
+    "fixture_binding": "Ignored read-only symlinks to existing robot assets and controlled50 fixtures; no fixtures published"
+  },
+  "cli_help": "PASS",
+  "original_frozen_native_source_preflight": "PASS; check action only, no simulator execution",
+  "loader_smoke": {
+    "passed": true,
+    "queries": 12,
+    "horizon_targets": 60,
+    "roles": [
+      "train",
+      "natural_reference",
+      "unseen_evaluation"
+    ],
+    "sr_classes": [
+      0,
+      1
+    ],
+    "legal_loader_only_opens_history_query_and_image_metadata": true
+  },
+  "schema_compatibility": {
+    "dataset": 4,
+    "retained_query": 3,
+    "successor": "eventwm-successor-horizons-v1"
+  },
+  "collector_smoke": "Simulator-free pipeline regression covers admission, validation, publication, drain and retry; no new native collection",
+  "completed_full_audits_reused": {
+    "integrity": 300663,
+    "public_inputs": 300663,
+    "successor_queries": 300663
+  },
+  "staged_hygiene": {
+    "forbidden_artifacts": 0,
+    "credential_pattern_matches": 0,
+    "largest_source_file_bytes": 2657816,
+    "git_diff_check": "PASS"
+  },
+  "production_and_gpu_jobs_disturbed": false,
+  "dataset_modified": false
+}
