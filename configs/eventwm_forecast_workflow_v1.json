@@ -1,0 +1,87 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/workflow_v1",
+  "cache": {
+    "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_cache_full.json"
+  },
+  "jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark128_cv.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage384.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark128_filtered.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage384.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark128_filtered_gp.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage384.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_deterministic_1024_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage1280.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_correlated_1024_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage1280.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_stochastic_1024_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage1280.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_deterministic_gp_1024_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage1280.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_correlated_4096_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage4352.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_deterministic_gp_full_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_correlated_full_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_stochastic_full_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    }
+  ],
+  "max_hours": 12,
+  "purpose": "Explicit forecasting-only frozen348777-query queue. Resume resource-paused runs with original guards. Never mix live queries."
+}

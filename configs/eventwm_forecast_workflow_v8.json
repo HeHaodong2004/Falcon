@@ -1,0 +1,115 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/workflow_v8",
+  "cache": {
+    "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_cache_full.json"
+  },
+  "jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_evaluation_queue_v6_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_deterministic_gp_full_cached_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_correlated_full_cached_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_stochastic_full_cached_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/nointeraction_1024_v2/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_map_patch_1024_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_posterior_full_b64_s20261014_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_posterior_deterministic_1024_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_posterior_full_b64_s20261015_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_map_posterior_1024_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261015/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_nointeraction_1024_v2_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/map_posterior_1024/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_map_patch_full_b64_s20261014_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry_full/manifest.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261014/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_correlated_full_b64_s20261014_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/map_patch_full_b64_s20261014/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_correlated_energy_1024_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/stochastic_full_cached/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_correlated_nll_1024_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/correlated_energy_1024/result.json"
+      ]
+    }
+  ],
+  "max_hours": 16,
+  "purpose": "Keep one training process per GPU and one CPU evaluator. Append bounded energy-only and likelihood-only controls after the existing GPU1 queue completes; all full-data budgets and collector thresholds stay fixed.",
+  "jobs_per_gpu": 1,
+  "gpu_launch_free_gib": 8
+}

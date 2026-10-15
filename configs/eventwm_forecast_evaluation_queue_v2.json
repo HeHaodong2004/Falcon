@@ -1,0 +1,107 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/evaluation_queue_v2",
+  "jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_interim_full_correlated_ou.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/interim_checkpoints_1792010754/identity.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_interim_full_posterior_s20261014_ou.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/interim_checkpoints_1792010754/identity.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_interim_full_posterior_s20261015_ou.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/interim_checkpoints_1792010754/identity.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_cv_gp_reuse.json",
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_filtered_gp_reuse.json",
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_cv_ou_reuse.json",
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_filtered_ou_reuse.json",
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_deterministic_gp_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/deterministic_gp_full_cached/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_deterministic_ou_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/deterministic_gp_full_cached/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_correlated_gp_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/correlated_full_cached/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_correlated_ou_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/correlated_full_cached/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_iid_gp_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/stochastic_full_cached/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261014_ou_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261014/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261015_ou_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261015/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark_full_correlated_b64_ou_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/correlated_full_b64_s20261014/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark1024_posterior_deterministic_ou_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_deterministic_1024/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark1024_map_patch_ou_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/map_patch_1024/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_benchmark1024_nointeraction_gp_reuse.json",
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/nointeraction_1024/result.json"
+      ]
+    }
+  ],
+  "max_hours": 12,
+  "purpose": "Single CPU worker, train-internal forecasts only; exact frozen dependencies; unchanged shared collector evidence; explicitly frozen interim full-pool checkpoints are diagnostic only; final confirmation remains closed"
+}

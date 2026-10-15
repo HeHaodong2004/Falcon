@@ -1,0 +1,306 @@
+{
+  "status": "development_selection_frozen",
+  "timestamp": 1792094908.8577683,
+  "source_commit": "ac77a3604288ce617cf25a25340c0937ced48675",
+  "forecast_sources": {
+    "eventforecastwm/__init__.py": "93e6061e704edac09e87fd14ebc8a0cc2e74ef5a6b99e15528b48b0f31986a46",
+    "eventforecastwm/ablate_transition.py": "10950ebb8a0f687783435bd917499cea892ebc2525acf4a83369405ba05d14a8",
+    "eventforecastwm/agent_scale_calibration.py": "5f4eefd34224cd3629ab4b9d6c66d58dba912ef0494a7ed327a5d54baa4fa417",
+    "eventforecastwm/archive_checkpoints.py": "5ed725a68d16d89eebe27101aa9ea3a144020f54a6c0ecb7010e778e8cf19f39",
+    "eventforecastwm/association_census.py": "0dbd5f2766e2aadb34ff259cac2757ee17068cd2d8f5488070631c04fea37e79",
+    "eventforecastwm/audit.py": "d15348b742485ae160ea9e3fae5872b365e79303ed0cdb0c907f675c78636304",
+    "eventforecastwm/belief_diagnostics.py": "4518b112609eb3762328dfaa7b04dcc55dccb119c624bcfe9749c94ab807f2e2",
+    "eventforecastwm/benchmark.py": "e677b28d0adc31798af332b649d7e2cc3b7b86f05c30e40d66517c82420f5b17",
+    "eventforecastwm/benchmark_cached.py": "8c95edda720f204540bac357b19a146380d8467cbc0167562c9cee401c7c7644",
+    "eventforecastwm/benchmark_reuse.py": "f4df97d60e5e56fa0fabfb5d5b6a90204903cb7c17584a094fa1fc0362fafbdd",
+    "eventforecastwm/calibration_plot.py": "dfc7f0384ecd1a36d6e61dc61d342f40cebab80a5b1844c09167330053e05737",
+    "eventforecastwm/compare.py": "a250350b3fe19e98f72f23b9915fa91d4c3033cfbca178badd6267d0a7a66bc1",
+    "eventforecastwm/composable_sampling.py": "c092cae7382628932ce74b2e3fb162c0354130c36f21352004872c1959319f5f",
+    "eventforecastwm/conditional_calibration.py": "e7212b515ceb1c47935124658876555e95cd9d4b113c821ba7124122d4489bb6",
+    "eventforecastwm/confirmation.py": "81ac650611e9db19662521049781e72103d64f320c087af1965dfb6e3ce9522a",
+    "eventforecastwm/confirmation_clean.py": "e64e563b1aee961501134b512837f8c42ce8f2cd46b12d1c0416d4a6d58b114e",
+    "eventforecastwm/confirmation_evaluate.py": "7250010af9af70abe3f1a2c5ac0521ff11d6fdf21a760580feb273ce788f442a",
+    "eventforecastwm/control.py": "17feba4464cf313f4abbb4c6a8fa98f9579240881e1f63d555697629066a759a",
+    "eventforecastwm/correction_figures.py": "dd002c32a3f349ccba238a45f1f0d6942872f40c07cb8265b9d36e2d5ff50ee9",
+    "eventforecastwm/data.py": "be87fa8423fc29c57550f1091d6261962c7903c9aa82f1c46dc11e3e735ec348",
+    "eventforecastwm/distribution.py": "32b08f15ef9188dee37fd4f73cc69abb29adcb2354e0dc5a4477cd7f6a05814b",
+    "eventforecastwm/evaluation_queue.py": "4e6fa5e197c19f70018cc565c7d74bd810bd29a6803fcf063becbc75947c8d61",
+    "eventforecastwm/geometry.py": "abbc67828ecbf3ab13adc3023ea510d557a10bb36e37a4106bce6f4c15053c88",
+    "eventforecastwm/geometry_data.py": "ebd663169d2ef5306cd0b466bc402e3d7e5074ba4237aba67a00d3d12fb4bb00",
+    "eventforecastwm/guard.py": "7c19bfc9b601700e8719385fe8528b991adc607cfb97f2a345f4ddc3ae9ff349",
+    "eventforecastwm/guard_keeper.py": "3918943cf3b2caa9a8ab8209bcde078d7d5e867762a638e0d2ea9bbbbb9f8c3b",
+    "eventforecastwm/historical_diagnosis.py": "ffcfd9a0d10c916b2cc8aa95af05d285120ea51d796da5259e45d7930f1fe603",
+    "eventforecastwm/inference.py": "63f6a27e24c7eb34365a0e6954e3c53f378ea54d97b632c1f6a846bb2c68a333",
+    "eventforecastwm/latency.py": "263651dabc66e9df9d4102b7c664e81c540d9f0eb5d92af77de8bf4039578252",
+    "eventforecastwm/learning_curves.py": "450b4cf433945fb3f73943eadf51db47e06ba13a8fd7c5f3430e8a41b51cd807",
+    "eventforecastwm/mean_adapters.py": "ba9d50d87d3ecdad5ea9bd47ebed5c283aa3d65065ee802289785b94fd3c91ee",
+    "eventforecastwm/mechanics.py": "68bfdc18b8feec611e608a6298a70715c21a135fa1373981e801f81cd645381e",
+    "eventforecastwm/model.py": "21cd78b54aa5fbf2ed23e7c8442da7f1fbc3c30d8aabc8710596539154112a3b",
+    "eventforecastwm/model_age.py": "bdf331d5c622ff33ff28b63ca795ac1348b5a8e4c81f74a77abf036471b66dc7",
+    "eventforecastwm/model_agent_scale.py": "c10436623a8135dceefebc2bdf457277f3674aafa22c2d8aa947cd9cb41ecc86",
+    "eventforecastwm/model_conditional_scale.py": "3d5256dfcf424d623dc7cfa532e77d9b93823378abf54fb89201c668de62024f",
+    "eventforecastwm/model_damped.py": "c55b04d6e5f6ae495dc560bb95844deced73387b6dddfe1a2099ef903284e8d7",
+    "eventforecastwm/model_independent.py": "7f6db588c9f891d0852c5b3750e4bb9a889e0eb9cce6bb3abb294e90b69f6702",
+    "eventforecastwm/model_kinematic.py": "dbc2802786da71f22b613f2afe9526f6f708f41e05fa8dc5e4f827ee912189e6",
+    "eventforecastwm/model_map_patch.py": "a3f85a80c1e0c4b4527710af0d7265bb4916209098c890229fbbaede4664807b",
+    "eventforecastwm/model_map_posterior.py": "c4f2865b27c6ed7c1df9b401f427d0f8de31a835596ab74743c4a7ea0a7683e0",
+    "eventforecastwm/model_posterior.py": "470810bfe7cc901ffbb631f8975d52aa3ee65282648d14d7c5ebeac5cbea79da",
+    "eventforecastwm/model_scale_mixture.py": "1fbffaa6405bc4aaba9d575aa052ce3b0a4d0084079f7ee9d1eea9066d2e87c3",
+    "eventforecastwm/model_student.py": "3315590a867994eb85c34051643d1d37ecf0132138e9e6f307f50fd5c6b4b764",
+    "eventforecastwm/monitor.py": "e1c6cb7fe8e526633f3516f87ec55d2c2439f2dcfd3660fb5a476fb46d5e0f2e",
+    "eventforecastwm/observability.py": "c239703692921a79eefa5b4a8eaeb2d1d31db37c3a9510e291a9a37793e59df0",
+    "eventforecastwm/observations.py": "fdcc68bdfe96edca325c4400f3254bae08f99c881f51c3c931e75d5af86e4d2d",
+    "eventforecastwm/performance_v2/__init__.py": "b0ee2398c7b00f3fe4bb4fa6b80447291c48faa8cd7b28c0ad10eb341ceac368",
+    "eventforecastwm/performance_v2/assemble.py": "9a94c228e63bd85e3e2a3fa99da50f0607810dc3b56a9ca9bca306d12ddc8d62",
+    "eventforecastwm/performance_v2/assemble_regime.py": "3150d186a542f71bc40cee696aac7a0e72d94505f9a8fb2f17e21da1ff1121eb",
+    "eventforecastwm/performance_v2/calibrate.py": "e5fcacd65597fb13abf96133200071a6683c8ff6d8a1ff928846ac288f6fb0ce",
+    "eventforecastwm/performance_v2/calibration_plot.py": "d9bdae0c1e8015c6bc81b7e8168097de312074d6e3a22a42a32137d595576645",
+    "eventforecastwm/performance_v2/compare_calibration.py": "6e85db4b1b523c8842e439c78240c662d3c9e798e50a6174d000aa6db0b76a84",
+    "eventforecastwm/performance_v2/compare_completed.py": "0a006b1118b216b06d838aa0643b1d17f6cd57c38d93eac1293b7d5df51572e6",
+    "eventforecastwm/performance_v2/compare_window_cohorts.py": "0f0b43d4a21e2a433fddf6b7d0861cf053e1e4cbd96c4343a815af2b22d62fc7",
+    "eventforecastwm/performance_v2/conditional_coverage.py": "9e24858bd11fbd9cdc0647ab6123d73be0d5789d1c637966ab6bfc2f35e4052f",
+    "eventforecastwm/performance_v2/confirmation_population.py": "9fe1d9f468e7a6044475926368e31e093d24733aadd12cfb8f57adaebb4e8a10",
+    "eventforecastwm/performance_v2/density_cache.py": "9fab86934eb5ddf43d42e2e90d8967797e96c0f194118e7983c3c491ebad1ea8",
+    "eventforecastwm/performance_v2/diagnose.py": "a8f9c0f37b6885cab87aecca22ab0e71f0a1ed0102921f083cd646493d07d8a0",
+    "eventforecastwm/performance_v2/evaluate.py": "7074eaee72b1676e4e3415cbad9e83d0fbe9baba31294d4d5588d5129ddbc1fb",
+    "eventforecastwm/performance_v2/evaluation_population.py": "ad64e6b335ba668a0e77c8c18b70438aaa737d7b83133d4cf3b51fb60c7490d8",
+    "eventforecastwm/performance_v2/exposure_audit.py": "f75c0cab8452980482b5bee8fe6a17a253df9cd1c75098650d4a893c645488a4",
+    "eventforecastwm/performance_v2/hybrid.py": "71cc14fc81f20a8ebed90d6a67c55178488e34df74e4811e40b89ae84c811fac",
+    "eventforecastwm/performance_v2/map_support_audit.py": "1d60ab11ea1cf5b39d3059a50acc825dd3c9f82ded0fd6bdc8c795984cea988b",
+    "eventforecastwm/performance_v2/occupancy_prior.py": "1b4dd7bb02c42c5e4a53b91b7ee44c44290d528e5b6c4cb1bd9484da494f9078",
+    "eventforecastwm/performance_v2/physical.py": "c213ee7b41485e3722062724d2cbc8eb555bfce2fdf577a315e81dea466aac5d",
+    "eventforecastwm/performance_v2/physics_diagnostics.py": "828dd38891f7be5be21187c6ed408f5b9227e44f35003c854fff10cd9e8e22f3",
+    "eventforecastwm/performance_v2/policy_worker.py": "db4c5d236aa5bfaa6919738c904c2413ed531bd98a0692a2f1dd99e152d08c3e",
+    "eventforecastwm/performance_v2/prepare_reproduction.py": "133a110c8ce2be0dda542bc72fcac6a0770b864cd04a45ccd6fc4357ef373014",
+    "eventforecastwm/performance_v2/qualitative_compare.py": "98913e0466ac9281ec3634fcf5a5dcd8a2846ddadbf1c3f91dfa7f92c323e9e6",
+    "eventforecastwm/performance_v2/recurrent_audit.py": "cbb0d12057242191463385ff251c9d4c0d51a091431b35af39321fb9a1746e84",
+    "eventforecastwm/performance_v2/regime.py": "a69865d14a57966aa7d8a7b05d2f2426fd32df3cef4da8d4a42a7a12f70d33ff",
+    "eventforecastwm/performance_v2/release.py": "0115eeda5aee421e3f29de93270315b48c28829f71c90c5eaecee8b0e0ad3c0a",
+    "eventforecastwm/performance_v2/reproduce.py": "aacf932d299085fed84ba3fb9d916b00a8769265f8f3176b4c11a8c2c31b6b2d",
+    "eventforecastwm/performance_v2/resource_policy.py": "279734922fc8b7a346411b7871bca4e0a0a3bf3b3499a108929919cf2a854c56",
+    "eventforecastwm/performance_v2/resume_audit.py": "1fbf6bb08e67c22aff413c46e1c5c7e6faf5f28058ffe22cdf8064901376f568",
+    "eventforecastwm/performance_v2/scaling_freeze.py": "4844f02816f50527865c6eead2a1d13efa2e201d9753bee862a7e459a3682848",
+    "eventforecastwm/performance_v2/standalone_verify.py": "8d843ce941a85cbeb828f945a1920338052fe5c3756e98fcfbeed145b3322e89",
+    "eventforecastwm/performance_v2/status.py": "0928f5602100d6f1caa91cd126e6aeb8bf8d8cb1bb0240d8c751e5c1c805966e",
+    "eventforecastwm/performance_v2/stopped_control.py": "0b1223363cf91d3ea32831249c8e8bf781708a5c875a97a9857e463a88ad5242",
+    "eventforecastwm/performance_v2/test_receipt.py": "a65c91324cfbe80721ab2d452ca85126a2a7b63d4b70c159d98763c306cc0c68",
+    "eventforecastwm/performance_v2/train.py": "62984f177d5cb3dd844f4fdb5c3740c7e0aa2b14f8c24218c1f5e9f55222ad74",
+    "eventforecastwm/performance_v2/train_occupancy.py": "d9310728f22d1827cf8e49573d1cf947aae3ae1ce88e5dba032c4b212b4f2ece",
+    "eventforecastwm/performance_v2/train_sampling.py": "2a91468b39a7de457b87b906583edbeac563a5f7992547a16197ffa1c6eb0c61",
+    "eventforecastwm/physical_diagnostics.py": "2e8bbcd1e78f5a9f35c9fe65450f37267356d22e78c9c2dcad119745924ecb09",
+    "eventforecastwm/prepared_cache.py": "4906c54d3e2a645f79b6693ad02cf4b59e071aa7187d67eadc3d7d3ca675c062",
+    "eventforecastwm/qualitative.py": "6ea1187a037ccb6b0cf49b921e7ba61ba1aa1acd9b066699bf661acbd414726b",
+    "eventforecastwm/readouts.py": "b3c07891d25b7391d5cfe37c619099a97b8f9be4e3245dce1445be1f9884de9e",
+    "eventforecastwm/refine_calibration.py": "473be3c9e098db7e1c40a466ff4ae09369c70d628954bd9c57d33c5aa79d0380",
+    "eventforecastwm/resume_audit.py": "11c6ab6106aa8f74d5c1135b677be9792f57ef85d7cbfbd890ab5281446527da",
+    "eventforecastwm/sampling.py": "bb5ffd5f0ef96298f409c2d3e899c72fdd5368e08e2bba8ebdb6d91463ba6562",
+    "eventforecastwm/scaling.py": "07d05e0c6c10ffaa22772ec4b66500f30f6c1a24e8c26a5ecc1544417a01ca70",
+    "eventforecastwm/target_motion.py": "143d20b4613d5ee7afaff0031d27935abf7836048ed1cf618c66a3b1193f48f4",
+    "eventforecastwm/throughput.py": "77e999bf205fab3f634bd79477c85b5f2327910bc0bbef228fd2c0069c545c4d",
+    "eventforecastwm/train.py": "62fae7fdfc65fbf1e83e3aa907abc5370be04b0a1bd2f9727a468c18d44325c6",
+    "eventforecastwm/train_age.py": "0481efa53535901c4d0ddada76f3b7e38f55676d924648cc8b3805a94965f939",
+    "eventforecastwm/train_cached.py": "0da8c5f42325d1fd9c6a70ba12bd585cc4cf8385425c18db52599ec6b0ebce9d",
+    "eventforecastwm/train_geometry.py": "b450bc9048933f61acbe7e357f420a658ec953e639ca4ae050bc6eff686c2d66",
+    "eventforecastwm/train_independent.py": "4145fdd85758d11e8764850dd5bb1c1d59b1c7717bca2d5221c573109d0fd4f8",
+    "eventforecastwm/train_kinematic.py": "d90ef0f39935d2b1a4264595319dec0e6b296fa61eabed4deaf1318ed6565b2b",
+    "eventforecastwm/train_map_patch.py": "e92eab4f1cd79ef454b1a4527d784edba1edaad8e366400f5714748636df983c",
+    "eventforecastwm/train_map_posterior.py": "3ca811ada07bb518212ed5e07ff26662c3d08b25aab43148acdbc15e7c615f02",
+    "eventforecastwm/train_objective.py": "305ee43ff3244ef9a0f0c8f42d087b1ce6b7b09bb232781e4642f8f76562a269",
+    "eventforecastwm/train_posterior.py": "1e703cf5bfd43cbbbd4f416ba0f7324d38b51bae8f2fc2e7f1f26632c167b3fe",
+    "eventforecastwm/uncertainty.py": "8283c74f010597600d5d44aa377d3f347f2229531dbf246d6a03fac4ecbfddff",
+    "eventforecastwm/utilization.py": "9281c1f03e703385a42011a685cf8b4cb8753afbfc2d83cccd63c49fa40ff91b",
+    "eventforecastwm/window_evaluate.py": "a9d534ac7c9101b5bfe368c767cd9411980dc49f8b80a12851bfbb7a0bb84cfe",
+    "eventforecastwm/workflow.py": "6fdace896c8882cb923b333e1baf068cf511c5c3894bdc9e8876d944578ac7f8"
+  },
+  "protocol_sha256": "eaa88b413cd6e868fb25a9832e72ffeca0f3db8c50849f221e1a6bb5eaa4cf8a",
+  "membership_sha256": "842155bb96e81c4696d6e91fd4ee92d469638b9794cb820faa1564abbb165777",
+  "training_manifest_sha256": "d8df96f6cfd61c6677987ab22eef3d53eb1e29a426651fc0a313846f8efc43d7",
+  "training_protocol_sha256": "a70f5a57e06f4461308438150dac6cc01e53e6e2de2d3218f1e62c9c297b7307",
+  "snapshot_sha256": "5836bd381a206ecd3200134fa7de392317884a57e40397abf37c48c417255c27",
+  "fitting_roots": 8965,
+  "fitting_windows": 48434,
+  "development_roots": 256,
+  "models": {
+    "primary": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/primary.pt",
+      "sha256": "bf8524f73740b75a3b7d79eb5f6a3d0d00365455570d9b2a7debcc74307dbcff",
+      "seed": 20261014,
+      "source_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/combined_age_geometry/model.pt",
+      "evaluation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/combined_age_geometry_evaluation/result.json",
+      "evaluation_sha256": "c6a87e686387a5d006859b28b08ef8a0c9234d5b654b3ed3c305e7235bde7f7b"
+    },
+    "replicate": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/replicate.pt",
+      "sha256": "b34604863cd0037c7bf276777d6fe11a0e860f0e88d0274a71d1ac188ad1ff86",
+      "seed": 20261015,
+      "source_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_geometry/result.pt",
+      "evaluation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_geometry_evaluation/result.json",
+      "evaluation_sha256": "51111e88ea10344718e8bb8605d720656071999007ecd2f25c896c2410eb54d7"
+    },
+    "stopped_alternative": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_geometry_full_incremental/result.pt",
+      "sha256": "36bdf8a09701ea4dc0c484af1037f40a37afa1c6ae30b1aaf26b63d96e23d52b",
+      "seed": 20261014,
+      "role": "NLL/occupancy alternative with larger one-second ES and central-overcoverage costs; never test-promoted to primary."
+    },
+    "horizon_alternative": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime_geometry/result.pt",
+      "sha256": "65a0cf8cca30d41c325214e51d6933dddc380b5c6039280fc2c32213c91f267b",
+      "seed": 20261014,
+      "role": "Lower ES/higher AP alternative with material three-second central-undercoverage; never test-promoted to primary."
+    }
+  },
+  "fallback_models": {
+    "primary": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/primary.pt",
+      "sha256": "d092b5d05d38be4619251e009d2aa2dafc691f3f57440473d72e87acf7887970",
+      "seed": 20261014,
+      "role": "Immutable predeclared fallback role"
+    },
+    "replicate": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/replicate.pt",
+      "sha256": "2faaeff8b19f7298b39eea506354d20e18247d4607ba2ff683c00758a38e6063",
+      "seed": 20261015,
+      "role": "Immutable predeclared fallback role"
+    }
+  },
+  "controls": {
+    "cv": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_agent_scale/result.model.pt",
+      "sha256": "a0e5c101ac3469a994eddb683832282c731ff5e1a6841cc7c1634d1dea461709",
+      "seed": null,
+      "role": "Calibrated CV with original anonymous prior"
+    },
+    "cv_geometry": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cv_geometry_reference/result.pt",
+      "sha256": "7b037b027d4b43ca47ee0d9964c8af78d57b6ca1ea7ab375c0a4ef64f559b097",
+      "seed": null,
+      "role": "Same CV physical law with the same geometry anonymous prior"
+    },
+    "full_self_primary": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_geometry/result.pt",
+      "sha256": "4978787fe95060a84e332bb08a96c0b91040d1d96ede77b876534dcfb295ff47",
+      "seed": 20261014,
+      "role": "Completed new full physical family with matched age/geometry calibration, rejected on development"
+    },
+    "full_self_replicate": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_geometry/result.pt",
+      "sha256": "ca7ee380de5c9b9b337240302260a63176ba8e76610ace940b8988fad5d2530e",
+      "seed": 20261015,
+      "role": "Independent completed new full physical family control"
+    }
+  },
+  "horizons": [
+    1.0,
+    2.0,
+    3.0,
+    5.0
+  ],
+  "energy_paths_per_bank": 48,
+  "fixed_k": 6,
+  "density_draws": 64,
+  "nominal_joint_levels": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+  ],
+  "horizon5": "Extrapolation beyond the three-second physical objective",
+  "evidence": {
+    "candidate_review_tests": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_tests/result.json",
+      "sha256": "306be912c54c8323138645bdec4276b4fb0199f3389477395388214cd18f187a"
+    },
+    "candidate_review_primary_conditional_coverage": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_conditional_coverage/result.json",
+      "sha256": "63f1b1e05f2c56f001b4cd64de0f135423fc8db11f19c115d87cf5c3b03649d2"
+    },
+    "candidate_review_replicate_conditional_coverage": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_replicate_conditional_coverage/result.json",
+      "sha256": "a8b12ec46552f427ae25946c35342bb498dc1e72610d5ed8408e306b4ec970b2"
+    },
+    "candidate_review_primary_physics": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_physics/result.json",
+      "sha256": "fbb3a949594ffba8630f82aa51addb4797cde335983ba90092298eb35f95d654"
+    },
+    "candidate_review_replicate_physics": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_replicate_physics/result.json",
+      "sha256": "8df852906daa26ce3338e94b50060502b6196a54a95a7bfd6608be85d9ca162f"
+    },
+    "candidate_review_primary_recurrent": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_recurrent/result.json",
+      "sha256": "6f5f58ef23b1ac042cc030f6e9dc59d52b4160b92444468ca072dabbaa9ca2fc"
+    },
+    "candidate_review_replicate_recurrent": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_replicate_recurrent/result.json",
+      "sha256": "98a7633e0d117c9db21efda7da2c05bfe469b167c913fb161fd25a3bae59bc86"
+    },
+    "candidate_review_primary_standalone": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_standalone/result.json",
+      "sha256": "6c4e3d8ad04a119c0a84507544e932faaf9b66a9361b7b16a7b0b882cb3022cb"
+    },
+    "candidate_review_replicate_standalone": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_replicate_standalone/result.json",
+      "sha256": "1d99ec9a5eb056a053d1b6c153d471815ebab0993ceb55fd9dbe216a48419477"
+    },
+    "candidate_review_primary_diagnosis": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_diagnosis/result.json",
+      "sha256": "9dc05dfd0bc106318cb3473fe92e4e3ede09fdcd5a48e599ae51927e6e590757"
+    },
+    "candidate_review_qualitative": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_qualitative/result.json",
+      "sha256": "d7fa89d2bd802b2ee66e118fbe417dea8c8d75cb4dc78c8812baa4763ecb78b6"
+    },
+    "candidate_review_primary_latency": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_latency/result.json",
+      "sha256": "6c86a817b7265599133511d0e035b1bb38f202f1cf2b2eda4e6d65d570b6ef25"
+    },
+    "fallback_primary_latency": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/fallback_primary_latency/result.json",
+      "sha256": "43e3c7d905113a386126b0f29447999eece5ac7729850cbefdd296f3dcedf417"
+    },
+    "selected_s20261014_development_comparison": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/selected_s20261014_development_comparison/result.json",
+      "sha256": "18eb78a847e07eb104974bda14f4846d67c475d5c41a7deebeac63512380b964"
+    },
+    "selected_s20261015_development_comparison": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/selected_s20261015_development_comparison/result.json",
+      "sha256": "da5997a90f4a3f2348a8be0caf95a0f132d654755eedd4649a6161d6743ff213"
+    },
+    "horizon_s20261014_comparison": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_comparison/result.json",
+      "sha256": "6be2a3e510d6693b69b7bca230bdd20508f6cd418d995d88b6c3b68f95e45eb8"
+    },
+    "horizon_s20261015_comparison": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_comparison/result.json",
+      "sha256": "0ab15076f4aa032ee6756744a3497ad0b6e45fc6d1fc15a15e48e0da240722c4"
+    },
+    "full_self_s20261014_comparison": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_comparison/result.json",
+      "sha256": "1e5b56b8bd5d04413dc3ef077685a71aad30d42d3d2b37ee5aacf3831f06d664"
+    },
+    "full_self_s20261015_comparison": {
+      "path": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_comparison/result.json",
+      "sha256": "435af7131b5ba9cb26b90abee6f21fe2bc4894cfc879df4a5f1d9bd1071f7d7c"
+    }
+  },
+  "decision": "Age-aware conditional variance plus geometry anonymous occupancy on the original fully trained recurrent physical backbone. Primary seed14, replicate seed15.",
+  "reason": [
+    "Both seeds show paired positive occupancy AP and joint NLL changes on development; three-second ES differences are small and statistically inconclusive.",
+    "All-window older-history high-nominal coverage and proper likelihood improve substantially.",
+    "Origin three-second coverage across central levels is retained better than the horizon-balanced alternatives.",
+    "The new self-only physical family does not replicate its intermediate advantage after final matched calibration."
+  ],
+  "accepted_tradeoffs": [
+    "All-window one-second ES increases 1.39%/2.70%; seed15 paired interval excludes zero. This stays within the declared 3% ES tradeoff.",
+    "All-window one-second central coverage is about .577 against .4923 nominal, about eight percentage points broader than the previously almost-calibrated aggregate. This exceeds the five-point progression heuristic in a secondary population and is explicitly accepted for much better older-history coverage/proper scores; it is not called uniform calibration improvement.",
+    "Origin three-second 58/65 coverage remains around .82, below nominal; no claim of complete calibration.",
+    "Total occupancy remains below CV for the preferred family. Horizon/regime alternatives exceed same-prior CV as small point estimates but materially under-cover central three-second sets.",
+    "Sample speed/acceleration tails improve, but outside-grid and nonwalkable-navmesh proxy rates worsen."
+  ],
+  "confirmation_policy": "Open the new 128-root natural and 128-root unseen banks only after committing this choice. No tuning, alternative promotion or seed selection after scores. Confirmation may retain the frozen candidate family or reject it for the exact two-role v1 fallback.",
+  "search_closed": true,
+  "confirmation_targets_opened": false,
+  "used_500k_training": false
+}

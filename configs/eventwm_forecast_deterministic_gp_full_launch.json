@@ -1,0 +1,8 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/deterministic_gp_full",
+  "module": "eventforecastwm.train",
+  "args": [
+    "--config",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_deterministic_gp_full.json"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "reference_jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_posterior_full_b64_s20261014_launch.json",
+      "gpu": 0,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261014_ou_reuse.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261014/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261014_scene_scale.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_ou_reuse/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261014_agent_scale.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_scene_scale/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_posterior_full_b64_s20261015_launch.json",
+      "gpu": 1,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261015_ou_reuse.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261015/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261015_scene_scale.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_ou_reuse/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_forecast_benchmark_full_posterior_s20261015_agent_scale.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_scene_scale/result.json"
+      ]
+    }
+  ],
+  "artifact_aliases": {
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/primary.pt": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_agent_scale/result.model.pt",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/replicate.pt": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_agent_scale/result.model.pt"
+  },
+  "include_runs": [
+    "posterior_full_b64_s20261014",
+    "benchmark_full_posterior_s20261014_ou_reuse",
+    "benchmark_full_posterior_s20261014_scene_scale",
+    "benchmark_full_posterior_s20261014_agent_scale",
+    "posterior_full_b64_s20261015",
+    "benchmark_full_posterior_s20261015_ou_reuse",
+    "benchmark_full_posterior_s20261015_scene_scale",
+    "benchmark_full_posterior_s20261015_agent_scale"
+  ],
+  "workflow": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/workflow_training_priority_v17.json",
+  "workflow_launch": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/workflow_training_priority_v17_launch.json"
+}

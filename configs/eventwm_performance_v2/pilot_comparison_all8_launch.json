@@ -1,0 +1,29 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_comparison_all8",
+  "module": "eventforecastwm.performance_v2.compare_completed",
+  "args": [
+    "--reference",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark1024_posterior_damped/result.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_comparison_all8/result.json",
+    "--candidate",
+    "velocity=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_velocity_ou/result.json",
+    "--candidate",
+    "window015=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_window015_ou/result.json",
+    "--candidate",
+    "self=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self_ou/result.json",
+    "--candidate",
+    "occupancy2=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_occupancy2_ou/result.json",
+    "--candidate",
+    "arrival=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_arrival_ou/result.json",
+    "--candidate",
+    "polar=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_polar_ou/result.json",
+    "--candidate",
+    "occupancy10=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_occupancy10_ou/result.json",
+    "--candidate",
+    "sampling=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_sampling_ou/result.json"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/runtime/nvidia-595.91.07/usr/lib/x86_64-linux-gnu"
+  }
+}

@@ -1,0 +1,1056 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/workflow_training_priority_v16",
+  "cache": {
+    "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/guard_cache_launch.json"
+  },
+  "jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_horizon13_age_cond_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_family_selection/promotion_pass.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_horizon13_age_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_horizon13_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_horizon13_age_cond_conditional_coverage_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_horizon13_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cv_geometry_readout_control_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/confirmation_protocol_nested_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_snapshot/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_age_uncond_launch.json",
+      "gpu": 0
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_age_uncond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_all_age_uncond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_conditional_coverage_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_age_cond_conditional_coverage_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_cond_conditional_coverage_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/anonymous_occupancy_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/diagnose_cv_correct_cache_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_origin_cond_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/baseline_reproduction/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_origin_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_origin_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_uncond_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/baseline_reproduction/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_uncond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_all_uncond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_cond_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/baseline_reproduction/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_all_uncond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_all_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_age_cond_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/baseline_reproduction/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cal_all_age_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_all_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_evaluation_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/resume_audit_arrival_launch.json",
+      "gpu": 0
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/resume_audit_polar_launch.json",
+      "gpu": 1
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_velocity_launch.json",
+      "gpu": 0
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_velocity_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_velocity/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_window015_launch.json",
+      "gpu": 1
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_window015_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_window015/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_arrival_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/resume_audit_arrival/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_arrival_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_arrival/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_self_launch.json",
+      "gpu": 1,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_self_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_polar_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/resume_audit_polar/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_polar_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_polar/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_occupancy2_launch.json",
+      "gpu": 1,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_occupancy2_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_occupancy2/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_occupancy10_launch.json",
+      "gpu": 0,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_occupancy10_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_occupancy10/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_sampling_launch.json",
+      "gpu": 1
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_sampling_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_sampling/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/stopped_control_1024_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_self_launch.json",
+      "gpu": 1
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_self_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_self/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/stopped_half_control_1024_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_posterior_launch.json",
+      "gpu": 0
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_posterior_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_posterior/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/stopped_control_full_incremental_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/regime_full_incremental_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/stopped_control_full_incremental/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/regime_geometry_full_incremental_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_full_incremental/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/regime_geometry_full_incremental_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_geometry_full_incremental/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/regime_full_incremental_recurrent_audit_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_full_incremental/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/regime_full_incremental_conditional_coverage_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_full_incremental/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/physics_software_smoke_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_physics_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/physics_software_smoke/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/regime_full_incremental_physics_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/physics_software_smoke/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_geometry_full_incremental/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/baseline_1024_evaluation_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_self_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_arrival_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_arrival_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_sampling_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_sampling_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/physical_window_cohorts_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/baseline_1024_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_arrival_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_sampling_evaluation/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/map_support_audit_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_posterior_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_posterior_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_self_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_self_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_window_cohorts_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_posterior_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_self_evaluation/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_family_selection/promotion_pass.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_window_cohorts/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/physical_window_cohorts/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_scene_scale_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_agent_scale_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_scene_scale/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_age_cond_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_agent_scale/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_age_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_age_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_age_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_regime_gate_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_regime_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_regime_gate/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_regime_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_regime/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_regime_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_regime_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_family_selection/promotion_pass.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_window_cohorts/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/physical_window_cohorts/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_ou_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_scene_scale_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_agent_scale_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_scene_scale/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_age_cond_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_agent_scale/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_age_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_age_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_age_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_regime_gate_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_regime_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_regime_gate/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_regime_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_regime/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_regime_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_regime_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_age_cond_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_age_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_regime_gate_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_regime_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_regime_gate/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_regime_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_regime/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_regime_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_regime_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_polar_exposure_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_polar/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_occupancy10_exposure_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_occupancy10/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_sampling_exposure_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_sampling/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/pilot_comparison_all8_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_velocity_ou/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_window015_ou/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self_ou/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_occupancy2_ou/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_arrival_ou/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_polar_ou/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_occupancy10_ou/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_sampling_ou/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/confirmation_snapshot_nested_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_family_selection/promotion_pass.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/confirmation_cache_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_protocol/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/final_selection/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/confirmation_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_cache/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_evaluation_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_posterior_exposure_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_posterior/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/intermediate_self_exposure_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_self/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_exposure_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_exposure_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_agent_scale_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_agent_scale/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_agent_scale_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_agent_scale/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/learning_curves_intermediate_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_1024/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_posterior/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_self/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/learning_curves_full_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261014/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_full_b64_s20261015/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/standalone_prototype_cpu_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_primary_conditional_coverage_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_primary_physics_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_primary_recurrent_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_primary_diagnosis_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_primary_standalone_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_replicate_conditional_coverage_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_replicate_physics_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_replicate_recurrent_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_replicate_standalone_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_qualitative_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_tests_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261014_comparison_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_agent_scale_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_cond_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_geometry_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_regime_geometry_evaluation/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/full_self_s20261015_comparison_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_agent_scale_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_cond_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_geometry_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_regime_geometry_evaluation/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_age_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_age_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_age_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_horizon13_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_age_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_age_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_regime_gate_launch.json",
+      "gpu": 0,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_horizon13_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_regime_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime_gate/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_regime_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_regime_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_regime_geometry_conditional_coverage_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261014_comparison_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_horizon13_age_cond_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_age_geometry_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime_geometry_evaluation/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_age_cond_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_age_cond_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_age_cond_conditional_coverage_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_age_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_age_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_regime_gate_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_cond/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_regime_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime_gate/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_regime_geometry_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_regime_geometry_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_regime_geometry_conditional_coverage_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime_geometry/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/horizon_s20261015_comparison_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_followup/decision.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_cond_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_geometry_evaluation/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime_geometry_evaluation/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cv_geometry_reference_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/anonymous_occupancy/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cv_geometry_reference_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cv_geometry_reference/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_primary_standalone_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_primary_recurrent_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_replicate_standalone_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_replicate_recurrent_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_primary_latency_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_primary_latency_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_latency/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_calibration_plot_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_conditional_coverage/result.json"
+      ]
+    }
+  ],
+  "max_hours": 16,
+  "jobs_per_gpu": 1,
+  "gpu_launch_free_gib": 8,
+  "training_priority_runs": [
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015"
+  ],
+  "cpu_jobs": 2
+}

@@ -1,0 +1,18 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/physical1024_correlated",
+  "module": "eventforecastwm.physical_diagnostics",
+  "args": [
+    "--checkpoint",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark1024_correlated/result.model.pt",
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage1280.json",
+    "--protocol",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+    "--geometry-manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry1280/manifest.json",
+    "--prepared-cache",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/physical1024_correlated/result.json"
+  ]
+}

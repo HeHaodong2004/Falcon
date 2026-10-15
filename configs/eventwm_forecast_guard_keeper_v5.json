@@ -1,0 +1,12 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/guard_keeper_v5",
+  "guard_directory": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full",
+  "owners": [
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/workflow_v6"
+  ],
+  "dependents": [
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/evaluation_queue_v4",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/uncertainty_queue_v1"
+  ],
+  "max_hours": 12
+}

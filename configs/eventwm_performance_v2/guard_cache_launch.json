@@ -1,0 +1,13 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cache_full",
+  "module": "eventforecastwm.monitor",
+  "args": [
+    "--directory",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cache_full",
+    "--minutes",
+    "30"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/runtime/nvidia-595.91.07/usr/lib/x86_64-linux-gnu"
+  }
+}

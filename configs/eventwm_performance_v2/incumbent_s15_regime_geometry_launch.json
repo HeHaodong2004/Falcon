@@ -1,0 +1,15 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_regime_geometry",
+  "module": "eventforecastwm.performance_v2.assemble",
+  "args": [
+    "--physical",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_regime/result.pt",
+    "--prior",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/anonymous_occupancy/prior.pt",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_regime_geometry/result.pt"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/runtime/nvidia-595.91.07/usr/lib/x86_64-linux-gnu"
+  }
+}

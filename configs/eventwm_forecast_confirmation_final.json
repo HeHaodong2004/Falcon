@@ -1,0 +1,16 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_final",
+  "module": "eventforecastwm.confirmation_evaluate",
+  "args": [
+    "--decision",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/research_results/eventwm_forecast_full_20261014/confirmation_decision.json",
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_clean_cache/manifest.json",
+    "--membership",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_clean_protocol/membership.json",
+    "--prepared-cache",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_confirmation_clean",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_final"
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "status": "completed_local_research_release_verified",
+  "research_source_commit": "d593958f634b449317cc341ff2415048cded8061",
+  "tests_passed": 97,
+  "primary_sha256": "d092b5d05d38be4619251e009d2aa2dafc691f3f57440473d72e87acf7887970",
+  "release_manifest_sha256": "9645f5e5faaa966a2c75799dbac9cc785b482d25a053d7e49d45e719906a04cf",
+  "files_verified": 653,
+  "archive_inference": {
+    "primary": {
+      "finite": true,
+      "deterministic": true,
+      "reproduces_worktree_arrays": true,
+      "rejected_accesses": []
+    },
+    "replicate": {
+      "finite": true,
+      "deterministic": true,
+      "reproduces_worktree_arrays": true,
+      "rejected_accesses": []
+    },
+    "age_calibrated_alternative": {
+      "finite": true,
+      "deterministic": true,
+      "reproduces_worktree_arrays": true,
+      "rejected_accesses": []
+    },
+    "age_calibrated_replicate": {
+      "finite": true,
+      "deterministic": true,
+      "reproduces_worktree_arrays": true,
+      "rejected_accesses": []
+    },
+    "stopped_alternative": {
+      "finite": true,
+      "deterministic": true,
+      "reproduces_worktree_arrays": null,
+      "rejected_accesses": []
+    },
+    "horizon_alternative": {
+      "finite": true,
+      "deterministic": true,
+      "reproduces_worktree_arrays": null,
+      "rejected_accesses": []
+    }
+  },
+  "full_new_training": {
+    "20261014": {
+      "steps": 24576,
+      "training_roots": 8965,
+      "presentations": 1562598,
+      "duration_s": 5500.332221031189,
+      "best_step": 17152,
+      "best_sha256": "47f86e4bb16980e97fcc54394dcd6f132479dffdf611ac08fbbe3dc1f2ea9ff1",
+      "last_sha256": "84ac39d5ec469295bccf0c990d480b74e7743aed9c65bd8d174ac2a96c55eda5"
+    },
+    "20261015": {
+      "steps": 24576,
+      "training_roots": 8965,
+      "presentations": 1562598,
+      "duration_s": 5373.40265583992,
+      "best_step": 15104,
+      "best_sha256": "02eea3357b46bc0232b64aad866468730a08cc69f958f4bc0a4baeb92e447d61",
+      "last_sha256": "fbfd0988906ed4dede546f45389a35ab68aec47a2431272f0e5f80b471d6b723"
+    }
+  },
+  "used_500k_training": false,
+  "verified_query_count_at_final_gate": 457314,
+  "collector_unchanged": true,
+  "source_receipt_sha256": "c6304420057711419bed1147753be54db0f34a666fbcf280abe531511de12bf6"
+}

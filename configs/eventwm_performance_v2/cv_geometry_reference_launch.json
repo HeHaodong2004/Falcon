@@ -1,0 +1,15 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cv_geometry_reference",
+  "module": "eventforecastwm.performance_v2.assemble",
+  "args": [
+    "--physical",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_agent_scale/result.model.pt",
+    "--prior",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/anonymous_occupancy/prior.pt",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cv_geometry_reference/result.pt"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/runtime/nvidia-595.91.07/usr/lib/x86_64-linux-gnu"
+  }
+}

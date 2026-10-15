@@ -1,0 +1,19 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/workflow_scaling500k_freeze",
+  "cache": {
+    "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/guard_cache_launch.json"
+  },
+  "max_hours": 6,
+  "jobs_per_gpu": 1,
+  "gpu_launch_free_gib": 8,
+  "jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/scaling500k_snapshot_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014/result.json",
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015/result.json"
+      ]
+    }
+  ]
+}

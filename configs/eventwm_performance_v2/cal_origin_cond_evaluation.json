@@ -1,0 +1,9 @@
+{
+  "protocol": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+  "manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+  "prepared_cache": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075",
+  "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_origin_cond/model.pt",
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_origin_cond_evaluation",
+  "all_windows": true,
+  "uncertainty": true
+}

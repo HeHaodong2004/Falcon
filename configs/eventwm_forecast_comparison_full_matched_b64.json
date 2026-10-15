@@ -1,0 +1,18 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_full_matched_b64",
+  "module": "eventforecastwm.compare",
+  "args": [
+    "--reference",
+    "C64",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_full_matched_b64/result.json",
+    "--result",
+    "C64=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_correlated_b64_ou_reuse/result.json",
+    "--result",
+    "P14=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_ou_reuse/result.json",
+    "--result",
+    "P15=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_ou_reuse/result.json",
+    "--result",
+    "Map=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_map_patch_full_ou_reuse/result.json"
+  ]
+}

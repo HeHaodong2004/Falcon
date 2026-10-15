@@ -1,0 +1,11 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_regime_gate",
+  "module": "eventforecastwm.performance_v2.stopped_control",
+  "args": [
+    "--config",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/incumbent_s15_regime_gate.json"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/runtime/nvidia-595.91.07/usr/lib/x86_64-linux-gnu"
+  }
+}

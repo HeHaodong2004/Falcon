@@ -1,0 +1,107 @@
+{
+  "status": "publication_verification_complete",
+  "timestamp": 1792098248.8078895,
+  "research_source_commit": "d593958f634b449317cc341ff2415048cded8061",
+  "exact_research_source_files_verified": 175,
+  "forecast_tests": 97,
+  "tests_log_sha256": "42e378668d9ca70860e88f5dead3773c4b2b969aef268eed7a0b17cea417bef2",
+  "wrong_checkpoint_role_rejected": true,
+  "synthetic_history_has_no_dataset_dependency": true,
+  "interface_smoke": {
+    "status": "analytic_cv_interface_smoke_passed",
+    "trained_ldm": false,
+    "samples": [
+      1,
+      6,
+      12,
+      2,
+      2
+    ],
+    "legal_tracks": 2,
+    "composition_exact": true
+  },
+  "checkpoint_examples": {
+    "age_calibrated_alternative": {
+      "checkpoint_sha256": "bf8524f73740b75a3b7d79eb5f6a3d0d00365455570d9b2a7debcc74307dbcff",
+      "finite": true,
+      "identical_seed_arrays_equal": true,
+      "shape_samples": [
+        1,
+        6,
+        12,
+        2,
+        2
+      ]
+    },
+    "age_calibrated_replicate": {
+      "checkpoint_sha256": "b34604863cd0037c7bf276777d6fe11a0e860f0e88d0274a71d1ac188ad1ff86",
+      "finite": true,
+      "identical_seed_arrays_equal": true,
+      "shape_samples": [
+        1,
+        6,
+        12,
+        2,
+        2
+      ]
+    },
+    "horizon_alternative": {
+      "checkpoint_sha256": "65a0cf8cca30d41c325214e51d6933dddc380b5c6039280fc2c32213c91f267b",
+      "finite": true,
+      "identical_seed_arrays_equal": true,
+      "shape_samples": [
+        1,
+        6,
+        12,
+        2,
+        2
+      ]
+    },
+    "primary": {
+      "checkpoint_sha256": "d092b5d05d38be4619251e009d2aa2dafc691f3f57440473d72e87acf7887970",
+      "finite": true,
+      "identical_seed_arrays_equal": true,
+      "shape_samples": [
+        1,
+        6,
+        12,
+        2,
+        2
+      ]
+    },
+    "replicate": {
+      "checkpoint_sha256": "2faaeff8b19f7298b39eea506354d20e18247d4607ba2ff683c00758a38e6063",
+      "finite": true,
+      "identical_seed_arrays_equal": true,
+      "shape_samples": [
+        1,
+        6,
+        12,
+        2,
+        2
+      ]
+    },
+    "stopped_alternative": {
+      "checkpoint_sha256": "36bdf8a09701ea4dc0c484af1037f40a37afa1c6ae30b1aaf26b63d96e23d52b",
+      "finite": true,
+      "identical_seed_arrays_equal": true,
+      "shape_samples": [
+        1,
+        6,
+        12,
+        2,
+        2
+      ]
+    }
+  },
+  "runtime_s": 29.03115439414978,
+  "environment": {
+    "python": "3.9.19",
+    "torch": "1.12.1",
+    "numpy": "1.23.5",
+    "scipy": "1.13.1"
+  },
+  "fresh_environment_install_tested": false,
+  "checkpoint_binaries_in_git": false,
+  "full_data_training_repeated_for_publication": false
+}

@@ -1,0 +1,61 @@
+{
+  "status": "prepared_not_enqueued",
+  "jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cv_geometry_reference_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/anonymous_occupancy/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/cv_geometry_reference_evaluation_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cv_geometry_reference/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_primary_standalone_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_primary_recurrent_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_replicate_standalone_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_replicate_recurrent_launch.json",
+      "gpu": null,
+      "requires": []
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_primary_latency_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/selection.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/fallback_primary_latency_launch.json",
+      "gpu": 1,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_latency/result.json"
+      ]
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/candidate_review_calibration_plot_launch.json",
+      "gpu": null,
+      "requires": [
+        "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review_primary_conditional_coverage/result.json"
+      ]
+    }
+  ],
+  "reason": "Same-prior CV benchmark, frozen-fallback verification, legal latency, and calibration figures; no new model search."
+}

@@ -1,0 +1,21 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark4096_correlated",
+  "module": "eventforecastwm.benchmark_cached",
+  "args": [
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage4352.json",
+    "--protocol",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark4096_correlated/result.json",
+    "--checkpoint",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/correlated_4096_cached/best.pt",
+    "--profile",
+    "--fit-scale",
+    "4096",
+    "--device",
+    "cpu",
+    "--prepared-cache",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075"
+  ]
+}

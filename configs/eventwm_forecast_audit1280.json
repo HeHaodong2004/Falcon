@@ -1,0 +1,12 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/audit1280",
+  "module": "eventforecastwm.audit",
+  "args": [
+    "--protocol-dir",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol",
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage1280.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/audit1280/result.json"
+  ]
+}

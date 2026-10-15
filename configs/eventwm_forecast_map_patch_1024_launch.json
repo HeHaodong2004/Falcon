@@ -1,0 +1,8 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/map_patch_1024",
+  "module": "eventforecastwm.train_map_patch",
+  "args": [
+    "--config",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_map_patch_1024.json"
+  ]
+}

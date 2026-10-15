@@ -1,0 +1,18 @@
+{
+  "python": "3.9.19 | packaged by conda-forge | (main, Mar 20 2024, 12:50:21) \n[GCC 12.3.0]",
+  "executable": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "packages": {
+    "torch": "1.12.1",
+    "numpy": "1.23.5",
+    "scipy": "1.13.1",
+    "matplotlib": "3.3.2",
+    "scikit-learn": null,
+    "PyYAML": "6.0.3",
+    "tqdm": "4.67.1",
+    "Pillow": "8.4.0",
+    "habitat-sim": "0.3.1",
+    "habitat-lab": "0.3.1"
+  },
+  "scope": "Installed runtime metadata only; no packages or drivers changed"
+}

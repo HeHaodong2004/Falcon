@@ -1,0 +1,5 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_protocol",
+  "snapshot": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_snapshot/snapshot.json",
+  "parent_snapshot": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_350k_belief_snapshot_20261014/snapshot.json"
+}

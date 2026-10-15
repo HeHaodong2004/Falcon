@@ -1,0 +1,8 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_full_incremental_physics",
+  "module": "eventforecastwm.performance_v2.physics_diagnostics",
+  "args": [
+    "--config",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/regime_full_incremental_physics.json"
+  ]
+}

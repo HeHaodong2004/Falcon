@@ -1,0 +1,18 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/historical_diagnosis_v2",
+  "module": "eventforecastwm.historical_diagnosis",
+  "args": [
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+    "--protocol",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+    "--old-run",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_350k_belief_20261014/pilot128_stochastic_belief",
+    "--old-cache",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_350k_belief_20261014/cache_pilot128_trainready",
+    "--prepared-cache",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/historical_diagnosis_v2/result.json"
+  ]
+}

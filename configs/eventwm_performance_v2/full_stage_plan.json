@@ -1,0 +1,26 @@
+{
+  "status": "prepared_not_promoted_not_launched",
+  "family": "posterior_self_v2",
+  "seeds": [
+    20261014,
+    20261015
+  ],
+  "updates_per_seed": 24576,
+  "batch_size": 64,
+  "warmup": 128,
+  "eval_every": 256,
+  "required_promotion_receipt": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_family_selection/promotion_pass.json",
+  "required_completed_comparisons": [
+    "physical_window_cohorts",
+    "intermediate_window_cohorts"
+  ],
+  "protocol": "research_results/eventwm_forecast_performance_v2_20261015/PROTOCOL.md",
+  "probability_panel": [
+    "agent_scale",
+    "age_cond",
+    "age_geometry",
+    "half_weight_regime_geometry"
+  ],
+  "unchanged_reference": "Immutable original full-data two-seed physical runs and checkpoints",
+  "source_note": "Configuration preparation is not evidence of execution or promotion"
+}

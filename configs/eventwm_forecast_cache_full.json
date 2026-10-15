@@ -1,0 +1,13 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full",
+  "module": "eventforecastwm.data",
+  "args": [
+    "build",
+    "--protocol-dir",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full",
+    "--workers",
+    "2"
+  ]
+}

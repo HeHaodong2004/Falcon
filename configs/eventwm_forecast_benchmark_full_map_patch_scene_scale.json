@@ -1,0 +1,26 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_map_patch_scene_scale",
+  "module": "eventforecastwm.benchmark_reuse",
+  "args": [
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+    "--protocol",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_map_patch_scene_scale/result.json",
+    "--checkpoint",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_map_patch_full_ou_reuse/result.model.pt",
+    "--profile",
+    "--fit-scale",
+    "full",
+    "--device",
+    "cpu",
+    "--prepared-cache",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075",
+    "--prior-cache",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/anonymous_prior_cache",
+    "--geometry-manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry_full/manifest.json",
+    "--scale-mixture"
+  ]
+}

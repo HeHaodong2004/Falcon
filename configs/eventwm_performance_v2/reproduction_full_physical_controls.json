@@ -1,0 +1,22 @@
+{
+  "workflow": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/workflow_training_priority_v17.json",
+  "workflow_launch": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/workflow_training_priority_v17_launch.json",
+  "include_runs": [
+    "full_self_s20261014",
+    "full_self_s20261014_ou",
+    "full_self_s20261014_scene_scale",
+    "full_self_s20261014_agent_scale",
+    "full_self_s20261014_agent_scale_evaluation",
+    "full_self_s20261014_age_cond",
+    "full_self_s20261014_age_geometry",
+    "full_self_s20261014_age_geometry_evaluation",
+    "full_self_s20261015",
+    "full_self_s20261015_ou",
+    "full_self_s20261015_scene_scale",
+    "full_self_s20261015_agent_scale",
+    "full_self_s20261015_agent_scale_evaluation",
+    "full_self_s20261015_age_cond",
+    "full_self_s20261015_age_geometry",
+    "full_self_s20261015_age_geometry_evaluation"
+  ]
+}

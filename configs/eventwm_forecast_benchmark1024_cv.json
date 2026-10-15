@@ -1,0 +1,23 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark1024_cv",
+  "module": "eventforecastwm.benchmark",
+  "args": [
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest_stage1280.json",
+    "--protocol",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark1024_cv/result.json",
+    "--kind",
+    "cv",
+    "--motion-window",
+    "0.15",
+    "--noise",
+    "integrated",
+    "--profile",
+    "--fit-scale",
+    "1024",
+    "--device",
+    "cpu"
+  ]
+}

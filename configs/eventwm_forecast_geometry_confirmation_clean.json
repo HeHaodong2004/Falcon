@@ -1,0 +1,10 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry_confirmation_clean",
+  "module": "eventforecastwm.geometry",
+  "args": [
+    "--manifest",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_clean_cache/manifest.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry_confirmation_clean"
+  ]
+}

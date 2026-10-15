@@ -1,0 +1,96 @@
+{
+  "population": "confirmation",
+  "bank": "natural_reference",
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_natural_qualitative",
+  "protocol": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+  "manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_cache/manifest.json",
+  "prepared_cache": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_prepared/motion_0p75",
+  "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+  "confirmation_receipt": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_panel/result.json",
+  "decision": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/final_selection/confirmation_decision.json",
+  "membership": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_protocol/membership.json",
+  "models": {
+    "Released v1": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/primary.pt",
+    "Selected v2 candidate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/primary.pt"
+  },
+  "cases": [
+    {
+      "root_id": "v3m_772276e914c439ddb2db",
+      "window": 0,
+      "error": 0.8680664896965027,
+      "max_age": -0.0,
+      "visible": true,
+      "turning": false,
+      "agents": 1,
+      "label": "Visible",
+      "selection_quantile": 0.5
+    },
+    {
+      "root_id": "v3m_0d1a24f85e84a63807a9",
+      "window": 2,
+      "error": 1.1899477144082387,
+      "max_age": 1.8480000495910645,
+      "visible": false,
+      "turning": true,
+      "agents": 6,
+      "label": "Temporarily lost",
+      "selection_quantile": 0.5
+    },
+    {
+      "root_id": "v3m_1a3ba5c897128ad1d90b",
+      "window": 0,
+      "error": 2.3870961666107178,
+      "max_age": 5.696000099182129,
+      "visible": false,
+      "turning": false,
+      "agents": 1,
+      "label": "Long observation gap",
+      "selection_quantile": 0.5
+    },
+    {
+      "root_id": "v3m_37895b4ad3712688b3b2",
+      "window": 0,
+      "error": 1.2886288563410442,
+      "max_age": 6.4720001220703125,
+      "visible": false,
+      "turning": false,
+      "agents": 3,
+      "label": "Dense tracked scene",
+      "selection_quantile": 0.5
+    },
+    {
+      "root_id": "v3m_80cbe35e46bc01dbb333",
+      "window": 1,
+      "error": 1.285442590713501,
+      "max_age": -0.0,
+      "visible": true,
+      "turning": true,
+      "agents": 1,
+      "label": "Turning",
+      "selection_quantile": 0.5
+    },
+    {
+      "root_id": "v3m_7b31c2d7cd4471991dde",
+      "window": 2,
+      "error": 0.7404103577136993,
+      "max_age": 1.7039999961853027,
+      "visible": false,
+      "turning": false,
+      "agents": 4,
+      "label": "Lower error",
+      "selection_quantile": 0.1
+    },
+    {
+      "root_id": "v3m_c2f46b1cc284b77d2b5a",
+      "window": 3,
+      "error": 6.415679931640625,
+      "max_age": 7.639999866485596,
+      "visible": false,
+      "turning": false,
+      "agents": 1,
+      "label": "Higher error",
+      "selection_quantile": 0.9
+    }
+  ],
+  "case_selection": "Baseline-only root medians and 10th/90th error quantiles; same preregistered selection rule as development, no candidate-improvement selection"
+}

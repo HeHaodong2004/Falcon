@@ -1,0 +1,64 @@
+{
+  "research_source_commit": "d593958f634b449317cc341ff2415048cded8061",
+  "release_manifest_sha256": "9645f5e5faaa966a2c75799dbac9cc785b482d25a053d7e49d45e719906a04cf",
+  "models": {
+    "age_calibrated_alternative": {
+      "filename": "age_calibrated_alternative.pt",
+      "sha256": "bf8524f73740b75a3b7d79eb5f6a3d0d00365455570d9b2a7debcc74307dbcff",
+      "bytes": 2872711,
+      "seed": 20261014,
+      "role": "documented alternative; not primary",
+      "distributed_in_git": false
+    },
+    "age_calibrated_replicate": {
+      "filename": "age_calibrated_replicate.pt",
+      "sha256": "b34604863cd0037c7bf276777d6fe11a0e860f0e88d0274a71d1ac188ad1ff86",
+      "bytes": 2872903,
+      "seed": 20261015,
+      "role": "documented alternative; not primary",
+      "distributed_in_git": false
+    },
+    "horizon_alternative": {
+      "filename": "horizon_alternative.pt",
+      "sha256": "65a0cf8cca30d41c325214e51d6933dddc380b5c6039280fc2c32213c91f267b",
+      "bytes": 2876033,
+      "seed": 20261014,
+      "role": "documented alternative; not primary",
+      "distributed_in_git": false
+    },
+    "primary": {
+      "filename": "primary.pt",
+      "sha256": "d092b5d05d38be4619251e009d2aa2dafc691f3f57440473d72e87acf7887970",
+      "bytes": 2543495,
+      "seed": 20261014,
+      "role": "retained primary; identical to v1",
+      "distributed_in_git": false
+    },
+    "replicate": {
+      "filename": "replicate.pt",
+      "sha256": "2faaeff8b19f7298b39eea506354d20e18247d4607ba2ff683c00758a38e6063",
+      "bytes": 2543495,
+      "seed": 20261015,
+      "role": "independent v1 replicate",
+      "distributed_in_git": false
+    },
+    "stopped_alternative": {
+      "filename": "stopped_alternative.pt",
+      "sha256": "36bdf8a09701ea4dc0c484af1037f40a37afa1c6ae30b1aaf26b63d96e23d52b",
+      "bytes": 2875713,
+      "seed": 20261014,
+      "role": "documented alternative; not primary",
+      "distributed_in_git": false
+    }
+  },
+  "local_release": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/release_forecast_v2_20261015",
+  "public_download_url": null,
+  "availability": "Checkpoint files remain in the verified local release. No public weight download is claimed. Authorized holders can verify them with publication/verify_artifacts.py; other users need authorized artifacts or the licensed-data training recipe.",
+  "dataset_requirements": "Frozen EventWM 350k snapshot plus licensed HM3D/MP3D scene assets for extraction; never in Git.",
+  "dataset_sha256": {
+    "fitting_protocol": "a70f5a57e06f4461308438150dac6cc01e53e6e2de2d3218f1e62c9c297b7307",
+    "fitting_manifest": "d8df96f6cfd61c6677987ab22eef3d53eb1e29a426651fc0a313846f8efc43d7",
+    "snapshot350k": "5836bd381a206ecd3200134fa7de392317884a57e40397abf37c48c417255c27",
+    "confirmation_snapshot": "59c18f61843f871c09c4249fabd879e4fb0e5b21cb0af731ed93a2873618ca42"
+  }
+}

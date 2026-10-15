@@ -1,0 +1,20 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/workflow_v10",
+  "cache": {
+    "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_cache_full.json"
+  },
+  "jobs": [
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_evaluation_queue_v8_launch.json",
+      "gpu": null
+    },
+    {
+      "config": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_latency_full_posterior_agent_scale_dense_cuda.json",
+      "gpu": 0
+    }
+  ],
+  "max_hours": 16,
+  "purpose": "Keep one training process per GPU and one CPU evaluator. Append bounded energy-only and likelihood-only controls after the existing GPU1 queue completes; all full-data budgets and collector thresholds stay fixed.",
+  "jobs_per_gpu": 1,
+  "gpu_launch_free_gib": 8
+}

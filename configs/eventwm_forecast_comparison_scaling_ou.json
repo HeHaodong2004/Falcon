@@ -1,0 +1,16 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_scaling_ou",
+  "module": "eventforecastwm.compare",
+  "args": [
+    "--reference",
+    "C1k",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_scaling_ou/result.json",
+    "--result",
+    "C1k=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark1024_correlated_damped/result.json",
+    "--result",
+    "C4k=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark4096_correlated_ou_reuse/result.json",
+    "--result",
+    "Cfull=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_interim_full_correlated_ou/result.json"
+  ]
+}

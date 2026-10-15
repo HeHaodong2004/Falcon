@@ -1,0 +1,8 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/guard_keeper_v4",
+  "module": "eventforecastwm.guard_keeper",
+  "args": [
+    "--config",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_guard_keeper_v4.json"
+  ]
+}

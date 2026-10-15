@@ -1,0 +1,133 @@
+{
+  "timestamp": 1792050324.6415095,
+  "stage": "precommitted before reserved forecasting scores",
+  "membership_sha256": "c35502fe8f9c83afd12cc7c025250ca853c071f904b150debc905f486c8c44e1",
+  "manifest_sha256": "8eb661949427a790c2951f7ca30379c169346fd4eba641f82052c5914ecef60c",
+  "models": {
+    "CV_agent": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_agent_scale/result.model.pt",
+      "sha256": "a0e5c101ac3469a994eddb683832282c731ff5e1a6841cc7c1634d1dea461709",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_agent_scale/result.json",
+      "development_result_sha256": "4510395f805878f7f79cb3a587715dcc6767c7573969c0d38108dd2a41e8d2df",
+      "role": "fixed comparison or replication"
+    },
+    "Filtered_agent": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_filtered_agent_scale/result.model.pt",
+      "sha256": "5a9f27a7907cecc86fea1bc12c61fe50ef832c11adcb419985115305be6e5824",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_filtered_agent_scale/result.json",
+      "development_result_sha256": "9f66528df1edac53759ffe42214b95bfb541ab48f95196e26d6231786a522cdb",
+      "role": "fixed comparison or replication"
+    },
+    "B_agent": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_deterministic_agent_scale/result.model.pt",
+      "sha256": "3b35504e8022b76089b5918ca1a30aa1114f54321ccb8db17baa77619804825d",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_deterministic_agent_scale/result.json",
+      "development_result_sha256": "0c2125cc0dfa6899a7782d6f3402f9362fe58912d73678a826678c9f04cf32a9",
+      "role": "fixed comparison or replication"
+    },
+    "C_agent": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_correlated_agent_scale/result.model.pt",
+      "sha256": "583a360925ae7658aeff09b353684b63d6b891a8c3c11beae15dfb6ea250bad4",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_correlated_agent_scale/result.json",
+      "development_result_sha256": "1aa0a0000f7f9bd342bc5bc7e98a863da97e155f9a36006767ba84515cb80276",
+      "role": "fixed comparison or replication"
+    },
+    "P14_agent": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_agent_scale/result.model.pt",
+      "sha256": "d092b5d05d38be4619251e009d2aa2dafc691f3f57440473d72e87acf7887970",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_agent_scale/result.json",
+      "development_result_sha256": "94a39c7a2e0e36300d289e492a21447639a73ef24b7e3b74d6a5f7c82ef58375",
+      "role": "primary selected model"
+    },
+    "P15_agent": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_agent_scale/result.model.pt",
+      "sha256": "2faaeff8b19f7298b39eea506354d20e18247d4607ba2ff683c00758a38e6063",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_agent_scale/result.json",
+      "development_result_sha256": "c0b0e4488cd68d5cd31440ce6b068f235e55c05948ceec0366c00cd8c0d284b2",
+      "role": "fixed comparison or replication"
+    },
+    "Map_agent": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_map_patch_agent_scale/result.model.pt",
+      "sha256": "1615b9300810e47dfdad345efbd6e20d92de6bdfd386886383b01132b0d5d84e",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_map_patch_agent_scale/result.json",
+      "development_result_sha256": "e78be9c97ef38d48c701d7ff3d7d427f943fb39c146975f5ac6da2bc288c10ba",
+      "role": "fixed comparison or replication",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry_confirmation_clean/manifest.json",
+      "geometry_manifest_sha256": "b9db75fec40b666ee0c7b08ffe063312e4d3a073d738e0fe4df0a437f643bd3b"
+    },
+    "CV_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_ou_reuse/result.model.pt",
+      "sha256": "a3afbd4565ed0f43adf9278d723f603ab88c75c32b3badd5daa6da5574865033",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_ou_reuse/result.json",
+      "development_result_sha256": "dbbf1d90e33d9961c9464e06cf837569c16793ea12fb53e4a95afe430074d257",
+      "role": "fixed comparison or replication"
+    },
+    "Filtered_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_filtered_ou_reuse/result.model.pt",
+      "sha256": "699d29e36af6a01e2c1290ccf027a27d94a20d2e823b788af170adf9362a04a1",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_filtered_ou_reuse/result.json",
+      "development_result_sha256": "2203a2038848656203486316d2331907a2e9a1b3708d86c6fd1c5f5c4fd1ce19",
+      "role": "fixed comparison or replication"
+    },
+    "B_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_deterministic_ou_reuse/result.model.pt",
+      "sha256": "7c49a53b119408f1e95e9442baea7bb029679f1ecae982e4ee7ea27a64f62e2c",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_deterministic_ou_reuse/result.json",
+      "development_result_sha256": "f781756105390ce4a1259dde4dcf66c366608ab970f1886b15bbe207905e1207",
+      "role": "fixed comparison or replication"
+    },
+    "C_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_interim_full_correlated_ou/result.model.pt",
+      "sha256": "8e9d0c7d4ceb5173263a67449c5561a1f16ee71708a966d6d6354e0a76d5678f",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_interim_full_correlated_ou/result.json",
+      "development_result_sha256": "1c59c43885e0d0ac0eff2b33aa9ffc2b7d5187046b5237b8e3595692bb51c49b",
+      "role": "fixed comparison or replication"
+    },
+    "C64_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_correlated_b64_ou_reuse/result.model.pt",
+      "sha256": "002de293ebba412609c8b20c15f7c4e21621b9007e02109d7179877a34980010",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_correlated_b64_ou_reuse/result.json",
+      "development_result_sha256": "5431303276b64dc5e41daa3ec0e93587b74fcfab646b546a9bdb28f857ddea81",
+      "role": "fixed comparison or replication"
+    },
+    "P14_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_ou_reuse/result.model.pt",
+      "sha256": "ec4e3b0790531f7b688116ccf5be00b73aca0c26e6ed36cb8c4d1d94b231f1e6",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_ou_reuse/result.json",
+      "development_result_sha256": "ef8e86bd67fdc152ba2913d77d8f99fc88eec38dada44f1049c9926109658c16",
+      "role": "fixed comparison or replication"
+    },
+    "P15_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_ou_reuse/result.model.pt",
+      "sha256": "0dd5e601f8011630d4216e480c4bb135a6c26a210e2cee6312bcd9cf71a155b9",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_ou_reuse/result.json",
+      "development_result_sha256": "51bd9a8d3dbd9d28623865e2cb58baefdbc8836c6e4f84d0ff56238df0450ee5",
+      "role": "fixed comparison or replication"
+    },
+    "Map_ou": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_map_patch_full_ou_reuse/result.model.pt",
+      "sha256": "eacad58e93564cdff2de8131171f898510662778ba3cc2de4dce327405c2572e",
+      "development_result": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_map_patch_full_ou_reuse/result.json",
+      "development_result_sha256": "8f7bfbad717c935fe5bd4d952281e363fe3133b6dad129cf143756afde2823ea",
+      "role": "fixed comparison or replication",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry_confirmation_clean/manifest.json",
+      "geometry_manifest_sha256": "b9db75fec40b666ee0c7b08ffe063312e4d3a073d738e0fe4df0a437f643bd3b"
+    }
+  },
+  "primary": "P14_agent",
+  "replicate": "P15_agent",
+  "primary_horizons_s": [
+    1,
+    3
+  ],
+  "long_horizon_status": "5 s supported targets, extrapolation beyond 3 s training",
+  "selection_reason": "Initial-belief correction improves short-horizon distribution quality in both full-data seeds. Per-agent persistent scale mixtures improve joint density calibration/likelihood relative to Gaussian OU, with an Energy Score tradeoff. Map-only forecasting is retained as a single-seed comparison; its 1k combination with initial-belief correction did not improve the standalone models. No general identity/existence calibration claim.",
+  "rules": [
+    "No calibration, model selection, membership changes or parameter updates after opening this panel.",
+    "Report every precommitted model, both banks, all support counts, and failed/negative comparisons.",
+    "Primary comparison uses identical per-agent variance laws and physical target support. Gaussian OU is a separate matched panel.",
+    "P14 and P15 remain separate trained predictors; two seeds do not establish a population distribution of seed effects.",
+    "NLL-only final-checkpoint diagnostic remains development-only and cannot change this selection.",
+    "No navigation, selector, policy, action ranking or event classification promotion criterion."
+  ]
+}

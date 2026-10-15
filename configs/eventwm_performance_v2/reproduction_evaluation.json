@@ -1,0 +1,10 @@
+{
+  "workflow": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/workflow_training_priority_v17.json",
+  "workflow_launch": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_checkout/configs/eventwm_performance_v2/workflow_training_priority_v17_launch.json",
+  "include_runs": [
+    "incumbent_evaluation",
+    "incumbent_s15_evaluation",
+    "selected_primary_reproduction_evaluation",
+    "incumbent_s15_age_geometry_evaluation"
+  ]
+}

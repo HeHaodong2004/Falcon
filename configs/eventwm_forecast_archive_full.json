@@ -1,0 +1,12 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/checkpoint_archive",
+  "module": "eventforecastwm.archive_checkpoints",
+  "args": [
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/checkpoint_archive",
+    "--run",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/deterministic_gp_full_cached",
+    "--run",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/correlated_full_cached"
+  ]
+}

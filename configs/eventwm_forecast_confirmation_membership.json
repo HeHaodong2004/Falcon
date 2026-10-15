@@ -1,0 +1,11 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_membership",
+  "module": "eventforecastwm.confirmation",
+  "args": [
+    "prepare",
+    "--snapshot",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_350k_belief_snapshot_20261014/snapshot.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_protocol"
+  ]
+}

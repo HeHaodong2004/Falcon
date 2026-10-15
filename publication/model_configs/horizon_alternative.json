@@ -1,0 +1,298 @@
+{
+  "role": "horizon_alternative",
+  "checkpoint_sha256": "65a0cf8cca30d41c325214e51d6933dddc380b5c6039280fc2c32213c91f267b",
+  "seed": 20261014,
+  "recipe": {
+    "variant": "geometry_occupancy_v2",
+    "physical_recipe": {
+      "variant": "stopped_agent_scale_v2",
+      "physical_recipe": {
+        "kind": "stochastic",
+        "width": 128,
+        "modes": 6,
+        "noise": "integrated",
+        "motion_window": 0.75,
+        "interaction_layers": 2,
+        "variant": "agent_scene_scale_v1",
+        "age_aware": true,
+        "mean_variant": "posterior_v1",
+        "scale_std": [
+          0.1,
+          0.25,
+          0.5,
+          1.0,
+          2.0,
+          4.0,
+          8.0
+        ],
+        "conditional": true
+      },
+      "stop_weight": 0.5
+    },
+    "physical_uses_geometry": false
+  },
+  "calibration": {
+    "status": "calibration_complete",
+    "steps": 512,
+    "fit_roots": 8965,
+    "supported_roots": 6180,
+    "supported_windows": 26338,
+    "likelihood_window_horizon_pairs": 41258,
+    "supported_windows_by_horizon": {
+      "1.0": 26338,
+      "3.0": 14920
+    },
+    "curve": [
+      {
+        "step": 1,
+        "nll": -0.7348155975341797,
+        "penalty": 0.0
+      },
+      {
+        "step": 32,
+        "nll": -0.7439479231834412,
+        "penalty": 0.0017620668513700366
+      },
+      {
+        "step": 64,
+        "nll": -0.7439829111099243,
+        "penalty": 0.0013744635507464409
+      },
+      {
+        "step": 96,
+        "nll": -0.7440333366394043,
+        "penalty": 0.001331173349171877
+      },
+      {
+        "step": 128,
+        "nll": -0.7440614700317383,
+        "penalty": 0.0013329550856724381
+      },
+      {
+        "step": 160,
+        "nll": -0.7440717816352844,
+        "penalty": 0.0013354753609746695
+      },
+      {
+        "step": 192,
+        "nll": -0.7440755367279053,
+        "penalty": 0.0013363627949729562
+      },
+      {
+        "step": 224,
+        "nll": -0.7440769672393799,
+        "penalty": 0.0013362830504775047
+      },
+      {
+        "step": 256,
+        "nll": -0.7440778017044067,
+        "penalty": 0.0013360930606722832
+      },
+      {
+        "step": 288,
+        "nll": -0.7440784573554993,
+        "penalty": 0.001335980836302042
+      },
+      {
+        "step": 320,
+        "nll": -0.7440789341926575,
+        "penalty": 0.0013359144795686007
+      },
+      {
+        "step": 352,
+        "nll": -0.7440794110298157,
+        "penalty": 0.0013358682626858354
+      },
+      {
+        "step": 384,
+        "nll": -0.7440798282623291,
+        "penalty": 0.0013358340365812182
+      },
+      {
+        "step": 416,
+        "nll": -0.744080126285553,
+        "penalty": 0.0013358067953959107
+      },
+      {
+        "step": 448,
+        "nll": -0.7440803647041321,
+        "penalty": 0.001335783745162189
+      },
+      {
+        "step": 480,
+        "nll": -0.7440805435180664,
+        "penalty": 0.0013357653515413404
+      },
+      {
+        "step": 512,
+        "nll": -0.7440807819366455,
+        "penalty": 0.00133574940264225
+      }
+    ],
+    "physical_hash": "92809d790ad06f953fe6ae5cfb4a49cecd3329b5692888c1e504960077701a49",
+    "physical_means_unchanged": true,
+    "runtime_s": 895.8368277549744,
+    "recipe": {
+      "kind": "stochastic",
+      "width": 128,
+      "modes": 6,
+      "noise": "integrated",
+      "motion_window": 0.75,
+      "interaction_layers": 2,
+      "variant": "agent_scene_scale_v1",
+      "age_aware": true,
+      "mean_variant": "posterior_v1",
+      "scale_std": [
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.0,
+        4.0,
+        8.0
+      ],
+      "conditional": true
+    },
+    "identity": {
+      "config": {
+        "protocol": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+        "manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+        "prepared_cache": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075",
+        "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/primary.pt",
+        "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_horizon13_age_cond",
+        "windows": "all",
+        "conditional": true,
+        "age_aware": true,
+        "device": "cpu",
+        "fit_scale": "full",
+        "steps": 512,
+        "seed": 20261015,
+        "regularization": 0.001,
+        "horizons": [
+          1.0,
+          3.0
+        ],
+        "incremental_density_cache": true
+      },
+      "checkpoint_sha256": "d092b5d05d38be4619251e009d2aa2dafc691f3f57440473d72e87acf7887970",
+      "manifest_sha256": "d8df96f6cfd61c6677987ab22eef3d53eb1e29a426651fc0a313846f8efc43d7",
+      "protocol_sha256": "a70f5a57e06f4461308438150dac6cc01e53e6e2de2d3218f1e62c9c297b7307",
+      "source_sha256": "e5fcacd65597fb13abf96133200071a6683c8ff6d8a1ff928846ac288f6fb0ce",
+      "density_cache_sha256": "9fab86934eb5ddf43d42e2e90d8967797e96c0f194118e7983c3c491ebad1ea8"
+    },
+    "objective": "mean roots, then available horizons, then supported-window exact NLL per coordinate, plus context L2 penalty",
+    "peak_gpu_bytes": null
+  },
+  "regime_calibration": {
+    "steps": 512,
+    "fit_roots": 8965,
+    "supported_roots": 5782,
+    "supported_windows": 14920,
+    "curve": [
+      {
+        "step": 1,
+        "nll": -1.0529602766036987,
+        "penalty": 0.0
+      },
+      {
+        "step": 32,
+        "nll": -1.0640356540679932,
+        "penalty": 0.0009638541378080845
+      },
+      {
+        "step": 64,
+        "nll": -1.0651216506958008,
+        "penalty": 0.0008223741315305233
+      },
+      {
+        "step": 96,
+        "nll": -1.065455436706543,
+        "penalty": 0.0005944586009718478
+      },
+      {
+        "step": 128,
+        "nll": -1.0656592845916748,
+        "penalty": 0.0005945078446529806
+      },
+      {
+        "step": 160,
+        "nll": -1.065746784210205,
+        "penalty": 0.0006274011684581637
+      },
+      {
+        "step": 192,
+        "nll": -1.0657825469970703,
+        "penalty": 0.0006524281925521791
+      },
+      {
+        "step": 224,
+        "nll": -1.065796136856079,
+        "penalty": 0.0006644733366556466
+      },
+      {
+        "step": 256,
+        "nll": -1.065800666809082,
+        "penalty": 0.0006688477587886155
+      },
+      {
+        "step": 288,
+        "nll": -1.065801978111267,
+        "penalty": 0.0006701134843751788
+      },
+      {
+        "step": 320,
+        "nll": -1.0658023357391357,
+        "penalty": 0.000670391833409667
+      },
+      {
+        "step": 352,
+        "nll": -1.0658023357391357,
+        "penalty": 0.0006704317638650537
+      },
+      {
+        "step": 384,
+        "nll": -1.0658023357391357,
+        "penalty": 0.0006704324623569846
+      },
+      {
+        "step": 416,
+        "nll": -1.0658023357391357,
+        "penalty": 0.0006704314146190882
+      },
+      {
+        "step": 448,
+        "nll": -1.0658023357391357,
+        "penalty": 0.0006704314146190882
+      },
+      {
+        "step": 480,
+        "nll": -1.0658023357391357,
+        "penalty": 0.0006704314146190882
+      },
+      {
+        "step": 512,
+        "nll": -1.0658023357391357,
+        "penalty": 0.0006704314146190882
+      }
+    ],
+    "parameters": 18,
+    "physical_parameters_frozen": true,
+    "note": "Distribution mean changes by mixing a stationary alternative; physical branch parameters and noise stay frozen"
+  },
+  "composition": {
+    "physical_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime/result.pt",
+    "physical_sha256": "ae2a967442c2e54ff96ff16ec1f69e44d4a758b02153bb0222d6317e1bb64ba7",
+    "anonymous_prior": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/anonymous_occupancy/prior.pt",
+    "anonymous_prior_sha256": "026870771174461c773b44d5ff931f5fb42c47111002d00a33b605aae7a0c1ee",
+    "strength": 128.0,
+    "source_commit": "c60e5a8daea7047b5c7a05562d3f14a819adfcaa",
+    "source_sha256": "9a94c228e63bd85e3e2a3fa99da50f0607810dc3b56a9ca9bca306d12ddc8d62",
+    "hybrid_sha256": "71cc14fc81f20a8ebed90d6a67c55178488e34df74e4811e40b89ae84c811fac",
+    "fitting_performed": false,
+    "selection_population": "development only; this is not a final release decision"
+  },
+  "fit_root_count": 8965,
+  "fit_root_ids_sha256": "d0a2e1046cdc0ccc66da265a01f1abbe8c4964ff88e1ab62513c43f5ccb47de4",
+  "scope": "Checkpoint metadata; actual trained tensors and occupancy prior are in the checkpoint; state element counts include registered buffers and are not trained parameter counts",
+  "stored_state_tensor_elements_including_buffers": 612148
+}

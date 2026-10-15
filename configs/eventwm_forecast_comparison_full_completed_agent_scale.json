@@ -1,0 +1,24 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_full_completed_agent_scale",
+  "module": "eventforecastwm.compare",
+  "args": [
+    "--reference",
+    "CV",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_full_completed_agent_scale/result.json",
+    "--result",
+    "CV=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_agent_scale/result.json",
+    "--result",
+    "Filtered=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_filtered_agent_scale/result.json",
+    "--result",
+    "B=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_deterministic_agent_scale/result.json",
+    "--result",
+    "C=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_correlated_agent_scale/result.json",
+    "--result",
+    "P14=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_agent_scale/result.json",
+    "--result",
+    "P15=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261015_agent_scale/result.json",
+    "--result",
+    "Map=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_map_patch_agent_scale/result.json"
+  ]
+}

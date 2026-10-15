@@ -1,0 +1,8 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/stochastic_full_cached",
+  "module": "eventforecastwm.train_cached",
+  "args": [
+    "--config",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_checkout/configs/eventwm_forecast_stochastic_full_cached.json"
+  ]
+}

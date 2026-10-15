@@ -1,0 +1,17 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime",
+  "module": "eventforecastwm.performance_v2.assemble_regime",
+  "args": [
+    "--physical",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_age_cond/model.pt",
+    "--gate",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime_gate/gate.pt",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261015_regime/result.pt",
+    "--stop-weight",
+    "0.5"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/runtime/nvidia-595.91.07/usr/lib/x86_64-linux-gnu"
+  }
+}

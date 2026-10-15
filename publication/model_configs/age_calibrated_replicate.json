@@ -1,0 +1,190 @@
+{
+  "role": "age_calibrated_replicate",
+  "checkpoint_sha256": "b34604863cd0037c7bf276777d6fe11a0e860f0e88d0274a71d1ac188ad1ff86",
+  "seed": 20261015,
+  "recipe": {
+    "variant": "geometry_occupancy_v2",
+    "physical_recipe": {
+      "kind": "stochastic",
+      "width": 128,
+      "modes": 6,
+      "noise": "integrated",
+      "motion_window": 0.75,
+      "interaction_layers": 2,
+      "variant": "agent_scene_scale_v1",
+      "age_aware": true,
+      "mean_variant": "posterior_v1",
+      "scale_std": [
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.0,
+        4.0,
+        8.0
+      ],
+      "conditional": true
+    },
+    "physical_uses_geometry": false
+  },
+  "calibration": {
+    "status": "calibration_complete",
+    "steps": 512,
+    "fit_roots": 8965,
+    "supported_roots": 5782,
+    "supported_windows": 14920,
+    "curve": [
+      {
+        "step": 1,
+        "nll": -0.97970050573349,
+        "penalty": 0.0
+      },
+      {
+        "step": 32,
+        "nll": -0.982028067111969,
+        "penalty": 0.0005401250091381371
+      },
+      {
+        "step": 64,
+        "nll": -0.9821435213088989,
+        "penalty": 0.0005998433916829526
+      },
+      {
+        "step": 96,
+        "nll": -0.982144832611084,
+        "penalty": 0.0005946250748820603
+      },
+      {
+        "step": 128,
+        "nll": -0.9821458458900452,
+        "penalty": 0.0005927540478296578
+      },
+      {
+        "step": 160,
+        "nll": -0.982147216796875,
+        "penalty": 0.0005924630095250905
+      },
+      {
+        "step": 192,
+        "nll": -0.9821484088897705,
+        "penalty": 0.0005924789584241807
+      },
+      {
+        "step": 224,
+        "nll": -0.9821491241455078,
+        "penalty": 0.0005924588185735047
+      },
+      {
+        "step": 256,
+        "nll": -0.9821496605873108,
+        "penalty": 0.0005924366996623576
+      },
+      {
+        "step": 288,
+        "nll": -0.9821500778198242,
+        "penalty": 0.0005924221477471292
+      },
+      {
+        "step": 320,
+        "nll": -0.9821503758430481,
+        "penalty": 0.0005924107390455902
+      },
+      {
+        "step": 352,
+        "nll": -0.982150673866272,
+        "penalty": 0.0005924020078964531
+      },
+      {
+        "step": 384,
+        "nll": -0.9821509122848511,
+        "penalty": 0.0005923947901464999
+      },
+      {
+        "step": 416,
+        "nll": -0.9821510910987854,
+        "penalty": 0.0005923892604187131
+      },
+      {
+        "step": 448,
+        "nll": -0.9821511507034302,
+        "penalty": 0.0005923845455981791
+      },
+      {
+        "step": 480,
+        "nll": -0.9821512699127197,
+        "penalty": 0.0005923804710619152
+      },
+      {
+        "step": 512,
+        "nll": -0.9821513891220093,
+        "penalty": 0.0005923770950175822
+      }
+    ],
+    "physical_hash": "9938a94635927fcb6416bb214ab4a8f0def87fa66efa56753058ca7828a7069a",
+    "physical_means_unchanged": true,
+    "runtime_s": 131.9498414993286,
+    "recipe": {
+      "kind": "stochastic",
+      "width": 128,
+      "modes": 6,
+      "noise": "integrated",
+      "motion_window": 0.75,
+      "interaction_layers": 2,
+      "variant": "agent_scene_scale_v1",
+      "age_aware": true,
+      "mean_variant": "posterior_v1",
+      "scale_std": [
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.0,
+        4.0,
+        8.0
+      ],
+      "conditional": true
+    },
+    "identity": {
+      "config": {
+        "protocol": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+        "manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+        "prepared_cache": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075",
+        "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/replicate.pt",
+        "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_cond",
+        "windows": "all",
+        "conditional": true,
+        "age_aware": true,
+        "device": "cpu",
+        "fit_scale": "full",
+        "steps": 512,
+        "seed": 20261015,
+        "regularization": 0.001,
+        "incremental_density_cache": true
+      },
+      "checkpoint_sha256": "2faaeff8b19f7298b39eea506354d20e18247d4607ba2ff683c00758a38e6063",
+      "manifest_sha256": "d8df96f6cfd61c6677987ab22eef3d53eb1e29a426651fc0a313846f8efc43d7",
+      "protocol_sha256": "a70f5a57e06f4461308438150dac6cc01e53e6e2de2d3218f1e62c9c297b7307",
+      "source_sha256": "fb2a0a293b0dc8a5170c5a0c540dfdc54cbb137ffd1d0b6a73e485211fcc88ae",
+      "density_cache_sha256": "9fab86934eb5ddf43d42e2e90d8967797e96c0f194118e7983c3c491ebad1ea8"
+    },
+    "objective": "mean over roots of mean supported-window exact 3s NLL per coordinate, plus context L2 penalty",
+    "peak_gpu_bytes": null
+  },
+  "regime_calibration": null,
+  "composition": {
+    "physical_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_cond/model.pt",
+    "physical_sha256": "a27dd03f3b75d2d8a9815cd1acee425983d12fc9b85b1e2e67fff09003876cad",
+    "anonymous_prior": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/anonymous_occupancy/prior.pt",
+    "anonymous_prior_sha256": "026870771174461c773b44d5ff931f5fb42c47111002d00a33b605aae7a0c1ee",
+    "strength": 128.0,
+    "source_commit": "ba69376561ad585b50d783cd7e2f2bf983277171",
+    "source_sha256": "9a94c228e63bd85e3e2a3fa99da50f0607810dc3b56a9ca9bca306d12ddc8d62",
+    "hybrid_sha256": "71cc14fc81f20a8ebed90d6a67c55178488e34df74e4811e40b89ae84c811fac",
+    "fitting_performed": false,
+    "selection_population": "development only; this is not a final release decision"
+  },
+  "fit_root_count": 8965,
+  "fit_root_ids_sha256": "d0a2e1046cdc0ccc66da265a01f1abbe8c4964ff88e1ab62513c43f5ccb47de4",
+  "scope": "Checkpoint metadata; actual trained tensors and occupancy prior are in the checkpoint; state element counts include registered buffers and are not trained parameter counts",
+  "stored_state_tensor_elements_including_buffers": 612130
+}

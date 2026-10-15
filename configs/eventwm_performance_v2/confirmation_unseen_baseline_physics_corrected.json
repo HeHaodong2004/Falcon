@@ -1,0 +1,13 @@
+{
+  "population": "confirmation",
+  "bank": "unseen_evaluation",
+  "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/primary.pt",
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_unseen_baseline_physics_corrected",
+  "protocol": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+  "manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_cache/manifest.json",
+  "prepared_cache": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_prepared/motion_0p75",
+  "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+  "confirmation_receipt": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_panel/result.json",
+  "decision": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/final_selection/confirmation_decision.json",
+  "membership": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_protocol/membership.json"
+}

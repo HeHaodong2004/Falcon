@@ -127,3 +127,11 @@ data/
 output_test/
 docs/
 res/
+# EventWM research artifacts remain outside Git
+.venv-eventwm/
+*.pt
+*.pth
+*.npz
+*.sqlite3
+*.jsonl
+publication_runtime/

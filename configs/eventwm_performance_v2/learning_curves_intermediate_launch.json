@@ -1,0 +1,19 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/learning_curves_intermediate",
+  "module": "eventforecastwm.learning_curves",
+  "args": [
+    "--run",
+    "Posterior 1k=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/posterior_1024",
+    "--run",
+    "Self 1k=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self",
+    "--run",
+    "Posterior 4k=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_posterior",
+    "--run",
+    "Self 4k=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/intermediate_self",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/learning_curves_intermediate"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/runtime/nvidia-595.91.07/usr/lib/x86_64-linux-gnu"
+  }
+}

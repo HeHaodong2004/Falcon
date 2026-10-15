@@ -1,0 +1,13 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_clean_cache",
+  "module": "eventforecastwm.confirmation_clean",
+  "args": [
+    "build",
+    "--protocol-dir",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_clean_protocol",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_clean_cache",
+    "--reuse",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/confirmation_cache"
+  ]
+}

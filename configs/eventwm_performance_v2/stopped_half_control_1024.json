@@ -1,0 +1,15 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/stopped_half_control_1024",
+  "protocol": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+  "manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+  "prepared_cache": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/prepared_075",
+  "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cal_all_age_cond/model.pt",
+  "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/geometry_full/manifest.json",
+  "occupancy_prior": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/anonymous_occupancy/prior.pt",
+  "fit_scale": "1024",
+  "device": "cpu",
+  "steps": 512,
+  "stop_weight": 0.5,
+  "reuse_gate": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/stopped_control_1024/gate.pt",
+  "reuse_gate_sha256": "a472ba7d9f907388328cf85fb8f3819a40d85f5732a2896e8213b204aa3d2cd1"
+}

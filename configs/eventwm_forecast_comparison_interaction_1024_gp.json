@@ -1,0 +1,14 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_interaction_1024_gp",
+  "module": "eventforecastwm.compare",
+  "args": [
+    "--reference",
+    "Attention",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/comparison_interaction_1024_gp/result.json",
+    "--result",
+    "Attention=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark1024_correlated/result.json",
+    "--result",
+    "SelfOnly=/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark1024_nointeraction_v2_gp_reuse/result.json"
+  ]
+}

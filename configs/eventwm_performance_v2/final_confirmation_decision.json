@@ -1,0 +1,102 @@
+{
+  "status": "confirmation_panel_frozen",
+  "timestamp": 1792095395.8250444,
+  "selection_sha256": "3042632c79a2640c14499d6ea05732fa9f8fa795b834081e18f2ab7b91e4520f",
+  "selection_commit": "af2e67f5d5965fdec939a08f5965cc687aa18fd8",
+  "source_commit": "af2e67f5d5965fdec939a08f5965cc687aa18fd8",
+  "membership_sha256": "842155bb96e81c4696d6e91fd4ee92d469638b9794cb820faa1564abbb165777",
+  "manifest_sha256": "f6c9f65993d53f9b4dd2d39ed2ad010db7e1af3d2579ec950493924d90c04a4a",
+  "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c",
+  "models": {
+    "candidate_primary": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/primary.pt",
+      "sha256": "bf8524f73740b75a3b7d79eb5f6a3d0d00365455570d9b2a7debcc74307dbcff",
+      "seed": 20261014,
+      "source_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/combined_age_geometry/model.pt",
+      "evaluation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/combined_age_geometry_evaluation/result.json",
+      "evaluation_sha256": "c6a87e686387a5d006859b28b08ef8a0c9234d5b654b3ed3c305e7235bde7f7b",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+      "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c"
+    },
+    "candidate_replicate": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/candidate_review/replicate.pt",
+      "sha256": "b34604863cd0037c7bf276777d6fe11a0e860f0e88d0274a71d1ac188ad1ff86",
+      "seed": 20261015,
+      "source_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_geometry/result.pt",
+      "evaluation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/incumbent_s15_age_geometry_evaluation/result.json",
+      "evaluation_sha256": "51111e88ea10344718e8bb8605d720656071999007ecd2f25c896c2410eb54d7",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+      "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c"
+    },
+    "stopped_alternative": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/regime_geometry_full_incremental/result.pt",
+      "sha256": "36bdf8a09701ea4dc0c484af1037f40a37afa1c6ae30b1aaf26b63d96e23d52b",
+      "seed": 20261014,
+      "role": "NLL/occupancy alternative with larger one-second ES and central-overcoverage costs; never test-promoted to primary.",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+      "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c"
+    },
+    "horizon_alternative": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/horizon_s20261014_regime_geometry/result.pt",
+      "sha256": "65a0cf8cca30d41c325214e51d6933dddc380b5c6039280fc2c32213c91f267b",
+      "seed": 20261014,
+      "role": "Lower ES/higher AP alternative with material three-second central-undercoverage; never test-promoted to primary.",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+      "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c"
+    },
+    "incumbent_primary": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/primary.pt",
+      "sha256": "d092b5d05d38be4619251e009d2aa2dafc691f3f57440473d72e87acf7887970",
+      "seed": 20261014,
+      "role": "Immutable predeclared fallback role"
+    },
+    "incumbent_replicate": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/release_forecast_v1_20261015/replicate.pt",
+      "sha256": "2faaeff8b19f7298b39eea506354d20e18247d4607ba2ff683c00758a38e6063",
+      "seed": 20261015,
+      "role": "Immutable predeclared fallback role"
+    },
+    "cv": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_cv_agent_scale/result.model.pt",
+      "sha256": "a0e5c101ac3469a994eddb683832282c731ff5e1a6841cc7c1634d1dea461709",
+      "seed": null,
+      "role": "Calibrated CV with original anonymous prior"
+    },
+    "cv_geometry": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/cv_geometry_reference/result.pt",
+      "sha256": "7b037b027d4b43ca47ee0d9964c8af78d57b6ca1ea7ab375c0a4ef64f559b097",
+      "seed": null,
+      "role": "Same CV physical law with the same geometry anonymous prior",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+      "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c"
+    },
+    "full_self_primary": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261014_age_geometry/result.pt",
+      "sha256": "4978787fe95060a84e332bb08a96c0b91040d1d96ede77b876534dcfb295ff47",
+      "seed": 20261014,
+      "role": "Completed new full physical family with matched age/geometry calibration, rejected on development",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+      "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c"
+    },
+    "full_self_replicate": {
+      "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/full_self_s20261015_age_geometry/result.pt",
+      "sha256": "ca7ee380de5c9b9b337240302260a63176ba8e76610ace940b8988fad5d2530e",
+      "seed": 20261015,
+      "role": "Independent completed new full physical family control",
+      "geometry_manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/confirmation_geometry/manifest.json",
+      "geometry_manifest_sha256": "1ee0ae89f6a9caa94991d15b4824ef63bdf2066ef89dc36fdb3b0460b76c030c"
+    }
+  },
+  "horizons": [
+    1.0,
+    2.0,
+    3.0,
+    5.0
+  ],
+  "energy_paths_per_bank": 48,
+  "fixed_k": 6,
+  "density_draws": 64,
+  "role_policy": "Open the new 128-root natural and 128-root unseen banks only after committing this choice. No tuning, alternative promotion or seed selection after scores. Confirmation may retain the frozen candidate family or reject it for the exact two-role v1 fallback.",
+  "no_model_selection_after_confirmation": true,
+  "model_panel_changed_since_development_freeze": false
+}

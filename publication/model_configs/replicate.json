@@ -1,0 +1,125 @@
+{
+  "role": "replicate",
+  "checkpoint_sha256": "2faaeff8b19f7298b39eea506354d20e18247d4607ba2ff683c00758a38e6063",
+  "seed": 20261015,
+  "recipe": {
+    "kind": "stochastic",
+    "width": 128,
+    "modes": 6,
+    "noise": "integrated",
+    "motion_window": 0.75,
+    "interaction_layers": 2,
+    "variant": "agent_scene_scale_v1",
+    "age_aware": false,
+    "mean_variant": "posterior_v1",
+    "scale_std": [
+      0.1,
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0
+    ],
+    "conditional": false
+  },
+  "calibration": {
+    "steps": 512,
+    "roots": 5245,
+    "parameters": 7,
+    "conditional": false,
+    "objective": "Exact training-only root-mean normalized joint NLL + .001 squared context-head norm",
+    "physical_means_and_global_noise_frozen": true,
+    "curve": [
+      {
+        "step": 0,
+        "nll": -0.9129636287689209,
+        "penalty": -0.0
+      },
+      {
+        "step": 32,
+        "nll": -0.9133387804031372,
+        "penalty": -0.0
+      },
+      {
+        "step": 64,
+        "nll": -0.9133432507514954,
+        "penalty": -0.0
+      },
+      {
+        "step": 96,
+        "nll": -0.9133434295654297,
+        "penalty": -0.0
+      },
+      {
+        "step": 128,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 160,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 192,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 224,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 256,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 288,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 320,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 352,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 384,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 416,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 448,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      },
+      {
+        "step": 480,
+        "nll": -0.9133435487747192,
+        "penalty": -0.0
+      }
+    ],
+    "max_supported_agents": 6,
+    "factorization": "shared physical scene mode; independent persistent per-agent variance categories",
+    "features": "per-agent legal age, lost flags, velocity validity, speed, mode velocity spread, nearest legal belief distance, legal track count"
+  },
+  "regime_calibration": null,
+  "composition": null,
+  "fit_root_count": 8965,
+  "fit_root_ids_sha256": "d0a2e1046cdc0ccc66da265a01f1abbe8c4964ff88e1ab62513c43f5ccb47de4",
+  "scope": "Checkpoint metadata; actual trained tensors and occupancy prior are in the checkpoint; state element counts include registered buffers and are not trained parameter counts",
+  "stored_state_tensor_elements_including_buffers": 530210
+}

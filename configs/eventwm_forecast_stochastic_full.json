@@ -1,0 +1,23 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/stochastic_full",
+  "protocol": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/protocol/protocol.json",
+  "manifest": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/cache_full/manifest.json",
+  "scale": "full",
+  "device": "cuda:1",
+  "seed": 20261014,
+  "model": {
+    "kind": "stochastic",
+    "width": 128,
+    "modes": 6,
+    "noise": "iid"
+  },
+  "steps": 32768,
+  "batch_size": 32,
+  "lr": 0.0001,
+  "weight_decay": 0.01,
+  "schedule": "cosine",
+  "eval_every": 512,
+  "objective": "distribution",
+  "nll_weight": 0.05,
+  "noise_lr_factor": 10.0
+}

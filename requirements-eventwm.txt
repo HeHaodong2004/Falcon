@@ -1,0 +1,6 @@
+# Core inference and forecasting unit tests; Python 3.9
+numpy==1.23.5
+torch==1.12.1
+scipy==1.13.1
+# Plot reproduction uses the validated Matplotlib version below.
+matplotlib==3.3.2

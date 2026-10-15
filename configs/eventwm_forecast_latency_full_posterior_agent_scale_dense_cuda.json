@@ -1,0 +1,22 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/latency_full_posterior_agent_scale_dense_cuda",
+  "module": "eventforecastwm.latency",
+  "args": [
+    "--checkpoint",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/benchmark_full_posterior_s20261014_agent_scale/result.model.pt",
+    "--history",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/example_legal_dense_inputs/history.json",
+    "--device",
+    "cuda:0",
+    "--batch-sizes",
+    "1",
+    "8",
+    "32",
+    "--repetitions",
+    "50",
+    "--resource-condition",
+    "No EventWM trainers active; production collector and desktop remain active; see resource_before_confirmation_20261015T0740.json",
+    "--output",
+    "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_full_20261014/latency_full_posterior_agent_scale_dense_cuda/result.json"
+  ]
+}

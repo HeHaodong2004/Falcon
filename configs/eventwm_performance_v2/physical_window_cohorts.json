@@ -1,0 +1,10 @@
+{
+  "run": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/physical_window_cohorts",
+  "reference": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/baseline_1024_evaluation/result.json",
+  "census": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/data_census/result.json",
+  "candidates": {
+    "pilot_self_evaluation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_self_evaluation/result.json",
+    "pilot_arrival_evaluation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_arrival_evaluation/result.json",
+    "pilot_sampling_evaluation": "/home/haodong/workspace/projects/eventwm-falcon/output/eventwm_forecast_performance_v2_20261015/pilot_sampling_evaluation/result.json"
+  }
+}
