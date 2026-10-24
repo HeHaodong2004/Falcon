@@ -1,0 +1,10 @@
+{
+  "purpose": "Additional real, training-scene legal histories for backward topology queries",
+  "cases": [
+    {"label":"wide_room_backtrack_12","scene":"mp3d_rPc6DW4iMge","node_index":12,"seed":310201091,"humans":0,"variant":6,"scenario":"approach"},
+    {"label":"wide_room_backtrack_36","scene":"mp3d_rPc6DW4iMge","node_index":36,"seed":310201092,"humans":0,"variant":6,"scenario":"approach"},
+    {"label":"junction_backtrack","scene":"hm3d_GLAQ4DNUx5U","node_index":34,"seed":310201093,"humans":0,"variant":6,"scenario":"approach"},
+    {"label":"wide_scan_backtrack","scene":"mp3d_rPc6DW4iMge","node_index":12,"seed":310201094,"humans":0,"variant":2,"scenario":"approach"},
+    {"label":"legal_progress_then_backtrack","scene":"mp3d_rPc6DW4iMge","node_index":12,"seed":310201081,"humans":0,"variant":7,"scenario":"approach"}
+  ]
+}

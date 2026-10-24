@@ -1,0 +1,12 @@
+{
+  "stage0_gate": "output/stage01_partial_graph_query_20261020/stage0_final/acceptance/stage0_gate.json",
+  "output": "output/stage01_partial_graph_query_20261020/pilot",
+  "queries_per_root": 24,
+  "max_query_steps": 120,
+  "cases": [
+    {"scene":"mp3d_rPc6DW4iMge","seed":310201081,"node_index":12,"humans":1,"scenario":"approach"},
+    {"scene":"mp3d_rPc6DW4iMge","seed":310201084,"node_index":36,"humans":1,"scenario":"crossing"},
+    {"scene":"hm3d_GLAQ4DNUx5U","seed":310201062,"node_index":34,"humans":0,"scenario":"approach"},
+    {"scene":"mp3d_rPc6DW4iMge","seed":310201092,"node_index":36,"humans":0,"scenario":"approach"}
+  ]
+}

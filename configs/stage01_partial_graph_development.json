@@ -1,0 +1,15 @@
+{
+  "schema": "partial_graph_development_cases_1",
+  "split_policy": "Only preserved train-scene membership; no sealed confirmation episode is opened",
+  "cases": [
+    {"label": "visible_approaching_human_two_bands", "scene": "mp3d_rPc6DW4iMge", "node_index": 12, "seed": 310201081, "humans": 1, "variant": 5, "scenario": "approach"},
+    {"label": "crossing_pedestrian", "scene": "mp3d_rPc6DW4iMge", "node_index": 36, "seed": 310201084, "humans": 1, "variant": 5, "scenario": "crossing"},
+    {"label": "moving_crossing_pedestrian_observation", "scene": "mp3d_rPc6DW4iMge", "node_index": 36, "seed": 310201084, "humans": 1, "variant": 8, "scenario": "crossing"},
+    {"label": "empty_corridor", "scene": "mp3d_17DRP5sb8fy", "node_index": 6, "seed": 310201061, "humans": 0, "variant": 3, "scenario": "approach"},
+    {"label": "narrow_social_directions_rejected", "scene": "mp3d_17DRP5sb8fy", "node_index": 4, "seed": 310201080, "humans": 1, "variant": 5, "scenario": "approach"},
+    {"label": "partially_observed_junction", "scene": "hm3d_GLAQ4DNUx5U", "node_index": 34, "seed": 310201062, "humans": 0, "variant": 3, "scenario": "approach"},
+    {"label": "explored_area_backtracking", "scene": "mp3d_1LXtFkjw3qL", "node_index": 37, "seed": 310201086, "humans": 0, "variant": 2, "scenario": "approach"},
+    {"label": "second_hm3d_floor", "scene": "hm3d_CFVBbU9Rsyb", "node_index": 44, "seed": 310201087, "humans": 0, "variant": 3, "scenario": "approach"},
+    {"label": "additional_hm3d_social_root", "scene": "hm3d_y9hTuugGdiq", "node_index": 19, "seed": 310201088, "humans": 1, "variant": 5, "scenario": "approach"}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "identity": "7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f",
+  "files": {
+    "eventwm_graph/__init__.py": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba",
+    "eventwm_graph/partial/__init__.py": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f",
+    "eventwm_graph/partial/map.py": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291",
+    "eventwm_graph/stage2/__init__.py": "7b036350a405c3be07598fff2c671c660185f59d9966ea4f03cb8b7059d8adfe",
+    "eventwm_graph/stage2/api.py": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7",
+    "eventwm_graph/stage2/benchmark.py": "5ec96febeead27c73353d6d97670723ef293785b6fd8e63fef8dd10fc514a29b",
+    "eventwm_graph/stage2/common.py": "c17ce45d04bde215040c59840960c0745c154b49cbe6a5b13c63b25c67d99b8b",
+    "eventwm_graph/stage2/data.py": "7f5ab6e7b30ee2ae2d333062bd7a6ce0ca238e114539b04c682b7cb74e5dd0f9",
+    "eventwm_graph/stage2/evaluate.py": "8612c7593280ccb41fa5d38a298e72fb9bcfaa0ce4f336b85c78cd1f11677bee",
+    "eventwm_graph/stage2/features.py": "71f49b1edc411695095e9c16052a86ebf75532e95de6a76043afa0edb1962e3b",
+    "eventwm_graph/stage2/model.py": "6cfb45d0c8cbf95219facc7b759b7884313e5ba99861fcdb90c7e125f6994725",
+    "eventwm_graph/stage2/train.py": "9099558099e8073a5278317496625c8e760e8820cf3606a0eace1fb39f1e3844"
+  },
+  "parent": "fc67e2ed3dfc88b1bc41dbfa41f01a77015b46a0193e3982ce6228a2fa64e36d",
+  "changes": [
+    "eventwm_graph/stage2/api.py",
+    "eventwm_graph/stage2/benchmark.py",
+    "eventwm_graph/stage2/features.py"
+  ],
+  "checkpoint_sha256": "2c77ef1c6821f4c9dc3fac8d6128d1052f5bbdc2a449789b84e73c716a646ed4",
+  "scope": "Execution-only; same learned weights, candidate support,47features, classes, heights, deterministic updater and scoring rules.",
+  "changes_detail": [
+    "Reuse exact k4 nearest results; cache pose trig/time; preallocate original rounded47float32 features.",
+    "Tile independent NNrows8192; stream batch inputs; avoid copying updater-owned structures twice.",
+    "Cold child cwd=/tmp, with explicit actual namespace import paths/hashes; original repository-namespace results retained."
+  ]
+}

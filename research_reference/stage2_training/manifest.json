@@ -1,0 +1,17 @@
+{
+  "identity": "fc67e2ed3dfc88b1bc41dbfa41f01a77015b46a0193e3982ce6228a2fa64e36d",
+  "files": {
+    "eventwm_graph/__init__.py": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba",
+    "eventwm_graph/partial/__init__.py": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f",
+    "eventwm_graph/partial/map.py": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291",
+    "eventwm_graph/stage2/__init__.py": "7b036350a405c3be07598fff2c671c660185f59d9966ea4f03cb8b7059d8adfe",
+    "eventwm_graph/stage2/api.py": "794ebdd25246c781a63db5394d2f65c3447869c425115544d0c044e0a08f7dff",
+    "eventwm_graph/stage2/benchmark.py": "91e57c4a015431a18a323c36bc0ebeb80c004e3661e2f8452820659e25349361",
+    "eventwm_graph/stage2/common.py": "c17ce45d04bde215040c59840960c0745c154b49cbe6a5b13c63b25c67d99b8b",
+    "eventwm_graph/stage2/data.py": "7f5ab6e7b30ee2ae2d333062bd7a6ce0ca238e114539b04c682b7cb74e5dd0f9",
+    "eventwm_graph/stage2/evaluate.py": "8612c7593280ccb41fa5d38a298e72fb9bcfaa0ce4f336b85c78cd1f11677bee",
+    "eventwm_graph/stage2/features.py": "4db2d3bcb2c586a15235e39dd35a87dafa27a1030dee319af23f165f80a7d65f",
+    "eventwm_graph/stage2/model.py": "6cfb45d0c8cbf95219facc7b759b7884313e5ba99861fcdb90c7e125f6994725",
+    "eventwm_graph/stage2/train.py": "9099558099e8073a5278317496625c8e760e8820cf3606a0eace1fb39f1e3844"
+  }
+}

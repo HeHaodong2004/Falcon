@@ -1,0 +1,16 @@
+{
+  "checkpoint": "final_stage1_research_20261024/last.pt",
+  "worlds": 40,
+  "knots": 64,
+  "horizon_seconds": 3.0,
+  "threads": 1,
+  "device": "CPU",
+  "seed": 41,
+  "coordinate_frame": "world_XZ_metres",
+  "time_frame": "relative_seconds",
+  "position_dtype": "float64",
+  "presence": "always use present mask; padded columns absent",
+  "initialization": "complete actual observation prefix; OnlineContext.from_raw(...).with_association()",
+  "legacy_default_worlds": 32,
+  "explicit_worlds_required": true
+}

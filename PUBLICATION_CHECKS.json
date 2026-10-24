@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "source_fidelity": "All copied files match recorded original SHA256; all non-Markdown copies are byte-identical after the documented home-prefix redaction only.",
+  "copied_files": 1194,
+  "non_markdown_fidelity_checked": 1147,
+  "python_syntax_files": 886,
+  "scanned_text_bytes": 9532271,
+  "largest_file_bytes": 556270,
+  "largest_file": "PUBLICATION_MANIFEST.json",
+  "credential_findings": [],
+  "restricted_license_findings": [],
+  "licenses": "Original root MIT and existing source notices retained. Reviewed older Habitat BSD-style-root notice; it points to the retained root license.",
+  "binary_archive_checkpoint_dataset_files_included": 0,
+  "stage2_regression": {
+    "status": "PASS",
+    "tests": 3,
+    "namespace": "included frozen optimized runtime",
+    "coverage": [
+      "saved model loading and single/batch parity",
+      "executed trajectory clock and input determinism",
+      "UNKNOWN omission, deterministic updates, provenance and caller nonmutation",
+      "zero duration"
+    ]
+  },
+  "local_eventwm_import_dependency_scan": "PASS: no missing explicitly imported eventwm_graph module in the main source tree",
+  "scope_limitations": [
+    "No frozen research training/evaluation or full simulator suite was rerun.",
+    "No final trained weights or datasets are available in this publication.",
+    "Import checks use the existing isolated namespace to avoid unrelated Habitat package initialization.",
+    "Optional visualization/font assets and Gibson scene-quality annotations excluded."
+  ],
+  "original_primary_head": "b0e662e37b5517cfff455ac7f6146d4df5c21f7a",
+  "original_primary_worktree_clean": true,
+  "related_worktrees_clean": true,
+  "remote_publication": "Post-commit Git history audit and remote SHA verification are reported in the publication handoff; this file records the prepublication source checks.",
+  "lightweight_imports": {
+    "passed": [
+      "stage2.data",
+      "stage2.features",
+      "stage2.model",
+      "stage2.train",
+      "stage2.api",
+      "stage2.evaluate",
+      "stage2.benchmark",
+      "l2_two_stage.context",
+      "l2_two_stage.conditioned",
+      "l2_two_stage.neural",
+      "l25.compiler",
+      "l4.executor"
+    ],
+    "failed": [],
+    "namespace": "main published source tree with isolated eventwm_graph package boundary; no Habitat initialization"
+  }
+}

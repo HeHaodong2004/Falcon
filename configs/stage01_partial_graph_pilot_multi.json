@@ -1,0 +1,10 @@
+{
+  "stage0_gate": "output/stage01_partial_graph_query_20261020/stage0_final/acceptance/stage0_gate.json",
+  "output": "output/stage01_partial_graph_query_20261020/pilot_multi",
+  "queries_per_root": 24,
+  "max_query_steps": 120,
+  "cases": [
+    {"scene":"mp3d_rPc6DW4iMge","seed":310201081,"node_index":12,"humans":2,"scenario":"approach"},
+    {"scene":"mp3d_rPc6DW4iMge","seed":310201081,"node_index":12,"humans":3,"scenario":"approach"}
+  ]
+}

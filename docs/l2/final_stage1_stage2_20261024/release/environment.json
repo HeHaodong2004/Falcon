@@ -1,0 +1,42 @@
+{
+  "python": "3.9.19 | packaged by conda-forge | (main, Mar 20 2024, 12:50:21) \n[GCC 12.3.0]",
+  "executable": "/research-user/miniforge3/envs/eventwm-falcon/bin/python",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "kernel": "6.8.0-138-generic",
+  "machine": "x86_64",
+  "cpu_count": 36,
+  "torch": "1.12.1",
+  "numpy": "1.23.5",
+  "scipy": "1.13.1",
+  "cuda": "11.3",
+  "cudnn": 8302,
+  "cuda_devices": [
+    {
+      "index": 0,
+      "name": "NVIDIA GeForce RTX 3090",
+      "total_memory": 25296044032,
+      "capability": [
+        8,
+        6
+      ]
+    },
+    {
+      "index": 1,
+      "name": "NVIDIA GeForce RTX 3090",
+      "total_memory": 25298141184,
+      "capability": [
+        8,
+        6
+      ]
+    }
+  ],
+  "numerical_threads": 1,
+  "job_placement": {
+    "stage1_physical_gpu": 1,
+    "stage2_physical_gpu": 0,
+    "nice": 19,
+    "io_priority": "idle"
+  },
+  "deterministic_algorithms": false,
+  "note": "Recorded environment. All scientific source closures and exact random states are separately saved. NVML mismatch was not repaired; actual Torch CUDA works."
+}

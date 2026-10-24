@@ -1,0 +1,32 @@
+[
+  {
+    "id": "hm3d_CFVBbU9Rsyb",
+    "scene": "/research-user/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/example/00337-CFVBbU9Rsyb/CFVBbU9Rsyb.basis.glb",
+    "navmesh": "/research-user/workspace/baselines/Falcon/data/scene_datasets/navmeshes/CFVBbU9Rsyb.navmesh"
+  },
+  {
+    "id": "hm3d_y9hTuugGdiq",
+    "scene": "/research-user/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/val/00808-y9hTuugGdiq/y9hTuugGdiq.basis.glb",
+    "navmesh": "/research-user/workspace/baselines/Falcon/data/scene_datasets/navmeshes/y9hTuugGdiq.navmesh"
+  },
+  {
+    "id": "hm3d_GLAQ4DNUx5U",
+    "scene": "/research-user/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/example/00861-GLAQ4DNUx5U/GLAQ4DNUx5U.basis.glb",
+    "navmesh": "/research-user/workspace/baselines/Falcon/data/versioned_data/hm3d-0.2/hm3d/example/00861-GLAQ4DNUx5U/GLAQ4DNUx5U.basis.navmesh"
+  },
+  {
+    "id": "mp3d_17DRP5sb8fy",
+    "scene": "/research-user/workspace/baselines/Falcon/data/scene_datasets/mp3d/17DRP5sb8fy/17DRP5sb8fy.glb",
+    "navmesh": "/research-user/workspace/baselines/Falcon/data/scene_datasets/mp3d/17DRP5sb8fy/17DRP5sb8fy.navmesh"
+  },
+  {
+    "id": "mp3d_1LXtFkjw3qL",
+    "scene": "/research-user/workspace/baselines/Falcon/data/scene_datasets/mp3d/1LXtFkjw3qL/1LXtFkjw3qL.glb",
+    "navmesh": "/research-user/workspace/baselines/Falcon/data/scene_datasets/mp3d/1LXtFkjw3qL/1LXtFkjw3qL.navmesh"
+  },
+  {
+    "id": "mp3d_rPc6DW4iMge",
+    "scene": "/research-user/workspace/baselines/Falcon/data/scene_datasets/mp3d/rPc6DW4iMge/rPc6DW4iMge.glb",
+    "navmesh": "/research-user/workspace/baselines/Falcon/data/scene_datasets/mp3d/rPc6DW4iMge/rPc6DW4iMge.navmesh"
+  }
+]

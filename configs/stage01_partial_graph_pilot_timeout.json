@@ -1,0 +1,9 @@
+{
+  "stage0_gate": "output/stage01_partial_graph_query_20261020/stage0_final/acceptance/stage0_gate.json",
+  "output": "output/stage01_partial_graph_query_20261020/pilot_timeout",
+  "queries_per_root": 24,
+  "max_query_steps": 2,
+  "cases": [
+    {"scene":"hm3d_GLAQ4DNUx5U","seed":310201062,"node_index":34,"humans":0,"scenario":"approach"}
+  ]
+}

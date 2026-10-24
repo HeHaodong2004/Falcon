@@ -1,0 +1,292 @@
+{
+  "checkpoint_sha256": "2c77ef1c6821f4c9dc3fac8d6128d1052f5bbdc2a449789b84e73c716a646ed4",
+  "sources": {
+    "eventwm_graph/stage2/__init__.py": "7b036350a405c3be07598fff2c671c660185f59d9966ea4f03cb8b7059d8adfe",
+    "eventwm_graph/stage2/api.py": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7",
+    "eventwm_graph/stage2/benchmark.py": "5ec96febeead27c73353d6d97670723ef293785b6fd8e63fef8dd10fc514a29b",
+    "eventwm_graph/stage2/common.py": "c17ce45d04bde215040c59840960c0745c154b49cbe6a5b13c63b25c67d99b8b",
+    "eventwm_graph/stage2/data.py": "7f5ab6e7b30ee2ae2d333062bd7a6ce0ca238e114539b04c682b7cb74e5dd0f9",
+    "eventwm_graph/stage2/evaluate.py": "8612c7593280ccb41fa5d38a298e72fb9bcfaa0ce4f336b85c78cd1f11677bee",
+    "eventwm_graph/stage2/features.py": "71f49b1edc411695095e9c16052a86ebf75532e95de6a76043afa0edb1962e3b",
+    "eventwm_graph/stage2/model.py": "6cfb45d0c8cbf95219facc7b759b7884313e5ba99861fcdb90c7e125f6994725",
+    "eventwm_graph/stage2/train.py": "9099558099e8073a5278317496625c8e760e8820cf3606a0eace1fb39f1e3844",
+    "eventwm_graph/partial/map.py": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291"
+  },
+  "threads": 1,
+  "device": "CPU",
+  "workloads": {
+    "representative": {
+      "calls": 192,
+      "independent_roots": 64,
+      "scenes": 48,
+      "predict": {
+        "p50_ms": 48.084665555506945,
+        "p95_ms": 58.89208655571564,
+        "p99_ms": 71.8236610898748
+      },
+      "predict_apply": {
+        "p50_ms": 55.650754482485354,
+        "p95_ms": 69.82130290707572,
+        "p99_ms": 101.89124070806463
+      },
+      "predict_apply_wire": {
+        "p50_ms": 55.886941496282816,
+        "p95_ms": 70.34706957638264,
+        "p99_ms": 103.69965669466217
+      },
+      "candidates_range": [
+        34928,
+        52644
+      ],
+      "known_cells_range": [
+        732,
+        2418
+      ],
+      "trajectory_poses_range": [
+        2,
+        120
+      ]
+    },
+    "dense": {
+      "calls": 96,
+      "independent_roots": 32,
+      "scenes": 22,
+      "predict": {
+        "p50_ms": 53.04571287706494,
+        "p95_ms": 68.23093991260976,
+        "p99_ms": 71.96023494470865
+      },
+      "predict_apply": {
+        "p50_ms": 67.79570446815342,
+        "p95_ms": 87.59855502285063,
+        "p99_ms": 213.99005664279682
+      },
+      "predict_apply_wire": {
+        "p50_ms": 68.32048902288079,
+        "p95_ms": 89.3303322372958,
+        "p99_ms": 216.19557403028008
+      },
+      "candidates_range": [
+        34313,
+        52111
+      ],
+      "known_cells_range": [
+        1662,
+        2645
+      ],
+      "trajectory_poses_range": [
+        2,
+        120
+      ]
+    }
+  },
+  "batch": {
+    "1": {
+      "p50_ms": 43.42632892075926,
+      "p95_ms": 43.82921332726255,
+      "p99_ms": 43.85992353083566,
+      "median_ms_per_trajectory": 43.42632892075926,
+      "trajectories_per_second": 23.027504853673367
+    },
+    "4": {
+      "p50_ms": 213.74581300187856,
+      "p95_ms": 300.7048902800306,
+      "p99_ms": 337.62918997090304,
+      "median_ms_per_trajectory": 53.43645325046964,
+      "trajectories_per_second": 18.71381686416868
+    },
+    "16": {
+      "p50_ms": 793.7621865421534,
+      "p95_ms": 807.8734673326835,
+      "p99_ms": 813.2081950781867,
+      "median_ms_per_trajectory": 49.610136658884585,
+      "trajectories_per_second": 20.15717083941779
+    }
+  },
+  "cold": {
+    "representative": [
+      {
+        "import_seconds": 0.5036477008834481,
+        "load_seconds": 0.008460475131869316,
+        "input_read_seconds": 0.0038583518471568823,
+        "imports": {
+          "eventwm_graph": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/__init__.py",
+            "sha256": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba"
+          },
+          "eventwm_graph.partial": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/__init__.py",
+            "sha256": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f"
+          },
+          "eventwm_graph.partial.map": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/map.py",
+            "sha256": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291"
+          },
+          "eventwm_graph.stage2.api": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/stage2/api.py",
+            "sha256": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7"
+          }
+        },
+        "cold_predict_seconds": 0.05869855498895049,
+        "cold_predict_apply_wire_seconds": 0.06272661709226668,
+        "peak_rss_bytes": 494493696,
+        "candidates": 37118,
+        "full_process_seconds": 0.8472156589850783
+      },
+      {
+        "import_seconds": 0.4994085989892483,
+        "load_seconds": 0.010654486948624253,
+        "input_read_seconds": 0.006491628009825945,
+        "imports": {
+          "eventwm_graph": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/__init__.py",
+            "sha256": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba"
+          },
+          "eventwm_graph.partial": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/__init__.py",
+            "sha256": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f"
+          },
+          "eventwm_graph.partial.map": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/map.py",
+            "sha256": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291"
+          },
+          "eventwm_graph.stage2.api": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/stage2/api.py",
+            "sha256": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7"
+          }
+        },
+        "cold_predict_seconds": 0.07946036104112864,
+        "cold_predict_apply_wire_seconds": 0.08360394299961627,
+        "peak_rss_bytes": 494477312,
+        "candidates": 37118,
+        "full_process_seconds": 0.8772401600144804
+      },
+      {
+        "import_seconds": 0.5112834991887212,
+        "load_seconds": 0.006950033828616142,
+        "input_read_seconds": 0.0022251771297305822,
+        "imports": {
+          "eventwm_graph": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/__init__.py",
+            "sha256": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba"
+          },
+          "eventwm_graph.partial": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/__init__.py",
+            "sha256": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f"
+          },
+          "eventwm_graph.partial.map": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/map.py",
+            "sha256": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291"
+          },
+          "eventwm_graph.stage2.api": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/stage2/api.py",
+            "sha256": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7"
+          }
+        },
+        "cold_predict_seconds": 0.06056739599443972,
+        "cold_predict_apply_wire_seconds": 0.06446511996909976,
+        "peak_rss_bytes": 494493696,
+        "candidates": 37118,
+        "full_process_seconds": 0.8659475969616324
+      }
+    ],
+    "dense": [
+      {
+        "import_seconds": 0.5082444360014051,
+        "load_seconds": 0.007369216997176409,
+        "input_read_seconds": 0.006472690962255001,
+        "imports": {
+          "eventwm_graph": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/__init__.py",
+            "sha256": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba"
+          },
+          "eventwm_graph.partial": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/__init__.py",
+            "sha256": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f"
+          },
+          "eventwm_graph.partial.map": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/map.py",
+            "sha256": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291"
+          },
+          "eventwm_graph.stage2.api": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/stage2/api.py",
+            "sha256": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7"
+          }
+        },
+        "cold_predict_seconds": 0.06382332509383559,
+        "cold_predict_apply_wire_seconds": 0.07365543092601001,
+        "peak_rss_bytes": 494493696,
+        "candidates": 35885,
+        "full_process_seconds": 0.8563423890154809
+      },
+      {
+        "import_seconds": 0.5133224758319557,
+        "load_seconds": 0.006367780966684222,
+        "input_read_seconds": 0.006506703095510602,
+        "imports": {
+          "eventwm_graph": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/__init__.py",
+            "sha256": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba"
+          },
+          "eventwm_graph.partial": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/__init__.py",
+            "sha256": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f"
+          },
+          "eventwm_graph.partial.map": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/map.py",
+            "sha256": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291"
+          },
+          "eventwm_graph.stage2.api": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/stage2/api.py",
+            "sha256": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7"
+          }
+        },
+        "cold_predict_seconds": 0.06392377312295139,
+        "cold_predict_apply_wire_seconds": 0.07382316398434341,
+        "peak_rss_bytes": 494493696,
+        "candidates": 35885,
+        "full_process_seconds": 0.872320347931236
+      },
+      {
+        "import_seconds": 0.521481443895027,
+        "load_seconds": 0.007047927938401699,
+        "input_read_seconds": 0.006496140034869313,
+        "imports": {
+          "eventwm_graph": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/__init__.py",
+            "sha256": "aa4252eff5d880b800e420b3953179fe1569b8a3fa080aa92d5dc8ec375fb1ba"
+          },
+          "eventwm_graph.partial": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/__init__.py",
+            "sha256": "3959f206c1107cb1e6466ed51ad9b2a4c7fd39003bd554f42e11ce8c80a7569f"
+          },
+          "eventwm_graph.partial.map": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/partial/map.py",
+            "sha256": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291"
+          },
+          "eventwm_graph.stage2.api": {
+            "path": "/research-user/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/stage2_graphdelta_20261024/frozen_sources/7803aa3bec784a8dec3e55306bf9e284263577f383f7aec39c1f38ff42c4b90f/eventwm_graph/stage2/api.py",
+            "sha256": "f2cffbed715e642f1914a5be691a236a7cf67604a01006908d3e2ce2edf016b7"
+          }
+        },
+        "cold_predict_seconds": 0.06263559497892857,
+        "cold_predict_apply_wire_seconds": 0.0729200760833919,
+        "peak_rss_bytes": 494493696,
+        "candidates": 35885,
+        "full_process_seconds": 0.8848852680530399
+      }
+    ]
+  },
+  "checkpoint_load_seconds": 0.011118497932329774,
+  "peak_rss_bytes": 737017856,
+  "rss_before_workloads": 737017856,
+  "overall_layer2_target_p95_ms": 100,
+  "integrated_layer2_latency_measured": false,
+  "notes": [
+    "All timings include legal graph parsing/validation, domain/feature construction, neural inference and GraphDelta construction.",
+    "predict_apply includes graph copy and existing deterministic update. predict_apply_wire also includes sparse JSON serialization.",
+    "Raw probability array serialization excluded from sparse transport; probabilities remain available in the Python API.",
+    "Dense is the32 largest observed maps among128 deterministically spaced original dev Roots, not a maximum-scene claim.",
+    "Full-process cold times include interpreter/dependency startup; all three observations retained."
+  ]
+}
