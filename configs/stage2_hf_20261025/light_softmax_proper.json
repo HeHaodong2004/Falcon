@@ -1,0 +1,37 @@
+{
+  "kind": "softmax",
+  "objective": "proper",
+  "epochs": 8,
+  "split": "pilot_fit",
+  "device": "cuda:0",
+  "seed": 2526,
+  "source": {
+    "commit": "3d2a0e4829f1071c53a322cfd8d864c732185313",
+    "files": {
+      "eventwm_graph/partial/map.py": "41eec5df355c257ab6f40b1093f027d50b737accb5c899d0cafec51e946b0291",
+      "eventwm_graph/stage2_hf/__init__.py": "306248540dfa9f87e4bebf91f8ec169f72c0febed20c075a834a12e570c7977d",
+      "eventwm_graph/stage2_hf/api.py": "8726fe75a15a29e34ec90fb56938b371729f02b036e8dbc465f1bff5ddb735cd",
+      "eventwm_graph/stage2_hf/baseline.py": "1e1a374b2fbdad9d4b081c50c7a89ce1ff19c08641e97f7aa38ea7e6572bde99",
+      "eventwm_graph/stage2_hf/common.py": "3be7d5a54bb738bd64097aee8d356cb534da32bbf111361e7df3b13a7de2c732",
+      "eventwm_graph/stage2_hf/hybrid.py": "581c45a55839ef53d1e619da19192b2d88dfb3492c6e41a49568954db6214ee1",
+      "eventwm_graph/stage2_hf/light.py": "06dcacfa2010dbf4dfce8fa4e482c1be7374e5c9bb4f35f47481baac009ffcdc",
+      "eventwm_graph/stage2_hf/light_eval.py": "ab87cd74e4e119e957ba342fa63b594b68fa6230a5d6a5c5245575ca9c3abe81",
+      "eventwm_graph/stage2_hf/packed.py": "31ef21ed27a82d03375061623d01bf5d7e28a870b82948a75bacd3575aad4a2d",
+      "eventwm_graph/stage2_hf/prerequisite.py": "7fc1b8f4d37d61026b66ae1011396b05c9bc858057c1d2b11848ed3357ba4e9a",
+      "eventwm_graph/stage2_hf/spatial.py": "38a6ca11cf6251018ade2ecd8b2dbfec72d0961268dd4e049ef7f428e78d9e80",
+      "eventwm_graph/stage2_hf/spatial_cuda.py": "29d669e3092c56926c9f3403d6ba44475e0f8e97377f244569bf9d50a8388fd8",
+      "eventwm_graph/stage2_hf/spatial_eval.py": "34b60385e98c854f9a603135be5df2f6ce7e4ab7cf8c2ddd33d36f40b8869572",
+      "eventwm_graph/stage2_hf/spatial_train.py": "9b253986a93caec5a9045d49915ce9c811eeccbd00170bf5aa03a271d720815a",
+      "eventwm_graph/stage2_hf/test_api.py": "336c098a0485daf84221dc2d74471178e33042e568fdc6cf14a6921c37f40934",
+      "eventwm_graph/stage2_hf/test_spatial.py": "c9dca3065458976278135b42e6acce4738a59c5867399e849c7a9556d7dd342e",
+      "eventwm_graph/stage2_segment/data.py": "31e2d7e204a70b6bcd4434d854e7fc49a33441e3ffb148526de7306c658349f6",
+      "scripts/stage2_segment_run.py": "a2f1d05695cb2e65a761636cfab04b36a73e3ba8cdf3c80b77b7579fcb2c8f83"
+    },
+    "source_blob_directory": "/home/haodong/workspace/projects/eventwm-falcon-stage2-high-fidelity-20261025/output/stage2_hf_20261025/sources/blobs"
+  },
+  "manifest_sha256": "feb29bceac70cff8bd8f3d561db73fa9be2e4ee5d400cc3732dbad79237834c8",
+  "warm_checkpoint_sha256": "1ba6844d8b7eb336c46b41125eefae16e413c4ba408da9b0a1dc47ebcef66bfd",
+  "loss": "inverseinclusionRoot-windowweighted properCE or revelationBCE + revealedconditionalBCE; focalgamma1alpha3 with analytic posterior conversion; heightHuber.2",
+  "learning_rate": 0.001,
+  "batch_size": 16384
+}

@@ -1,0 +1,25 @@
+{
+  "kind": "softmax",
+  "objective": "balanced",
+  "epochs": 8,
+  "split": "pilot_fit",
+  "device": "cuda:0",
+  "seed": 2526,
+  "source": {
+    "commit": "3d2a0e4829f1071c53a322cfd8d864c732185313",
+    "files": {
+      "eventwm_graph/stage2_hf/__init__.py": "306248540dfa9f87e4bebf91f8ec169f72c0febed20c075a834a12e570c7977d",
+      "eventwm_graph/stage2_hf/common.py": "6fbbcdf6a4c45090ffc4df272887e9892e40a6df2bd152257ff67c0f70050ecd",
+      "eventwm_graph/stage2_hf/light.py": "06dcacfa2010dbf4dfce8fa4e482c1be7374e5c9bb4f35f47481baac009ffcdc",
+      "eventwm_graph/stage2_hf/light_eval.py": "f79848144ada5846dc75025d97e124bc0d1e6af34612d962ae9356cc60de06ec",
+      "eventwm_graph/stage2_hf/packed.py": "31ef21ed27a82d03375061623d01bf5d7e28a870b82948a75bacd3575aad4a2d",
+      "eventwm_graph/stage2_hf/prerequisite.py": "7fc1b8f4d37d61026b66ae1011396b05c9bc858057c1d2b11848ed3357ba4e9a",
+      "eventwm_graph/stage2_hf/spatial.py": "8a24f4632df1314d51bb6194ea94d993883d85f8890c94a6f6a411c94463535d"
+    }
+  },
+  "manifest_sha256": "feb29bceac70cff8bd8f3d561db73fa9be2e4ee5d400cc3732dbad79237834c8",
+  "warm_checkpoint_sha256": "1ba6844d8b7eb336c46b41125eefae16e413c4ba408da9b0a1dc47ebcef66bfd",
+  "loss": "inverseinclusionRoot-windowweighted properCE or revelationBCE + revealedconditionalBCE; focalgamma1alpha3 with analytic posterior conversion; heightHuber.2",
+  "learning_rate": 0.001,
+  "batch_size": 16384
+}

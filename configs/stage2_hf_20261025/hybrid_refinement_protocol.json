@@ -1,0 +1,12 @@
+{
+  "reason": "Pure spatialmodels IoU0.146-0.160 after2/4epochs vs strongold matched0.2174; matchedlightobjectives0.198-0.216. Retain full88feature frozenprior and learn spatialrevelation residual instead of relearningconditionaloccupancy.",
+  "architecture": "Frozen old88->48->32->4 prior + compact legalCNNspatial logoddsresidual. Only legally observed graph and suppliedpath enter either branch.",
+  "conditional": "Initially keep frozen oldconditionalFREE/BLOCKED probabilities and pointheights; future changes require controlled evidence.",
+  "initialization": "Residual outputweight0/biaslog8 so factorized posteriorinitialization reproducesoldprior. Warm CNNbody from spatialBCEepoch4, outputreset.",
+  "training": "Use existing48positive/48UNKNOWN sampled feature rows with exactinverseinclusion. Samplerpositions lossgathers only, notCNNinput; knownmaps/paths dedupcachedseparately; recovercellidentities from legalrelativecoordinate features and verify every sampledtarget againstold replaytargets.",
+  "pilot": "Twohybridlosses: proper weightedBCE and BCE+Dice.1, up to8epochs each. This is the one justified hybridarchitecture refinement; no other architecturesearch planned.",
+  "selection": "Same frozen31Roots/16development scenes, 666whole-domainwindows for pilotselection, then full70scene developmentselection and38diagnostic validation; no protectedselection.",
+  "prospective_decision_supplement": "May compare revelation threshold to maximumFREE/BLOCKEDclassprobability threshold onidenticalP; must also score oldcheckpoint undernewrule so noarchitecturecreditforrulechange. All decisions selected onlyonDev.",
+  "runtime": "Layoutprecision probes onlyneuralcomponents undertrainingcontention; actualsingle/K1/4/6 andintegration gatesmustbe rerunquietly withfullfuturegraphs.",
+  "unexposed": "Old222protectedRoot IDs remain excluded from all fitting/tuning. Finalconfirmation onlyafternewweight/rule/sourcefreeze; newrecord exposure logged, neverclaimednewuntouchedscenes if scenes overlappriorconfirmation."
+}

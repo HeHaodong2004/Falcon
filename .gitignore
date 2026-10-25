@@ -10,3 +10,12 @@ __pycache__/
 /data/
 .env*
 .venv/
+
+# Source-only Stage 2 progress publication
+*.ckpt
+*.safetensors
+*.onnx
+*.pkl
+*.pickle
+*.jsonl
+/.cache/

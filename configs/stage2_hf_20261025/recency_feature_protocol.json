@@ -1,0 +1,14 @@
+{
+  "scope": "Prospective legalrecency feature comparison; no protectedlabels",
+  "finding": "PartialGraph.update preservesfirst_seen and refresheslast_seen on every valid recordedstaticupdate, including knownBLOCKED rays; old88features and initialCNNcache discardedthese fields.",
+  "integrity": "Timestamp sidecars use onlysaved ancestors throughsegmentstart, exactsiblingundo, RootGkeyset/packedSHA binding, percellcausality. Densefast agreeswithreferenceall32pilotRoots andfullreplay8Roots. Testlogtime_tests_v1.log 3PASS.",
+  "point_models": [
+    "Frozenoldprior +revelationcorrection usingold88and32recencyfeatures",
+    "Samearchitecture, additionallylearnconditionalBLOCKEDcorrection"
+  ],
+  "covariates": "Four FREE/BLOCKED x recent<=.1s /exp(-age/.5s) groups, strength andthreeangularFouriermoments; countsandmeanages. Ageonly, invarianttoabsoluteclockshift. No cameraorhumaninputs.",
+  "control": "If improvement observed, independentlytrain matchedzero-recency-input control withsamecapacity/loss/seed; do not call inferencezeroing a fairtrainedbaseline.",
+  "selection": "Same frozen31Roots16Devscenes666whole-domainwindows, then70scene selection38diagnosticvalidation. Primarystrongoldthreshold.20; oldnewrulecontrol ifdecisionrulechanged.",
+  "full_data": "Existingfull105838fittingRoots and2482285windows. Fullsidecar andpointfeatureextraction runwith original105838sourceRows, no originaldata alteration.",
+  "no_scope_expansion": true
+}

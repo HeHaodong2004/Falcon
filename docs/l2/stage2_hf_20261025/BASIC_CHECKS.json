@@ -1,0 +1,30 @@
+{
+  "timestamp_utc": "2026-10-25T14:29:14.263622+00:00",
+  "python_ast_parse": {
+    "status": "PASS",
+    "files": 161
+  },
+  "json_configuration_parse": {
+    "status": "PASS",
+    "files": 17
+  },
+  "unit_tests": {
+    "status": "PASS",
+    "tests": 2,
+    "scope": "Data-independent CPU mathematical checks only",
+    "cases": [
+      "CausalTimeFeatures.test_clock_shift_and_future_time_guard",
+      "SpatialCorrectness.test_probabilities_and_shared_map"
+    ],
+    "observed_run_seconds": 0.041
+  },
+  "scope": "Quick publication checks; no model training, data extraction, extensive audit or background process control",
+  "datasets_checkpoints_caches_included": false,
+  "staged_asset_check": {
+    "status": "PASS",
+    "files": 162,
+    "forbidden_assets": 0,
+    "files_over_512KiB": 0
+  },
+  "whitespace_check": "PASS after publication-only EOF whitespace normalization"
+}

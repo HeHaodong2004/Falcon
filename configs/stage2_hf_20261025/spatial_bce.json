@@ -1,0 +1,37 @@
+{
+  "schema": "stage2_hf_spatial_1",
+  "name": "spatial_bce",
+  "split": "pilot_fit",
+  "epochs": 8,
+  "width": 12,
+  "dice_weight": 0.0,
+  "pos_weight": 8.0,
+  "conditional_weight": 0.15,
+  "height_weight": 0.05,
+  "seed": 2526,
+  "device": "cuda:0",
+  "batch_size": 24,
+  "workers": 2,
+  "manifest_sha256": "a6e96a0b7e387785a2c8e726f83ce052220598f6feeeafe8397d31216c1ced2a",
+  "source": {
+    "commit": "3d2a0e4829f1071c53a322cfd8d864c732185313",
+    "files": {
+      "eventwm_graph/stage2_hf/__init__.py": "306248540dfa9f87e4bebf91f8ec169f72c0febed20c075a834a12e570c7977d",
+      "eventwm_graph/stage2_hf/common.py": "6fbbcdf6a4c45090ffc4df272887e9892e40a6df2bd152257ff67c0f70050ecd",
+      "eventwm_graph/stage2_hf/light.py": "06dcacfa2010dbf4dfce8fa4e482c1be7374e5c9bb4f35f47481baac009ffcdc",
+      "eventwm_graph/stage2_hf/light_eval.py": "ab87cd74e4e119e957ba342fa63b594b68fa6230a5d6a5c5245575ca9c3abe81",
+      "eventwm_graph/stage2_hf/packed.py": "31ef21ed27a82d03375061623d01bf5d7e28a870b82948a75bacd3575aad4a2d",
+      "eventwm_graph/stage2_hf/prerequisite.py": "7fc1b8f4d37d61026b66ae1011396b05c9bc858057c1d2b11848ed3357ba4e9a",
+      "eventwm_graph/stage2_hf/spatial.py": "b790fec8462bcfad90d2ea53c02d09535394231c03bfb7b83d88ef51828c6a43",
+      "eventwm_graph/stage2_hf/spatial_cuda.py": "86899d04b2510e66bbd12f16eea89e7e7a5e61aaf9aaa79838768f751640111e",
+      "eventwm_graph/stage2_hf/spatial_train.py": "9b253986a93caec5a9045d49915ce9c811eeccbd00170bf5aa03a271d720815a",
+      "eventwm_graph/stage2_hf/test_spatial.py": "c9dca3065458976278135b42e6acce4738a59c5867399e849c7a9556d7dd342e"
+    }
+  },
+  "warm": null,
+  "learning_rate": 0.001,
+  "probability_conversion": "Revelation logit minus log8, conditional sigmoid; no assumption threshold.5 optimal.",
+  "weighting": "EqualScene/Root/window, full unchanged candidate cellmean revBCE; conditionalBCE/heightmean on revealedcells; allzero windows included.",
+  "precision": "AMP FP16training, float32 probabilities; scientific inference initiallyfloat32",
+  "max_steps": null
+}

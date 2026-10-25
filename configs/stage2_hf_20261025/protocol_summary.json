@@ -1,0 +1,44 @@
+{
+  "schema": "stage2_high_fidelity_v1",
+  "seed": 2526,
+  "source": {
+    "commit": "3d2a0e4829f1071c53a322cfd8d864c732185313",
+    "files": {
+      "eventwm_graph/stage2_hf/__init__.py": "306248540dfa9f87e4bebf91f8ec169f72c0febed20c075a834a12e570c7977d",
+      "eventwm_graph/stage2_hf/common.py": "6fbbcdf6a4c45090ffc4df272887e9892e40a6df2bd152257ff67c0f70050ecd",
+      "eventwm_graph/stage2_hf/prerequisite.py": "7fc1b8f4d37d61026b66ae1011396b05c9bc858057c1d2b11848ed3357ba4e9a"
+    }
+  },
+  "train_manifest_sha256": "dc5d93bef00db38fb47ca3450d144af8565c3039bf365c3340bc82256cd6131e",
+  "dev_manifest_sha256": "4187cf65a73c4eafdedbc7b862b01a9bc4820ece12b9e980e5305aa6559bc128",
+  "baseline_checkpoint_sha256": "1ba6844d8b7eb336c46b41125eefae16e413c4ba408da9b0a1dc47ebcef66bfd",
+  "original_segmentation_protocol_sha256": "0a89902ac6801831c25704ecae4a8f2928d02aa9de6901667d54d5703de5327d",
+  "train_roots": 105838,
+  "dev_roots": 2110,
+  "domain": "Unchanged initiallyUNKNOWN union11m closed discs around all saved supplied poses; add every missedGTpositive as certainUNKNOWN miss. No hard geometry pruning.",
+  "labels": "Exact original mixed windows and legalDAG replay; knowncorrections separate; no privileged geometry; no interpolated sensing labels.",
+  "pilot_models": [
+    "old architecture improved objective/sampling",
+    "factorized lightweight twohead",
+    "compact spatial twohead and optional hybrid"
+  ],
+  "pilot_budget": "At most6initial lightweight configurations and2spatial variants; up to12epochs on2048Roots; one justified refinement perpath. Fullfit selected family once, up to6epochs with devselected early stopping; preserve all epochs/negative outcomes.",
+  "operating_point": "Each model selects its own threshold on70development scenes, primary labelawareIoU; falseFREE and emptybehavior explicit constraints/tradeoffs, no test tuning.",
+  "selection": "Prefer strictIoU improvement over oldthreshold.20 with pairedscene evidence, inspect proper scores/FREEerror/empty performance; speedPareto at matchedcomplete outputs. Never claim .45 reached below actual.",
+  "probability_metrics": "Full candidate domain, multiclassBrier=sum3, logclip1e-9; Root/scene/window hierarchy unchanged; supporting AP/AUROC and calibration.",
+  "runtime": "Identical oldsingleinputs and32oldmultiRootgroups; K1/4/6 distinctpath prefixes, mapcold/retained, normalGC, completefuturegraph primary; softonly separately; oldintegratedactualgate<=100ms retained.",
+  "uncertainty": "2000pairedscene bootstrap seed2526; nestedRoot/windows kept together; protected confirmation only after model/threshold/source freeze, never opened222Root reuse.",
+  "no_stage1_training": true,
+  "no_layer3": true,
+  "no_collection": true,
+  "no_push": true,
+  "pilot_fit_count": 2048,
+  "pilot_fitting_holdout_count": 127,
+  "pilot_selection_roots_count": 31,
+  "opened_protected_roots_count": 222,
+  "opened_protected_scenes_count": 111,
+  "selection_scenes_count": 70,
+  "diagnostic_validation_scenes_count": 38,
+  "local_complete_protocol_sha256": "e9e377fd5a3e4f535cc901f4cbf9143951a6ff95deb5cef8a746d37728e5d3d7",
+  "publication_note": "Selection identifiers and dataset records omitted; full frozen protocol remains in the original research output. This file is a protocol summary."
+}

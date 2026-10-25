@@ -1,0 +1,90 @@
+{
+  "summary": {
+    "representative_cold": {
+      "p50_ms": 19.138809526339173,
+      "p95_ms": 27.135724539402855,
+      "p99_ms": 38.91931765247135,
+      "mean_cpu_ms": 19.72310265000005,
+      "component_means_ms": {
+        "prepare_seconds": 6.140138379608592,
+        "feature_upload_launch_seconds": 2.054335937524835,
+        "delta_seconds": 1.2187931298588714,
+        "update_seconds": 0.808292879567792,
+        "device_feature_and_boundary_seconds": 0.47362842597067356,
+        "feature_seconds": 2.7769044740125537,
+        "spatial_seconds": 4.811500307793418,
+        "neural_seconds": 1.9043983309529722,
+        "total_seconds": 19.637162172390767,
+        "candidate_seconds": 1.903532868406425,
+        "feature_finite_and_height_return_seconds": 0.2231950988061726,
+        "near_tie_reference_seconds": 0.21026656031608582,
+        "neural_transfer_forward_return_seconds": 0.5177895189262927
+      }
+    },
+    "representative_retained": {
+      "p50_ms": 8.835284505039454,
+      "p95_ms": 12.739815714303402,
+      "p99_ms": 57.74402167880871,
+      "mean_cpu_ms": 10.934434850000082,
+      "component_means_ms": {
+        "prepare_seconds": 1.38404710451141,
+        "feature_upload_launch_seconds": 1.392190127323071,
+        "delta_seconds": 2.9220974499670165,
+        "update_seconds": 0.728792188844333,
+        "device_feature_and_boundary_seconds": 0.43347286603723967,
+        "feature_seconds": 2.056142563621203,
+        "spatial_seconds": 0.16368727665394545,
+        "neural_seconds": 1.7778810230083764,
+        "total_seconds": 10.88018356822431,
+        "candidate_seconds": 1.7824199749156833,
+        "feature_finite_and_height_return_seconds": 0.20866888420035443,
+        "near_tie_reference_seconds": 0.19754852013041577,
+        "neural_transfer_forward_return_seconds": 0.4952657890195648
+      }
+    },
+    "dense_cold": {
+      "p50_ms": 24.04097211547196,
+      "p95_ms": 28.671487350948155,
+      "p99_ms": 29.023297464009374,
+      "mean_cpu_ms": 24.255882349999986,
+      "component_means_ms": {
+        "prepare_seconds": 11.636172995592158,
+        "feature_upload_launch_seconds": 2.0548760968570905,
+        "delta_seconds": 0.9218647765616577,
+        "update_seconds": 0.6555729002381364,
+        "device_feature_and_boundary_seconds": 0.4109589111370345,
+        "feature_seconds": 2.7040297553564114,
+        "spatial_seconds": 5.228779309739669,
+        "neural_seconds": 1.7060776318733892,
+        "total_seconds": 24.183331980990868,
+        "candidate_seconds": 1.2555760719502966,
+        "feature_finite_and_height_return_seconds": 0.2134690061211586,
+        "near_tie_reference_seconds": 0.18527311816190678,
+        "neural_transfer_forward_return_seconds": 0.47650415217503905
+      }
+    },
+    "dense_retained": {
+      "p50_ms": 9.333106107078493,
+      "p95_ms": 10.67361542955041,
+      "p99_ms": 11.139357991050929,
+      "mean_cpu_ms": 9.3214747166666,
+      "component_means_ms": {
+        "prepare_seconds": 2.812003301611791,
+        "feature_upload_launch_seconds": 1.1614391269783177,
+        "delta_seconds": 0.8877257001586258,
+        "update_seconds": 0.6664030021056533,
+        "device_feature_and_boundary_seconds": 0.36779631627723575,
+        "feature_seconds": 1.7404279671609402,
+        "spatial_seconds": 0.15391497872769833,
+        "neural_seconds": 1.652034403135379,
+        "total_seconds": 9.282041566135984,
+        "candidate_seconds": 1.3076088080803552,
+        "feature_finite_and_height_return_seconds": 0.1914962156054874,
+        "near_tie_reference_seconds": 0.16998250891144076,
+        "neural_transfer_forward_return_seconds": 0.44381170688817895
+      }
+    }
+  },
+  "scope": "Bounded24input exploratory completecallprofile; not the final release gate",
+  "raw_profile_sha256": "2bdc0884367498d7f33d65f91bc036a59c5811cb292ddf1e0e1d3d21898bdd35"
+}

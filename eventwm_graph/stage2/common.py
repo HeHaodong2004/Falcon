@@ -7,7 +7,7 @@ from pathlib import Path
 BASE=Path(os.environ.get('EVENTWM_STAGE2_BASE',Path(__file__).resolve().parents[2])).resolve()
 OUT=BASE/'output/stage2_graphdelta_20261024'
 FINAL=BASE/'output/l2_two_stage_20261023/final_collection_20261024/manifest.json'
-OLD=Path('/research-user/workspace/projects/eventwm-falcon-l2-partial-20261021/output/l2_graph_wm_120k_20261021')
+OLD=Path('/home/haodong/workspace/projects/eventwm-falcon-l2-partial-20261021/output/l2_graph_wm_120k_20261021')
 SCHEMA='trajectory_conditioned_observed_graphdelta_1'
 
 

@@ -1,0 +1,24 @@
+{
+  "learning.json": [
+    {
+      "epoch": 1,
+      "steps": 30,
+      "windows": 480,
+      "seconds": 17.999331614002585,
+      "loss_parts": [
+        0.30047528569897014,
+        0.5280206908782323,
+        0.0006482788915794421,
+        0.9881370743115743
+      ],
+      "data_wait_seconds": 12.867614041315392
+    }
+  ],
+  "complete.json": {
+    "seconds": 18.001828231848776,
+    "windows_seen": 480,
+    "parameters": 22379,
+    "peak_cuda_allocated": 702474752,
+    "peak_cuda_reserved": 1098907648
+  }
+}
