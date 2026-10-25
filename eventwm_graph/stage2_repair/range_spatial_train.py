@@ -11,18 +11,20 @@ from .range_spatial import SpatialEvidenceNet
 from eventwm_graph.stage2_hf.packed import load_arrays,get_segment
 
 
-def load_groups(split):
+def load_groups(split,point_manifest=None):
     m=read(OUT/('range_bev_'+split)/'manifest.json');counts=Counter(r['scene_id']for r in m['records']);factor={s:m['roots']/(len(counts)*n)for s,n in counts.items()};groups=[]
+    override={r['root_id']:r for r in read(point_manifest)['records']}if point_manifest else{}
     for row in m['records']:
         with np.load(row['path'])as z:maps=z['maps'];low=z['lo'];aux=z['aux'];mask=z['mask']
-        with np.load(row['point_path'])as z:extra=z['extra'];y=z['y'];x=z['x']if split=='train'else None;w=z['weight']if split=='train'else None
+        point=override.get(row['root_id'])
+        with np.load(point['path']if point else row['point_path'])as z:extra=z['extra'];y=z['y'];x=z['x']if 'x'in z.files else None;w=z['weight']if split=='train'else None
         if x is None:
-            with np.load(row['original_feature_path'])as z:x=z['x']
+            with np.load(point['original_feature_path']if point else row['original_feature_path'])as z:x=z['x']
         packed=read(HF/'packed'/('pilot_fit'if split=='train'else'dev_pilot')/(row['root_id']+'.json'));a=load_arrays(packed);lookup={(e['start_node'],e['end_node']):i for i,e in enumerate(packed['segments'])}
         for g in row['groups']:
             ids=np.array(g['point_ids']);xx=x[ids];mi=g['map_index'];p=get_segment(a,lookup[g['start_node'],g['segments'][0]['end_node']])[3];keys=np.floor((xx[:,20:22].astype(np.float64)*10+p[0,[1,3]])/a['geometry'][0]).astype(np.int32);relative=keys-low[mi];segments=[];cursor=0
             for e in g['segments']:n=e['end']-e['start'];segments.append(dict(start=cursor,end=cursor+n,start_node=e['start_node'],end_node=e['end_node']));cursor+=n
-            groups.append(dict(root_id=row['root_id'],scene_id=row['scene_id'],maps=maps[mi],aux=aux[mi],mask=mask[mi],x=xx,extra=extra[ids],y=y[ids],weight=w[ids]*factor[row['scene_id']]if w is not None else None,indices=relative,segments=segments,aux_weight=len(segments)/sum(len(v['segments'])for v in row['groups'])*factor[row['scene_id']]))
+            groups.append(dict(root_id=row['root_id'],scene_id=row['scene_id'],start_node=g['start_node'],low=low[mi],maps=maps[mi],aux=aux[mi],mask=mask[mi],x=xx,extra=extra[ids],y=y[ids],weight=w[ids]*factor[row['scene_id']]if w is not None else None,indices=relative,segments=segments,aux_weight=len(segments)/sum(len(v['segments'])for v in row['groups'])*factor[row['scene_id']]))
     return m,groups
 
 

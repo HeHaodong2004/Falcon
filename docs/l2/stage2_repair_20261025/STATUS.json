@@ -78,6 +78,17 @@
       "workloads": 32,
       "repeats": 3,
       "acceptance": false
+    },
+    {
+      "model": "Shared spatial range model after2048Root graph-support pretraining and256Root original-increment fine-tuning",
+      "pilot_label_iou": 0.38742267263224084,
+      "pilot_revelation_iou": 0.4451020476824481,
+      "selected_epoch": 1,
+      "rule": "argmax",
+      "checkpoint_sha256": "5e5b4cc0d0bd0092815033a2b77ddee2f804f807ce4480280e4373c1868968bb",
+      "public_API_all666_verified": true,
+      "full_development_label_iou": null,
+      "inputs": "Same explicit legal current/past ideal-range sensor extension. Pretraining uses private support labels only as loss targets; runtime has no private geometry."
     }
   ],
   "pipeline_checks": {
@@ -155,7 +166,16 @@
     "range_runtime_spatial_stride1_radix/summary.json",
     "range_full_smoke.log",
     "column_bounds_tests.log",
-    "radix_profile_column_bounds.log"
+    "radix_profile_column_bounds.log",
+    "support_pretrained256_selection.json",
+    "range_online_smoke8.log",
+    "range_online_parity_tests.log",
+    "obstacle_batching_before.log",
+    "obstacle_batching_after.log",
+    "range_runtime_spatial_stride1_radix_distance2m/summary.json",
+    "range_ray256_selection.json",
+    "range_ray_smallfit.json",
+    "range_ray_api_tests.log"
   ],
   "reproduce_examples": [
     "python scripts/stage2_segment_run.py unittest eventwm_graph.stage2_repair.test_contract eventwm_graph.stage2_repair.test_api eventwm_graph.stage2_repair.test_range eventwm_graph.stage2_repair.test_range_api eventwm_graph.stage2_repair.test_range_planar eventwm_graph.stage2_repair.test_fresh_sampling eventwm_graph.stage2_repair.test_fresh_workers eventwm_graph.stage2_repair.test_range_spatial_api",
@@ -165,7 +185,7 @@
     "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --radix --repetitions 3 --device cuda:1"
   ],
   "deployment_readiness": "Below target. Sensor-extension model also needs explicit range-packet integration; ideal current-range replay is not rendered RGB-D validation. Sensor acquisition and serialization are excluded from Stage2 primary inference timing and must be reported separately. No standalone forward benchmark guarantees total Layer3 RL runtime.",
-  "updated_utc": "2026-10-25 22:56 UTC",
+  "updated_utc": "2026-10-25 23:46 UTC",
   "confirmed_acceleration_defect": {
     "scope": "New observed-range prototype, not original-model plateau",
     "cause": "Balanced Morton hierarchy traverses excessively many overlapping measured triangles",
@@ -183,10 +203,34 @@
     "encoder_pretraining": "Completed3epochs on2048trainingRoots31059maps; now matched original-increment fine-tuning. Auxiliary support pooled IoU0.307 is a training diagnostic, not primary reconstruction.",
     "expanded_training_range_roots_requested": 4096,
     "full_development_range_roots_requested": 2110,
-    "minimum_work_until_utc": "2026-10-26 10:15 UTC"
+    "minimum_work_until_utc": "2026-10-26 10:15 UTC",
+    "expanded_training": "Fresh original-cell online features on4096eligible training Roots;8Root smoke completed121graphs182windows6,714,486originalcandidate cells106,687freshsampled rows. All windows retained; separate1234known-cell corrections,0out-of-domain positives in this smoke. Full4096 waits for sensor preparation.",
+    "full_development_evaluation": "Frozen source efd0ae34,2GPUshards running older0.37198pilot checkpoint, complete original2110Roots47128windows; no summary score yet."
   },
   "diagnostics": {
     "support_oracle": "PRIVILEGED diagnostic only: perfect static support + partial observed visibility0.38018. Support knowledge alone is insufficient to meet0.50; missing visibility/geometry remains.",
     "not_acceptance": true
-  }
+  },
+  "new_confirmed_defect": {
+    "scope": "New observed-range prototype; not the original historical0.217plateau",
+    "function": "GpuObservedRangeMesh.obstacle_distance",
+    "failure": "Query cell0 with a measured obstacle1.5m away yields clipped2m alone but1.5m when another query expands the crop.",
+    "cause": "Legacy8cell crop smaller than the2m feature clipping radius",
+    "fix": "At least2m plus2cells padding, explicit capped_2m_complete schema for new trained models. Old checkpoint behavior retained only for matched comparisons.",
+    "regression_before": "FAIL,2.0versus1.5",
+    "regression_after": "PASS",
+    "matched_all666_pilot_score_change": 0.0,
+    "same_pooled_confusion": true,
+    "cache_policy": "Old features/receipts remain explicitly legacy. Fresh online training recomputes corrected features; no silent cache relabeling."
+  },
+  "rejected_candidates": [
+    {
+      "model": "Learned viewing-line context replacing measured geometry",
+      "same24TRAINfull_cell_fit_iou": 0.790341578327444,
+      "pilot_best_iou": 0.23073100661964194,
+      "epochs": 16,
+      "selected_for_deployment": false,
+      "reason": "Much poorer generalization; retained measured-geometry model."
+    }
+  ]
 }

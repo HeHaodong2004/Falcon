@@ -23,13 +23,13 @@ def full_training_groups():
         for e in row['segments']:bystart[e['start_node']].append(e)
         for g in context['groups']:
             entries=bystart[g['start_node']];ids=np.concatenate([np.arange(e['start'],e['end'])for e in entries]);p=get_segment(a,lookup[g['start_node'],entries[0]['end_node']])[3];keys=np.floor((x[ids,20:22].astype(np.float64)*10+p[0,[1,3]])/a['geometry'][0]).astype(np.int32);segments=[];cursor=0
-            for e in entries:n=e['end']-e['start'];segments.append(dict(start=cursor,end=cursor+n));cursor+=n
-            groups.append(dict(root_id=row['root_id'],scene_id=row['scene_id'],maps=maps[g['map_index']],x=x[ids],extra=extra[ids],y=y[ids],indices=keys-low[g['map_index']],segments=segments))
+            for e in entries:n=e['end']-e['start'];segments.append(dict(start=cursor,end=cursor+n,start_node=g['start_node'],end_node=e['end_node']));cursor+=n
+            groups.append(dict(root_id=row['root_id'],scene_id=row['scene_id'],start_node=g['start_node'],low=low[g['map_index']],maps=maps[g['map_index']],x=x[ids],extra=extra[ids],y=y[ids],indices=keys-low[g['map_index']],segments=segments))
     return manifest,groups
 
 
 def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prepared=None):
-    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');model=SpatialEvidenceNet().to(device).eval();model.load_state_dict(saved['model']);manifest,groups=_prepared if _prepared is not None else full_training_groups()if full_training else load_groups('train'if training else'dev');roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
+    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');model=SpatialEvidenceNet().to(device).eval();model.load_state_dict(saved['model']);manifest,groups=_prepared if _prepared is not None else full_training_groups()if full_training else load_groups('train'if training else'dev',None if training else saved.get('config',{}).get('dev_feature_manifest'));roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
     def tensor(x,dtype):return torch.from_numpy(np.ascontiguousarray(x,dtype=dtype)).to(device)
     for g in groups:
         probability=[]

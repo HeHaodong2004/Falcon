@@ -118,7 +118,12 @@ class GpuObservedRangeMesh(ObservedRangeMesh):
     def obstacle_distance(self,keys,base_height):
         """Distance to measured body-height surfaces; no native support query."""
         from scipy.ndimage import distance_transform_edt
-        r=self.kernel.resolution;keys=np.asarray(keys);lo=np.array([keys[:,0].min(),keys[:,1].min()])-8;shape=np.array([keys[:,0].max(),keys[:,1].max()])-lo+9
+        r=self.kernel.resolution;keys=np.asarray(keys)
+        # Consumers clip this distance at2m. A smaller crop makes the feature
+        # depend on which other trajectories/cells happen to share the batch.
+        # Old checkpoints explicitly retain their recorded8cell contract.
+        padding=getattr(self,'obstacle_padding_cells',int(np.ceil(2./r))+2)
+        lo=np.array([keys[:,0].min(),keys[:,1].min()])-padding;shape=np.array([keys[:,0].max(),keys[:,1].max()])-lo+padding+1
         cache_key=tuple(lo)+tuple(shape)+(float(base_height),)
         if cache_key not in self.obstacle_cache:
             nx,nz=map(int,shape);field=torch.zeros((nx,nz),dtype=torch.int32,device=self.kernel.device)

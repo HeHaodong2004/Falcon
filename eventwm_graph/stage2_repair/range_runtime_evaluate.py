@@ -14,7 +14,7 @@ from eventwm_graph.stage2_segment.prepared import content_key
 from scripts.stage2_diagnostic.common import extended_rates
 
 
-def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False):
+def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False,ray=False,complete_distance=False):
     cls=RangeEvidencePredictor
     if planar:
         from .range_planar_api import PlanarRangePredictor
@@ -28,9 +28,17 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
     if radix:
         from .range_radix_api import RadixRangePredictor,RadixExactPredictor,RadixSpatialPredictor,RadixExactSpatialPredictor
         cls=(RadixSpatialPredictor if proxy else RadixExactSpatialPredictor)if spatial else RadixRangePredictor if proxy else RadixExactPredictor
+    if ray:
+        if proxy or radix:raise ValueError('learned viewing lines do not use measured triangle ray variants')
+        from .range_ray_api import RayRangePredictor
+        cls=RayRangePredictor
     label='spatial_'if spatial else'';label+='proxy7'if proxy else'planar'if planar else'stride%d'%stride
     if radix:label+='_radix'
-    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;model=cls(checkpoint,device=device,mesh_stride=stride);raw,source=source_rows('dev');raw={r['root_id']:r for r in raw};manifest=read(HF/'light_eval_cache/manifest.json');dest=OUT/('range_runtime_'+label);dest.mkdir(exist_ok=True);roots=[];tick=time.perf_counter()
+    if ray:label='ray'
+    if complete_distance:label+='_distance2m'
+    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;model=cls(checkpoint,device=device,mesh_stride=stride)
+    if complete_distance:model.config['observed_obstacle_schema']='capped_2m_complete'
+    raw,source=source_rows('dev');raw={r['root_id']:r for r in raw};manifest=read(HF/'light_eval_cache/manifest.json');dest=OUT/('range_runtime_'+label);dest.mkdir(exist_ok=True);roots=[];tick=time.perf_counter()
     for row in manifest['rows']:
         rid=row['root_id'];legal=member(raw[rid],'legal_root.json.gz');nodes=member(raw[rid],'future_observations.json.gz');tracks=[o['tracks']for o in legal['history']]+[n['observation']['tracks']for n in nodes]
         with np.load(OUT/'range_branches'/(rid+'.npz'))as z:sensors={k:z[k]for k in z.files}
@@ -55,8 +63,8 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
     scenes=defaultdict(list);pooled=np.zeros((2,3,3),np.int64)
     for root in roots:
         cm=np.array([[e['baseline_cm'],e['cm']]for e in root['records']]);scenes[root['scene_id']].append(cm.mean(0));pooled+=cm.sum(0)
-    mean=np.mean([np.mean(v,0)for v in scenes.values()],0);result=dict(role='LEGAL sensor-extension PUBLIC API on original fixed pilot; not full-development acceptance.',checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),stride=stride,roots=len(roots),windows=sum(len(r['records'])for r in roots),hierarchical={k:extended_rates(c)for k,c in zip(['baseline','range'],mean)},pooled={k:extended_rates(c)for k,c in zip(['baseline','range'],pooled)},pooled_confusion=pooled.tolist(),seconds=time.perf_counter()-tick);save(dest/'summary.json',result);print('SUMMARY',result['hierarchical'],flush=True)
+    mean=np.mean([np.mean(v,0)for v in scenes.values()],0);result=dict(role='LEGAL sensor-extension PUBLIC API on original fixed pilot; not full-development acceptance.',checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),observed_obstacle_schema=model.config.get('observed_obstacle_schema','legacy_8cell_crop'),stride=stride,roots=len(roots),windows=sum(len(r['records'])for r in roots),hierarchical={k:extended_rates(c)for k,c in zip(['baseline','range'],mean)},pooled={k:extended_rates(c)for k,c in zip(['baseline','range'],pooled)},pooled_confusion=pooled.tolist(),seconds=time.perf_counter()-tick);save(dest/'summary.json',result);print('SUMMARY',result['hierarchical'],flush=True)
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:0');p.add_argument('--stride',type=int,default=1);p.add_argument('--planar',action='store_true');p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:0');p.add_argument('--stride',type=int,default=1);p.add_argument('--planar',action='store_true');p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');p.add_argument('--ray',action='store_true');p.add_argument('--complete-distance',action='store_true');run(**vars(p.parse_args()))

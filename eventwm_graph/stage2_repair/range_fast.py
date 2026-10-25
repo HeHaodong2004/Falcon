@@ -83,6 +83,7 @@ class RangeFeatureKernel:
         return support,difference
 
     def compute(self,mesh,details,gkeys,origin,rotation):
+        if not any(len(d[0])for d in details):return [torch.empty((0,16),device=self.device)for d in details]
         keys=np.concatenate([d[0]for d in details]);low=np.array([keys[:,0].min(),keys[:,1].min()])-4;high=np.array([keys[:,0].max(),keys[:,1].max()]);shape=high-low+5;nx,nz=map(int,shape);area=nx*nz;r=mesh.kernel.resolution
         cells=(keys[:,0]-low[0])*nz+keys[:,1]-low[1];active=np.zeros(area,bool);active[cells]=True;flat=np.flatnonzero(active);union=np.column_stack([flat//nz+low[0],flat%nz+low[1]]).astype(np.int32);ids=np.full(area,-1,np.int32);ids[flat]=np.arange(len(flat),dtype=np.int32)
         floors=np.empty(area,np.float32)

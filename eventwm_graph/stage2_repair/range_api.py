@@ -47,6 +47,7 @@ class RangeEvidencePredictor(GlobalTimePredictor):
         return decode_columns(values,baseline,keys,self.threshold,no_future,self.decision_rule=='argmax')
 
     def _network(self,xs,details):
+        if not any(len(x)for x in xs):return [np.empty((0,4),np.float32)for x in xs]
         if self.fast_features:
             extras=self.range_kernel.compute(self.active_mesh,details,self.active_graph.keys,self.current_origin,self.current_rotation)
             result=[]
@@ -54,10 +55,11 @@ class RangeEvidencePredictor(GlobalTimePredictor):
                 values=[]
                 for begin in range(0,len(x),self.tile_size):
                     end=min(begin+self.tile_size,len(x));p,h=self.model.probabilities(x[begin:end],extra[begin:end]);values.append(torch.cat([p,h[:,None]],1).cpu().numpy())
-                result.append(np.concatenate(values))
+                result.append(np.concatenate(values)if values else np.empty((0,4),np.float32))
             return result
         out=[]
         for x,(keys,baseline,path)in zip(xs,details):
+            if not len(keys):out.append(np.empty((0,4),np.float32));continue
             # Only the nearest legal-map height is needed by the range
             # extractor. Avoid a full feature transfer back to the host.
             stub=np.zeros((len(keys),25),np.float32);stub[:,24]=baseline-path[0,2]
@@ -66,7 +68,7 @@ class RangeEvidencePredictor(GlobalTimePredictor):
             with torch.inference_mode():
                 for begin in range(0,len(keys),self.tile_size):
                     end=min(begin+self.tile_size,len(keys));p,h=self.model.probabilities(x[begin:end],torch.from_numpy(extra[begin:end]).to(self.device));values.append(torch.cat([p,h[:,None]],1).cpu().numpy())
-            out.append(np.concatenate(values))
+            out.append(np.concatenate(values)if values else np.empty((0,4),np.float32))
         return out
 
     def predict(self,*,partial_graph,trajectory,range_observations,track_history,materialize=True):
@@ -86,12 +88,16 @@ class RangeEvidencePredictor(GlobalTimePredictor):
         identity=range_identity(ranges,origins,rotations,timestamps,track_history,partial_graph['resolution'],self.mesh_stride)
         if identity not in self.mesh_cache:
             self.mesh_cache[identity]=self._make_mesh(ranges,origins,rotations,timestamps,now,partial_graph['resolution'],track_history)
+            contract=self.config.get('observed_obstacle_schema','legacy_8cell_crop')
+            if contract not in ('legacy_8cell_crop','capped_2m_complete'):raise ValueError('unsupported observed obstacle feature schema')
+            if contract=='legacy_8cell_crop':self.mesh_cache[identity].obstacle_padding_cells=8
             while len(self.mesh_cache)>2:self.mesh_cache.popitem(last=False)
         self.mesh_cache.move_to_end(identity);self.active_mesh=self.mesh_cache[identity];self.active_graph=self.prepare_graph(partial_graph);self.current_origin=origins[-1];self.current_rotation=rotations[-1];mesh_at=time.perf_counter()
         result=super().predict_segments(partial_graph=partial_graph,trajectories=paths,materialize=materialize)
         for d in result:
             d['provenance'].update(input='current_legal_graph_supplied_base_path_and_measured_past_current_range_history',sensor_extension=True,privileged_runtime_inputs=False,range_history_identity=identity)
             d['provenance']['range_mesh_pixel_stride']=self.mesh_stride
+            d['provenance']['observed_obstacle_schema']=self.config.get('observed_obstacle_schema','legacy_8cell_crop')
             if self.decision_rule=='argmax':d['provenance'].update(decision='argmax',revelation_threshold=None)
         self.last_batch_profile.update(range_input_and_mesh_seconds=mesh_at-tick,total_seconds=time.perf_counter()-tick,serialization_included=False,sensor_acquisition_included=False)
         return result
