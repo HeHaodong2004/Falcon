@@ -11,7 +11,7 @@ import time
 import numpy as np
 import torch
 from .diagnose import OUT,HF,CKPT,read,save,sha
-from .api import TimePredictor
+from .predictor import make_predictor
 from eventwm_graph.stage2_hf.baseline import ThresholdBaseline
 from eventwm_graph.stage2_segment.benchmark import inputs
 
@@ -26,11 +26,7 @@ def summary(rows):
 
 
 def run(checkpoint,device='cuda:1',repetitions=2,name='pilot_cost',increment_format='list',global_features=False):
-    cls=TimePredictor
-    if global_features:
-        from .global_features import GlobalTimePredictor
-        cls=GlobalTimePredictor
-    torch.set_num_threads(1);gc.enable();tick=time.perf_counter();m=cls(checkpoint,device=device,increment_format=increment_format);candidate_loaded=time.perf_counter()-tick
+    torch.set_num_threads(1);gc.enable();tick=time.perf_counter();m=make_predictor(checkpoint,device=device,increment_format=increment_format,global_features=global_features);candidate_loaded=time.perf_counter()-tick
     tick=time.perf_counter();baseline=ThresholdBaseline(CKPT,threshold=.2,execution='optimized',future_format='native',device=device,feature_threads=1);baseline_loaded=time.perf_counter()-tick
     models=dict(baseline=baseline,candidate=m);work=inputs('multi');rows=[];startup=[]
     # Explicit first-call/startup separate from initialized distributions.

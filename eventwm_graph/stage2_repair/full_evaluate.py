@@ -15,7 +15,7 @@ import time
 import numpy as np
 import torch
 from .diagnose import OUT,HF,read,save,sha,source_rows,member
-from .api import TimePredictor
+from .predictor import make_predictor
 from eventwm_graph.stage2_segment.data import replay
 from eventwm_graph.stage2_segment.evaluate import groups
 from scripts.stage2_diagnostic.common import extended_rates
@@ -38,9 +38,9 @@ def labels(keys,target):
     return y,heights,[values[i]for i in np.flatnonzero(~valid)]
 
 
-def initialize(checkpoint,dest,device):
+def initialize(checkpoint,dest,device,global_features=False):
     global MODEL,DEST,CHECKPOINT_SHA
-    torch.set_num_threads(1);MODEL=TimePredictor(checkpoint,device=device,threshold=.2);DEST=Path(dest);CHECKPOINT_SHA=sha(checkpoint)
+    torch.set_num_threads(1);MODEL=make_predictor(checkpoint,device=device,threshold=.2,global_features=global_features);DEST=Path(dest);CHECKPOINT_SHA=sha(checkpoint)
 
 
 def worker(row):
@@ -105,12 +105,16 @@ def summarize(roots):
         pooled_strata={k:dict(windows=len(v),**metric(np.sum(v,axis=0)))for k,v in sorted(strata.items())})
 
 
-def evaluate(checkpoint,workers=4,device='cuda:1',name='selected',smoke=False):
+def evaluate(checkpoint,workers=4,device='cuda:1',name='selected',smoke=False,global_features=False):
     dest=OUT/'full_evaluation'/name;dest.mkdir(parents=True,exist_ok=True);rows,manifest=source_rows('dev');tick=time.perf_counter();completed=[]
     if smoke:
         ids=set(read(HF/'protocol.json')['pilot_selection_roots'][:2]);rows=[r for r in rows if r['root_id']in ids]
-    save(dest/'identity.json',dict(checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),source_manifest_sha256=sha(manifest),source_sha256=sha(__file__),threshold=.2,workers=workers,device=device,original_roots=len(rows),smoke_only=smoke))
-    with ProcessPoolExecutor(max_workers=workers,initializer=initialize,initargs=(str(checkpoint),str(dest),device))as pool:
+    identity=dict(checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),source_manifest_sha256=sha(manifest),source_sha256=sha(__file__),threshold=.2,workers=workers,device=device,original_roots=len(rows),smoke_only=smoke,global_features=global_features)
+    if (dest/'identity.json').exists():
+        previous=read(dest/'identity.json')
+        if previous['checkpoint_sha256']!=identity['checkpoint_sha256']or previous.get('global_features',False)!=global_features:raise ValueError('evaluation identity changed; use a fresh destination')
+    save(dest/'identity.json',identity)
+    with ProcessPoolExecutor(max_workers=workers,initializer=initialize,initargs=(str(checkpoint),str(dest),device,global_features))as pool:
         jobs={pool.submit(worker,row):row['root_id']for row in rows}
         for f in as_completed(jobs):
             try:completed.append(f.result())
@@ -123,4 +127,4 @@ def evaluate(checkpoint,workers=4,device='cuda:1',name='selected',smoke=False):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--workers',type=int,default=4);p.add_argument('--device',default='cuda:1');p.add_argument('--name',default='selected');p.add_argument('--smoke',action='store_true');evaluate(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--workers',type=int,default=4);p.add_argument('--device',default='cuda:1');p.add_argument('--name',default='selected');p.add_argument('--smoke',action='store_true');p.add_argument('--global-features',action='store_true');evaluate(**vars(p.parse_args()))

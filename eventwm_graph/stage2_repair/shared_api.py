@@ -8,6 +8,7 @@ from .diagnose import sha
 
 class SharedPredictor(TimePredictor):
     def __init__(self,checkpoint,*,device='cuda:0',threshold=None,increment_format='columns',**kwargs):
+        torch.backends.cudnn.allow_tf32=False
         saved=torch.load(checkpoint,map_location='cpu')
         if saved['schema']!='stage2_shared_map_1':raise ValueError('unsupported shared-map checkpoint')
         super().__init__(saved['config']['point_checkpoint'],device=device,threshold=threshold if threshold is not None else saved.get('threshold',.2),increment_format=increment_format,**kwargs)
