@@ -35,6 +35,7 @@ class TimePredictor(SegmentPredictor):
         self.device=torch.device(device)
         if increment_format not in ('list','columns'):raise ValueError('unsupported sparse increment format')
         self.increment_format=increment_format
+        self.predictor_schema='stage2_hf_time_1'
 
     def prepare_graph(self,graph):
         prepared=super().prepare_graph(graph)
@@ -135,7 +136,7 @@ class TimePredictor(SegmentPredictor):
                 from .increment import SparseIncrement
                 updates=SparseIncrement(newkeys,newstates,newheights,now)
             else:updates=[dict(cell=k,state=s,height=h,timestamp=now,source='predicted_stage2_research')for k,s,h in zip(newkeys.tolist(),newstates.tolist(),newheights.tolist())]
-            delta=dict(schema=SCHEMA,predictor_schema='stage2_hf_time_1',predicted=True,base_graph_identity=prepared.identity,
+            delta=dict(schema=SCHEMA,predictor_schema=self.predictor_schema,predicted=True,base_graph_identity=prepared.identity,
                 base_timestamp=float(partial_graph['timestamp']),timestamp=now,robot_pose=ctx.path[-1,1:].tolist(),static_updates=updates,
                 candidate_cells=keys,probabilities=prob,states=states,heights=heights,unknown_cells=unknown,outside_domain='UNKNOWN_NO_UPDATE',checkpoint_sha256=self.checkpoint_sha256,
                 increment_format=self.increment_format)

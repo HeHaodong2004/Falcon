@@ -12,6 +12,7 @@ class SharedPredictor(TimePredictor):
         if saved['schema']!='stage2_shared_map_1':raise ValueError('unsupported shared-map checkpoint')
         super().__init__(saved['config']['point_checkpoint'],device=device,threshold=threshold if threshold is not None else saved.get('threshold',.2),increment_format=increment_format,**kwargs)
         self.shared_config=saved.get('model_config',{});self.model=SharedMapNet(**self.shared_config).to(device).eval();self.model.load_state_dict(saved['model']);self.config=saved['config'];self.checkpoint_sha256=sha(checkpoint)
+        self.predictor_schema='stage2_shared_map_1'
 
     def prepare_graph(self,graph):
         p=super().prepare_graph(graph)
