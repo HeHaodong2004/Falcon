@@ -18,11 +18,13 @@ from eventwm_graph.stage2_hf.decisions import observation_probabilities
 from eventwm_graph.stage2_segment.api import SegmentPredictor
 from eventwm_graph.stage2_segment.fused import transform
 from eventwm_graph.stage2.common import SCHEMA
+from .materialize import future_from_columns
+from .decode import decode_columns
 
 
 class TimePredictor(SegmentPredictor):
     def __init__(self, checkpoint, *, device='cuda:0', threshold=None, cache_size=4,
-                 future_format='native', feature_threads=1, tile_size=65536):
+                 future_format='native', feature_threads=1, tile_size=65536,increment_format='list'):
         super().__init__(CKPT,cache_size=cache_size,execution='optimized',future_format=future_format,device=device,feature_threads=feature_threads)
         saved=torch.load(checkpoint,map_location='cpu')
         if saved['schema']!='stage2_hf_time_1':raise ValueError('unsupported point/recency checkpoint')
@@ -31,8 +33,18 @@ class TimePredictor(SegmentPredictor):
         if not 0<=self.threshold<=1:raise ValueError('invalid revelation threshold')
         self.ablate_time=bool(self.config.get('ablate_time'));self.tile_size=int(tile_size)
         self.device=torch.device(device)
+        if increment_format not in ('list','columns'):raise ValueError('unsupported sparse increment format')
+        self.increment_format=increment_format
+
+    def prepare_graph(self,graph):
+        prepared=super().prepare_graph(graph)
+        # Six queries must fit without evicting their own crops. This remains
+        # bounded by eight entries and the existing four-million-cell guard.
+        prepared.crop_cache_size=8;prepared.device_cache_size=8
+        return prepared
 
     def _projection(self,prepared,graph,path):
+        if self.ablate_time:return None
         if not hasattr(prepared,'time_projections'):prepared.time_projections=OrderedDict()
         key=(float(path[0,1]),float(path[0,3]))
         if key not in prepared.time_projections:
@@ -60,8 +72,9 @@ class TimePredictor(SegmentPredictor):
             base=self.model.prior(x)
             h=F.linear(x,self.model.correction[0].weight[:,:88],self.model.correction[0].bias)
             at=0
-            for qi,start,end,xt in pieces:
-                h[at:at+len(xt)]+=basis_torch(xt)@details[qi][2];at+=len(xt)
+            if not self.ablate_time:
+                for qi,start,end,xt in pieces:
+                    h[at:at+len(xt)]+=basis_torch(xt)@details[qi][2];at+=len(xt)
             delta=self.model.correction[4](self.model.correction[3](self.model.correction[2](self.model.correction[1](h))))
             r=(base[:,1:3].logsumexp(-1)-base[:,0]+delta[:,0]-math.log(8.)).sigmoid()
             b=(base[:,2]-base[:,1]+(delta[:,1]if self.model.train_occupancy else 0)).sigmoid()
@@ -81,31 +94,61 @@ class TimePredictor(SegmentPredictor):
         start=time.perf_counter();prepared=self.prepare_graph(partial_graph);prepared_at=time.perf_counter()
         # Validation lives in the feature context, including strictly increasing
         # times and starting graph timestamp. Validate before any network call.
+        trajectories=list(trajectories)
+        if len(trajectories)>1 and hasattr(prepared,'prewarm'):prepared.prewarm(trajectories)
         contexts=[self.feature_class(partial_graph,p,prepared)for p in trajectories]
-        if len(contexts)>1 and hasattr(prepared,'prewarm'):prepared.prewarm([c.path for c in contexts])
         contexts_at=time.perf_counter();xs=[];details=[];feature_profiles=[]
         with torch.inference_mode():
+            # Only map UNKNOWN-grid construction is retained between calls.
+            # Candidate masks are shared within this batch only when the
+            # exact float32 supplied positions (all of them) are identical.
+            from eventwm_graph.stage2_quality.features import candidate_mask
+            if not hasattr(prepared,'unknown_grids'):prepared.unknown_grids=OrderedDict()
+            domains={};keysets=[]
             for ctx in contexts:
-                keys=ctx.candidates('both');x,baseline=transform(ctx,keys,cuda=self.cuda,device_output=self.cuda is not None)
-                if self.cuda is None:x=torch.from_numpy(x).to(self.device)
-                xs.append(x);details.append((keys,baseline,self._projection(prepared,partial_graph,ctx.path)))
-                feature_profiles.append(dict(ctx.last_transform_profile))
+                gridlo=getattr(ctx,'candidate_lo',ctx.lo);gridshape=getattr(ctx,'candidate_shape',ctx.shape);gridstates=getattr(ctx,'candidate_states',ctx.states)
+                gridkey=tuple(gridlo)+tuple(gridshape)
+                if gridkey not in prepared.unknown_grids:
+                    prepared.unknown_grids[gridkey]=np.argwhere(gridstates==0).astype(np.int32)+gridlo
+                    while len(prepared.unknown_grids)>8:prepared.unknown_grids.popitem(last=False)
+                xy=np.unique(ctx.xy,axis=0);domainkey=(gridkey,xy.tobytes())
+                if domainkey not in domains:
+                    unknown=prepared.unknown_grids[gridkey];domains[domainkey]=unknown[candidate_mask(unknown,xy,ctx.resolution)]
+                keys=domains[domainkey];ctx._candidate_keys=keys;keysets.append(keys)
+            if self.cuda is not None:
+                from .features import transform_batch
+                xs,baselines,profile=transform_batch(self.cuda,contexts,keysets);feature_profiles.append(profile)
+            else:
+                baselines=[]
+                for ctx,keys in zip(contexts,keysets):
+                    x,baseline=transform(ctx,keys);xs.append(torch.from_numpy(x).to(self.device));baselines.append(baseline)
+            for ctx,keys,baseline in zip(contexts,keysets,baselines):details.append((keys,baseline,self._projection(prepared,partial_graph,ctx.path)))
             features_at=time.perf_counter()
             # Concatenation batches different trajectory lengths/extents while
             # preserving each exact candidate order. A bounded tile limits RAM.
             returned=self._network(xs,details)
         network_at=time.perf_counter();out=[];update_seconds=0.
         for ctx,(keys,baseline,_),values in zip(contexts,details,returned):
-            prob=observation_probabilities(values[:,:3],no_future_observations=len(ctx.path)==1)
-            heights=np.asarray(values[:,3]+baseline,np.float32)
-            revelation=(prob[:,1]+prob[:,2]).astype(np.float64)
-            states=np.where(revelation>=self.threshold,np.where(prob[:,1]>=prob[:,2],1,2),0).astype(np.uint8)
-            now=float(ctx.path[-1,0]);updates=[dict(cell=keys[j].tolist(),state=int(states[j]),height=float(heights[j]),timestamp=now,source='predicted_stage2_research')for j in np.flatnonzero(states)]
+            prob,heights,states,newkeys,newstates,newheights,unknown=decode_columns(values,baseline,keys,self.threshold,len(ctx.path)==1)
+            now=float(ctx.path[-1,0])
+            if self.increment_format=='columns':
+                from .increment import SparseIncrement
+                updates=SparseIncrement(newkeys,newstates,newheights,now)
+            else:updates=[dict(cell=k,state=s,height=h,timestamp=now,source='predicted_stage2_research')for k,s,h in zip(newkeys.tolist(),newstates.tolist(),newheights.tolist())]
             delta=dict(schema=SCHEMA,predictor_schema='stage2_hf_time_1',predicted=True,base_graph_identity=prepared.identity,
                 base_timestamp=float(partial_graph['timestamp']),timestamp=now,robot_pose=ctx.path[-1,1:].tolist(),static_updates=updates,
-                candidate_cells=keys,probabilities=prob,states=states,heights=heights,unknown_cells=keys[states==0],outside_domain='UNKNOWN_NO_UPDATE',checkpoint_sha256=self.checkpoint_sha256)
+                candidate_cells=keys,probabilities=prob,states=states,heights=heights,unknown_cells=unknown,outside_domain='UNKNOWN_NO_UPDATE',checkpoint_sha256=self.checkpoint_sha256,
+                increment_format=self.increment_format)
             if materialize:
-                delta=self._with_base(delta,prepared);update_seconds+=self._complete(partial_graph,delta,ctx.path)
+                t=time.perf_counter();future=future_from_columns(getattr(prepared,'future_base',None),newkeys,newstates,newheights,now,ctx.path[-1,1:].tolist(),self.checkpoint_sha256)
+                if future is None:
+                    delta=self._with_base(delta,prepared);self._complete(partial_graph,delta,ctx.path)
+                else:
+                    delta.update(future_partial_graph=future,future_format='native_columns',prediction_task='segment_conditioned_legal_observation_1',
+                        observation_scope='initially_UNKNOWN_static_cells_only',probability_columns=['UNKNOWN','FREE','BLOCKED'],
+                        provenance=dict(hypothetical=True,input='current_legal_graph_and_supplied_pose_time_segment',checkpoint_sha256=self.checkpoint_sha256,
+                            trajectory_sha256=hashlib.sha256(ctx.path.astype('<f8').tobytes()).hexdigest(),temporal_semantics='terminal-time hypothetical additions; real observations never replaced'))
+                update_seconds+=time.perf_counter()-t
             else:
                 delta.update(observation_scope='initially_UNKNOWN_static_cells_only',probability_columns=['UNKNOWN','FREE','BLOCKED'],provenance=dict(hypothetical=True))
             delta['provenance'].update(decision='revelation_threshold_then_conditional_label',revelation_threshold=self.threshold,

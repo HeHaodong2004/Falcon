@@ -68,7 +68,7 @@ class CudaExecution:
         if key in cache:grid=cache[key];cache.move_to_end(key)
         else:
             grid=torch.from_numpy(context.states).to(self.device);cache[key]=grid
-            while len(cache)>4:cache.popitem(last=False)
+            while len(cache)>getattr(prepared,'device_cache_size',4):cache.popitem(last=False)
         cosine,sine,dt,when,globals=trajectory_constants(context.path)
         def tensor(value):return torch.from_numpy(np.ascontiguousarray(value)).to(self.device)
         n=len(keys);view=torch.empty((n,20),device=self.device,dtype=torch.float32)
@@ -93,7 +93,7 @@ class CudaExecution:
         else:
             geometry=[torch.from_numpy(np.ascontiguousarray(a)).to(self.device) for a in (context.base_height,*context.dist,free,blocked)]
             cache[key]=geometry
-            while len(cache)>4:cache.popitem(last=False)
+            while len(cache)>getattr(prepared,'device_cache_size',4):cache.popitem(last=False)
         grid=prepared.cuda_grids[key]
         length=float(np.linalg.norm(np.diff(context.xy,axis=0),axis=1).sum())
         constants=np.array([context.duration/5,length/5,context.resolution,context.path[-1,2]-context.path[0,2],np.cos(context.path[-1,4]-context.path[0,4]),np.sin(context.path[-1,4]-context.path[0,4])],np.float32)

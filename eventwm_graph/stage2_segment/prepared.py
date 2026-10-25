@@ -71,5 +71,5 @@ class CompiledGraph(PreparedGraph):
             nearest=distance_transform_edt(states==0,return_distances=False,return_indices=True);baseline=heights[nearest[0],nearest[1]]
         else:baseline=heights
         value=(states,baseline,distance);self.crops[key]=value
-        while len(self.crops)>4:self.crops.popitem(last=False)
+        while len(self.crops)>getattr(self,'crop_cache_size',4):self.crops.popitem(last=False)
         return value

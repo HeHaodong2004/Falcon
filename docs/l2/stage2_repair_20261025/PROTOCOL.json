@@ -34,5 +34,16 @@
     "target_label_aware_iou": 0.45
   },
   "confirmation": "Opened222 Roots excluded from train/selection; no new confirmation claimed.",
-  "original_jobs": "All preexisting preparation jobs preserved. Additional owned recency preparation stopped when matched ablation ruled out its need."
+  "original_jobs": "All preexisting preparation jobs preserved. Additional owned recency preparation stopped when matched ablation ruled out its need.",
+  "active_user_requirements": {
+    "full_development_label_aware_increment_iou": ">0.50",
+    "complete_K6_P95_ms": "<50"
+  },
+  "status": "Ongoing; first residual full fit failed reconstruction target; shared map encoder and sampling work active.",
+  "first_full_result": {
+    "label_aware_iou": 0.21956806045925348,
+    "revelation_iou": 0.2866612235244056,
+    "roots": 2110,
+    "windows": 47128
+  }
 }

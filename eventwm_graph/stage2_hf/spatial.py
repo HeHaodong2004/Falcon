@@ -74,12 +74,21 @@ def build(gkeys,gstates,gheights,path,geometry,target_keys=None,target_states=No
 
 def block(a,b):return nn.Sequential(nn.Conv2d(a,b,3,padding=1),nn.SiLU(),nn.Conv2d(b,b,3,padding=1),nn.SiLU())
 class SpatialNet(nn.Module):
- def __init__(self,width=12):
+ def __init__(self,width=12,context_dilations=None):
   super().__init__();self.width=width;self.map_encoder=block(6,width);self.mix=block(width+32,width);self.down=block(width,width*2);self.up=block(width*3,width);self.detail=nn.Sequential(nn.Conv2d(width+3,8,3,padding=1),nn.SiLU(),nn.Conv2d(8,3,3,padding=1))
   nn.init.constant_(self.detail[-1].bias[0],-3.);nn.init.constant_(self.detail[-1].bias[1],1.)
+  self.context_dilations=context_dilations
+  if context_dilations:
+   layers=[]
+   for j,dilation in enumerate(context_dilations):
+    layers.append(nn.Conv2d(width*2,width*2,3,padding=dilation,dilation=dilation))
+    if j<len(context_dilations)-1:layers.append(nn.SiLU())
+   self.context=nn.Sequential(*layers);nn.init.zeros_(self.context[-1].weight);nn.init.zeros_(self.context[-1].bias)
  def encode_map(self,maps):return self.map_encoder(maps)
  def forward(self,maps,query,fine,encoded=None):
-  e=self.encode_map(maps)if encoded is None else encoded;x=self.mix(torch.cat([e,query],1));z=self.down(F.avg_pool2d(x,2));z=F.interpolate(z,scale_factor=2,mode='nearest');z=self.up(torch.cat([x,z],1));z=F.interpolate(z,scale_factor=2,mode='nearest');return self.detail(torch.cat([z,fine],1))
+  e=self.encode_map(maps)if encoded is None else encoded;x=self.mix(torch.cat([e,query],1));z=self.down(F.avg_pool2d(x,2))
+  if self.context_dilations:z=z+self.context(z)
+  z=F.interpolate(z,scale_factor=2,mode='nearest');z=self.up(torch.cat([x,z],1));z=F.interpolate(z,scale_factor=2,mode='nearest');return self.detail(torch.cat([z,fine],1))
 
 def spatial_probabilities(out,pos_weight=8.,calibration=None):
  rlog=out[:,0]-math.log(pos_weight);blog=out[:,1]

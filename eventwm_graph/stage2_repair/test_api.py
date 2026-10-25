@@ -48,5 +48,32 @@ class CompleteTimeAPI(unittest.TestCase):
         bad=p.copy();bad[0,0]+=1
         with self.assertRaises(ValueError):m.predict(partial_graph=g,trajectory=bad)
 
+    def test_six_crops_fit_in_reusable_map_cache(self):
+        m=self.model;g=self.graph;m.clear_cache();m.predict_segments(partial_graph=g,trajectories=self.paths)
+        p=m.prepare_graph(g);misses=p.crop_misses
+        m.predict_segments(partial_graph=g,trajectories=self.paths)
+        self.assertEqual(p.crop_misses,misses)
+
+    def test_stationary_later_timestamp_is_not_forced_unknown(self):
+        p=np.repeat(self.paths[0][:1],2,axis=0);p[1,0]+=.048
+        result=self.model.predict(partial_graph=self.graph,trajectory=p)
+        self.assertGreater(float(result['probabilities'][:,1:].max()),0.)
+
+    def test_metadata_extension_uses_exact_legacy_fallback(self):
+        g=copy.deepcopy(self.graph);g['cells'][0]['extension']={'diagnostic':[1,2]}
+        result=self.model.predict(partial_graph=g,trajectory=self.paths[0])
+        self.assertEqual(result['future_format'],'snapshot')
+        self.assertEqual(result['future_partial_graph'],apply_graph_delta(g,result))
+
+    def test_column_increment_contains_all_rows_and_same_future(self):
+        m=self.model;g=self.graph;p=self.paths[0];a=m.predict(partial_graph=g,trajectory=p)
+        try:
+            m.increment_format='columns';b=m.predict(partial_graph=g,trajectory=p)
+        finally:m.increment_format='list'
+        self.assertEqual(a['static_updates'],b['static_updates'].to_list())
+        self.assertEqual(a['future_partial_graph'],b['future_partial_graph'])
+        self.assertEqual(b['future_partial_graph'].to_snapshot(),apply_graph_delta(g,b))
+        with self.assertRaises(ValueError):b['static_updates'].states.flags.writeable=True
+
 
 if __name__=='__main__':unittest.main()
