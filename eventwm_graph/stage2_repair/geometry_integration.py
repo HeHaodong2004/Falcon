@@ -1,4 +1,8 @@
-"""Explicit planner-trial camera adapter; frozen Stage 1 remains independent."""
+"""OFFLINE ORACLE adapter, not the real world model's integration contract.
+
+Future sandbox camera poses and a hidden-scene GeometryPredictor are privileged
+diagnostic inputs. Do not use this adapter in legal-input deployment.
+"""
 from dataclasses import dataclass
 import time
 import numpy as np
@@ -41,6 +45,7 @@ def capture_trial_frame(runtime):
 
 
 class GeometryWorldModelSandbox:
+    """Legacy diagnostic name; privileged oracle only, never deployable WM."""
     def __init__(self,stage1,stage2):
         self.stage1=stage1;self.stage2=stage2;self.last_profile=None
 
@@ -50,4 +55,4 @@ class GeometryWorldModelSandbox:
         first=time.perf_counter();actual=self.stage1.last_context;trials=list(trials)
         deltas=self.stage2.predict_segments(partial_graph=actual.partial_graph,trajectories=[t.trajectory for t in trials],camera_trajectories=[t.camera_inputs()for t in trials])
         finish=time.perf_counter();self.last_profile=dict(stage1_seconds=first-begin,stage2_complete_seconds=finish-first,total_seconds=finish-begin,queries=len(trials),stage1_calls=1)
-        return dict(human_worlds=people,graph_deltas=deltas,hypothetical_graphs=[d['future_partial_graph']for d in deltas],actual_context=actual)
+        return dict(oracle_only=True,deployable=False,human_worlds=people,graph_deltas=deltas,hypothetical_graphs=[d['future_partial_graph']for d in deltas],actual_context=actual)

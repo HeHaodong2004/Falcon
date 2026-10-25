@@ -13,7 +13,7 @@ SOURCE = r'''
 struct Mesh {const float* t;const float* b;const int* l;const int* r;const int* f;const int* n;const int* ids;};
 __device__ float ray(Mesh m,float ox,float oy,float oz,float dx,float dy,float dz,float limit,bool anyhit){
  int stack[64],size=1;stack[0]=0;float best=limit;
- while(size){int node=stack[--size];float low=0.f,high=best;bool intersects=true;
+ while(size){int node=stack[--size];if(m.n[node]<0)continue;float low=0.f,high=best;bool intersects=true;
   for(int a=0;a<3;a++){float o=a==0?ox:a==1?oy:oz,d=a==0?dx:a==1?dy:dz;
    float lo=m.b[node*6+a]-.00002f,hi=m.b[node*6+a+3]+.00002f;
    if(fabsf(d)<1.e-30f){if(o<lo||o>hi){intersects=false;break;}}
@@ -93,7 +93,7 @@ class GeometryKernel:
         self.resolution = float(resolution)
         self.module = CudaModule(SOURCE, device)
         self.arrays = arrays
-        self.static = {k: torch.from_numpy(np.ascontiguousarray(v)).to(device) for k, v in arrays.items()}
+        self.static = {k: (v.to(device) if torch.is_tensor(v) else torch.from_numpy(np.ascontiguousarray(v)).to(device)) for k, v in arrays.items()}
         self.mesh = [self.static[k] for k in ['triangles', 'bounds', 'left', 'right', 'first', 'count', 'indices']]
 
     def tensor(self, value, dtype=None):

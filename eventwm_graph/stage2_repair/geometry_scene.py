@@ -1,8 +1,9 @@
-"""Query-independent scene assets for the revised Stage 2 contract.
+"""OFFLINE PRIVILEGED scene assets, never real WM runtime inputs.
 
 Every supported navigation cell on every projected floor is prepared, without
 reading graphs, trial paths, observations or target labels. Scene preparation
-is startup work, analogous to loading model weights, and is timed separately.
+is oracle startup work and is timed separately. Such assets may also supply
+explicitly separated training-only auxiliary targets, never legal features.
 """
 from pathlib import Path
 import fcntl

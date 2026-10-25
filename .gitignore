@@ -8,6 +8,7 @@ __pycache__/
 *.zip
 /output/
 /data/
+/data
 .env*
 .venv/
 

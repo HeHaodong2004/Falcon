@@ -1,14 +1,14 @@
 {
-  "authorization": "User explicitly approved the geometry-backed approach and relaxed prior input restrictions after the original-input model remained near 0.22 IoU.",
+  "authorization": "User clarified that real WM execution cannot access privileged data. This engine is OFFLINE ORACLE DIAGNOSTIC ONLY and is not a deployable candidate.",
   "schema": "static_scene_trial_camera_increment_1",
   "inputs": ["Current PartialGraph", "Supplied [time,x,y,z,yaw] trajectory", "Camera origin and camera-to-world rotation at every trial pose", "Read-only static scene collision mesh and matching native navigation support"],
-  "camera_provider": "Planner sandbox trial in deployment; recorded camera poses for matched dataset evaluation. Generating the planner trial is upstream of Stage 2 and is not included in Stage 2 latency.",
+  "camera_provider": "Recorded future camera poses are privileged diagnostic inputs. Their accuracy scores do not establish performance achievable by the real WM.",
   "output": "Same initially-UNKNOWN certificate increment and complete hypothetical future graph on the same original candidate cells. Real input graph is immutable.",
   "certificates": "Original FREE 63-probe frustum and static visibility checks; BLOCKED 105 wall rays with 0.25m witness inflation; source support from matching native navmesh.",
   "approximation": "Float32 GPU mesh intersections replace native Bullet rays; native/GPU disagreement is measured. Static-only engine currently omits active-human occlusion.",
   "preparation": "Whole-scene support and BVH assets are query-independent and prepared once, without recorded observation labels or trial trajectories. Startup is measured separately.",
   "acceptance": {"original_full_development_label_aware_increment_iou": ">0.50", "complete_K6_P95_ms": "<50"},
   "latency_scope": "Current graph/input preparation, candidates, camera packing, transfers, GPU geometry, decoding, concrete sparse increments, full normal future graphs, synchronization. Scene assets resident. Serialization excluded and reported explicitly.",
-  "comparison": "This is an expanded production input contract, not an accuracy repair of the original partial-graph/base-trajectory-only model. No original-input improvement claim is inferred from its scores.",
-  "status": "Native full fixed pilot IoU 0.910894; GPU full pilot/full development and final 32-map timing pending. No TARGET MET claim yet."
+  "comparison": "Oracle geometry/camera diagnostics only. Neither their IoU nor their speed satisfies the real legal-input WM acceptance requirement. A deployed student must consume only legal current/past observations and the supplied trajectory.",
+  "status": "ORACLE ONLY. Native pilot IoU 0.910894; GPU pilot 0.912324. Real legal-input WM remains below target. Continue legal-input reconstruction work; no TARGET MET claim."
 }

@@ -1,4 +1,4 @@
-"""Complete K1/4/6 geometry and original-model calls on the fixed 32 workloads."""
+"""OFFLINE ORACLE latency only; not real legal-input WM acceptance."""
 import argparse
 import gc
 import os
@@ -54,7 +54,7 @@ def run(device='cuda:1',repetitions=3,groups=32,name='geometry_complete'):
                             scientific[label]=[d['candidate_cells']for d in result]
                             calls.append(dict(model=label,cohort='dense'if wi in dense else'representative',cache=cache,k=k,group=wi,repetition=rep,ms=ms,candidates=[len(d['candidate_cells'])for d in result],profile=dict(m.last_batch_profile)))
                     for a,b in zip(scientific['baseline'],scientific['candidate']):np.testing.assert_array_equal(a,b)
-            save(OUT/('benchmark_'+name+'.json'),dict(contract='REVISED geometry/camera engine versus original base-trajectory model. Both score/predict the identical original candidate universe. Geometry assets are query-independent scene inputs, resident like model weights; full scene load/preparation and first call reported separately.',
+            save(OUT/('benchmark_'+name+'.json'),dict(oracle_only=True,acceptance_eligible=False,contract='ORACLE ONLY privileged geometry/camera engine versus original base-trajectory model. These inputs are unavailable to the real WM. Identical original candidate universe; not a deployable latency/accuracy result.',
                 scope='Timer includes graph/input preparation, candidates, camera packing, host/device transfers/synchronization, geometry/probability/hard decoding, concrete sparse increments, normal complete hypothetical graphs. Serialization EXCLUDED. No prediction/view output caching. Cold=current graph cache empty; warm=current graph reusable; scene assets resident in both cases.',
                 groups=len(order),complete_groups=len({r['group']for r in calls}),repetitions=repetitions,device=device,hardware=torch.cuda.get_device_name(device),precision='Geometry F64 frusta/certificates and F32 BVH intersections; baseline F32 neural/features, TF32 disabled.',concurrent_load=load,loadavg=os.getloadavg(),startup=startup,summary=summary(calls),calls=calls))
             print('GROUP',wi,'finished','K6',[(r['model'],r['cache'],round(r['ms'],2))for r in calls if r['group']==wi and r['k']==6],flush=True)

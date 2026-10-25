@@ -1,4 +1,4 @@
-"""All original development cells, revised geometry/camera input contract.
+"""OFFLINE ORACLE ONLY, privileged geometry/camera evaluation.
 
 Scene geometry and trial camera arrays are the only expanded inputs. Actual
 observation updates remain scoring targets outside GeometryPredictor. Each
@@ -30,7 +30,7 @@ def run(name='geometry_selected',device='cuda:0',shard=0,shards=1,pilot=False):
     dest=OUT/'full_evaluation'/name;dest.mkdir(parents=True,exist_ok=True)
     sources={name:sha(Path(__file__).with_name(name))for name in ['geometry_api.py','geometry_cuda.py','geometry_scene.py','geometry_reference.py','cuda_module.py']}
     model_sha=hashlib.sha256(json.dumps(sources,sort_keys=True).encode()).hexdigest()
-    save(dest/('identity_%02d.json'%shard),dict(contract='REVISED current graph, trajectory, supplied trial camera poses, static scene collision mesh/navmesh. Static-only geometry, no active-human model.',source_manifest_sha256=sha(manifest),sources=sources,evaluation_source_sha256=sha(__file__),model_sha256=model_sha,device=device,shard=shard,shards=shards,pilot=pilot,original_roots=len(rows)))
+    save(dest/('identity_%02d.json'%shard),dict(oracle_only=True,acceptance_eligible=False,contract='ORACLE ONLY: privileged static scene collision mesh/navmesh and trial camera poses. Not real WM runtime inputs.',source_manifest_sha256=sha(manifest),sources=sources,evaluation_source_sha256=sha(__file__),model_sha256=model_sha,device=device,shard=shard,shards=shards,pilot=pilot,original_roots=len(rows)))
     completed=[]
     for scene in sorted(scene_rows)[shard::shards]:
         model=None;asset=None
@@ -70,7 +70,7 @@ def run(name='geometry_selected',device='cuda:0',shard=0,shards=1,pilot=False):
                 if len(completed)%16==0:print(dict(shard=shard,roots=len(completed),seconds=time.perf_counter()-tick),flush=True)
         finally:
             if model is not None:model.close()
-    result=summarize(completed);result.update(model_sha256=model_sha,shard=shard,shards=shards,seconds=time.perf_counter()-tick,contract='REVISED geometry/camera inputs; deterministic static certificate engine; active-human occlusion omitted; probability scores not computed, primary accuracy is exact confusion.')
+    result=summarize(completed);result.update(oracle_only=True,acceptance_eligible=False,model_sha256=model_sha,shard=shard,shards=shards,seconds=time.perf_counter()-tick,contract='ORACLE ONLY privileged geometry/camera inputs; not deployable real WM; active-human occlusion omitted.')
     save(dest/('summary_%02d.json'%shard),result)
     if shards==1:
         if not pilot:assert result['roots']==2110 and result['windows']==47128
@@ -80,7 +80,7 @@ def run(name='geometry_selected',device='cuda:0',shard=0,shards=1,pilot=False):
 
 def merge(name):
     dest=OUT/'full_evaluation'/name;rows=[json.loads(gzip.decompress(p.read_bytes()))for p in dest.glob('*.json.gz')];r=summarize(rows);assert r['roots']==2110 and r['windows']==47128
-    assert len({x['checkpoint_sha256']for x in rows})==1;r['model_sha256']=rows[0]['checkpoint_sha256'];r['contract']='REVISED static scene geometry + supplied trial camera poses, evaluated on all original development windows/cells.';save(dest/'summary.json',r);print('FULL SUMMARY',r['hierarchical'],flush=True)
+    assert len({x['checkpoint_sha256']for x in rows})==1;r['model_sha256']=rows[0]['checkpoint_sha256'];r.update(oracle_only=True,acceptance_eligible=False,contract='ORACLE ONLY privileged scene geometry/camera poses. All original development cells; not legal-input acceptance.');save(dest/'summary.json',r);print('ORACLE SUMMARY',r['hierarchical'],flush=True)
 
 
 if __name__=='__main__':

@@ -1,8 +1,8 @@
-"""Complete geometry-backed Stage 2 with explicit revised production inputs.
+"""OFFLINE ORACLE ONLY: privileged geometry/camera diagnostic.
 
-Scene geometry is prepared independently of queries. Camera trajectories are
-supplied by the planner trial. Active-human occlusion is not yet modeled.
-All outputs are hypothetical additions at initially UNKNOWN original cells.
+The real WM cannot access this engine's hidden scene/navmesh inputs. Its
+accuracy and latency cannot satisfy legal-input Stage 2 acceptance. Use it
+only to diagnose observation semantics and geometric upper bounds.
 """
 from collections import OrderedDict
 import hashlib
@@ -134,7 +134,7 @@ class GeometryPredictor:
                 base_graph_identity=prepared.identity, base_timestamp=float(partial_graph['timestamp']), timestamp=now, robot_pose=path[-1,1:].tolist(), static_updates=updates,
                 candidate_cells=keys, probabilities=p, states=states, heights=height, unknown_cells=keys[states==0], outside_domain='UNKNOWN_NO_UPDATE', probability_columns=['UNKNOWN','FREE','BLOCKED'],
                 observation_scope='initially_UNKNOWN_static_cells_only', increment_format='columns', prediction_task='segment_conditioned_legal_observation_1',
-                provenance=dict(hypothetical=True, input_contract='REVISED_static_scene_navmesh_and_supplied_trial_camera_poses_1', scene_asset_sha256=self.identity, dynamic_occlusion='not_modeled', trajectory_sha256=hashlib.sha256(path.astype('<f8').tobytes()).hexdigest()))
+                provenance=dict(hypothetical=True, oracle_only=True, deployable=False, input_contract='ORACLE_PRIVILEGED_static_scene_navmesh_and_trial_camera_poses_1', scene_asset_sha256=self.identity, dynamic_occlusion='not_modeled', trajectory_sha256=hashlib.sha256(path.astype('<f8').tobytes()).hexdigest()))
             if materialize:
                 future = future_from_columns(prepared.future_base, nk, ns, nh, now, path[-1,1:].tolist(), self.identity)
                 if future is None:

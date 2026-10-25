@@ -1,4 +1,4 @@
-"""Native reference for the explicitly revised geometry-backed input contract.
+"""OFFLINE PRIVILEGED ORACLE reference; not a real WM input contract.
 
 Inputs are the current graph, base trajectory, trial camera poses, static scene
 mesh and navigation certificate support. Recorded updates are scoring targets

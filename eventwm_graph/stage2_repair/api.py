@@ -63,6 +63,9 @@ class TimePredictor(SegmentPredictor):
         self.last_profile=dict(self.last_batch_profile)
         return result
 
+    def _decode(self,values,baseline,keys,no_future):
+        return decode_columns(values,baseline,keys,self.threshold,no_future)
+
     def _network(self,xs,details):
         """Tile across queries, sharing network launches while bounding memory."""
         returned=[np.empty((len(x),4),np.float32)for x in xs]
@@ -130,7 +133,7 @@ class TimePredictor(SegmentPredictor):
             returned=self._network(xs,details)
         network_at=time.perf_counter();out=[];update_seconds=0.
         for ctx,(keys,baseline,_),values in zip(contexts,details,returned):
-            prob,heights,states,newkeys,newstates,newheights,unknown=decode_columns(values,baseline,keys,self.threshold,len(ctx.path)==1)
+            prob,heights,states,newkeys,newstates,newheights,unknown=self._decode(values,baseline,keys,len(ctx.path)==1)
             now=float(ctx.path[-1,0])
             if self.increment_format=='columns':
                 from .increment import SparseIncrement

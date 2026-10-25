@@ -1,0 +1,136 @@
+{
+  "status": "ONGOING. Neither joint requirement is met. Continue legal-input quality and complete latency work.",
+  "requirements": {
+    "original_full_development_label_aware_increment_iou": ">0.50",
+    "complete_K6_P95_ms": "<50",
+    "after_targets": "Continue optimizing verified accuracy/latency trade-off.",
+    "minimum_continuous_work_until_utc": "2026-10-26 10:15 UTC; active persistent goal, continue after if targets unmet"
+  },
+  "runtime_boundary": "Real WM has no hidden scene mesh, navmesh, future camera, future observations, or truth-human inputs. All geometry-oracle scores are diagnostic only.",
+  "task": "Predict FREE/BLOCKED/remaining UNKNOWN only at cells UNKNOWN at supplied graph start. Preserve heights and known cells; future graph remains hypothetical.",
+  "comparisons": [
+    {
+      "model": "Original frozen baseline",
+      "inputs": "G_t and supplied [time,x,y,z,yaw]",
+      "pilot_label_iou": 0.21741272021230704,
+      "pilot_revelation_iou": 0.30161004802084523,
+      "full_development_label_iou": 0.21773279820403424,
+      "full_development_revelation_iou": 0.2869848058890478
+    },
+    {
+      "model": "Full-fit repaired point model",
+      "inputs": "Original legal G_t/trajectory",
+      "full_development_label_iou": 0.21956806045925348,
+      "full_development_revelation_iou": 0.2866612235244056,
+      "K6_dense_cold_P95_ms": 48.03326075198129,
+      "K6_dense_warm_P95_ms": 29.03589489869773
+    },
+    {
+      "model": "Legal range evidence model,64 training Roots",
+      "inputs": "EXPLICIT SENSOR EXTENSION: past/current regenerated ideal Euclidean range measurements, current legal camera calibration/tracks, G_t and supplied trajectory",
+      "pilot_label_iou": 0.36437558118280644,
+      "pilot_revelation_iou": 0.41889262331645144,
+      "pilot_windows": 666,
+      "public_API_matches_cached_accuracy_exactly": true,
+      "full_development_label_iou": null
+    },
+    {
+      "model": "Planar mesh +7LOS visibility-feature approximation",
+      "inputs": "Same legal sensor extension; same original candidate/output cells; original63probe certificate targets unchanged",
+      "pilot_label_iou": 0.35268741196406195,
+      "pilot_revelation_iou": 0.40799129692135655,
+      "complete_K1_K4_K6_benchmark": "Executed original32workloads x3repeats; slow. GPU radix repair complete-workload rerun in progress.",
+      "K6_dense_cold_P95_ms": 609.01374,
+      "K6_dense_warm_P95_ms": 579.351282
+    },
+    {
+      "model": "Fresh-supervised spatial range model,256 training Roots",
+      "inputs": "Same explicit legal current/past ideal-range sensor extension",
+      "pilot_label_iou": 0.36844662913627035,
+      "pilot_revelation_iou": 0.41839496741561705,
+      "pilot_windows": 666,
+      "checkpoint_sha256": "f0fb963ad875ce41fe6ba9c777ce8d359b40956a16742b3b5ee9be414952e931",
+      "selected_epoch": 4,
+      "rule": "argmax",
+      "full_development_label_iou": null
+    }
+  ],
+  "pipeline_checks": {
+    "independent_real_training_traces": 18,
+    "public_range_API_real_pilot_windows": 666,
+    "exact_candidate_keys_and_target_vectors": true,
+    "all_materialized_known_cell_columns_preserved": true,
+    "input_graph_immutable": true,
+    "zero_horizon_light_eval_fix_affected_windows": 0
+  },
+  "confirmed_training_limitation": {
+    "scope": "High-capacity spatial experiment, not a causal attribution of every original baseline error. Fixed cached96point supervision overfits unsupervised boundary cells.",
+    "matched_control": "Same24trainingwindows, initialization, optimizer and weightedBCE; only supervised cell universe differs. Both use full-precision legal inputs.",
+    "static_sampling_full_cell_train_iou_after1000steps": 0.2558100998384357,
+    "dense_supervision_full_cell_train_iou_after1000steps": 0.9009389032521433,
+    "not_generalization_or_acceptance": true,
+    "repair": "Fresh per-epoch draws from complete immutable universes;128positives,384UNKNOWNnear known cells,128remainingUNKNOWN; exact inverse inclusion/equalSceneRootWindow weights."
+  },
+  "other_measured_findings": {
+    "camera": "Current observed camera-to-base transform is rigid within trials:128trainRoots10690frames max origin error5.52e-6m. No production future-camera truth.",
+    "targets": "FREE remains original63probe legal certificate; BLOCKED remains sparse105wall-ray witnesses/inflation. Physical occupancy is not substituted.",
+    "recency": "Publication age, not complete repeated-camera visibility; matched recency ablation showed no benefit.",
+    "spatial": "Dense24 training-window fitting IoU0.90094; fresh256 model pilot0.36845. Fitting is not generalization.",
+    "human_occlusion": "Verified in actual collector source; true-zero-human metadata cohorts scored with same frozen baseline, controlled descriptive comparisons, not causal proof."
+  },
+  "training_data": {
+    "original_eligible_train_roots": 105838,
+    "original_train_windows": 2482285,
+    "original_development_roots": 2110,
+    "original_development_windows": 47128,
+    "fixed_pilot_roots": 31,
+    "fixed_pilot_scenes": 16,
+    "fixed_pilot_windows": 666,
+    "range_dense256_roots": 256,
+    "range_dense256_scenes": 182,
+    "range_dense256_windows": 5783,
+    "range_dense256_candidate_rows": 210417868,
+    "opened222_confirmation_roots": "Excluded from training/model selection; not described as untouched."
+  },
+  "preservation": "Isolated worktree. Stage1 and live observation protocol unchanged; collector not restarted. Only owned diagnostics were rescheduled. No force-push/progress-branch overwrite.",
+  "artifacts_root": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025",
+  "key_artifacts": [
+    "WORKING_STATE.md",
+    "trace.json",
+    "sample_checks.json",
+    "full_evaluation/selected_global_point/summary.json",
+    "benchmark_global_fused.json",
+    "range_runtime_stride1/summary.json",
+    "range_runtime_proxy7/summary.json",
+    "sampling_fit24_static.json",
+    "sampling_fit24_dense.json",
+    "range_fresh64_selection.json",
+    "range_dense_train/manifest_roots256.json",
+    "benchmark_legal_range_proxy7.json",
+    "range_fresh256_selection.json",
+    "radix_check.json",
+    "radix_profile_hashopt.log",
+    "range_identity_tests.log"
+  ],
+  "reproduce_examples": [
+    "python scripts/stage2_segment_run.py unittest eventwm_graph.stage2_repair.test_contract eventwm_graph.stage2_repair.test_api eventwm_graph.stage2_repair.test_range eventwm_graph.stage2_repair.test_range_api eventwm_graph.stage2_repair.test_range_planar eventwm_graph.stage2_repair.test_fresh_sampling eventwm_graph.stage2_repair.test_fresh_workers eventwm_graph.stage2_repair.test_range_spatial_api",
+    "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.sampling_fit --mode dense --steps 1000 --device cuda:0",
+    "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.fresh_train --manifest output/stage2_repair_20261025/range_dense_bev_train/manifest_roots64.json --name range_fresh64 --epochs 24 --device cuda:0",
+    "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --repetitions 3 --device cuda:1",
+    "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --radix --repetitions 3 --device cuda:1"
+  ],
+  "deployment_readiness": "Below target. Sensor-extension model also needs explicit range-packet integration; ideal current-range replay is not rendered RGB-D validation. Sensor acquisition and serialization are excluded from Stage2 primary inference timing and must be reported separately. No standalone forward benchmark guarantees total Layer3 RL runtime.",
+  "updated_utc": "2026-10-25 22:27 UTC",
+  "confirmed_acceleration_defect": {
+    "scope": "New observed-range prototype, not original-model plateau",
+    "cause": "Balanced Morton hierarchy traverses excessively many overlapping measured triangles",
+    "fix": "GPU binary radix hierarchy retaining every measured triangle",
+    "worst_group_before_generated_view_gpu_ms": 561.327,
+    "worst_group_after_generated_view_gpu_ms": 11.158,
+    "hard_predictions_identical": true,
+    "latest_worst_group_complete_cold_ms": 100.410568,
+    "latest_worst_group_complete_warm_ms": 70.085503,
+    "acceptance": false,
+    "full_benchmark": "Running after faster exact input identity hashing and vectorized camera-parameter preparation"
+  }
+}
