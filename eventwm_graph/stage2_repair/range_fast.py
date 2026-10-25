@@ -75,7 +75,12 @@ class RangeFeatureKernel:
     camera_parameters=staticmethod(parameters)
     def __init__(self,device):self.device=torch.device(device);self.module=CudaModule(SOURCE,device)
 
-    def tensor(self,value,dtype=None):return torch.from_numpy(np.ascontiguousarray(value,dtype=dtype)).to(self.device)
+    def tensor(self,value,dtype=None):return torch.from_numpy(np.ascontiguousarray(value,dtype=dtype)).to(self.device,non_blocking=True)
+
+    def support(self,mesh,union,floors,uk,ff):
+        support=torch.empty(len(union),device=self.device);difference=torch.empty_like(support)
+        self.module.launch('square_support',len(union),[uk,ff,ct.c_int(len(union)),ct.c_double(mesh.kernel.resolution),support,difference,*mesh.kernel.mesh])
+        return support,difference
 
     def compute(self,mesh,details,gkeys,origin,rotation):
         keys=np.concatenate([d[0]for d in details]);low=keys.min(0)-4;shape=keys.max(0)-low+5;nx,nz=map(int,shape);area=nx*nz;r=mesh.kernel.resolution
@@ -99,8 +104,7 @@ class RangeFeatureKernel:
         frame=torch.zeros((nv,area),dtype=torch.int32,device=self.device);uk=self.tensor(union);ff=self.tensor(floors);cam=self.tensor(cameras);unknown=self.tensor(u);mesh_args=mesh.kernel.mesh
         self.module.launch('generated_views',len(union)*nv,[uk,ff,ct.c_int(len(union)),cam,ct.c_int(nv),unknown,ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nx),ct.c_int(nz),ct.c_double(r),frame,*mesh_args])
         self.module.launch('wall_views',nv*105,[cam,ct.c_int(nv),unknown,ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nx),ct.c_int(nz),ct.c_double(r),frame,*mesh_args])
-        support=torch.empty(len(union),device=self.device);difference=torch.empty_like(support)
-        self.module.launch('square_support',len(union),[uk,ff,ct.c_int(len(union)),ct.c_double(r),support,difference,*mesh_args])
+        support,difference=self.support(mesh,union,floors,uk,ff)
         obstacle=self.tensor(mesh.obstacle_distance(union,details[0][2][0,2]).astype(np.float32))
         offsets=np.r_[0,np.cumsum([len(s)for s in steps])].astype(np.int32);queries=np.repeat(np.arange(len(details),dtype=np.int32),[len(d[0])for d in details]);out=torch.empty((len(keys),16),device=self.device)
         self.module.launch('pack_evidence',len(keys),[frame,ct.c_int(area),self.tensor(keys),self.tensor(ids),self.tensor(cells.astype(np.int32)),self.tensor(queries),ct.c_int(len(keys)),self.tensor(np.concatenate(steps)),self.tensor(offsets),self.tensor(initial,np.int32),self.tensor(np.array(param,np.float64)),self.tensor(interval,np.float64),self.tensor(when,np.float64),self.tensor(durations,np.float64),ff,support,difference,obstacle,ct.c_double(r),ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nz),out])

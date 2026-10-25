@@ -28,8 +28,8 @@ def full_training_groups():
     return manifest,groups
 
 
-def evaluate(checkpoint,device='cuda:1',training=False,full_training=False):
-    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');model=SpatialEvidenceNet().to(device).eval();model.load_state_dict(saved['model']);manifest,groups=full_training_groups()if full_training else load_groups('train'if training else'dev');roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
+def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prepared=None):
+    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');model=SpatialEvidenceNet().to(device).eval();model.load_state_dict(saved['model']);manifest,groups=_prepared if _prepared is not None else full_training_groups()if full_training else load_groups('train'if training else'dev');roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
     def tensor(x,dtype):return torch.from_numpy(np.ascontiguousarray(x,dtype=dtype)).to(device)
     for g in groups:
         probability=[]

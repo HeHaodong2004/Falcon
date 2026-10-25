@@ -48,7 +48,7 @@ extern "C" __global__ void planar_tiles(const float* ranges,const double* origin
 
 
 class PlanarRangeMesh(GpuObservedRangeMesh):
-    def __init__(self,ranges,origins,rotations,timestamps,now,resolution,device='cuda:0',stride=1,tracks=None,epsilon=.00005):
+    def __init__(self,ranges,origins,rotations,timestamps,now,resolution,device='cuda:0',stride=1,tracks=None,epsilon=.00005,bvh='balanced'):
         tick=time.perf_counter();validate(ranges,origins,rotations,timestamps,now)
         if stride!=1:raise ValueError('planar merging preserves full original range pixels')
         self.keyframes=[];last=None
@@ -69,6 +69,15 @@ class PlanarRangeMesh(GpuObservedRangeMesh):
         mod.launch('planar_tiles',tiles,[tensor(ranges[self.keyframes],np.float32),tensor(origins[self.keyframes],np.float64),tensor(rotations[self.keyframes],np.float64),ct.c_int(nf),ct.c_int(h),ct.c_int(w),tensor(np.array(active).reshape(-1,3),np.float64),tensor(offsets,np.int32),ct.c_float(epsilon),vertices,keys])
         vertices=vertices[keys!=torch.iinfo(torch.int64).max];self.triangles=int(len(vertices))
         if not self.triangles:raise ValueError('no observed planar surface')
+        if bvh=='radix':
+            from .radix_bvh import build_arrays
+            packed=torch.cat([vertices[:,:3],vertices[:,3:6]-vertices[:,:3],vertices[:,6:9]-vertices[:,:3]],1)
+            started=time.perf_counter();arrays=build_arrays(packed)
+            arrays.update(keys=np.empty((0,2),np.int32),targets=np.empty((0,63,3),np.float64))
+            self.builder=mod;self.obstacle_cache={};self.kernel=GeometryKernel(arrays,resolution,device)
+            torch.cuda.synchronize(device);self.radix_build_seconds=time.perf_counter()-started;self.prepare_seconds=time.perf_counter()-tick
+            return
+        if bvh!='balanced':raise ValueError('unsupported measured-surface hierarchy')
         view=vertices.view(-1,3,3);low=view.amin((0,1));extent=(view.amax((0,1))-low).clamp_min(.001);code=torch.empty(self.triangles,dtype=torch.int64,device=device);mod.launch('morton',self.triangles,[vertices,ct.c_int(self.triangles),low,extent,code]);vertices=vertices[torch.argsort(code)];group=12;leaves=1<<((self.triangles+group-1)//group-1).bit_length();nodes=leaves*2-1
         arrays=dict(keys=np.empty((0,2),np.int32),targets=np.empty((0,63,3),np.float64),triangles=torch.empty_like(vertices),bounds=torch.empty((nodes,6),device=device),indices=torch.empty(self.triangles,dtype=torch.int32,device=device))
         for name in ['left','right','first','count']:arrays[name]=torch.empty(nodes,dtype=torch.int32,device=device)

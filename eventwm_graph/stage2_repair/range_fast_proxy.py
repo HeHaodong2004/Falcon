@@ -34,3 +34,8 @@ class FastSpatialPredictor(SpatialRangePredictor,PlanarRangePredictor):
     """Spatial wrapper sets legal history; planar wrapper builds measured mesh."""
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs);self.range_kernel=ProxyKernel(self.device)
+
+    def predict_segments(self,**kwargs):
+        out=super().predict_segments(**kwargs)
+        for d in out:d['provenance']['visibility_feature_approximation']='7LOS rays; all63frustum probes retained; original certificate targets and original candidate cells unchanged.'
+        return out

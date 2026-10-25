@@ -30,10 +30,17 @@ extern "C" __global__ void reduce_bounds(int leaves,const int* left,const int* r
 '''
 
 
-def rebuild(mesh):
-    tick=time.perf_counter();k=mesh.kernel;device=k.device;mod=CudaModule(SOURCE,device);t=k.static['triangles'];n=len(t);centers=t[:,:3]+(t[:,3:6]+t[:,6:9])/3;lo=centers.amin(0);extent=(centers.amax(0)-lo).clamp_min(.001);codes=torch.empty(n,device=device,dtype=torch.int64);mod.launch('triangle_codes',n,[t,ct.c_int(n),lo,extent,codes]);codes,order=torch.sort(codes);t=t[order];group=12;leaves=(n+group-1)//group;nodes=leaves*2-1;bounds=torch.empty((nodes,6),device=device);first=torch.zeros(nodes,device=device,dtype=torch.int32);count=torch.zeros_like(first);left=torch.full_like(first,-1);right=torch.full_like(first,-1);parent=torch.full_like(first,-1);keys=torch.empty(leaves,device=device,dtype=torch.int64);visited=torch.zeros(max(1,leaves-1),device=device,dtype=torch.int32)
+def build_arrays(t):
+    """Build directly from packed triangles; avoid constructing a discarded tree."""
+    device=t.device;mod=CudaModule(SOURCE,device);n=len(t)
+    if not n:raise ValueError('radix hierarchy requires a measured surface')
+    centers=t[:,:3]+(t[:,3:6]+t[:,6:9])/3;lo=centers.amin(0);extent=(centers.amax(0)-lo).clamp_min(.001);codes=torch.empty(n,device=device,dtype=torch.int64);mod.launch('triangle_codes',n,[t,ct.c_int(n),lo,extent,codes]);codes,order=torch.sort(codes);t=t[order];group=12;leaves=(n+group-1)//group;nodes=leaves*2-1;bounds=torch.empty((nodes,6),device=device);first=torch.zeros(nodes,device=device,dtype=torch.int32);count=torch.zeros_like(first);left=torch.full_like(first,-1);right=torch.full_like(first,-1);parent=torch.full_like(first,-1);keys=torch.empty(leaves,device=device,dtype=torch.int64);visited=torch.zeros(max(1,leaves-1),device=device,dtype=torch.int32)
     mod.launch('make_leaves',leaves,[t,codes,ct.c_int(n),ct.c_int(group),ct.c_int(leaves),bounds,first,count,keys])
     if leaves>1:
         mod.launch('radix_tree',leaves-1,[keys,ct.c_int(leaves),left,right,parent]);mod.launch('reduce_bounds',leaves,[ct.c_int(leaves),left,right,parent,visited,bounds])
-    arrays=dict(triangles=t,bounds=bounds,left=left,right=right,first=first,count=count,indices=torch.arange(n,device=device,dtype=torch.int32));k.static.update(arrays);k.arrays.update(arrays);k.mesh=[k.static[name]for name in ['triangles','bounds','left','right','first','count','indices']];mesh.obstacle_cache={};torch.cuda.synchronize(device);mesh.radix_build_seconds=time.perf_counter()-tick;mesh.prepare_seconds+=mesh.radix_build_seconds
+    return dict(triangles=t,bounds=bounds,left=left,right=right,first=first,count=count,indices=torch.arange(n,device=device,dtype=torch.int32))
+
+
+def rebuild(mesh):
+    tick=time.perf_counter();k=mesh.kernel;arrays=build_arrays(k.static['triangles']);k.static.update(arrays);k.arrays.update(arrays);k.mesh=[k.static[name]for name in ['triangles','bounds','left','right','first','count','indices']];mesh.obstacle_cache={};torch.cuda.synchronize(k.device);mesh.radix_build_seconds=time.perf_counter()-tick;mesh.prepare_seconds+=mesh.radix_build_seconds
     return mesh

@@ -39,7 +39,7 @@
       "inputs": "Same legal sensor extension; same original candidate/output cells; original63probe certificate targets unchanged",
       "pilot_label_iou": 0.35268741196406195,
       "pilot_revelation_iou": 0.40799129692135655,
-      "complete_K1_K4_K6_benchmark": "Executed original32workloads x3repeats; slow. GPU radix repair complete-workload rerun in progress.",
+      "complete_K1_K4_K6_benchmark": "Executed32workloads x3repeats; before GPU radix repair.",
       "K6_dense_cold_P95_ms": 609.01374,
       "K6_dense_warm_P95_ms": 579.351282
     },
@@ -53,6 +53,29 @@
       "selected_epoch": 4,
       "rule": "argmax",
       "full_development_label_iou": null
+    },
+    {
+      "model": "Auxiliary-support supervision, matched256Root continuation",
+      "inputs": "Same legal range extension; private support target enters training loss only",
+      "pilot_label_iou": 0.37198270787698007,
+      "pilot_revelation_iou": 0.43003011374993455,
+      "matched_control_pilot_label_iou": 0.36116188463020493,
+      "selected_epoch": 1,
+      "rule": "threshold_0.40",
+      "checkpoint_sha256": "ca491b186d457ade582e04a9427a504df4a8411c03f198b1d39825d0a291d7fe",
+      "full_development_label_iou": null,
+      "public_API_full_pilot_verification": "Running"
+    },
+    {
+      "model": "GPU radix hierarchy;7LOS feature approximation",
+      "pilot_label_iou": 0.35268741196406195,
+      "pilot_revelation_iou": 0.40799129692135655,
+      "all666_public_API_score_identical_to_pre_repair": true,
+      "K6_dense_cold_P95_ms": 107.83398464554921,
+      "K6_dense_warm_P95_ms": 82.6826571370475,
+      "workloads": 32,
+      "repeats": 3,
+      "acceptance": false
     }
   ],
   "pipeline_checks": {
@@ -110,7 +133,16 @@
     "range_fresh256_selection.json",
     "radix_check.json",
     "radix_profile_hashopt.log",
-    "range_identity_tests.log"
+    "range_identity_tests.log",
+    "support256_selection.json",
+    "support_oracle_ablation.json",
+    "benchmark_legal_range_proxy7_radix.json",
+    "radix_regression_tests.log",
+    "nonblocking_regression.log",
+    "support_teacher_tests.log",
+    "support_graph_train/manifest_roots2048.json",
+    "full_range_replay_jobs.json",
+    "expanded_train_range_jobs.json"
   ],
   "reproduce_examples": [
     "python scripts/stage2_segment_run.py unittest eventwm_graph.stage2_repair.test_contract eventwm_graph.stage2_repair.test_api eventwm_graph.stage2_repair.test_range eventwm_graph.stage2_repair.test_range_api eventwm_graph.stage2_repair.test_range_planar eventwm_graph.stage2_repair.test_fresh_sampling eventwm_graph.stage2_repair.test_fresh_workers eventwm_graph.stage2_repair.test_range_spatial_api",
@@ -120,7 +152,7 @@
     "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --radix --repetitions 3 --device cuda:1"
   ],
   "deployment_readiness": "Below target. Sensor-extension model also needs explicit range-packet integration; ideal current-range replay is not rendered RGB-D validation. Sensor acquisition and serialization are excluded from Stage2 primary inference timing and must be reported separately. No standalone forward benchmark guarantees total Layer3 RL runtime.",
-  "updated_utc": "2026-10-25 22:27 UTC",
+  "updated_utc": "2026-10-25 22:45 UTC",
   "confirmed_acceleration_defect": {
     "scope": "New observed-range prototype, not original-model plateau",
     "cause": "Balanced Morton hierarchy traverses excessively many overlapping measured triangles",
@@ -131,6 +163,17 @@
     "latest_worst_group_complete_cold_ms": 100.410568,
     "latest_worst_group_complete_warm_ms": 70.085503,
     "acceptance": false,
-    "full_benchmark": "Running after faster exact input identity hashing and vectorized camera-parameter preparation"
+    "full_benchmark": "Running after faster exact input identity hashing and vectorized camera-parameter preparation",
+    "additional_exact_optimizations": "Direct tree build avoids discarded balanced hierarchy; map-dependent support-cache reuse. Worstgroup diagnostic59mswarm/92mscold before broader compute load, not acceptance."
+  },
+  "ongoing": {
+    "encoder_pretraining": "31059legalstartinggraphs,2048trainingRoots; private navmesh support supervision only; no runtime teacher inputs",
+    "expanded_training_range_roots_requested": 4096,
+    "full_development_range_roots_requested": 2110,
+    "minimum_work_until_utc": "2026-10-26 10:15 UTC"
+  },
+  "diagnostics": {
+    "support_oracle": "PRIVILEGED diagnostic only: perfect static support + partial observed visibility0.38018. Support knowledge alone is insufficient to meet0.50; missing visibility/geometry remains.",
+    "not_acceptance": true
   }
 }

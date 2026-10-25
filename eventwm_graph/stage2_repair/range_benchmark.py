@@ -33,8 +33,8 @@ def run(checkpoint,device='cuda:1',repetitions=3,proxy=False,spatial=False,radix
         from .range_fast_proxy import FastRangePredictor,FastSpatialPredictor
         cls=FastSpatialPredictor if spatial else FastRangePredictor
     if radix:
-        from .range_radix_api import RadixRangePredictor,RadixExactPredictor,RadixSpatialPredictor
-        cls=RadixSpatialPredictor if spatial else RadixRangePredictor if proxy else RadixExactPredictor
+        from .range_radix_api import RadixRangePredictor,RadixExactPredictor,RadixSpatialPredictor,RadixExactSpatialPredictor
+        cls=(RadixSpatialPredictor if proxy else RadixExactSpatialPredictor)if spatial else RadixRangePredictor if proxy else RadixExactPredictor
     models=dict(baseline=ThresholdBaseline(CKPT,threshold=.2,execution='optimized',future_format='native',device=device,feature_threads=1),range=cls(checkpoint,device=device))
     def call(label,ex,packet,tracks,k):
         paths=[np.asarray(p['trajectory'],np.float64)for p in ex['paths'][:k]]
@@ -60,7 +60,7 @@ def run(checkpoint,device='cuda:1',repetitions=3,proxy=False,spatial=False,radix
                         torch.cuda.synchronize(device);tick=time.perf_counter();result=call(label,ex,packet,tracks,k);torch.cuda.synchronize(device);ms=(time.perf_counter()-tick)*1000
                         rows.append(dict(model=label,cohort='dense'if i in dense else'representative',cache=cache,k=k,ms=ms,group=i,repetition=rep,candidates=[len(d['candidate_cells'])for d in result],updates=[len(d['static_updates'])for d in result],profile=models[label].last_batch_profile))
         report=dict(checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),device=device,hardware=torch.cuda.get_device_name(torch.device(device)),precision='F32 TF32off; F64 camera/frustum geometry',input_contract='Range model additionally receives LEGAL measured current/past Euclidean ranges and legal track history; baseline receives original graph/path only. Same original 32 maps/paths and full original cells.',scope='Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.',excluded='Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.',startup=startup,concurrent_load=load,load_average=os.getloadavg(),summary=summary(rows),calls=rows)
-        report.update(visibility_feature_los_probes=7 if proxy or (radix and spatial) else 63,spatial_model=spatial,radix_tree=radix)
+        report.update(visibility_feature_los_probes=7 if proxy else 63,spatial_model=spatial,radix_tree=radix)
         save(OUT/('benchmark_legal_range%s%s%s.json'%('_spatial'if spatial else'','_proxy7'if proxy else'','_radix'if radix else'')),report);print('REPETITION',rep+1,report['summary'],flush=True)
 
 

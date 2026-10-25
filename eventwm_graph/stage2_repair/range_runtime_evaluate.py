@@ -26,8 +26,8 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
         from .range_fast_proxy import FastRangePredictor,FastSpatialPredictor
         cls=FastSpatialPredictor if spatial else FastRangePredictor
     if radix:
-        from .range_radix_api import RadixRangePredictor,RadixExactPredictor,RadixSpatialPredictor
-        cls=RadixSpatialPredictor if spatial else RadixRangePredictor if proxy else RadixExactPredictor
+        from .range_radix_api import RadixRangePredictor,RadixExactPredictor,RadixSpatialPredictor,RadixExactSpatialPredictor
+        cls=(RadixSpatialPredictor if proxy else RadixExactSpatialPredictor)if spatial else RadixRangePredictor if proxy else RadixExactPredictor
     label='spatial_'if spatial else'';label+='proxy7'if proxy else'planar'if planar else'stride%d'%stride
     if radix:label+='_radix'
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;model=cls(checkpoint,device=device,mesh_stride=stride);raw,source=source_rows('dev');raw={r['root_id']:r for r in raw};manifest=read(HF/'light_eval_cache/manifest.json');dest=OUT/('range_runtime_'+label);dest.mkdir(exist_ok=True);roots=[];tick=time.perf_counter()
