@@ -64,7 +64,9 @@
       "rule": "threshold_0.40",
       "checkpoint_sha256": "ca491b186d457ade582e04a9427a504df4a8411c03f198b1d39825d0a291d7fe",
       "full_development_label_iou": null,
-      "public_API_full_pilot_verification": "Running"
+      "public_API_full_pilot_verification": true,
+      "public_API_pilot_label_iou": 0.3719839244644555,
+      "public_API_pilot_revelation_iou": 0.4300313818101775
     },
     {
       "model": "GPU radix hierarchy;7LOS feature approximation",
@@ -84,7 +86,13 @@
     "exact_candidate_keys_and_target_vectors": true,
     "all_materialized_known_cell_columns_preserved": true,
     "input_graph_immutable": true,
-    "zero_horizon_light_eval_fix_affected_windows": 0
+    "zero_horizon_light_eval_fix_affected_windows": 0,
+    "range_replay_human_position_parity": {
+      "roots": 10,
+      "passed": true,
+      "max_error_m": 0.0,
+      "scope": "Private recording used ONLY to check environment replay, never WM inputs; checks positions/times, not independent joint-angle truth."
+    }
   },
   "confirmed_training_limitation": {
     "scope": "High-capacity spatial experiment, not a causal attribution of every original baseline error. Fixed cached96point supervision overfits unsupervised boundary cells.",
@@ -142,7 +150,12 @@
     "support_teacher_tests.log",
     "support_graph_train/manifest_roots2048.json",
     "full_range_replay_jobs.json",
-    "expanded_train_range_jobs.json"
+    "expanded_train_range_jobs.json",
+    "human_range_parity.json",
+    "range_runtime_spatial_stride1_radix/summary.json",
+    "range_full_smoke.log",
+    "column_bounds_tests.log",
+    "radix_profile_column_bounds.log"
   ],
   "reproduce_examples": [
     "python scripts/stage2_segment_run.py unittest eventwm_graph.stage2_repair.test_contract eventwm_graph.stage2_repair.test_api eventwm_graph.stage2_repair.test_range eventwm_graph.stage2_repair.test_range_api eventwm_graph.stage2_repair.test_range_planar eventwm_graph.stage2_repair.test_fresh_sampling eventwm_graph.stage2_repair.test_fresh_workers eventwm_graph.stage2_repair.test_range_spatial_api",
@@ -152,7 +165,7 @@
     "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --radix --repetitions 3 --device cuda:1"
   ],
   "deployment_readiness": "Below target. Sensor-extension model also needs explicit range-packet integration; ideal current-range replay is not rendered RGB-D validation. Sensor acquisition and serialization are excluded from Stage2 primary inference timing and must be reported separately. No standalone forward benchmark guarantees total Layer3 RL runtime.",
-  "updated_utc": "2026-10-25 22:45 UTC",
+  "updated_utc": "2026-10-25 22:56 UTC",
   "confirmed_acceleration_defect": {
     "scope": "New observed-range prototype, not original-model plateau",
     "cause": "Balanced Morton hierarchy traverses excessively many overlapping measured triangles",
@@ -167,7 +180,7 @@
     "additional_exact_optimizations": "Direct tree build avoids discarded balanced hierarchy; map-dependent support-cache reuse. Worstgroup diagnostic59mswarm/92mscold before broader compute load, not acceptance."
   },
   "ongoing": {
-    "encoder_pretraining": "31059legalstartinggraphs,2048trainingRoots; private navmesh support supervision only; no runtime teacher inputs",
+    "encoder_pretraining": "Completed3epochs on2048trainingRoots31059maps; now matched original-increment fine-tuning. Auxiliary support pooled IoU0.307 is a training diagnostic, not primary reconstruction.",
     "expanded_training_range_roots_requested": 4096,
     "full_development_range_roots_requested": 2110,
     "minimum_work_until_utc": "2026-10-26 10:15 UTC"

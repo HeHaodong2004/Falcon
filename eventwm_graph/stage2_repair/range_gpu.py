@@ -118,7 +118,7 @@ class GpuObservedRangeMesh(ObservedRangeMesh):
     def obstacle_distance(self,keys,base_height):
         """Distance to measured body-height surfaces; no native support query."""
         from scipy.ndimage import distance_transform_edt
-        r=self.kernel.resolution;lo=np.asarray(keys).min(0)-8;shape=np.asarray(keys).max(0)-lo+9
+        r=self.kernel.resolution;keys=np.asarray(keys);lo=np.array([keys[:,0].min(),keys[:,1].min()])-8;shape=np.array([keys[:,0].max(),keys[:,1].max()])-lo+9
         cache_key=tuple(lo)+tuple(shape)+(float(base_height),)
         if cache_key not in self.obstacle_cache:
             nx,nz=map(int,shape);field=torch.zeros((nx,nz),dtype=torch.int32,device=self.kernel.device)

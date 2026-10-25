@@ -45,7 +45,7 @@ class SupportGroups(FreshGroups):
             yield item
 
 
-def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256'):
+def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256',draw_epoch_offset=0):
     torch.set_num_threads(1)
     torch.manual_seed(7811)
     torch.backends.cuda.matmul.allow_tf32 = False
@@ -54,11 +54,14 @@ def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256'):
     loader = DataLoader(data, batch_size=8, num_workers=4, collate_fn=keep,
                         persistent_workers=True, multiprocessing_context='fork', prefetch_factor=2)
     initial = SpatialEvidenceNet()
-    initial.load_state_dict(torch.load(warm, map_location='cpu')['model'])
+    warm_state=torch.load(warm, map_location='cpu')
+    initial.load_state_dict(warm_state['model'])
+    initial_head=nn.Conv2d(24,2,1)
+    if 'training_only_teacher_head'in warm_state:initial_head.load_state_dict(warm_state['training_only_teacher_head'])
     variants = {}
     for variant, coefficient in [('control', 0.), ('teacher', .5)]:
         model = copy.deepcopy(initial).to(device)
-        head = nn.Conv2d(24, 2, 1).to(device)
+        head = copy.deepcopy(initial_head).to(device)
         parameters = [p for p in model.parameters() if p.requires_grad] + list(head.parameters())
         optimizer = torch.optim.AdamW(parameters, lr=.0002, weight_decay=.0001)
         variants[variant] = (model, head, parameters, optimizer, torch.cuda.amp.GradScaler(), coefficient)
@@ -70,6 +73,7 @@ def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256'):
                    roots=m['roots'], scenes=m['scenes'], learning_rate=.0002,
                    manifest_sha256=sha(manifest), teacher_target_manifest_sha256=sha(targets),
                    auxiliary_coefficient=coefficient,
+                   draw_epoch_offset=draw_epoch_offset,
                    inputs='Unchanged legal G/path/past-current ideal ranges/tracks. No private teacher array is an input.',
                    supervision='Unchanged fresh original-cell increment BCE/Dice/class-UNION; optional dense projected-navmesh support and signed-distance auxiliary loss.',
                    deployed_architecture='Unchanged SpatialEvidenceNet; two-channel teacher head discarded after training.',
@@ -81,7 +85,7 @@ def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256'):
     def tensor(x, dtype=None):
         return torch.from_numpy(np.ascontiguousarray(x, dtype=dtype)).to(device)
     for epoch in range(1, epochs+1):
-        data.epoch.value = epoch
+        data.epoch.value = epoch+draw_epoch_offset
         total = {v: np.zeros(4) for v in variants}
         batches = 0
         for items in loader:
@@ -133,4 +137,4 @@ def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256'):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--manifest',required=True);p.add_argument('--targets',required=True);p.add_argument('--warm',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='support256');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--manifest',required=True);p.add_argument('--targets',required=True);p.add_argument('--warm',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='support256');p.add_argument('--draw-epoch-offset',type=int,default=0);run(**vars(p.parse_args()))
