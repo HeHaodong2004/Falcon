@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from .common import OUT,CKPT,THRESHOLDS,read,save,sha,source
 from .light import LightNet,probabilities
+from .decisions import observation_probabilities
 from eventwm_graph.stage2.data import source_rows
 from eventwm_graph.stage2_segment.data import replay
 from eventwm_graph.stage2_segment.api import SegmentPredictor
@@ -45,7 +46,13 @@ def evaluate(name,epochs=None,device='cuda:0'):
      if cfg['kind']=='softmax'and cfg['objective']=='balanced':
       p=p/torch.tensor([1.,8.,8.],device=device);p=p/p.sum(-1,keepdim=True)
      pp.append(p.cpu().numpy())
-   p=np.concatenate(pp);pr=(p[:,1]+p[:,2]).astype(np.float64);cond=np.where(p[:,1]>=p[:,2],1,2).astype(np.uint8);preds=[p.argmax(-1)]+[np.where(pr>=t,cond,0)for t in THRESHOLDS];cms=[];scores=[];empt=np.zeros(len(preds),int);zero=0
+   p=np.concatenate(pp)
+   for ex in row['segments']:
+    sl=slice(ex['start'],ex['end'])
+    # Replay timestamps are strictly increasing, so zero duration means the
+    # starting pose alone. Zero displacement is intentionally not tested.
+    p[sl]=observation_probabilities(p[sl],no_future_observations=ex['duration']==0)
+   pr=(p[:,1]+p[:,2]).astype(np.float64);cond=np.where(p[:,1]>=p[:,2],1,2).astype(np.uint8);preds=[p.argmax(-1)]+[np.where(pr>=t,cond,0)for t in THRESHOLDS];cms=[];scores=[];empt=np.zeros(len(preds),int);zero=0
    for ex in row['segments']:
     a,b=ex['start'],ex['end'];gt=y[a:b];cms.append([np.bincount(3*gt.astype(np.int64)+v[a:b],minlength=9).reshape(3,3)for v in preds]);truep=p[np.arange(a,b),gt]
     scores.append([-np.log(np.clip(truep,1e-9,1)).mean(),np.mean(np.square(p[a:b]).sum(1)-2*truep+1)])

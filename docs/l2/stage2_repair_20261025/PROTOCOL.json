@@ -1,0 +1,38 @@
+{
+  "scope": "Initially UNKNOWN legal certificate increment conditioned on current PartialGraph and supplied [time,x,y,z,yaw]; Stage1 frozen.",
+  "published_parent": "15644c6a35cf3081dbf1eb65738966267c08d933",
+  "live_development_commit": "3d2a0e4829f1071c53a322cfd8d864c732185313",
+  "fixed_pilot": {
+    "roots": 31,
+    "scenes": 16,
+    "windows": 666
+  },
+  "baseline": {
+    "checkpoint_sha256": "1ba6844d8b7eb336c46b41125eefae16e413c4ba408da9b0a1dc47ebcef66bfd",
+    "label_aware_iou": 0.21741272021230704,
+    "revelation_iou": 0.30161004802084523
+  },
+  "historical_best": {
+    "epoch": 4,
+    "checkpoint_sha256": "8293cd101d8db8e96f2abb2019bcd7cc9964c9911ecd5c9f93fe5874766b2139",
+    "label_aware_iou": 0.21889873129094994
+  },
+  "time_ablation_control": {
+    "epoch": 4,
+    "checkpoint_sha256": "98c72b2fb71b9f334daaae11ddb286f234ba9047aee9ab74811cdeebb0708cab",
+    "label_aware_iou": 0.21991581311072775
+  },
+  "full_fit": "Six epochs maximum, original full eligible snapshot, original sampling/weights, residual point model with recency disabled, warm matched ablation epoch4; operating threshold .20; epoch selection on fixed pilot only before one full-dev evaluation.",
+  "runtime_budget_source": "Inherited live output/stage2_hf_20261025/WORKING_STATE.md first line (archived locally as INHERITED_WORKING_STATE.md)",
+  "K6_P95_ms": {
+    "preferred": 20,
+    "acceptable": 35,
+    "maximum": 50
+  },
+  "goals": {
+    "milestone_label_aware_iou": 0.35,
+    "target_label_aware_iou": 0.45
+  },
+  "confirmation": "Opened222 Roots excluded from train/selection; no new confirmation claimed.",
+  "original_jobs": "All preexisting preparation jobs preserved. Additional owned recency preparation stopped when matched ablation ruled out its need."
+}
