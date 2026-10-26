@@ -184,6 +184,17 @@ def aux_targets(ctx, frames, fr, Hp, Wp, device):
     return out
 
 
+def distill_loss(logits, teacher, y, w, norm):
+    """Soft-target BCE toward teacher probabilities on the exact domain: r on every
+    valid cell, b weighted by the teacher's revelation probability."""
+    valid = (y >= 0).float()
+    tr = torch.sigmoid(teacher[:, 0].float()); tb = torch.sigmoid(teacher[:, 1].float())
+    lr = F.binary_cross_entropy_with_logits(logits[:, 0].float(), tr, reduction='none')
+    lb = F.binary_cross_entropy_with_logits(logits[:, 1].float(), tb, reduction='none')
+    per = (lr*valid).sum((1, 2))+2.*(lb*tr*valid).sum((1, 2))
+    return (per*w).sum()/w.sum()/norm
+
+
 def soft_iou_loss(logits, y, w):
     """1 - smooth label-aware IoU over the batch (window-weighted cell sums)."""
     valid = (y >= 0).float()
@@ -259,7 +270,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
         human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None, ema=0., extend=False, pool_factor=4,
-        overlap=False, side=None):
+        overlap=False, side=None, teacher=None, distill=.5):
     cli_near = near
     GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
@@ -332,6 +343,20 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         for r in extra[0]:
             r['sensor_dir'] = extra_sensor
         train_rows = train_rows+extra[0]
+    teachers = []
+    if teacher:
+        # Frozen teacher(s) (logit average) on the student's full input channel set.
+        assert cidx is None, 'distillation needs the student on the current full channel set (--extend or from scratch)'
+        names = list(map_channels)+list(query_channels)
+        for path in teacher.split(','):
+            ts = torch.load(path, map_location='cpu'); tc = ts['config']
+            tnet = build_model(len(tc['map_channels'])+len(tc['query_channels']), tc)
+            tnet.load_state_dict(ts['model']); tnet = tnet.to(device).eval().to(memory_format=torch.channels_last)
+            for p_ in tnet.parameters():
+                p_.requires_grad_(False)
+            tidx = torch.as_tensor([names.index(n) for n in list(tc['map_channels'])+list(tc['query_channels'])], device=device)
+            teachers.append((tnet, tidx))
+        print('teachers', teacher, 'distill weight', distill, flush=True)
     ema_model = None
     if ema > 0:
         # Exponential moving average of weights (and float buffers); validated and saved as 'model'.
@@ -342,7 +367,8 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                   extra_sensor=extra_sensor, aux_weight=aux_weight, splat=bool(splat), sub=int(sub), render=int(render),
                   human_occluders=bool(human_occluders), near=float(near), iou_weight=float(iou_weight),
                   lr=lr, pos_weight=pos_weight, blocked_weight=blocked_weight, epochs=epochs, train_roots=len(train_rows),
-                  val_roots=len(val_rows), seed=seed, warm=warm, cascade_from=cascade_from, ema=float(ema), pool_factor=int(pool_factor), overlap=bool(overlap))
+                  val_roots=len(val_rows), seed=seed, warm=warm, cascade_from=cascade_from, ema=float(ema), pool_factor=int(pool_factor), overlap=bool(overlap),
+                  teacher=teacher, distill=float(distill) if teacher else 0.)
     (dest/'config.json').write_text(json.dumps(config, indent=1))
     print('train roots', len(train_rows), 'val roots', len(val_rows), 'params', sum(p.numel() for p in model.parameters()), flush=True)
     opt = torch.optim.AdamW([p_ for p_ in model.parameters() if p_.requires_grad], lr=lr, weight_decay=1e-4)
@@ -427,6 +453,10 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                 with torch.cuda.amp.autocast():
                     logits = model(x)
                 loss = loss_fn(logits, y, w, pos_weight, blocked_weight, 2000., A, aux_weight)
+                if teachers:
+                    with torch.no_grad(), torch.cuda.amp.autocast():
+                        tl = sum(net(x.index_select(1, idx))[:, :2].float() for net, idx in teachers)/len(teachers)
+                    loss = (1-distill)*loss+distill*distill_loss(logits, tl, y, w, 2000.)
                 if iou_weight > 0:
                     loss = loss+iou_weight*soft_iou_loss(logits, y, w)
                 opt.zero_grad(set_to_none=True)
@@ -497,4 +527,6 @@ if __name__ == '__main__':
     p.add_argument('--pool-factor', type=int, default=4, help='shuffle pool size in batches (windows from more Roots per batch)')
     p.add_argument('--overlap', action='store_true', help='build legal features on a side stream/thread, overlapping training')
     p.add_argument('--side', help='zero-initialized extra capacity per encoder level, e.g. 3:192:3,4:256:4')
+    p.add_argument('--teacher', help='comma-separated frozen teacher checkpoints (logit average) for distillation')
+    p.add_argument('--distill', type=float, default=.5, help='weight of the soft-target loss (hard loss weight 1-distill)')
     run(**vars(p.parse_args()))
