@@ -79,7 +79,7 @@ def evaluate_root(model,row,dest,checkpoint_sha,source_sha):
     model.clear_cache();return value
 
 
-def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exact_fast=False):
+def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exact_fast=False,implementation=None):
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False
     if not 0<=shard<shards:raise ValueError('invalid evaluation shard')
     rows,manifest=source_rows('dev');all_rows=rows
@@ -90,6 +90,9 @@ def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exac
     if exact_fast:
         from .range_exact_api import ExactFastSpatialPredictor
         cls=ExactFastSpatialPredictor
+    if implementation:
+        from .range_implementations import predictor_class
+        cls=predictor_class(spatial=True,implementation=implementation)
     model=cls(checkpoint,device=device)
     identity=dict(checkpoint=str(checkpoint),checkpoint_sha256=checkpoint_sha,source_manifest_sha256=sha(manifest),evaluator_sha256=source_sha,model_schema=model.predictor_schema,implementation=cls.__name__,rule=model.decision_rule,threshold=model.threshold,role='LEGAL SENSOR EXTENSION; ORIGINAL full development. No confirmation data. Complete future graph checked at every window.',shards=shards,smoke_limit=limit)
     ip=dest/'identity.json'
@@ -118,4 +121,4 @@ def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exac
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--name',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1);p.add_argument('--wait',action='store_true');p.add_argument('--limit',type=int,default=0);p.add_argument('--exact-fast',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--name',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1);p.add_argument('--wait',action='store_true');p.add_argument('--limit',type=int,default=0);p.add_argument('--exact-fast',action='store_true');p.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device']);run(**vars(p.parse_args()))

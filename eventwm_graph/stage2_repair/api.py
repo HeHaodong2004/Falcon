@@ -94,6 +94,24 @@ class TimePredictor(SegmentPredictor):
         if used:flush()
         return returned
 
+    def _candidate_keys(self,prepared,contexts):
+        # Only map UNKNOWN-grid construction is retained between calls.
+        # Candidate masks share only exact float32 supplied positions.
+        from eventwm_graph.stage2_quality.features import candidate_mask
+        if not hasattr(prepared,'unknown_grids'):prepared.unknown_grids=OrderedDict()
+        domains={};keysets=[]
+        for ctx in contexts:
+            gridlo=getattr(ctx,'candidate_lo',ctx.lo);gridshape=getattr(ctx,'candidate_shape',ctx.shape);gridstates=getattr(ctx,'candidate_states',ctx.states)
+            gridkey=tuple(gridlo)+tuple(gridshape)
+            if gridkey not in prepared.unknown_grids:
+                prepared.unknown_grids[gridkey]=np.argwhere(gridstates==0).astype(np.int32)+gridlo
+                while len(prepared.unknown_grids)>8:prepared.unknown_grids.popitem(last=False)
+            xy=np.unique(ctx.xy,axis=0);domainkey=(gridkey,xy.tobytes())
+            if domainkey not in domains:
+                unknown=prepared.unknown_grids[gridkey];domains[domainkey]=unknown[candidate_mask(unknown,xy,ctx.resolution)]
+            keys=domains[domainkey];ctx._candidate_keys=keys;keysets.append(keys)
+        return keysets
+
     def predict_segments(self,*,partial_graph,trajectories,materialize=True):
         start=time.perf_counter();prepared=self.prepare_graph(partial_graph);prepared_at=time.perf_counter()
         # Validation lives in the feature context, including strictly increasing
@@ -103,22 +121,7 @@ class TimePredictor(SegmentPredictor):
         contexts=[self.feature_class(partial_graph,p,prepared)for p in trajectories]
         contexts_at=time.perf_counter();xs=[];details=[];feature_profiles=[]
         with torch.inference_mode():
-            # Only map UNKNOWN-grid construction is retained between calls.
-            # Candidate masks are shared within this batch only when the
-            # exact float32 supplied positions (all of them) are identical.
-            from eventwm_graph.stage2_quality.features import candidate_mask
-            if not hasattr(prepared,'unknown_grids'):prepared.unknown_grids=OrderedDict()
-            domains={};keysets=[]
-            for ctx in contexts:
-                gridlo=getattr(ctx,'candidate_lo',ctx.lo);gridshape=getattr(ctx,'candidate_shape',ctx.shape);gridstates=getattr(ctx,'candidate_states',ctx.states)
-                gridkey=tuple(gridlo)+tuple(gridshape)
-                if gridkey not in prepared.unknown_grids:
-                    prepared.unknown_grids[gridkey]=np.argwhere(gridstates==0).astype(np.int32)+gridlo
-                    while len(prepared.unknown_grids)>8:prepared.unknown_grids.popitem(last=False)
-                xy=np.unique(ctx.xy,axis=0);domainkey=(gridkey,xy.tobytes())
-                if domainkey not in domains:
-                    unknown=prepared.unknown_grids[gridkey];domains[domainkey]=unknown[candidate_mask(unknown,xy,ctx.resolution)]
-                keys=domains[domainkey];ctx._candidate_keys=keys;keysets.append(keys)
+            keysets=self._candidate_keys(prepared,contexts)
             if self.cuda is not None:
                 from .features import transform_batch
                 xs,baselines,profile=transform_batch(self.cuda,contexts,keysets);feature_profiles.append(profile)

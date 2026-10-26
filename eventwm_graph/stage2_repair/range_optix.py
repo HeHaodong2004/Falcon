@@ -11,12 +11,12 @@ from .range_batched_spatial import BatchedSpatialPredictor
 
 
 class OptixModule(CudaModule):
-    def __init__(self,device,normalization=False):
+    def __init__(self,device,normalization=False,primitive_mode='leaf'):
         if normalization:
             from .range_normalization import source as normalized_source
             code=normalized_source()
         else:code=source()
-        super().__init__(code,device);self.backend=OptixBackend(device,normalization=normalization);self.active_mesh=None
+        super().__init__(code,device);self.backend=OptixBackend(device,normalization=normalization,primitive_mode=primitive_mode);self.active_mesh=None
 
     def launch(self,name,total,values,threads=128):
         if name not in ['generated_views','wall_views','square_support']:return super().launch(name,total,values,threads)
@@ -34,7 +34,7 @@ class OptixModule(CudaModule):
 
 class OptixRangeKernel(SupportReuse,RangeFeatureKernel):
     camera_parameters=staticmethod(parameters)
-    def __init__(self,device,normalization=False):self.device=torch.device(device);self.module=OptixModule(device,normalization=normalization)
+    def __init__(self,device,normalization=False,primitive_mode='leaf'):self.device=torch.device(device);self.module=OptixModule(device,normalization=normalization,primitive_mode=primitive_mode)
     def compute(self,mesh,*args):
         self.module.active_mesh=mesh
         return super().compute(mesh,*args)
@@ -42,8 +42,10 @@ class OptixRangeKernel(SupportReuse,RangeFeatureKernel):
 
 class OptixSpatialPredictor(BatchedSpatialPredictor):
     fast_normalization=False
+    primitive_mode='leaf'
     def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs);self.range_kernel=OptixRangeKernel(self.device,normalization=self.fast_normalization)
+        super().__init__(*args,**kwargs);self.range_kernel=OptixRangeKernel(self.device,normalization=self.fast_normalization,primitive_mode=self.primitive_mode)
 
 
 class OptixNormalizedSpatialPredictor(OptixSpatialPredictor):fast_normalization=True
+class OptixTriangleSpatialPredictor(OptixSpatialPredictor):primitive_mode='triangle'

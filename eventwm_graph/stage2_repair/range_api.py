@@ -98,6 +98,8 @@ class RangeEvidencePredictor(GlobalTimePredictor):
             d['provenance'].update(input='current_legal_graph_supplied_base_path_and_measured_past_current_range_history',sensor_extension=True,privileged_runtime_inputs=False,range_history_identity=identity)
             d['provenance']['range_mesh_pixel_stride']=self.mesh_stride
             d['provenance']['observed_obstacle_schema']=self.config.get('observed_obstacle_schema','legacy_8cell_crop')
+            d['provenance']['implementation']=type(self).__name__
+            d['provenance']['range_feature_kernel']=type(self.range_kernel).__name__
             if self.decision_rule=='argmax':d['provenance'].update(decision='argmax',revelation_threshold=None)
         self.last_batch_profile.update(range_input_and_mesh_seconds=mesh_at-tick,total_seconds=time.perf_counter()-tick,serialization_included=False,sensor_acquisition_included=False)
         return result

@@ -14,9 +14,9 @@ from eventwm_graph.stage2_segment.prepared import content_key
 from scripts.stage2_diagnostic.common import extended_rates
 
 
-def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False,ray=False,complete_distance=False,exact_fast=False,name=None,device_canvas=False,batched=False):
+def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False,ray=False,complete_distance=False,exact_fast=False,name=None,device_canvas=False,batched=False,implementation=None):
     from .range_implementations import predictor_class
-    cls=predictor_class(spatial,proxy,radix,ray,exact_fast,device_canvas,batched)
+    cls=predictor_class(spatial,proxy,radix,ray,exact_fast,device_canvas,batched,implementation)
     if planar and not(spatial or proxy or radix or ray or exact_fast or device_canvas or batched):
         from .range_planar_api import PlanarRangePredictor
         cls=PlanarRangePredictor
@@ -27,6 +27,7 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
     if exact_fast:label+='_exactfast'
     if device_canvas:label+='_devicecanvas'
     if batched:label+='_batched'
+    if implementation:label+='_'+implementation
     if name:label=name
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;model=cls(checkpoint,device=device,mesh_stride=stride)
     if complete_distance:model.config['observed_obstacle_schema']='capped_2m_complete'

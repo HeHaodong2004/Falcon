@@ -1,7 +1,22 @@
 """Explicit implementation selection shared by accuracy and cost runners."""
 
 
-def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=False,device_canvas=False,batched=False):
+def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=False,device_canvas=False,batched=False,implementation=None):
+    if implementation:
+        if not spatial or proxy or ray:raise ValueError('explicit spatial acceleration requires original63LOS spatial model')
+        if implementation=='optix-leaf':
+            from .range_optix import OptixSpatialPredictor
+            return OptixSpatialPredictor
+        if implementation=='optix-triangle':
+            from .range_optix import OptixTriangleSpatialPredictor
+            return OptixTriangleSpatialPredictor
+        if implementation=='fully-device':
+            from .gpu_obstacle_distance import FullyDeviceSpatialPredictor
+            return FullyDeviceSpatialPredictor
+        if implementation=='gpu-candidates':
+            from .gpu_candidates import GpuCandidateSpatialPredictor
+            return GpuCandidateSpatialPredictor
+        raise ValueError('unsupported explicit implementation')
     if ray:
         if proxy or radix or exact_fast or device_canvas or batched:raise ValueError('learned-ray diagnostic excludes measured-geometry variants')
         from .range_ray_api import RayRangePredictor
@@ -31,4 +46,4 @@ def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=F
 
 
 def add_exact_options(parser):
-    parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')
+    parser.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device']);parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')

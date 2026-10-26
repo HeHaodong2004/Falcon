@@ -27,7 +27,7 @@ class SpatialRangePredictor(RangeEvidencePredictor):
         return super().predict_segments(partial_graph=partial_graph,trajectories=trajectories,range_observations=range_observations,track_history=track_history,materialize=materialize)
 
     def _encoded_map(self,details):
-        history=next(reversed(self.mesh_cache));assert self.mesh_cache[history]is self.active_mesh;key=(self.active_graph.identity,history)
+        history=next(reversed(self.mesh_cache));assert self.mesh_cache[history]is self.active_mesh;key=(self.active_graph.identity,history,tuple(details[0][2][0,1:4]))
         if key not in self.spatial_cache:
             p=self.current_range_observations;g=self.active_graph;ego=details[0][2][0,1:4]
             canvas,low=self.canvas.build(g.keys,g.values,g.heights,ego,g.resolution,np.asarray(p['ranges'],np.float32),np.asarray(p['origins'],np.float64),np.asarray(p['rotations'],np.float64),np.asarray(p['timestamps'],np.float64),self.current_track_history)

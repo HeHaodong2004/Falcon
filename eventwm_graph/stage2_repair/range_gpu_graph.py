@@ -42,9 +42,22 @@ class DeviceGraphSpatialPredictor(ExactFastSpatialPredictor):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs);self.edt=GridEDT(self.device)
 
+    def predict_segments(self,*,partial_graph,trajectories,range_observations,track_history,materialize=True):
+        # Inputs are read-only throughout one call. The range and point layers
+        # both request the same prepared map; hash the complete content once.
+        # This transient reuse ends at return, so later input edits are checked.
+        self._inflight_prepared={}
+        try:return super().predict_segments(partial_graph=partial_graph,trajectories=trajectories,range_observations=range_observations,track_history=track_history,materialize=materialize)
+        finally:self._inflight_prepared=None
+
     def prepare_graph(self,graph):
+        inflight=getattr(self,'_inflight_prepared',None)
+        if inflight is not None and id(graph)in inflight:return inflight[id(graph)][1]
         key=content_key(graph)
-        if key in self.cache:self.cache_hits+=1;self.cache.move_to_end(key);return self.cache[key]
+        if key in self.cache:
+            self.cache_hits+=1;self.cache.move_to_end(key);p=self.cache[key]
+            if inflight is not None:inflight[id(graph)]=(graph,p)
+            return p
         self.cache_misses+=1;p=DeviceGlobalPrepared(graph,self.edt);p.future_base=None
         if p.native_eligible:
             try:p.future_base=Base(graph,p)
@@ -52,4 +65,5 @@ class DeviceGraphSpatialPredictor(ExactFastSpatialPredictor):
         if self.cache_size:
             self.cache[key]=p
             while len(self.cache)>self.cache_size:self.cache.popitem(last=False)
+        if inflight is not None:inflight[id(graph)]=(graph,p)
         return p

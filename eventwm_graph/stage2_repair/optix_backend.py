@@ -24,7 +24,7 @@ class MeshPointers(ct.Structure):
 
 
 class Parameters(ct.Structure):
-    _fields_=[('mesh',MeshPointers),('handle',ct.c_ulonglong)]+[(n,ct.c_void_p)for n in ['keys','floors','cameras','planes','probe_offsets','unknown','frames','support','difference','origins','directions','limits','test_output']]+[('resolution',ct.c_double)]+[(n,ct.c_int)for n in ['nc','nv','lx','lz','nx','nz','mode','leaf_start','n']]
+    _fields_=[('mesh',MeshPointers),('handle',ct.c_ulonglong)]+[(n,ct.c_void_p)for n in ['keys','floors','cameras','planes','probe_offsets','unknown','frames','support','difference','origins','directions','limits','test_output']]+[('resolution',ct.c_double)]+[(n,ct.c_int)for n in ['nc','nv','lx','lz','nx','nz','mode','leaf_start','n','primitive_mode']]
 
 
 PARAMETERS=r'''
@@ -32,7 +32,7 @@ struct Params {
  Mesh mesh;unsigned long long handle;
  const int* keys;const float* floors;const double* cameras;const double* planes;const double* probe_offsets;const unsigned char* unknown;int* frames;float* support;float* difference;
  const float* origins;const float* directions;const float* limits;float* test_output;
- double resolution;int nc,nv,lx,lz,nx,nz,mode,leaf_start,n;
+ double resolution;int nc,nv,lx,lz,nx,nz,mode,leaf_start,n,primitive_mode;
 };
 extern "C" __constant__ Params params;
 __device__ float ray(Mesh m,float ox,float oy,float oz,float dx,float dy,float dz,float limit,bool anyhit){
@@ -44,8 +44,18 @@ __device__ float ray(Mesh m,float ox,float oy,float oz,float dx,float dy,float d
 extern "C" __global__ void __miss__main(){}
 extern "C" __global__ void __closesthit__main(){optixSetPayload_0(__float_as_uint(optixGetRayTmax()));}
 extern "C" __global__ void __intersection__leaf(){
- Mesh m=params.mesh;int node=params.leaf_start+optixGetPrimitiveIndex();float3 o=optixGetObjectRayOrigin(),d=optixGetObjectRayDirection();float ox=o.x,oy=o.y,oz=o.z,dx=d.x,dy=d.y,dz=d.z,best=optixGetRayTmax();
- for(int k=m.f[node];k<m.f[node]+m.n[node];k++){
+ Mesh m=params.mesh;int primitive=optixGetPrimitiveIndex(),node=params.leaf_start+(params.primitive_mode?primitive/12:primitive);float3 o=optixGetObjectRayOrigin(),d=optixGetObjectRayDirection();float ox=o.x,oy=o.y,oz=o.z,dx=d.x,dy=d.y,dz=d.z,best=optixGetRayTmax();
+ if(params.primitive_mode){
+  // Individual triangle boxes are conservative for the original barycentric
+  // tolerance. Retain the original12-triangle leaf's additional slab gate.
+  float low=0.f,high=__uint_as_float(optixGetPayload_0());
+  for(int a=0;a<3;a++){float origin=a==0?ox:a==1?oy:oz,direction=a==0?dx:a==1?dy:dz,lo=m.b[node*6+a]-.00002f,hi=m.b[node*6+a+3]+.00002f;
+   if(fabsf(direction)<1.e-30f){if(origin<lo||origin>hi)return;}
+   else{float ta=(lo-origin)/direction,tb=(hi-origin)/direction;low=fmaxf(low,fminf(ta,tb));high=fminf(high,fmaxf(ta,tb));if(low>high)return;}
+  }
+ }
+ int begin=params.primitive_mode?primitive:m.f[node],end=params.primitive_mode?primitive+1:m.f[node]+m.n[node];
+ for(int k=begin;k<end;k++){
   const float* t=m.t+9*m.ids[k];float ax=t[0],ay=t[1],az=t[2],ex=t[3],ey=t[4],ez=t[5],fx=t[6],fy=t[7],fz=t[8];
   float px=dy*fz-dz*fy,py=dz*fx-dx*fz,pz=dx*fy-dy*fx,det=ex*px+ey*py+ez*pz;
   if(fabsf(det)<1.e-20f)continue;float inv=1.f/det,tx=ox-ax,ty=oy-ay,tz=oz-az;
@@ -100,7 +110,9 @@ def compile_device(source,device,optix_include,cuda_include):
 
 
 class OptixBackend:
-    def __init__(self,device='cuda:0',normalization=False):
+    def __init__(self,device='cuda:0',normalization=False,primitive_mode='leaf'):
+        if primitive_mode not in ['leaf','triangle']:raise ValueError('unsupported OptiX measured primitive mode')
+        self.primitive_mode=primitive_mode
         self.device=torch.device(device);deps=OUT/'deps';oi=Path(os.environ.get('FALCON_OPTIX_INCLUDE',deps/'optix-dev/include'));ci=Path(os.environ.get('FALCON_CUDA_INCLUDE',deps/'cuda_runtime/nvidia/cuda_runtime/include'))
         cpp=Path(__file__).with_suffix('.cpp').with_name('optix_bridge.cpp');identity=hashlib.sha256(cpp.read_bytes()+str(oi).encode()+str(ci).encode()).hexdigest();binary=deps/(identity+'.optix_bridge.so')
         if not binary.exists():subprocess.run(['g++','-O3','-std=c++14','-fPIC','-shared',str(cpp),'-I',str(oi),'-I',str(ci),'-l:libcuda.so.1','-ldl','-o',str(binary)],check=True)
@@ -128,12 +140,18 @@ class OptixBackend:
     def prepare(self,mesh):
         if hasattr(mesh,'optix_accel')and mesh.optix_accel['backend']is self:return mesh.optix_accel
         # Same12-triangle leaf boxes and original2e-5padding, no geometry lost.
-        leaves=(mesh.triangles+11)//12;k=mesh.kernel;boxes=k.static['bounds'][-leaves:].clone();boxes[:,:3]-=.00002;boxes[:,3:]+=.00002;output=ct.c_ulonglong();temporary=ct.c_ulonglong()
-        self.call('sizes',self.state,boxes.data_ptr(),leaves,ct.byref(output),ct.byref(temporary));storage=torch.empty(output.value,dtype=torch.uint8,device=self.device);scratch=torch.empty(temporary.value,dtype=torch.uint8,device=self.device);handle=ct.c_ulonglong();stream=torch.cuda.current_stream(self.device).cuda_stream
-        self.call('build',self.state,boxes.data_ptr(),leaves,scratch.data_ptr(),scratch.numel(),storage.data_ptr(),storage.numel(),stream,ct.byref(handle));result=dict(backend=self,boxes=boxes,storage=storage,scratch=scratch,handle=handle.value,leaf_start=leaves-1);mesh.optix_accel=result;return result
+        leaves=(mesh.triangles+11)//12;k=mesh.kernel
+        if self.primitive_mode=='leaf':
+            boxes=k.static['bounds'][-leaves:].clone();boxes[:,:3]-=.00002;boxes[:,3:]+=.00002;primitives=leaves
+        else:
+            t=k.static['triangles'];a=t[:,:3];e=t[:,3:6];f=t[:,6:9];b=a+e;c=a+f;pad=.0002*(e.abs()+2*f.abs())+.00002
+            boxes=torch.cat([torch.minimum(a,torch.minimum(b,c))-pad,torch.maximum(a,torch.maximum(b,c))+pad],1).contiguous();primitives=mesh.triangles
+        output=ct.c_ulonglong();temporary=ct.c_ulonglong()
+        self.call('sizes',self.state,boxes.data_ptr(),primitives,ct.byref(output),ct.byref(temporary));storage=torch.empty(output.value,dtype=torch.uint8,device=self.device);scratch=torch.empty(temporary.value,dtype=torch.uint8,device=self.device);handle=ct.c_ulonglong();stream=torch.cuda.current_stream(self.device).cuda_stream
+        self.call('build',self.state,boxes.data_ptr(),primitives,scratch.data_ptr(),scratch.numel(),storage.data_ptr(),storage.numel(),stream,ct.byref(handle));result=dict(backend=self,boxes=boxes,storage=storage,scratch=scratch,handle=handle.value,leaf_start=leaves-1);mesh.optix_accel=result;return result
 
     def parameters(self,mesh):
-        acceleration=self.prepare(mesh);p=Parameters();p.mesh=MeshPointers(*[v.data_ptr()for v in mesh.kernel.mesh]);p.handle=acceleration['handle'];p.leaf_start=acceleration['leaf_start'];return p
+        acceleration=self.prepare(mesh);p=Parameters();p.mesh=MeshPointers(*[v.data_ptr()for v in mesh.kernel.mesh]);p.handle=acceleration['handle'];p.leaf_start=acceleration['leaf_start'];p.primitive_mode=int(self.primitive_mode=='triangle');return p
 
     def launch(self,p,total):
         if not total:return

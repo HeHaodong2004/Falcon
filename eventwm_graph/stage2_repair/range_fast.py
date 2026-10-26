@@ -82,6 +82,12 @@ class RangeFeatureKernel:
         self.module.launch('square_support',len(union),[uk,ff,ct.c_int(len(union)),ct.c_double(mesh.kernel.resolution),support,difference,*mesh.kernel.mesh])
         return support,difference
 
+    def obstacle_request(self,mesh,union,base_height,uk):
+        return mesh.begin_obstacle_distance(union,base_height)
+
+    def obstacle_result(self,mesh,request):
+        return self.tensor(mesh.finish_obstacle_distance(request).astype(np.float32))
+
     def compute(self,mesh,details,gkeys,origin,rotation):
         if not any(len(d[0])for d in details):return [torch.empty((0,16),device=self.device)for d in details]
         keys=np.concatenate([d[0]for d in details]);low=np.array([keys[:,0].min(),keys[:,1].min()])-4;high=np.array([keys[:,0].max(),keys[:,1].max()]);shape=high-low+5;nx,nz=map(int,shape);area=nx*nz;r=mesh.kernel.resolution
@@ -107,10 +113,10 @@ class RangeFeatureKernel:
         # nonblocking .to() can otherwise stall its caller on host staging.
         offsets=np.r_[0,np.cumsum([len(s)for s in steps])].astype(np.int32);queries=np.repeat(np.arange(len(details),dtype=np.int32),[len(d[0])for d in details]);out=torch.empty((len(keys),16),device=self.device)
         packed_inputs=[self.tensor(keys),self.tensor(ids),self.tensor(cells.astype(np.int32)),self.tensor(queries),ct.c_int(len(keys)),self.tensor(np.concatenate(steps)),self.tensor(offsets),self.tensor(initial,np.int32),self.tensor(np.array(param,np.float64)),self.tensor(interval,np.float64),self.tensor(when,np.float64),self.tensor(durations,np.float64)]
-        obstacle_request=mesh.begin_obstacle_distance(union,details[0][2][0,2])
+        obstacle_request=self.obstacle_request(mesh,union,details[0][2][0,2],uk)
         self.module.launch('generated_views',len(union)*nv,[uk,ff,ct.c_int(len(union)),cam,ct.c_int(nv),unknown,ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nx),ct.c_int(nz),ct.c_double(r),frame,*mesh_args])
         self.module.launch('wall_views',nv*105,[cam,ct.c_int(nv),unknown,ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nx),ct.c_int(nz),ct.c_double(r),frame,*mesh_args])
         support,difference=self.support(mesh,union,floors,uk,ff)
-        obstacle=self.tensor(mesh.finish_obstacle_distance(obstacle_request).astype(np.float32))
+        obstacle=self.obstacle_result(mesh,obstacle_request)
         self.module.launch('pack_evidence',len(keys),[frame,ct.c_int(area),*packed_inputs,ff,support,difference,obstacle,ct.c_double(r),ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nz),out])
         return list(out.split([len(d[0])for d in details]))

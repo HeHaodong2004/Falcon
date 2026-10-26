@@ -39,12 +39,16 @@ class GridEDT:
     def __init__(self,device='cuda:0'):
         self.device=torch.device(device);self.module=CudaModule(SOURCE,device)
 
-    def transform(self,states,heights,resolution,default_height=0.,nearest_height=True):
+    def transform(self,states,heights,resolution,default_height=0.,nearest_height=True,channel_count=None):
         states=torch.as_tensor(states,device=self.device,dtype=torch.uint8).contiguous();heights=torch.as_tensor(heights,device=self.device,dtype=torch.float32).contiguous();nx,nz=states.shape
         if nx>8192 or nz>8192 or nx*nz>2000000:raise ValueError('GPU EDT bounded at8192axes/2millioncells; caller must retain CPU fallback')
-        channels=3 if nearest_height else 2;shape=(channels,nx,nz)
+        channels=3 if nearest_height else 2
+        if channel_count is not None:
+            if nearest_height or channel_count not in [1,2]:raise ValueError('single-channel transform excludes nearest-height output')
+            channels=channel_count
+        shape=(channels,nx,nz)
         first=torch.empty(shape,dtype=torch.int32,device=self.device);nearest=torch.empty_like(first);vertices=torch.empty_like(first);starts=torch.empty_like(first);squared=torch.empty_like(first)
-        distance=torch.empty((2,nx,nz),device=self.device);baseline=torch.empty((nx,nz),device=self.device)
+        distance=torch.empty((min(2,channels),nx,nz),device=self.device);baseline=torch.empty((nx,nz),device=self.device)
         self.module.launch('binary_x',nz*channels,[states,ct.c_int(nx),ct.c_int(nz),ct.c_int(channels),first,nearest])
         self.module.launch('parabola_z',nx*channels,[first,nearest,heights,ct.c_int(nx),ct.c_int(nz),ct.c_int(channels),ct.c_double(resolution),ct.c_float(default_height),vertices,starts,squared,distance,baseline])
         return distance,baseline,squared

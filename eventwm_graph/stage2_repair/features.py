@@ -30,21 +30,25 @@ def transform_batch(engine,contexts,keysets):
         grid=prepared.cuda_grids[key];geometry=prepared.cuda_geometry[key]
         cosine,sine,dt,when,globals_=trajectory_constants(context.path);n=len(keys)
         kt=tensor(keys);view=torch.empty((n,20),device=device);lines=torch.empty((n,12),device=device);vb=torch.empty(n,device=device,dtype=torch.uint8);lb=torch.empty_like(vb)
-        scale=max(float(np.max(abs(keys.astype(np.int64))))if n else 0.,float(np.max(abs(context.path[:,[1,3]])))/context.resolution,1.)
+        scale=max(float(max(abs(int(keys.min())),abs(int(keys.max()))))if n else 0.,float(np.max(abs(context.path[:,[1,3]])))/context.resolution,1.)
         buffers=[kt,tensor(context.path),tensor(np.column_stack((cosine,sine,dt,when))),tensor(globals_),grid,view,lines,vb,lb]
-        if n:engine.feature_kernel.launch(buffers,[n,len(context.path),*map(int,grid.shape),*map(int,context.lo),context.resolution,64*np.finfo(np.float64).eps*(2*scale+1),0])
+        feature_scalars=[n,len(context.path),*map(int,grid.shape),*map(int,context.lo),context.resolution,64*np.finfo(np.float64).eps*(2*scale+1),0]
         length=float(np.linalg.norm(np.diff(context.xy,axis=0),axis=1).sum());p=context.path
         constants=np.array([context.duration/5,length/5,context.resolution,p[-1,2]-p[0,2],np.cos(p[-1,4]-p[0,4]),np.sin(p[-1,4]-p[0,4])],np.float32)
         if not np.isfinite(constants).all():raise ValueError('nonfinite legal segment constants')
         x=torch.empty((n,88),device=device);baseline=torch.empty(n,device=device)
         assembly=[kt,view,lines,grid,*geometry,tensor(constants),x,baseline]
-        if n:engine.feature_kernel.launch_assembly(assembly,[n,*map(int,grid.shape),*map(int,context.lo),free.shape[0]-1,free.shape[1]-1,*map(int,map_lo),12],
-            [context.resolution,*map(float,context.xy[0]),*map(float,context.xy[-1]),p[0,2]])
-        tasks.append((x,baseline,vb,lb,buffers,assembly))
+        assembly_integers=[n,*map(int,grid.shape),*map(int,context.lo),free.shape[0]-1,free.shape[1]-1,*map(int,map_lo),12]
+        assembly_floats=[context.resolution,*map(float,context.xy[0]),*map(float,context.xy[-1]),p[0,2]]
+        tasks.append((x,baseline,vb,lb,buffers,assembly,feature_scalars,assembly_integers,assembly_floats))
+    # Stage every small pageable input first. Host transfers cannot stall on
+    # another query's long kernel while its arguments are still being built.
+    for x,baseline,vb,lb,buffers,assembly,scalars,integers,floats in tasks:
+        if len(x):engine.feature_kernel.launch(buffers,scalars);engine.feature_kernel.launch_assembly(assembly,integers,floats)
     launched=time.perf_counter();flags=torch.cat([v for task in tasks for v in task[2:4]]).cpu().numpy()if tasks else np.empty(0,np.uint8)
     at=0;fallbacks=[]
     for context,keys,task in zip(contexts,keysets,tasks):
-        x,baseline,vb,lb,_,_=task;n=len(keys);vc=np.flatnonzero(flags[at:at+n]);lc=np.flatnonzero(flags[at+n:at+2*n]);at+=2*n
+        x,baseline,vb,lb=task[:4];n=len(keys);vc=np.flatnonzero(flags[at:at+n]);lc=np.flatnonzero(flags[at+n:at+2*n]);at+=2*n
         if len(vc):x[tensor(vc),31:51]=tensor(inside_descriptors(keys[vc],context.path,context.resolution)[1])
         if len(lc):x[tensor(lc),76:]=tensor(legal_lines_reference(keys[lc],context.path,context.resolution,context.lo,context.states))
         fallbacks.append(dict(opportunity_rows=len(vc),line_rows=len(lc)))

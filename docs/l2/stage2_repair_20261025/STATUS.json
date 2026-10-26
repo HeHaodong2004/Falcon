@@ -92,8 +92,29 @@
       "rule": "argmax",
       "checkpoint_sha256": "5e5b4cc0d0bd0092815033a2b77ddee2f804f807ce4480280e4373c1868968bb",
       "public_API_all666_verified": true,
+      "full_development_label_iou": 0.3783769083263813,
+      "inputs": "Same explicit legal current/past ideal-range sensor extension. Pretraining uses private support labels only as loss targets; runtime has no private geometry.",
+      "full_development_revelation_iou": 0.43316852263666256,
+      "full_roots": 2110,
+      "full_windows": 47128
+    },
+    {
+      "model": "Fresh original-cell4096Root fit, epoch1",
+      "pilot_label_iou": 0.4063906098736123,
+      "pilot_revelation_iou": 0.46727246750840945,
+      "public_API_all666_verified": true,
+      "public_API_score": 0.40639060987361236,
+      "roots": 4096,
+      "scenes": 463,
+      "training_windows": 96186,
+      "original_candidate_rows_per_epoch": 3502175298,
+      "sampled_rows_per_epoch": 57233145,
+      "known_terminal_differences": 1606398,
+      "out_of_domain_positives": 0,
+      "checkpoint_sha256": "99ea06cf1c17da8d391dcea93df6db1aef3414c8d72e1e83520e7934784a2895",
       "full_development_label_iou": null,
-      "inputs": "Same explicit legal current/past ideal-range sensor extension. Pretraining uses private support labels only as loss targets; runtime has no private geometry."
+      "operating_point": "argmax, fixed before full evaluation",
+      "inputs": "Same explicit legal sensor extension, never future/private inputs."
     }
   ],
   "pipeline_checks": {
@@ -195,7 +216,7 @@
     "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --radix --repetitions 3 --device cuda:1"
   ],
   "deployment_readiness": "Below target. Sensor-extension model also needs explicit range-packet integration; ideal current-range replay is not rendered RGB-D validation. Sensor acquisition and serialization are excluded from Stage2 primary inference timing and must be reported separately. No standalone forward benchmark guarantees total Layer3 RL runtime.",
-  "updated_utc": "2026-10-26T01:53:35.523448+00:00",
+  "updated_utc": "2026-10-26T02:57:55.071668+00:00",
   "confirmed_acceleration_defect": {
     "scope": "New observed-range prototype, not original-model plateau",
     "cause": "Balanced Morton hierarchy traverses excessively many overlapping measured triangles",
@@ -214,8 +235,8 @@
     "expanded_training_range_roots_requested": 4096,
     "full_development_range_roots_requested": 2110,
     "minimum_work_until_utc": "2026-10-26 10:15 UTC",
-    "expanded_training": "4096Root primary fit RUNNING CUDA0;4epochs planned,62338graphs96186windows/epoch. Encoder gradients nonzero. Epoch1 reconstruction evaluation not yet available.",
-    "full_development_evaluation": "Older0.37198pilot model COMPLETE all2110Roots108Scenes47128windows: labelIoU0.36448214/revelation0.42113314. Newer0.38742pilot model full evaluation pending.",
+    "expanded_training": "Primary4096Root epoch1 complete, epoch2 running;4epochs planned. Matched4096Root surface auxiliary running CUDA1, epoch1. Additional12288eligible existing training Roots in offline replay preparation, total16384requested, original data/jobs preserved.",
+    "full_development_evaluation": "Pretrained256 model COMPLETE all47128windows:0.3783769083/0.4331685226. New4096epoch1 model0.4063906pilot verified all666 public API; full evaluation next.",
     "bounded_surface_completion_comparison": "256Root paired4epoch comparison complete: control0.37399299,teacher0.38577244 pilot. Teacher below existingbest0.38742267, not deployed. All4096Root larger targets prepared;8group training smoke complete, no missing/outside positives, gradients nonzero. Matched4096Root auxiliary fit next."
   },
   "diagnostics": {
