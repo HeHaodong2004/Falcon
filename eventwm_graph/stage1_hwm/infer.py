@@ -14,7 +14,7 @@ from torch.nn import functional as F
 
 from .legal_state import AGE_STEP, CROP, COARSE, VIS_POOL, HISTORY
 from .model import SEGMENTS, STEP, GRID, CELL, HALF, MAX_COUNT, fold_batchnorm, sample_field
-from .sampler import OUTSIDE_RADII, MAX_SPEED, count_log_law
+from .sampler import OUTSIDE_RADII, MAX_SPEED, count_log_law, draw_population_np
 from .kernels import draw_paths
 
 
@@ -24,7 +24,7 @@ class Engine(nn.Module):
         self.bev = net.bev;self.glob = net.glob;self.hist = net.hist;self.key_mlp = net.key_mlp;self.mixer = net.mixer
         self.key_net = net.key_traj.net;self.exist = net.exist;self.count = net.count;self.film = net.film
         self.density = net.density;self.outside = net.outside;self.hidden_embed = net.hidden_embed;self.hidden_net = net.hidden_traj.net
-        if net.arch not in ('fast', 'lite'):raise ValueError('scripted engine supports the fast/lite deployment architectures')
+        if net.arch not in ('fast', 'lite', 'lite2'):raise ValueError('scripted engine supports the fast/lite/lite2 deployment architectures')
         self.field = int(net.field)
         assert VIS_POOL == 2
         self.half = float(HALF);self.age_step = float(AGE_STEP);self.coarse = float(COARSE);self.crop = int(CROP);self.history = int(HISTORY)
@@ -129,7 +129,28 @@ class FastSampler:
     def __init__(self, net):
         net = fold_batchnorm(net.eval())
         self.modes = net.key_traj.modes;self.use_kernels = True
-        self.engine = torch.jit.script(Engine(net).eval())
+        # Non-profiling TorchScript executor for THIS engine only: the profiling executor
+        # re-specialises on every new input shape (key/hidden counts), causing 0.1-4 s
+        # recompiles mid-run. Executors are bound on first run, so the global mode is
+        # restored after a warm-up and other TorchScript users in the process are unaffected.
+        prev_exec = torch._C._jit_set_profiling_executor(False);prev_mode = torch._C._jit_set_profiling_mode(False)
+        try:
+            self.engine = torch.jit.script(Engine(net).eval())
+            self._warm_up()
+        finally:
+            torch._C._jit_set_profiling_executor(prev_exec);torch._C._jit_set_profiling_mode(prev_mode)
+
+    @torch.no_grad()
+    def _warm_up(self):
+        from .legal_state import HISTORY as H
+        for K in (1, 3):
+            z = lambda *shape:torch.zeros(*shape)
+            out = self.engine(torch.zeros(1, 128, 128, dtype=torch.uint8), torch.full((1, 64, 64), 255, dtype=torch.uint8),
+                              torch.eye(2)[None], z(1, 2), z(1, 2) - 12.8, z(1, 43), z(1, K, 12), z(1, K, H, 4), z(1, K, 2), z(1, K, 2),
+                              z(1, K), torch.ones(1, K, dtype=torch.bool))
+            self.engine.hidden(out[0], out[1], z(1, 7, 2))
+        draw_paths(np.zeros((1, self.modes * (1 + 3 * SEGMENTS + 3))), self.modes, np.zeros((1, 2)), np.zeros(1), np.zeros(1, bool),
+                   np.zeros((2, 1)), np.zeros((2, 1, 2)), np.zeros((2, 1, SEGMENTS, 2)), MAX_SPEED)
 
     def _paths(self, raw, base_v, age, zero_first, worlds, rng):
         """Fused numba kernel; consumes the RNG exactly like mixture()+draw()."""
@@ -152,18 +173,9 @@ class FastSampler:
             + b['key_last'][0].numpy().astype(np.float64)[None, :, None]
         count_p = np.exp(log_count.numpy().astype(np.float64));count_p /= count_p.sum()
         minimum = int(b['min_count'][0])
-        # exact rejection on total >= minimum
-        present = np.zeros((worlds, K), bool);counts = np.zeros(worlds, int);filled = 0
-        ccdf = np.cumsum(count_p)
-        for _ in range(200):
-            need = worlds - filled
-            if need == 0:break
-            pool = max(worlds, 2 * need)
-            pr = (rng.random((pool, K)) < p_exist[None]) & key_mask[None]
-            ct = np.minimum((rng.random(pool)[:, None] > ccdf[None]).sum(-1), max_hidden)
-            ok = np.flatnonzero(pr.sum(-1) + ct >= minimum)[:need]
-            present[filled:filled + len(ok)] = pr[ok];counts[filled:filled + len(ok)] = ct[ok];filled += len(ok)
-        if filled < worlds:raise RuntimeError('population rejection sampling exhausted its round budget')
+        # exact sampling of the population conditioned on the legal bound total >= minimum
+        present, counts = draw_population_np(p_exist, key_mask, count_p, minimum, worlds, rng)
+        counts = np.minimum(counts, max_hidden)
         H = int(counts.max())
         knots = key_knots;pres = present
         if H:

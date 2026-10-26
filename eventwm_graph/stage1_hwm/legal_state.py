@@ -82,8 +82,15 @@ class LegalState:
         src_x = slice(max(0, -dx), min(GRID, GRID - dx)); dst_x = slice(max(0, dx), min(GRID, GRID + dx))
         src_z = slice(max(0, -dz), min(GRID, GRID - dz)); dst_z = slice(max(0, dz), min(GRID, GRID + dz))
         self.last_visible[dst_x, dst_z] = old_visible[src_x, src_z]
-        for key, state in self.fine.items():
-            self._count(key, state, 1)
+        if self.fine:   # vectorised recount (same per-cell arithmetic as _count)
+            keys = np.array(list(self.fine.keys()), np.float64);states = np.fromiter(self.fine.values(), np.int64, len(self.fine))
+            r = self.resolution
+            i = np.floor((keys[:, 0] + .5) * r / COARSE).astype(np.int64) - self.origin[0]
+            j = np.floor((keys[:, 1] + .5) * r / COARSE).astype(np.int64) - self.origin[1]
+            ok = (i >= 0) & (i < GRID) & (j >= 0) & (j < GRID)
+            for state, target in ((BLOCKED, self.blocked), (FREE, self.free)):
+                m = ok & (states == state)
+                np.add.at(target, (i[m], j[m]), 1)
 
     def _fine_coarse(self, key):
         r = self.resolution

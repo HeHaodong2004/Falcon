@@ -142,13 +142,13 @@ class HumanWorldModel:
         state = torch.load(checkpoint, map_location='cpu')
         self.network = HWM(**state['config'].get('model', {}))
         self.network.load_state_dict(state['model']);self.network.eval().requires_grad_(False)
-        if self.network.arch in ('fast', 'lite'):fold_batchnorm(self.network)
+        if self.network.arch in ('fast', 'lite', 'lite2'):fold_batchnorm(self.network)
         self.device = torch.device(device);self.network.to(self.device)
         # CPU deployment path: one TorchScript engine + NumPy sampling (same law, fewer dispatches).
         from . import legal_state
         legal_state.USE_KERNELS = True   # numba raycast: identical visibility raster (tested), fewer dispatches
         self.fast = None
-        if self.device.type == 'cpu' and self.network.arch in ('fast', 'lite'):
+        if self.device.type == 'cpu' and self.network.arch in ('fast', 'lite', 'lite2'):
             from .infer import FastSampler
             self.fast = FastSampler(self.network)
         self.checkpoint_sha256 = hashlib.sha256(open(checkpoint, 'rb').read()).hexdigest()

@@ -216,12 +216,14 @@ class HWM(nn.Module):
         self.arch = arch;self.truncate = truncate;self.ablate = tuple(ablate)
         if arch == 'lite':
             field = 24;self.bev = BEVLite(out=field);self.raster_spec = (64, .4)
+        elif arch == 'lite2':   # lite backbone, wider field, full-style heads
+            field = 32;self.bev = BEVLite(c=(16, 32, 48), out=field);self.raster_spec = (64, .4)
         elif arch == 'fast':
             field = 32;self.bev = BEVFast(out=field);self.raster_spec = (64, .4)
         else:
             self.bev = BEV(out=field);self.raster_spec = (128, .2)
         self.register_buffer('ahead', torch.tensor([[0., 0.], [.6, 0.], [1.2, 0.], [2., 0.], [3., 0.], [1., .8], [1., -.8], [-.8, 0.]]), persistent=False)
-        if arch in ('fast', 'lite'):
+        if arch in ('fast', 'lite', 'lite2'):
             self.hist = nn.Sequential(nn.Linear(4 * HISTORY, 64), nn.SiLU(), nn.Linear(64, 64))
         else:
             self.hist = nn.GRU(4, 64, batch_first=True)
@@ -253,7 +255,7 @@ class HWM(nn.Module):
         B = f.shape[0];Kd = b['key_mask'].shape[1]
         g = self.glob(torch.cat([pooled, b['global']], -1))
         # key tokens
-        if self.arch in ('fast', 'lite'):
+        if self.arch in ('fast', 'lite', 'lite2'):
             hh = self.hist(b['key_hist'].reshape(B, Kd, HISTORY * 4))
         else:
             _, hh = self.hist(b['key_hist'].reshape(-1, HISTORY, 4));hh = hh[-1].reshape(B, Kd, 64)

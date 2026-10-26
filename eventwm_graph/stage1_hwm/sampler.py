@@ -62,25 +62,51 @@ def count_log_law(exist_p, visible, key_mask, log_count, minimum=None, size=24):
         return np.log(shifted)
 
 
-def draw_population(p_exist, key_mask, count_prob, minimum, worlds, generator, max_hidden, max_rounds=200):
-    """Exact rejection sampling of (key existence, residual count) given total >= minimum."""
-    B, K = p_exist.shape;device = p_exist.device
-    present = torch.zeros(B, worlds, K, dtype=torch.bool, device=device);counts = torch.zeros(B, worlds, dtype=torch.long, device=device)
-    filled = torch.zeros(B, dtype=torch.long, device=device)
-    for _ in range(max_rounds):
-        need = worlds - filled
-        if int(need.max()) == 0:break
-        pool = max(worlds, 2 * int(need.max()))
-        pr = (torch.rand(B, pool, K, device=device, generator=generator) < p_exist[:, None]) & key_mask[:, None]
-        ct = torch.multinomial(count_prob, pool, replacement=True, generator=generator).clamp(max=max_hidden)
-        ok = (pr.sum(-1) + ct) >= minimum[:, None]
-        rank = torch.cumsum(ok.long(), 1) - 1 + filled[:, None]               # destination slot of each accepted draw
-        take = ok & (rank < worlds)
-        bi, pi = torch.nonzero(take, as_tuple=True)
-        present[bi, rank[bi, pi]] = pr[bi, pi];counts[bi, rank[bi, pi]] = ct[bi, pi]
-        filled = filled + take.sum(1)
-    if int((worlds - filled).max()) > 0:raise RuntimeError('population rejection sampling exhausted its round budget')
-    return present, counts
+def draw_population(p_exist, key_mask, count_prob, minimum, worlds, generator, max_hidden):
+    """Exact sampling of (key existence, residual count) from the law conditioned on total >= minimum.
+
+    Draws the total from the truncated total-count law, then key existences sequentially from
+    suffix (Poisson-binomial * residual) distributions; the remainder is the residual count.
+    Equivalent to rejection sampling but cannot fail when the legal event is improbable.
+    """
+    B, K = p_exist.shape;device = p_exist.device;C = count_prob.shape[1];size = K + C
+    q = torch.where(key_mask, p_exist, torch.zeros_like(p_exist)).double()
+    g = torch.zeros(B, K + 1, size, dtype=torch.float64, device=device);g[:, K, :C] = count_prob.double()
+    for k in range(K - 1, -1, -1):
+        nxt = g[:, k + 1]
+        g[:, k] = (1 - q[:, k:k + 1]) * nxt + q[:, k:k + 1] * F.pad(nxt[:, :-1], (1, 0))
+    support = torch.arange(size, device=device)[None] >= minimum[:, None]
+    total = g[:, 0] * support
+    empty = total.sum(1) <= 0
+    if empty.any():   # impossible under the model's finite support: place the legal minimum
+        total = torch.where(empty[:, None], (torch.arange(size, device=device)[None] == minimum.clamp(max=size - 1)[:, None]).double(), total)
+    t_rem = torch.multinomial(total / total.sum(1, keepdim=True), worlds, replacement=True, generator=generator)   # [B,W]
+    present = torch.zeros(B, worlds, K, dtype=torch.bool, device=device)
+    for k in range(K):
+        num = q[:, k:k + 1] * torch.gather(g[:, k + 1], 1, (t_rem - 1).clamp_min(0)) * (t_rem >= 1)
+        den = torch.gather(g[:, k], 1, t_rem)
+        e = torch.rand(B, worlds, device=device, generator=generator, dtype=torch.float64) * den < num
+        present[:, :, k] = e;t_rem = t_rem - e.long()
+    return present & key_mask[:, None], t_rem.clamp(max=max_hidden)
+
+
+def draw_population_np(p_exist, key_mask, count_prob, minimum, worlds, rng):
+    """NumPy twin of ``draw_population`` for one anchor."""
+    K = len(p_exist);C = len(count_prob);size = K + C
+    q = np.where(key_mask, p_exist, 0.).astype(np.float64)
+    g = np.zeros((K + 1, size));g[K, :C] = count_prob
+    for k in range(K - 1, -1, -1):
+        g[k] = (1 - q[k]) * g[k + 1];g[k, 1:] += q[k] * g[k + 1, :-1]
+    total = g[0] * (np.arange(size) >= minimum)
+    if total.sum() <= 0:total = (np.arange(size) == min(minimum, size - 1)).astype(np.float64)
+    cdf = np.cumsum(total / total.sum())
+    t_rem = np.minimum(np.searchsorted(cdf, rng.random(worlds), side='right'), size - 1)
+    present = np.zeros((worlds, K), bool)
+    for k in range(K):
+        num = q[k] * g[k + 1][np.maximum(t_rem - 1, 0)] * (t_rem >= 1);den = g[k][t_rem]
+        e = rng.random(worlds) * den < num
+        present[:, k] = e;t_rem = t_rem - e
+    return present & key_mask[None], t_rem
 
 
 @torch.no_grad()
