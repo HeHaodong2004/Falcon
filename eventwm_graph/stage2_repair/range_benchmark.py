@@ -23,24 +23,13 @@ def workloads():
     return out
 
 
-def run(checkpoint,device='cuda:1',repetitions=3,proxy=False,spatial=False,radix=False,ray=False):
+def run(checkpoint,device='cuda:1',repetitions=3,proxy=False,spatial=False,radix=False,ray=False,exact_fast=False,device_canvas=False,batched=False,complete_distance=False,name=None):
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;gc.enable();work=workloads();rows=[];startup=[]
-    cls=RangeEvidencePredictor
-    if spatial:
-        from .range_spatial_api import SpatialRangePredictor
-        cls=SpatialRangePredictor
-    if proxy:
-        from .range_fast_proxy import FastRangePredictor,FastSpatialPredictor
-        cls=FastSpatialPredictor if spatial else FastRangePredictor
-    if radix:
-        from .range_radix_api import RadixRangePredictor,RadixExactPredictor,RadixSpatialPredictor,RadixExactSpatialPredictor
-        cls=(RadixSpatialPredictor if proxy else RadixExactSpatialPredictor)if spatial else RadixRangePredictor if proxy else RadixExactPredictor
-    if ray:
-        if proxy or radix:raise ValueError('learned viewing lines do not use measured triangle ray variants')
-        from .range_ray_api import RayRangePredictor
-        cls=RayRangePredictor
+    from .range_implementations import predictor_class
+    cls=predictor_class(spatial,proxy,radix,ray,exact_fast,device_canvas,batched)
     tick=time.perf_counter();baseline=ThresholdBaseline(CKPT,threshold=.2,execution='optimized',future_format='native',device=device,feature_threads=1);baseline_constructor=time.perf_counter()-tick
     tick=time.perf_counter();candidate=cls(checkpoint,device=device);candidate_constructor=time.perf_counter()-tick
+    if complete_distance:candidate.config['observed_obstacle_schema']='capped_2m_complete'
     models=dict(baseline=baseline,range=candidate)
     def call(label,ex,packet,tracks,k):
         paths=[np.asarray(p['trajectory'],np.float64)for p in ex['paths'][:k]]
@@ -65,10 +54,15 @@ def run(checkpoint,device='cuda:1',repetitions=3,proxy=False,spatial=False,radix
                         else:call(label,ex,packet,tracks,k)
                         torch.cuda.synchronize(device);tick=time.perf_counter();result=call(label,ex,packet,tracks,k);torch.cuda.synchronize(device);ms=(time.perf_counter()-tick)*1000
                         rows.append(dict(model=label,cohort='dense'if i in dense else'representative',cache=cache,k=k,ms=ms,group=i,repetition=rep,candidates=[len(d['candidate_cells'])for d in result],updates=[len(d['static_updates'])for d in result],profile=models[label].last_batch_profile))
-        report=dict(checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),device=device,hardware=torch.cuda.get_device_name(torch.device(device)),precision='F32 TF32off; F64 camera/frustum geometry',input_contract='Range model additionally receives LEGAL measured current/past Euclidean ranges and legal track history; baseline receives original graph/path only. Same original 32 maps/paths and full original cells.',scope='Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.',excluded='Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.',startup=startup,concurrent_load=load,load_average=os.getloadavg(),summary=summary(rows),calls=rows)
-        report.update(visibility_feature_los_probes=0 if ray else 7 if proxy else 63,spatial_model=spatial or ray,radix_tree=radix,learned_viewing_lines=ray)
-        save(OUT/('benchmark_legal_range%s%s%s%s.json'%('_spatial'if spatial else'','_proxy7'if proxy else'','_radix'if radix else'','_ray'if ray else'')),report);print('REPETITION',rep+1,report['summary'],flush=True)
+        report=dict(checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),device=device,hardware=torch.cuda.get_device_name(torch.device(device)),precision={'baseline':'F32 TF32off','range':'AMP spatial encoder/head; frozen F32 prior TF32off; F64 camera/frustum geometry'},input_contract='Range model additionally receives LEGAL measured current/past Euclidean ranges and legal track history; baseline receives original graph/path only. Same original 32 maps/paths and full original cells.',scope='Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.',excluded='Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.',startup=startup,concurrent_load=load,load_average=os.getloadavg(),summary=summary(rows),calls=rows)
+        report.update(visibility_feature_los_probes=0 if ray else 7 if proxy else 63,spatial_model=spatial or ray,radix_tree=radix or exact_fast or device_canvas or batched,learned_viewing_lines=ray,implementation=cls.__name__,observed_obstacle_schema=candidate.config.get('observed_obstacle_schema','legacy_8cell_crop'))
+        label=name or 'benchmark_legal_range'+('_spatial'if spatial else'')+('_proxy7'if proxy else'')+('_radix'if radix else'')+('_ray'if ray else'')+('_exactfast'if exact_fast else'')+('_devicecanvas'if device_canvas else'')+('_batched'if batched else'')
+        destination=OUT/(label+'.json')
+        if destination.exists():
+            old=read(destination)
+            if old['checkpoint_sha256']!=report['checkpoint_sha256']or old.get('implementation')!=cls.__name__:raise ValueError('use --name for another benchmark identity')
+        save(destination,report);print('REPETITION',rep+1,report['summary'],flush=True)
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--repetitions',type=int,default=3);p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');p.add_argument('--ray',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--repetitions',type=int,default=3);p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');p.add_argument('--ray',action='store_true');p.add_argument('--complete-distance',action='store_true');p.add_argument('--name');from .range_implementations import add_exact_options;add_exact_options(p);run(**vars(p.parse_args()))

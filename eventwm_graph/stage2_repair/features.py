@@ -17,7 +17,7 @@ def transform_batch(engine,contexts,keysets):
     device=engine.device;tasks=[];tick=time.perf_counter()
     for context,keys in zip(contexts,keysets):
         keys=key_array(keys);prepared=context.prepared
-        def tensor(a):return torch.from_numpy(np.ascontiguousarray(a)).to(device,non_blocking=True)
+        def tensor(a):return a.to(device,non_blocking=True)if isinstance(a,torch.Tensor)else torch.from_numpy(np.ascontiguousarray(a)).to(device,non_blocking=True)
         key=(str(device),*map(int,context.lo),*map(int,context.shape))
         for attr in ['cuda_grids','cuda_geometry']:
             if not hasattr(prepared,attr):setattr(prepared,attr,OrderedDict())
