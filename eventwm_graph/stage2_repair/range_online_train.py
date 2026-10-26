@@ -55,7 +55,8 @@ def make_batch(items,builder,device,ray_residual=False):
     return batch,ledger
 
 
-def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False):
+def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False):
+    if stream_preparation and not wait:raise ValueError('streamed preparation requires explicit --wait')
     torch.set_num_threads(1);torch.manual_seed(5511);torch.backends.cuda.matmul.allow_tf32=False
     tick=time.perf_counter();dest=OUT/'training'/name
     if resume:
@@ -67,7 +68,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     print('INVENTORY',{k:v for k,v in m.items()if k!='records'},flush=True)
     while True:
         missing=[r['source']['root_id']for r in m['records']if not Path(r['sensor_path']).with_suffix('.json').exists()]
-        if not missing:break
+        if not missing or(stream_preparation and len(missing)<m['roots']):break
         save(dest/'waiting.json',dict(ready=m['roots']-len(missing),requested=m['roots'],pending=missing,seconds=time.perf_counter()-tick))
         if not wait:raise FileNotFoundError('sensor packets pending; use --wait or a completed eligible snapshot')
         print('WAITING',m['roots']-len(missing),'/',m['roots'],flush=True);time.sleep(30)
@@ -75,7 +76,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     if augment_cardinal:
         from .cardinal_augment import CardinalOnlineGroups
         group_class=CardinalOnlineGroups
-    data=group_class(m);loader=DataLoader(data,batch_size=batch_size,num_workers=workers,collate_fn=keep,persistent_workers=True,multiprocessing_context='fork',prefetch_factor=2)
+    data=group_class(m,wait_for_preparation=stream_preparation);loader=DataLoader(data,batch_size=batch_size,num_workers=workers,collate_fn=keep,persistent_workers=True,multiprocessing_context='fork',prefetch_factor=2)
     warm=Path(resume or warm)if(resume or warm)else OUT/'training/support_pretrained256_control/selected.pt'
     saved=torch.load(warm,map_location='cpu')
     if ray_residual:
@@ -91,6 +92,9 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     cfg['device_edt']=bool(device_edt)
     cfg['smoke_groups']=int(smoke_groups)
     cfg['ray_residual']=bool(ray_residual)
+    cfg['stream_preparation']=bool(stream_preparation)
+    cfg['prepared_roots_at_start']=m['roots']-len(missing)
+    if stream_preparation:cfg['preparation_order']='Fixed full training snapshot and all original windows. Within each seeded worker shuffle, consume prepared Roots first, then wait for every pendingRoot. None excluded. Actual first-visit Root order saved locally; readiness can change SGD order, not supervision or universe.'
     if ray_residual:
         cfg['schema']='legal_range_ray_residual_1'
         for n in ['ray_residual_model.py','range_ray_model.py','range_ray_data.py']:cfg['sources'][n]=sha(Path(__file__).with_name(n))
@@ -102,6 +106,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     if resume:
         if saved['config']['snapshot_sha256']!=sha(dest/'snapshot.json')or saved['config']['epochs']!=epochs or saved['config']['batch_size']!=batch_size:raise ValueError('resume snapshot or optimization schedule changed')
         if bool(saved['config'].get('cardinal_augmentation'))!=bool(augment_cardinal):raise ValueError('resume augmentation changed')
+        if bool(saved['config'].get('ray_residual'))!=bool(ray_residual):raise ValueError('resume model type changed')
         optim.load_state_dict(saved['optimizer']);scaler.load_state_dict(saved['scaler']);updates=int(saved['updates']);first_epoch=int(saved['epoch'])+1
         logs=[r for r in read(dest/'learning.json')if r['epoch']<first_epoch];elapsed_base=float(logs[-1]['seconds'])if logs else 0.
         cfg.update(resume_checkpoint=str(warm.resolve()),resume_sha256=sha(warm),resume_epoch=int(saved['epoch']),original_warm=saved['config']['warm'],resume_note='Exact completed-epoch optimizer/scaler/update state. Same all-window snapshot and deterministic epoch sampling. CUDA code lifetime repair; original configs/checkpoints retained.')
@@ -109,7 +114,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     else:save(dest/'config.json',cfg)
     tick=time.perf_counter();total_updates=epochs*int(np.ceil(m['groups']/batch_size))
     for epoch in range(first_epoch,epochs+1):
-        data.epoch.value=epoch;totals=np.zeros(3);batches=0;seen_groups=0;seen_roots=set();ledger={}
+        data.epoch.value=epoch;totals=np.zeros(3);batches=0;seen_groups=0;seen_roots=set();root_order=[];ledger={}
         for items in loader:
             batch,counts=make_batch(items,builder,device,ray_residual=ray_residual)
             for k,v in counts.items():ledger[k]=ledger.get(k,0)+v
@@ -123,14 +128,19 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
             ac=F.binary_cross_entropy_with_logits(auxlogit.float(),batch['aux'],reduction='none');per=(ac*batch['mask']).sum((1,2))/batch['mask'].sum((1,2)).clamp_min(1);aux=(per*batch['auxweight']).mean()*m['groups']/m['roots'];loss=main+.1*dice+.25*aux
             if not torch.isfinite(loss):raise ValueError('nonfinite online increment loss')
             optim.zero_grad(set_to_none=True);scaler.scale(loss).backward();scaler.unscale_(optim);gradient=torch.nn.utils.clip_grad_norm_(model.parameters(),5.);encoder_gradient=float(model.e0.net[0].weight.grad.norm());scaler.step(optim);scaler.update()
-            updates+=1;batches+=1;seen_groups+=len(items);seen_roots.update(d['root_id']for d in items);totals+=[float(main),float(dice),float(aux)]
+            updates+=1;batches+=1;seen_groups+=len(items)
+            for d in items:
+                if d['root_id']not in seen_roots:seen_roots.add(d['root_id']);root_order.append(d['root_id'])
+            totals+=[float(main),float(dice),float(aux)]
+            if stream_preparation and batches%1000==0:save(dest/('root_order_epoch%02d.json'%epoch),dict(complete=False,roots=root_order,groups=seen_groups,ledger=ledger))
             if batches%100==0:print(dict(epoch=epoch,batches=batches,groups=seen_groups,roots=len(seen_roots),loss=float(loss),gradient=float(gradient),encoder_gradient=encoder_gradient,seconds=time.perf_counter()-tick),flush=True)
             if smoke_groups and seen_groups>=smoke_groups:
                 save(dest/'resume_smoke_complete.json',dict(role='Checkpoint optimizer/scaler restoration and real-data update smoke only; no epoch checkpoint written and not an accuracy result.',resume=str(resume),epoch=epoch,groups=seen_groups,ledger=ledger,loss=float(loss),gradient=float(gradient),encoder_gradient=encoder_gradient,updates=updates));return
         assert seen_groups==m['groups']and len(seen_roots)==m['roots']and ledger['windows']==m['windows']
+        if stream_preparation:save(dest/('root_order_epoch%02d.json'%epoch),dict(complete=True,roots=root_order,groups=seen_groups,ledger=ledger))
         record=dict(epoch=epoch,roots=len(seen_roots),groups=seen_groups,losses=(totals/batches).tolist(),ledger=ledger,seconds=elapsed_base+time.perf_counter()-tick);logs.append(record);save(dest/'learning.json',logs)
         torch.save(dict(schema=cfg['schema'],config=cfg,epoch=epoch,model=model.state_dict(),threshold=.2,optimizer=optim.state_dict(),scaler=scaler.state_dict(),updates=updates),dest/('epoch%02d.pt'%epoch));print('EPOCH',record,flush=True)
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');run(**vars(p.parse_args()))

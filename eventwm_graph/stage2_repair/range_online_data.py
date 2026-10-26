@@ -2,6 +2,7 @@
 from collections import Counter,defaultdict
 from pathlib import Path
 import multiprocessing as mp
+import time
 import numpy as np
 import torch
 from torch.utils.data import IterableDataset,get_worker_info
@@ -26,16 +27,29 @@ def inventory(roots=4096):
                 source_manifest_sha256=sha(source),records=records)
 
 
+def prepared_order(order,records,wait_for_preparation=False):
+    if not wait_for_preparation:
+        yield from order;return
+    pending=[int(i)for i in order]
+    while pending:
+        ready=[];later=[]
+        for i in pending:
+            (ready if Path(records[i]['sensor_path']).with_suffix('.json').exists()else later).append(i)
+        if not ready:time.sleep(5)
+        for i in ready:yield i
+        pending=later
+
+
 class OnlineRangeGroups(IterableDataset):
-    def __init__(self,manifest):
-        self.manifest=manifest;self.epoch=mp.Value('i',0)
+    def __init__(self,manifest,wait_for_preparation=False):
+        self.manifest=manifest;self.epoch=mp.Value('i',0);self.wait_for_preparation=bool(wait_for_preparation)
         counts=Counter(r['source']['scene_id']for r in manifest['records'])
         self.scene_factor={s:manifest['roots']/(len(counts)*n)for s,n in counts.items()}
 
     def __iter__(self):
         torch.set_num_threads(1);info=get_worker_info();worker=info.id if info else 0;workers=info.num_workers if info else 1
         epoch=self.epoch.value;order=np.random.default_rng(5511+epoch).permutation(self.manifest['roots'])
-        for index in order[worker::workers]:
+        for index in prepared_order(order[worker::workers],self.manifest['records'],self.wait_for_preparation):
             record=self.manifest['records'][int(index)];row=record['source'];packed=record['packed'];rid=row['root_id'];sp=Path(record['sensor_path']);receipt=read(sp.with_suffix('.json'))
             if receipt['identity']['files']!=row['files']or receipt['sha256']!=sha(sp):raise ValueError('training range source mismatch')
             if sha(packed['path'])!=packed['sha256']:raise ValueError('packed training arrays changed')
