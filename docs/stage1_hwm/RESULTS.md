@@ -51,6 +51,11 @@ The selected model's coverage is close to the calibrated reference (legacy over-
 The deployed CPU path (TorchScript engine + NumPy/numba sampler) reproduces these metrics
 within Monte Carlo noise (path ES 0.16206 vs 0.16199; identical exact count NLL).
 
+**Robustness across scenes.** Per-scene means (selected vs legacy): the selected model is better
+in 93% of scenes for tracked path ES (median per-scene change −28%), 92% for count NLL (−14%),
+89% for occupancy Brier (−8%), 94% for the set kernel (−13%) and 91% for per-step risk Brier
+(−23%). The few regressing scenes have 1–3 Roots (2–22 scored rows each).
+
 ### Latency (CPU, 1 thread, legacy runtime protocol)
 
 Bracketed back-to-back run on the same machine state (legacy → selected → fast → legacy;
