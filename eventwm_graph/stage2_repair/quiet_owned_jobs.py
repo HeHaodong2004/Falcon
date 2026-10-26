@@ -23,6 +23,8 @@ def quiet_jobs(name,pause_primary=False,extra_training_names=()):
     expanded=OUT/'expanded_train_range_jobs_16384.json';owned_preparation={j['pid']for j in read(expanded)}if expanded.exists()else set();paused=[]
     resolution=OUT/'range_resolution256_jobs.json'
     owned_resolution={j['pid']for j in read(resolution)['jobs']}if resolution.exists()else set()
+    sensor256=OUT/'sensor256_preparation_jobs.json'
+    owned256={j['pid']for j in read(sensor256)['jobs']}if sensor256.exists()else set()
     for path in Path('/proc').iterdir():
         if not path.name.isdigit():continue
         try:args=[a.decode()for a in (path/'cmdline').read_bytes().split(b'\0')if a]
@@ -31,6 +33,7 @@ def quiet_jobs(name,pause_primary=False,extra_training_names=()):
         module=args[2];own=(int(path.name)in owned_preparation and module=='eventwm_graph.stage2_repair.range_train_expand')or(module=='eventwm_graph.stage2_repair.range_online_surface_train'and 'range_surface_online4096'in args)or(module=='eventwm_graph.stage2_repair.online_select'and 'range_online4096'in args)or(module=='eventwm_graph.stage2_repair.range_full_evaluate'and any(n in args for n in ['legal_range_support_pretrained256','legal_range_online4096_epoch01']))or(pause_primary and module=='eventwm_graph.stage2_repair.range_online_train'and 'range_online4096'in args)
         own=own or(module in ['eventwm_graph.stage2_repair.range_online_train','eventwm_graph.stage2_repair.online_select','eventwm_graph.stage2_repair.range_full_evaluate']and any(n in args for n in extra_training_names))or(module=='eventwm_graph.stage2_repair.online_select'and 'online_cardinal256_control'in args)
         own=own or(int(path.name)in owned_resolution and module=='eventwm_graph.stage2_repair.range_branch_replay'and 'range_branches_256'in args)
+        own=own or(int(path.name)in owned256 and module in ['eventwm_graph.stage2_repair.range_train_expand','eventwm_graph.stage2_repair.range_full_replay'])
         if not own:continue
         try:
             pid=int(path.name);start=starttime(path);os.kill(pid,signal.SIGSTOP);paused.append(dict(pid=pid,starttime=start,args=args))

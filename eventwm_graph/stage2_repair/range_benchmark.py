@@ -14,11 +14,15 @@ from eventwm_graph.stage2_hf.baseline import ThresholdBaseline
 from .increment import SparseIncrement
 
 
-def workloads():
+def workloads(sensor_directory='range_benchmark'):
     work=inputs('multi');source,_=source_rows('dev');raw={r['root_id']:r for r in source};out=[]
     for ex in work:
         legal=member(raw[ex['root_id']],'legal_root.json.gz')
-        with np.load(OUT/'range_benchmark'/(ex['root_id']+'.npz'))as z:packet=dict(ranges=z['depth'],origins=z['origins'],rotations=z['rotations'],timestamps=z['timestamps'],sensor_protocol='ideal_current_jaw_range_dynamic_occlusion_1')
+        path=OUT/sensor_directory/(ex['root_id']+'.npz')
+        if sensor_directory!='range_benchmark':
+            receipt=read(path.with_suffix('.json'))
+            if receipt['sha256']!=sha(path)or receipt['source_members']!=raw[ex['root_id']]['files']:raise ValueError('benchmark sensor source changed')
+        with np.load(path)as z:packet=dict(ranges=z['depth'],origins=z['origins'],rotations=z['rotations'],timestamps=z['timestamps'],sensor_protocol='ideal_current_jaw_range_dynamic_occlusion_1')
         out.append((ex,packet,[o['tracks']for o in legal['history']]))
     return out
 

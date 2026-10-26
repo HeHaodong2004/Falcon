@@ -11,12 +11,14 @@ from types import SimpleNamespace
 import time
 import habitat_sim
 import numpy as np
-from .diagnose import OUT,save,read,source_rows,member
+from .diagnose import OUT,save,read,sha,source_rows,member
 from eventwm_graph.stage1.runtime import NativeEpisode
 from scripts.collector.observation import HabitatHumanObserver
 
 
-def run(roots=2,split='dev',software=False,range_camera=False,benchmark=False):
+def run(roots=2,split='dev',software=False,range_camera=False,benchmark=False,sensor_size=128,destination=None,offset=0):
+    if sensor_size!=128 and(not range_camera or destination is None):raise ValueError('resolution diagnostic requires an explicit current-range destination')
+    if destination is not None and Path(destination).name!=destination:raise ValueError('destination must be a simple artifact directory name')
     if software:
         # Private process-only software EGL fallback. No system driver or
         # collector configuration is changed. Magnum's -1 CUDA sentinel uses
@@ -42,7 +44,7 @@ def run(roots=2,split='dev',software=False,range_camera=False,benchmark=False):
         from .diagnose import HF
         ids=set(read(HF/'protocol.json')['pilot_selection_roots']);rows=[r for r in rows if r['root_id']in ids]
     reports=[]
-    for row in rows[:roots]:
+    for row in rows[offset:offset+roots]:
         legal=member(row,'legal_root.json.gz');private=member(row,'privileged_initialization.json.gz');ep=private['episode'];source=read(private['source_map_manifest']);manifest=read(Path(row['folder'])/'manifest.json');hmap=SimpleNamespace(contract=source['contract'])
         episode=NavigationEpisode(episode_id=ep['episode_id'],scene_id=ep['scene_id'],start_position=ep['start_position'],start_rotation=ep['start_rotation'],goals=[NavigationGoal(**g)for g in ep['goals']],info=copy.deepcopy(ep['info']));tick=time.perf_counter()
         with NativeEpisode(hmap,episode,manifest['seed'],visual=not range_camera)as rt:
@@ -51,7 +53,7 @@ def run(roots=2,split='dev',software=False,range_camera=False,benchmark=False):
             range_sensor=None
             if range_camera:
                 from .current_range_sensor import CurrentRangeSensor
-                range_sensor=CurrentRangeSensor(rt,legal['partial_graph']['resolution'])
+                range_sensor=CurrentRangeSensor(rt,legal['partial_graph']['resolution'],size=sensor_size)
             def capture(expected):
                 o,r=observer.camera_pose()
                 if range_sensor is not None:image=range_sensor.measure()['range_image']
@@ -66,8 +68,8 @@ def run(roots=2,split='dev',software=False,range_camera=False,benchmark=False):
                 rt.step(action);capture(expected)
             report=dict(role='Causal PAST replay; IDEAL CURRENT RANGE SENSOR EXTENSION, not rendered RGB-D, not a WM forecast score.'if range_camera else'Causal replay of actually PAST rendered depth. Not a WM forecast score.',root_id=row['root_id'],scene_id=row['scene_id'],human_count=ep['info']['human_num'],frames=len(depth),shape=depth[-1].shape,depth_quantiles=np.nanquantile(depth[-1],[0,.01,.5,.99,1]).tolist(),camera_errors=errors,seconds=time.perf_counter()-tick)
             if max(e['origin']for e in errors)>1.e-4 or max(e['rotation']for e in errors)>1.e-5 or max(e['timestamp']for e in errors)>1.e-6:raise ValueError('past replay camera/time mismatch: '+repr(report))
-            dest=OUT/('range_benchmark'if benchmark else'range_replay'if range_camera else'depth_replay');dest.mkdir(exist_ok=True);path=dest/(row['root_id']+'.npz');temp=path.with_suffix('.tmp.npz');np.savez_compressed(temp,depth=np.array(depth),origins=np.array(origins),rotations=np.array(rotations),timestamps=np.array(times));temp.replace(path);reports.append(report);save(dest/'probe.json',reports);print('REPLAY',report,flush=True)
+            dest=OUT/(destination or('range_benchmark'if benchmark else'range_replay'if range_camera else'depth_replay'));dest.mkdir(exist_ok=True);path=dest/(row['root_id']+'.npz');temp=path.with_suffix('.tmp.npz');np.savez_compressed(temp,depth=np.array(depth),origins=np.array(origins),rotations=np.array(rotations),timestamps=np.array(times));temp.replace(path);report.update(sha256=sha(path),sensor_size=sensor_size,source_members=row['files'],producer_sha256=sha(__file__));save(path.with_suffix('.json'),report);reports.append(report);save(dest/('probe_part%d.json'%offset),reports);print('REPLAY',report,flush=True)
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=2);p.add_argument('--split',default='dev');p.add_argument('--software',action='store_true');p.add_argument('--range-camera',action='store_true');p.add_argument('--benchmark',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=2);p.add_argument('--split',default='dev');p.add_argument('--software',action='store_true');p.add_argument('--range-camera',action='store_true');p.add_argument('--benchmark',action='store_true');p.add_argument('--sensor-size',type=int,default=128);p.add_argument('--destination');p.add_argument('--offset',type=int,default=0);run(**vars(p.parse_args()))
