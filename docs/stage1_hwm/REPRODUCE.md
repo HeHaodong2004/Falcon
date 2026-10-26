@@ -44,7 +44,8 @@ $RUN eventwm_graph.stage1_hwm.extract_queries                                   
 ## 3. Training
 
 ```bash
-$RUN eventwm_graph.stage1_hwm.train NAME --arch {full,fast,lite} --truncate --epochs E --batch 128 --device cuda:0 --workers 8
+$RUN eventwm_graph.stage1_hwm.train NAME --arch {full,fast,lite,lite2} --truncate --epochs E --batch 128 --device cuda:0 --workers 8
+# selected model: NAME=hwm_lite_e12 --arch lite --truncate --epochs 12 --batch 128 --seed 17
 ```
 
 Selection: best scene-held-out training-split validation NLL (`output/stage1_hwm/runs/NAME/best.pt`).
@@ -57,7 +58,8 @@ $RUN eventwm_graph.stage1_hwm.bank_hwm output/stage1_hwm/runs/NAME/best.pt /var/
 #   deployment CPU path instead:  --fast-cpu --device cpu
 $RUN eventwm_graph.stage1_hwm.metrics /var/tmp/falcon-stage1-claude/banks/NAME NAME
 $RUN eventwm_graph.stage1_hwm.compare legacy_final NAME          # side-by-side table
-$RUN eventwm_graph.stage1_hwm.report NAME legacy_final           # paired scene-bootstrap CIs
+$RUN eventwm_graph.stage1_hwm.report NAME legacy_final           # paired scene-bootstrap CIs, coverage-gap
+                                                                  # intervals, per-scene win rates
 ```
 
 ## 5. Latency
@@ -65,6 +67,9 @@ $RUN eventwm_graph.stage1_hwm.report NAME legacy_final           # paired scene-
 ```bash
 CUDA_VISIBLE_DEVICES= $RUN eventwm_graph.stage1_hwm.benchmark output/stage1_hwm/runs/NAME/best.pt RUNNAME   # legacy protocol, 1 CPU thread
 $RUN eventwm_graph.stage1_hwm.benchmark_batch output/stage1_hwm/runs/NAME/best.pt RUNNAME --device cuda:0    # B streams per call
+# same-load bracket: legacy, candidates..., legacy; then tables + the speed rule over all brackets
+scripts/stage1_latency_bracket.sh TAG output/stage1_hwm/runs/NAME/best.pt [...]
+$RUN eventwm_graph.stage1_hwm.latency_table loadedA quiet final
 ```
 
 ## 6. Tests
@@ -72,4 +77,9 @@ $RUN eventwm_graph.stage1_hwm.benchmark_batch output/stage1_hwm/runs/NAME/best.p
 ```bash
 $RUN tests/stage1_hwm/test_online_equivalence.py CHECKPOINT   # online API features == offline extraction
 $RUN tests/stage1_hwm/test_batch_api.py CHECKPOINT            # batched == single features; bank validity, constraints
+$RUN tests/stage1_hwm/test_sandbox_candidates.py CHECKPOINT   # shared-bank K-candidate L2.5 reduction
+$RUN tests/stage1_hwm/test_legacy_context_input.py CHECKPOINT # legacy OnlineContext input == raw frames
+$RUN tests/stage1_hwm/test_likelihood_reference.py CHECKPOINT # vectorised joint NLL == brute-force enumeration
+$RUN tests/stage1_hwm/test_population_sampler.py              # exact truncated count sampler
+$RUN tests/stage1_hwm/test_selected.py                        # SELECTED.json loads (SHA-256) and predicts
 ```

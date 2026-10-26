@@ -6,81 +6,156 @@ are anchor→Root→scene; intervals are 2,000-draw scene bootstraps (legacy pro
 comparisons match rows by (Root, anchor, stream, person/horizon or probe) and report the
 relative change of the matched aggregate (negative = better for every listed score).
 
-## Selected model: `hwm_lite2_e12`
+## Selected model: `hwm_lite_e12`
 
-Lite BEV backbone (64×64 at 0.4 m, ~36 M MACs), 6-mode trajectory mixture, exact truncated
-population law, trained 12 epochs on all 105,838 training Roots (781k anchors). Checkpoint
-and identity: `SELECTED.json` (SHA-256 `401c55ac…`). Selection rule fixed before the final
-comparison: best validation NLL among candidates ≥20% faster than legacy at P50 and P95 on
-every latency cohort. Columns: legacy final; **selected**; full-architecture model (`hwm_a`,
-best quality, ~3× slower on CPU); fast-architecture 12 epochs (best validation NLL, failed the
-speed rule). Paired change = selected vs legacy, 95% scene-bootstrap interval.
+Lite BEV backbone (64×64 at 0.4 m, ~20 M MACs, 0.57 M parameters in total), 6-mode trajectory
+mixture, exact truncated population law, trained 12 epochs on all 105,838 training Roots (781k
+anchors); best validation checkpoint at step 72,000. Checkpoint and identity: `SELECTED.json`
+(SHA-256 `53d44d85…`).
 
-| Metric (dev) | Legacy | **Selected** | Full arch | Fast arch | Paired change (selected vs legacy) |
-|---|---|---|---|---|---|
-| tracked path ES (all) | 0.2206 | 0.1620 | 0.1599 | 0.1642 | -26.6% [-30.3, -22.7] |
-|   visible | 0.1883 | 0.1357 | 0.1330 | 0.1371 | -28.0% [-32.0, -23.9] |
-|   practical gap (0.75–1.25 s unseen) | 0.4262 | 0.3461 | 0.3344 | 0.3489 | -18.8% [-24.8, -12.5] |
-|   reappearance | 0.1873 | 0.1335 | 0.1388 | 0.1373 | -28.7% [-33.2, -23.8] |
-|   horizon 0.5 s | 0.1779 | 0.1354 | 0.1330 | 0.1376 | -23.9% [-28.2, -19.5] |
-|   horizon 1 s | 0.2706 | 0.1916 | 0.1906 | 0.1939 | -29.2% [-33.4, -25.0] |
-|   horizon 2 s | 0.3899 | 0.2575 | 0.2532 | 0.2570 | -34.0% [-39.4, -28.5] |
-|   horizon 3 s | 0.5950 | 0.4062 | 0.4099 | 0.4066 | -31.7% [-38.0, -25.7] |
-| joint tracked ES | 0.2295 | 0.1704 | 0.1679 | 0.1722 | -25.7% [-29.4, -22.0] |
-| Coverage90 (legacy definition) | 0.901 | 0.887 | 0.892 | 0.882 |  |
-| Coverage90 obs−self (0 = calibrated) | +0.031 | +0.011 | +0.021 | +0.008 |  |
-| joint Coverage90 obs−self | +0.040 | -0.000 | +0.014 | -0.000 |  |
-| count NLL (exact law / legacy unbiased estimate) | 1.5009 | 1.2787 | 1.2908 | 1.2760 | -14.8% [-17.3, -12.4] |
-| count RPS | 0.7126 | 0.6198 | 0.6130 | 0.6171 | -13.0% [-15.3, -10.8] |
-| count randomized-PIT KS (0 = calibrated) | 0.089 | 0.013 | 0.025 | 0.011 |  |
-| P(count=0), histories without detections (observed 0.302) | 0.203 | 0.292 | 0.294 | 0.292 |  |
-| 2 m occupancy Brier | 0.00853 | 0.00788 | 0.00781 | 0.00786 | -7.7% [-8.9, -6.3] |
-| 0.5 m near-robot occupancy Brier ×100 (1 s) | 0.3512 | 0.3146 | 0.3153 | 0.3162 |  |
-| joint future-set kernel score | 0.3147 | 0.2736 | 0.2705 | 0.2726 | -13.1% [-15.0, -11.3] |
-| executed path: P(human ≤1 m within 1 s) Brier | 0.0857 | 0.0724 | 0.0708 | 0.0716 | -15.5% [-23.2, -8.2] |
-|   same, ECE | 0.0569 | 0.0255 | 0.0227 | 0.0266 |  |
-| executed path: per-step 1 m social Brier | 0.0531 | 0.0447 | 0.0442 | 0.0446 | -16.0% [-20.0, -12.3] |
-| stationary robot: per-step 1 m social Brier | 0.0583 | 0.0457 | 0.0447 | 0.0459 | -21.5% [-25.8, -17.8] |
-| candidate routes: P(≤1 m) Brier | 0.0685 | 0.0557 | 0.0553 | 0.0560 |  |
-| candidate routes: within-Root pairwise ranking accuracy (1 m) | 0.945 | 0.960 | 0.960 | 0.963 |  |
-| candidate routes: within-Root Spearman of E[min distance] | 0.808 | 0.828 | 0.834 | 0.835 |  |
+**Selection rule.** The criterion was fixed before the final comparison: best validation NLL
+among candidates ≥20% faster than legacy at P50 and at P95 on every latency cohort. It is
+applied in every bracketed same-load benchmark in which the candidate was measured, against
+the mean of the two bracketing legacy runs (`latency_table.py`). This multi-bracket reading
+was specified before the final bracket; see §5. `hwm_lite2_e12` has the better validation NLL
+(−16.85 vs −16.75) and passed under load, but missed in the quiet bracket (representative
+P50 −19.7%), so the rule selects `hwm_lite_e12`. The two are statistically indistinguishable
+on development (see below), so the switch costs no measurable quality.
 
-Every tracked-path, population and candidate metric improves; no metric degrades
-significantly. Executed-path risk cells at 3 s have wide intervals (185 Roots) that include 0.
-The selected model's coverage is close to the calibrated reference (legacy over-dispersed).
-The deployed CPU path (TorchScript engine + NumPy/numba sampler) reproduces these metrics
-within Monte Carlo noise (path ES 0.16206 vs 0.16199; identical exact count NLL).
+Columns: legacy final; **selected**; `lite2` (the previous selection); full-architecture
+model (`hwm_a`, best quality, ~3× slower on CPU); fast architecture, 12 epochs (best
+validation NLL, fails the speed rule). Paired change = selected vs legacy, 95% scene-bootstrap
+interval.
 
-**Robustness across scenes.** Per-scene means (selected vs legacy): the selected model is better
-in 93% of scenes for tracked path ES (median per-scene change −28%), 92% for count NLL (−14%),
-89% for occupancy Brier (−8%), 94% for the set kernel (−13%) and 91% for per-step risk Brier
-(−23%). The few regressing scenes have 1–3 Roots (2–22 scored rows each).
+| Metric (dev) | Legacy | **Selected** | lite2 | Full arch | Fast arch | Paired change (selected vs legacy) |
+|---|---|---|---|---|---|---|
+| tracked path ES (all) | 0.2206 | **0.1610** | 0.1620 | 0.1599 | 0.1642 | −27.0% [−30.8, −23.3] |
+|   visible | 0.1883 | **0.1341** | 0.1357 | 0.1330 | 0.1371 | −28.8% [−32.6, −25.0] |
+|   practical gap (0.75–1.25 s unseen) | 0.4262 | **0.3535** | 0.3461 | 0.3344 | 0.3489 | −17.1% [−23.8, −9.8] |
+|   reappearance | 0.1873 | **0.1391** | 0.1335 | 0.1388 | 0.1373 | −25.8% [−30.5, −20.5] |
+|   horizon 0.5 s | 0.1779 | **0.1348** | 0.1354 | 0.1330 | 0.1376 | −24.3% [−28.6, −20.1] |
+|   horizon 1 s | 0.2706 | **0.1909** | 0.1916 | 0.1906 | 0.1939 | −29.5% [−33.4, −25.5] |
+|   horizon 2 s | 0.3899 | **0.2514** | 0.2575 | 0.2532 | 0.2570 | −35.5% [−40.6, −30.4] |
+|   horizon 3 s | 0.5950 | **0.4116** | 0.4062 | 0.4099 | 0.4066 | −30.8% [−36.7, −24.5] |
+| joint tracked ES | 0.2295 | **0.1688** | 0.1704 | 0.1679 | 0.1722 | −26.5% [−30.1, −22.9] |
+| Coverage90 (legacy definition) | 0.901 | **0.890** | 0.887 | 0.892 | 0.882 |  |
+| Coverage90 obs−self (0 = calibrated) | +0.031 | **+0.017** | +0.011 | +0.021 | +0.008 |  |
+|   practical gap cohort | +0.050 | **−0.024** | −0.006 | | |  |
+| joint Coverage90 obs−self | +0.040 | **+0.011** | −0.000 | +0.014 | −0.000 |  |
+| count NLL (exact law / legacy unbiased estimate) | 1.5009 | **1.2764** | 1.2787 | 1.2908 | 1.2760 | −15.0% [−17.6, −12.3] |
+| count RPS | 0.7126 | **0.6194** | 0.6198 | 0.6130 | 0.6171 | −13.1% [−15.6, −10.6] |
+| count randomized-PIT KS (0 = calibrated) | 0.089 | **0.012** | 0.013 | 0.025 | 0.011 |  |
+| P(count=0), histories without detections (observed 0.302) | 0.203 | **0.292** | 0.292 | 0.294 | 0.292 |  |
+| 2 m occupancy Brier | 0.00853 | **0.00789** | 0.00788 | 0.00781 | 0.00786 | −7.5% [−8.7, −6.3] |
+| 0.5 m near-robot occupancy Brier ×100 (1 s) | 0.3512 | **0.3153** | 0.3146 | 0.3153 | 0.3162 |  |
+| joint future-set kernel score | 0.3147 | **0.2727** | 0.2736 | 0.2705 | 0.2726 | −13.3% [−15.3, −11.5] |
+| executed path: P(human ≤1 m within 1 s) Brier | 0.0857 | **0.0704** | 0.0724 | 0.0708 | 0.0716 | −17.8% [−25.6, −11.2] |
+|   same, ECE | 0.0569 | **0.0248** | 0.0255 | 0.0227 | 0.0266 |  |
+| executed path: per-step 1 m social Brier | 0.0531 | **0.0450** | 0.0447 | 0.0442 | 0.0446 | −15.2% [−20.0, −11.0] |
+| stationary robot: per-step 1 m social Brier | 0.0583 | **0.0460** | 0.0457 | 0.0447 | 0.0459 | −21.1% [−25.1, −17.4] |
+| candidate routes: P(≤1 m) Brier | 0.0685 | **0.0562** | 0.0557 | 0.0553 | 0.0560 |  |
+| candidate routes: P(≤1 m) ECE | 0.0233 | **0.0129** | 0.0145 | | |  |
+| candidate routes: within-Root pairwise ranking accuracy (1 m) | 0.945 | **0.963** | 0.960 | 0.960 | 0.963 |  |
+| candidate routes: within-Root Spearman of E[min distance] | 0.808 | **0.829** | 0.828 | 0.834 | 0.835 |  |
+
+Every paired tracked-path and population score improves significantly, and so do both
+per-step risk scores. Of the 18 per-horizon risk cells, 6 have intervals that include 0: the
+executed-path 3 s cells (185 Roots) and three 2 m-radius cells. Their point estimates still
+favour the selected model. No metric degrades significantly. The deployed CPU path (TorchScript engine + NumPy/numba
+sampler) reproduces these metrics within Monte Carlo noise (path ES 0.16145 vs 0.16099;
+identical exact count NLL 1.2764; candidate pairwise accuracy 0.960 vs 0.963).
+
+**Calibration.** Legacy coverage is over-dispersed: obs−self +0.031 per person, +0.040 joint.
+The selected model is closer to calibrated. Joint: +0.011, significantly closer to 0
+(|selected| − |legacy| interval [−0.050, −0.001]). Per person: +0.017, interval
+[−0.038, +0.011]. In the practical-gap cohort it is slightly under-dispersed (−0.024 vs legacy
++0.050), and |gap| is not significantly different. Count calibration is resolved: PIT KS 0.012
+vs 0.089; P(count=0) for histories without detections 0.292 vs observed 0.302 (legacy 0.203).
+Candidate-route ECE: 0.013 vs 0.023.
+
+**Selected vs `lite2`** (paired, same protocol). The differences are path ES −0.6%
+[−2.9, +1.7], gap ES +2.1% [−2.4, +7.4], reappearance +4.1% [−0.5, +9.3], count NLL −0.2%,
+set kernel −0.3%. Coverage-gap differences are all within noise (joint +0.011 vs −0.000,
+difference interval [−0.011, +0.033]). Of 33 paired score cells, 2 nominally favour the
+selected model and none favour `lite2`. Per scene, the selected model wins 46–56% of scenes
+per metric.
+
+**Robustness across scenes.** Per-scene means, selected vs legacy (`report.py`):
+
+| Metric | Scenes where selected is better | Median per-scene change |
+|---|---|---|
+| tracked path ES | 92% | −29% |
+| count NLL | 89% | −15% |
+| occupancy Brier | 91% | −8% |
+| set kernel | 93% | −13% |
+| per-step risk Brier | 92% | −23% |
+
+The `lite2` figures were 93/92/89/94/91%. The few regressing scenes have 1–3 Roots each.
+
+Qualitative samples: `figures/qualitative_hwm_lite_e12_vs_legacy_final_seed{3,11}.png` (top row
+legacy, bottom row selected; true paths white; 40 sampled worlds, tracked keys orange, residual
+people cyan; robot magenta).
 
 ### Latency (CPU, 1 thread, legacy runtime protocol)
 
-Bracketed back-to-back run on the same machine state (legacy → selected → fast → legacy;
-load average 6.8–11.7, Stage 2 training running on GPU 0). Each online call ingests one new
-actual frame from the pre-arrival state and returns 40 worlds × 64 times. P50 / P95 / P99 ms.
+Each online call ingests one new actual frame from the pre-arrival state and returns 40 worlds
+× 64 times. Every comparison is a same-load bracket run back-to-back (legacy → candidates →
+legacy; `scripts/stage1_latency_bracket.sh`, tables from `latency_table.py`), while Stage 2
+training runs on GPU 0. P50 / P95 / P99 ms.
 
-| Cohort | Legacy (before) | Legacy (after) | **Selected** | Fast arch |
+**Final bracket** (1-min load 4.0–6.9):
+
+| Cohort | Legacy (before) | Legacy (after) | **Selected (`lite`)** | `lite2` |
 |---|---|---|---|---|
-| representative (first 200 Roots) | 9.53 / 14.77 / 117.8 | 10.04 / 14.92 / 120.1 | **7.60 / 8.67 / 10.3** | 8.41 / 9.65 / 10.8 |
-| dense (30 most crowded) | 13.35 / 15.10 / 16.5 | 14.22 / 16.56 / 17.4 | **7.76 / 10.10 / 15.0** | 8.95 / 10.07 / 10.7 |
-| longest history (30) | 10.13 / 13.48 / 26.0 | 10.70 / 13.22 / 17.7 | **7.81 / 9.00 / 12.1** | 8.81 / 9.90 / 11.9 |
-| startup, full raw history (representative) P50 / P95 | 60 / 251 | 63 / 258 | **18 / 56** | 18 / 57 |
+| representative (first 200 Roots) | 8.93 / 12.53 / 109.8 | 8.70 / 12.22 / 107.5 | **6.87 / 7.70 / 8.0** | 7.41 / 8.30 / 8.5 |
+| dense (30 most crowded) | 12.76 / 14.34 / 14.7 | 12.26 / 14.81 / 24.4 | **7.26 / 8.14 / 8.3** | 7.48 / 8.80 / 9.0 |
+| longest history (30) | 9.71 / 12.85 / 13.8 | 10.74 / 13.82 / 16.0 | **7.08 / 7.95 / 8.0** | 7.51 / 8.46 / 8.9 |
+| startup, full raw history (representative) P50 / P95 | 58 / 244 | 57 / 239 | **16 / 51** | 17 / 52 |
 
-Selected vs legacy (before): P50 −20% / −42% / −23% and P95 −41% / −33% / −33% for the three
-cohorts; P99 10–15 ms vs 16–118 ms (similar on the dense cohort, 10× lower on representative);
-startup 3–4× faster. Tails of the new
-path are bounded by removing TorchScript shape re-specialisation (warm-up, non-profiling
-executor) and vectorising grid recentring; a rare generation-2 garbage collection remains.
+**Speed rule.** Selected vs the mean of the bracketing legacy runs, per cohort
+(representative / dense / longest):
 
-Downstream reuse: scoring 3–24 candidate robot routes with one shared bank via the L2.5
-joint reduction takes ≈0.9 ms. Batched GPU serving of B concurrent robots (one network call):
-B=1 16.3 ms/call (16.33 ms per robot), B=8 29.4 ms/call (3.68 ms per robot), B=32 73.9 ms/call (2.31 ms per robot), B=64 133.2 ms/call (2.08 ms per robot) on a
-GPU shared with other training. For an L3 run of 10⁶ decision steps, Stage 1 costs ≈2 core-hours
-on CPU (one call per environment worker) or ≈0.6 GPU-hours batched.
+| Bracket | P50 | P95 |
+|---|---|---|
+| Final | −22% / −42% / −31% | −38% / −44% / −40% |
+| Quiet (load 3.4–4.6) | −25% / −43% / −28% | −39% / −44% / −37% |
 
+`lite2` failed in both brackets: representative P50 −16.0% (final) and −19.7% (quiet). It
+passed only in the earlier loaded bracket (load 7–12, −22%). The fast architecture failed
+there (−14%). All brackets: `output/stage1_hwm/benchmark/{final,quiet,loadedA}_*`.
+
+Tails:
+* P99 is 8.0–8.3 ms vs 14–110 ms for legacy (13× lower on the representative cohort).
+* One call in 1,300 took 89 ms (attributed to a Python generation-2 garbage collection);
+  legacy's maximum was 134–159 ms.
+* Startup from a full raw history is 3.6–4.8× faster.
+
+Where the time goes (representative median):
+* legal state update 0.96 ms;
+* network + sampling 5.09 ms;
+* bank assembly 0.77 ms.
+
+The tails are bounded by removing TorchScript shape re-specialisation (warm-up, non-profiling
+executor) and by vectorising grid recentring.
+
+**Downstream reuse.** Scoring a Root's real sibling candidate routes (3–24) with one shared
+bank through the L2.5 `aggregate_joint` reduction takes 0.76 ms median.
+
+**Batched GPU serving** of B concurrent robots (one network call), on a GPU shared with other
+training:
+
+| B | ms per call | ms per robot |
+|---|---|---|
+| 1 | 11.3 | 11.3 |
+| 8 | 25.8 | 3.22 |
+| 32 | 72.6 | 2.27 |
+| 64 | 134.2 | 2.10 |
+
+On one CPU thread, batching helps only modestly: 7.9 / 5.6 / 6.4 ms per robot at
+B = 1 / 8 / 32. One call per environment worker is the simpler CPU deployment.
+
+**L3 budget.** For an L3 run of 10⁶ decision steps, Stage 1 costs ≈2 core-hours on CPU or
+≈0.6 GPU-hours batched. This is negligible against a 48–72 h budget.
 
 ## 1. Baseline reproduction (legacy final checkpoint `99b737…`)
 
@@ -121,7 +196,24 @@ reference on development (negative = better), 95% scene-bootstrap interval.
   multimodal futures (turns, start/stop), which matters for rare-event risk. Post-hoc
   sharpening of the 6-mode sampler (temperature/spread grid on the validation split) did not
   reduce key-path ES either (identity was best), so the M=1 advantage is not simple
-  over-dispersion; the final model keeps M=6. Full-scale M=1 was not trained.
+  over-dispersion.
+* **Full-scale control** (`hwm_lite2_m1_e12`): identical to `hwm_lite2_e12` (all data, 12 epochs,
+  same seed) except M=1. At full scale the small-protocol M=1 edge **reverses**; M=1 is worse
+  on every headline score. Paired vs M=6:
+
+  | Score | M=1 vs M=6 |
+  |---|---|
+  | path ES | +6.5% [+4.0, +9.5] |
+  | gap | +7.1% [+1.0, +13.9] |
+  | reappearance | +14.7% [+8.0, +23.1] |
+  | joint ES | +5.5% [+3.1, +8.3] |
+  | count NLL | +1.4% [+0.5, +2.5] |
+  | set kernel | +1.2% [+0.3, +2.2] |
+  | per-step risk Brier (executed) | +5.0% [+2.3, +8.1] |
+  | per-step risk Brier (stationary) | +4.9% [+2.3, +8.4] |
+  | count PIT KS | 0.022 vs 0.013 |
+
+  Validation NLL: −8.54 vs −16.85. The 6-mode mixture is kept.
 
 ## 4. Consistency guarantees
 
@@ -135,14 +227,23 @@ reference on development (negative = better), 95% scene-bootstrap interval.
 
 * **Visibility-age raster**: no measurable benefit in the matched ablation; it remains in the
   selected model (trained with it) and costs ≈0.3 ms per call.
-* **Single-mode / sharpened sampling**: see §3; likelihood strongly prefers 6 modes; the
-  small-scale sample-score edge of M=1 was not reproduced by post-hoc sharpening. A matched
-  full-scale M=1 control was queued (see the appendix once complete).
-* **CPU latency margin** at the representative median is ≈20%; the network engine is ~half of
-  the call. The faster 12-epoch fast-architecture model has the best validation NLL but only
-  −12% median latency, so it was not selected.
-* **Batched CPU serving** is slower per robot than independent single calls (use one call per
-  environment worker on CPU; batch on GPU).
+* **Single-mode / sharpened sampling**: see §3. The small-scale sample-score edge of M=1 did
+  not hold at full scale (M=1 is 6.5% worse on path ES), and post-hoc sharpening gave no gain.
+  A small-protocol ablation was therefore misleading for this design choice.
+* **Speed vs likelihood**: the model with the best validation NLL among the 12-epoch runs (fast
+  architecture) and the previous selection (`lite2`) both fail the pre-registered speed rule
+  in at least one bracket. The selected `lite` has a slightly worse validation NLL (−16.75 vs
+  −16.85) with no measurable development difference. The full architecture remains the most
+  accurate on several cohorts (practical gap 0.334) but is ~3× slower on CPU.
+* **Practical-gap calibration**: the selected model is slightly under-dispersed for people
+  unseen 0.75–1.25 s (obs−self −0.024, interval of the difference to `lite2` includes 0).
+* **Batched CPU serving** gains at most ~30% per robot (B=8, one thread). Large batches belong
+  on the GPU.
+* **Selection-rule precision**: the original rule did not specify how to combine several
+  brackets. "Every bracket, against the mean of the two bracketing legacy runs" was written
+  down after the quiet bracket put `lite2` at the margin (−19.7%), but before the final
+  bracket. The final bracket independently confirms the outcome (`lite2` −16.0%, selected
+  −22.1%).
 * **Data limits**: privileged truth starts at the Root, so pre-Root tracker identities are
   latent (handled by marginalisation, 13.5% of development anchors). Long horizons are sparse
   (114 development Roots reach 3 s), so 3 s executed-path risk intervals are wide.

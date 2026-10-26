@@ -1,16 +1,16 @@
 {
- "name": "hwm_lite2_e12",
- "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage1-claude-20261026/output/stage1_hwm/runs/hwm_lite2_e12/best.pt",
- "checkpoint_sha256": "401c55ac1f967c6e1609e14189da674968e3a294a87083021f50faaedee871d9",
+ "name": "hwm_lite_e12",
+ "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage1-claude-20261026/output/stage1_hwm/runs/hwm_lite_e12/best.pt",
+ "checkpoint_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
  "model": {
   "d": 128,
   "modes": 6,
-  "arch": "lite2",
+  "arch": "lite",
   "truncate": true,
   "ablate": []
  },
- "selected_step": 73236,
- "validation_nll": -16.850862563924586,
+ "selected_step": 72000,
+ "validation_nll": -16.751257876132396,
  "worlds": 40,
  "time_samples": 64,
  "horizon_seconds": 3.0,
@@ -30,5 +30,6 @@
   "train": "/var/tmp/falcon-stage1-claude/hwm_data/train (105,838 Roots, stride 6 + legacy schedule)",
   "dev": "/var/tmp/falcon-stage1-claude/hwm_data/dev (2,110 Roots, legacy anchors)"
  },
- "selection_rule": "best validation NLL among candidates >=20% faster than legacy at P50 and P95 on every latency cohort (bracketed same-load benchmark)"
+ "selection_rule": "best validation NLL among candidates >=20% faster than legacy at P50 and P95 on every latency cohort, in every bracketed same-load benchmark in which the candidate was measured (vs the mean of the two bracketing legacy runs)",
+ "selection_note": "hwm_lite2_e12 (validation NLL -16.851) passed in the loaded bracket but missed in the quiet bracket (representative P50 -19.7% vs the bracketing legacy mean); hwm_lite_e12 is not significantly worse on any paired development metric (2 of 33 cells nominally favour it; coverage-calibration gaps within noise; docs/stage1_hwm/RESULTS.md)"
 }
