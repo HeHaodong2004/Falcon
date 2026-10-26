@@ -135,7 +135,10 @@ class FastSampler:
         # restored after a warm-up and other TorchScript users in the process are unaffected.
         prev_exec = torch._C._jit_set_profiling_executor(False);prev_mode = torch._C._jit_set_profiling_mode(False)
         try:
-            self.engine = torch.jit.script(Engine(net).eval())
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message=".*found in ScriptModule constants.*")
+                self.engine = torch.jit.script(Engine(net).eval())
             self._warm_up()
         finally:
             torch._C._jit_set_profiling_executor(prev_exec);torch._C._jit_set_profiling_mode(prev_mode)
