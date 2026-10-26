@@ -14,7 +14,9 @@ from eventwm_graph.stage2_segment.prepared import content_key
 from scripts.stage2_diagnostic.common import extended_rates
 
 
-def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False,ray=False,complete_distance=False,exact_fast=False,name=None,device_canvas=False,batched=False,implementation=None):
+def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False,ray=False,complete_distance=False,exact_fast=False,name=None,device_canvas=False,batched=False,implementation=None,sensor_directory='range_branches'):
+    from pathlib import Path
+    if Path(sensor_directory).name!=sensor_directory:raise ValueError('sensor directory must be a simple local artifact name')
     from .range_implementations import predictor_class
     cls=predictor_class(spatial,proxy,radix,ray,exact_fast,device_canvas,batched,implementation)
     if planar and not(spatial or proxy or radix or ray or exact_fast or device_canvas or batched):
@@ -32,13 +34,15 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;model=cls(checkpoint,device=device,mesh_stride=stride)
     if complete_distance:model.config['observed_obstacle_schema']='capped_2m_complete'
     raw,source=source_rows('dev');raw={r['root_id']:r for r in raw};manifest=read(HF/'light_eval_cache/manifest.json');dest=OUT/('range_runtime_'+label);dest.mkdir(exist_ok=True)
-    identity=dict(checkpoint_sha256=sha(checkpoint),implementation=cls.__name__,observed_obstacle_schema=model.config.get('observed_obstacle_schema','legacy_8cell_crop'),evaluator_sha256=sha(__file__))
+    identity=dict(checkpoint_sha256=sha(checkpoint),implementation=cls.__name__,observed_obstacle_schema=model.config.get('observed_obstacle_schema','legacy_8cell_crop'),evaluator_sha256=sha(__file__),sensor_directory=sensor_directory)
     identity_path=dest/'identity.json'
     if identity_path.exists()and read(identity_path)!=identity:raise ValueError('use --name for a different model/evaluator identity')
     save(identity_path,identity);roots=[];tick=time.perf_counter()
     for row in manifest['rows']:
         rid=row['root_id'];legal=member(raw[rid],'legal_root.json.gz');nodes=member(raw[rid],'future_observations.json.gz');tracks=[o['tracks']for o in legal['history']]+[n['observation']['tracks']for n in nodes]
-        with np.load(OUT/'range_branches'/(rid+'.npz'))as z:sensors={k:z[k]for k in z.files}
+        sensor_path=OUT/sensor_directory/(rid+'.npz');receipt=read(sensor_path.with_suffix('.json'))
+        if receipt['sha256']!=sha(sensor_path)or receipt['identity']['files']!=raw[rid]['files']:raise ValueError('range packet source identity changed')
+        with np.load(sensor_path)as z:sensors={k:z[k]for k in z.files}
         with np.load(row['path'])as z:oldx=z['x'];oldy=z['y'];oldprob=z['baseline']
         old={(e['start_node'],e['end_node']):e for e in row['segments']};groups=defaultdict(list);records=[]
         for ex in replay(raw[rid],'mixed'):
@@ -64,4 +68,4 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:0');p.add_argument('--stride',type=int,default=1);p.add_argument('--planar',action='store_true');p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');p.add_argument('--ray',action='store_true');p.add_argument('--complete-distance',action='store_true');p.add_argument('--name');from .range_implementations import add_exact_options;add_exact_options(p);run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:0');p.add_argument('--stride',type=int,default=1);p.add_argument('--planar',action='store_true');p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');p.add_argument('--ray',action='store_true');p.add_argument('--complete-distance',action='store_true');p.add_argument('--name');p.add_argument('--sensor-directory',default='range_branches');from .range_implementations import add_exact_options;add_exact_options(p);run(**vars(p.parse_args()))

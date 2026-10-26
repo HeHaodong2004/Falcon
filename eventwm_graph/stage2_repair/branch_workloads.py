@@ -12,13 +12,16 @@ from .range_history import ancestor_frames,validate
 from eventwm_graph.stage2_segment.data import replay
 
 
-def workloads():
+def workloads(sensor_directory='range_branches',name='branch_cost_inventory'):
     source,_=source_rows('dev');source={r['root_id']:r for r in source};selected=[];inventory=[]
     for row in read(HF/'light_eval_cache/manifest.json')['rows']:
         rid=row['root_id'];raw=source[rid];groups=defaultdict(list)
         for e in replay(raw,'mixed'):
             if 'audit'not in e and e['start_node']is not None:groups[e['start_node']].append(e)
-        with np.load(OUT/'range_branches'/(rid+'.npz'))as z:sensor={k:z[k]for k in z.files}
+        sensor_path=OUT/sensor_directory/(rid+'.npz');receipt=read(sensor_path.with_suffix('.json'))
+        from .diagnose import sha
+        if receipt['sha256']!=sha(sensor_path)or receipt['identity']['files']!=raw['files']:raise ValueError('sensor source identity changed')
+        with np.load(sensor_path)as z:sensor={k:z[k]for k in z.files}
         candidates=[]
         for sid,examples in groups.items():
             unique={}
@@ -37,7 +40,7 @@ def workloads():
         legal=member(raw,'legal_root.json.gz');nodes=member(raw,'future_observations.json.gz');tracks=[o['tracks']for o in legal['history']]+[n['observation']['tracks']for n in nodes]
         for p in paths:assert p['trajectory'][0][0]==graph['timestamp']and len(p['trajectory'])>1
         selected.append((dict(root_id=rid,scene_id=row['scene_id'],start_node=sid,graph=graph,paths=paths),packet,[tracks[i]for i in take]))
-    save(OUT/'branch_cost_inventory.json',dict(role='Extra intermediate-graph cost diagnostic only; original accuracy and32-map benchmark universes retained.',selection='One eligible intermediate graph per originalpilotRoot: most legal past frames, then known-cell count, then nodeid. Six distinct recorded continuations/prefixes spread over available path lengths. No future sensor data.',roots=inventory,selected=[dict(root_id=e['root_id'],start_node=e['start_node'],known_cells=len(e['graph']['cells']),range_frames=len(p['ranges']),path_lengths=[len(v['trajectory'])for v in e['paths']])for e,p,t in selected]))
+    save(OUT/(name+'.json'),dict(role='Extra intermediate-graph cost diagnostic only; original accuracy and32-map benchmark universes retained.',sensor_directory=sensor_directory,selection='One eligible intermediate graph per originalpilotRoot: most legal past frames, then known-cell count, then nodeid. Six distinct recorded continuations/prefixes spread over available path lengths. No future sensor data.',roots=inventory,selected=[dict(root_id=e['root_id'],start_node=e['start_node'],known_cells=len(e['graph']['cells']),range_frames=len(p['ranges']),path_lengths=[len(v['trajectory'])for v in e['paths']])for e,p,t in selected]))
     return selected
 
 

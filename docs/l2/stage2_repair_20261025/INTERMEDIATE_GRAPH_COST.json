@@ -1,0 +1,811 @@
+{
+  "role": "Additional actual intermediate-graph speed diagnostic. Original32-map benchmark and full accuracy universe retained. Not an accuracy claim.",
+  "workloads": {
+    "role": "Extra intermediate-graph cost diagnostic only; original accuracy and32-map benchmark universes retained.",
+    "selection": "One eligible intermediate graph per originalpilotRoot: most legal past frames, then known-cell count, then nodeid. Six distinct recorded continuations/prefixes spread over available path lengths. No future sensor data.",
+    "roots": [
+      {
+        "root_id": "b5dbfabd3854f4ee4b0891e21b5d50517bbd89e718cca8f1bcb212421d856e5c",
+        "intermediate_groups": 10,
+        "groups_with_six_distinct_continuations": 5
+      },
+      {
+        "root_id": "3a54e56730b2d0cc5e08830cc86c0ed883edaff7a48da7e4b8558e9f62a14e9a",
+        "intermediate_groups": 17,
+        "groups_with_six_distinct_continuations": 13
+      },
+      {
+        "root_id": "cc2028c76f887ff6b4f4c5a4a4a38b8bee9d26bb85fb5f2d25cbd8066cfd8606",
+        "intermediate_groups": 7,
+        "groups_with_six_distinct_continuations": 4
+      },
+      {
+        "root_id": "36085fb1498c25dc55f000e37f386140c3df27bfd10ef48b92a202fce11b797c",
+        "intermediate_groups": 6,
+        "groups_with_six_distinct_continuations": 1
+      },
+      {
+        "root_id": "21ce3722a81597734fc2ed5744d32bb69ba5e8d858b87d77d79afcdfbad20c3d",
+        "intermediate_groups": 22,
+        "groups_with_six_distinct_continuations": 18
+      },
+      {
+        "root_id": "01ebdeaafb7b4d7e5a3604ae703498c4c9947b057b56e2886ba789c5e789b191",
+        "intermediate_groups": 14,
+        "groups_with_six_distinct_continuations": 7
+      },
+      {
+        "root_id": "4dfe1534be447762f49448953cda5636ae067c5d7dfbcec45b73dea11aea1454",
+        "intermediate_groups": 19,
+        "groups_with_six_distinct_continuations": 19
+      },
+      {
+        "root_id": "67d6b6b66d645c60f33b893c79b26ebfe3acffc7202f5a72c445a8488de05964",
+        "intermediate_groups": 13,
+        "groups_with_six_distinct_continuations": 6
+      },
+      {
+        "root_id": "ccbd1a99413d4ecbf94dc60ecccecee18be6b0ca104e6ce5390e54e105024595",
+        "intermediate_groups": 7,
+        "groups_with_six_distinct_continuations": 4
+      },
+      {
+        "root_id": "2657d51c69b5c1c03a501c2124e4fdaeef556ffa0f18dc99718ea6e8df04a76c",
+        "intermediate_groups": 41,
+        "groups_with_six_distinct_continuations": 34
+      },
+      {
+        "root_id": "b30b61e8e87a4855a2dbec5c7f3a456deeb947e52b20f0cd244ae0bc54339f9a",
+        "intermediate_groups": 13,
+        "groups_with_six_distinct_continuations": 6
+      },
+      {
+        "root_id": "e424a20ed743b40de7990be421535349d96627a7875da81642d1496e20cad64a",
+        "intermediate_groups": 13,
+        "groups_with_six_distinct_continuations": 8
+      },
+      {
+        "root_id": "0ef4d3fd4cb00b4ad0dfa5cf61f35fc4ecc34a5286df3c4e8e9e8e58a5aacf68",
+        "intermediate_groups": 17,
+        "groups_with_six_distinct_continuations": 9
+      },
+      {
+        "root_id": "3fe13bf576f14944ffa22c5542e64936b2f9997ac7bbd103c39e5ef5212e8263",
+        "intermediate_groups": 12,
+        "groups_with_six_distinct_continuations": 5
+      },
+      {
+        "root_id": "8a21decf837201e43efc16afdb69e15e8751fddfb7a5717972a1df4ec52314e5",
+        "intermediate_groups": 21,
+        "groups_with_six_distinct_continuations": 14
+      },
+      {
+        "root_id": "5dcf9b79154eb9d3924bda8a4ab42f9de697c5deacfcf30b5b91c39b91085556",
+        "intermediate_groups": 5,
+        "groups_with_six_distinct_continuations": 5
+      },
+      {
+        "root_id": "53c4f344d9c38f0879eafd9589d185f05f2a93a7966fb0c14f2782e1ca265a55",
+        "intermediate_groups": 19,
+        "groups_with_six_distinct_continuations": 12
+      },
+      {
+        "root_id": "d993e9756aee3a61552105dbd73c5d79b3ff52776b55f494476de7012f1ca4f7",
+        "intermediate_groups": 11,
+        "groups_with_six_distinct_continuations": 6
+      },
+      {
+        "root_id": "0d489ff6e6a4233a66de22a33fd05f4ce731d36a507cb89ab9a185369754bd6e",
+        "intermediate_groups": 8,
+        "groups_with_six_distinct_continuations": 5
+      },
+      {
+        "root_id": "d45f581cf10da215cd8f7a5a53bd28a8b5b9c4b7e7ba0936e813ea8b47f4c818",
+        "intermediate_groups": 6,
+        "groups_with_six_distinct_continuations": 2
+      },
+      {
+        "root_id": "a5f57d59c00a370239b31fab6175a902d87d58ae09521b0a1b5a375b4ebc569b",
+        "intermediate_groups": 13,
+        "groups_with_six_distinct_continuations": 8
+      },
+      {
+        "root_id": "d765614ecbd3bfa42ef0ce28dee6b2d439fcd758449d6331373dc60924c2b85b",
+        "intermediate_groups": 5,
+        "groups_with_six_distinct_continuations": 0
+      },
+      {
+        "root_id": "333ad90108506f08a2b82a7ed58ad1d0bf7b90731d4fe3558d915888eefe1ad9",
+        "intermediate_groups": 18,
+        "groups_with_six_distinct_continuations": 13
+      },
+      {
+        "root_id": "65253796cd2313109f965cad957f9d29d2359e788248820fd08ba943f8ade6d0",
+        "intermediate_groups": 6,
+        "groups_with_six_distinct_continuations": 0
+      },
+      {
+        "root_id": "ce0cafad45b002e88a0dcfd14ec61eadddcd3482daa979f8fb37b16d459ba213",
+        "intermediate_groups": 16,
+        "groups_with_six_distinct_continuations": 10
+      },
+      {
+        "root_id": "60ba53be5faf55653a862d494e1955b9321fae3b1734d94007d21567541b54c2",
+        "intermediate_groups": 12,
+        "groups_with_six_distinct_continuations": 8
+      },
+      {
+        "root_id": "2cbed85c61b09fb45d0f041a96f28c40afcc40c01cf8201e8c6fef133e50bc9c",
+        "intermediate_groups": 6,
+        "groups_with_six_distinct_continuations": 0
+      },
+      {
+        "root_id": "a44bf6784d3d9a45422b8b5416599e58c8193684d55ce2b97092ea6d79dc7105",
+        "intermediate_groups": 17,
+        "groups_with_six_distinct_continuations": 11
+      },
+      {
+        "root_id": "f2477a318bbcb1ad9958e6cee963bd1e81f5dc5decdc279d14db9b7e8e352953",
+        "intermediate_groups": 5,
+        "groups_with_six_distinct_continuations": 4
+      },
+      {
+        "root_id": "8a91a30164ca5b0dd6f88de0f7eb71d7cc2839754c98b5e184ac34c51d8a549a",
+        "intermediate_groups": 6,
+        "groups_with_six_distinct_continuations": 3
+      },
+      {
+        "root_id": "8c106228c83b537a851b7f72f0ff8d4af06bc4b0091368fe8a7bcc4b54717f06",
+        "intermediate_groups": 15,
+        "groups_with_six_distinct_continuations": 10
+      }
+    ],
+    "selected": [
+      {
+        "root_id": "b5dbfabd3854f4ee4b0891e21b5d50517bbd89e718cca8f1bcb212421d856e5c",
+        "start_node": 19,
+        "known_cells": 1379,
+        "range_frames": 20,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          7,
+          9,
+          11
+        ]
+      },
+      {
+        "root_id": "3a54e56730b2d0cc5e08830cc86c0ed883edaff7a48da7e4b8558e9f62a14e9a",
+        "start_node": 107,
+        "known_cells": 2104,
+        "range_frames": 41,
+        "path_lengths": [
+          2,
+          4,
+          6,
+          8,
+          10,
+          13
+        ]
+      },
+      {
+        "root_id": "cc2028c76f887ff6b4f4c5a4a4a38b8bee9d26bb85fb5f2d25cbd8066cfd8606",
+        "start_node": 12,
+        "known_cells": 820,
+        "range_frames": 27,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          6,
+          7,
+          9
+        ]
+      },
+      {
+        "root_id": "36085fb1498c25dc55f000e37f386140c3df27bfd10ef48b92a202fce11b797c",
+        "start_node": 1,
+        "known_cells": 1085,
+        "range_frames": 16,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "root_id": "21ce3722a81597734fc2ed5744d32bb69ba5e8d858b87d77d79afcdfbad20c3d",
+        "start_node": 59,
+        "known_cells": 1973,
+        "range_frames": 48,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "root_id": "01ebdeaafb7b4d7e5a3604ae703498c4c9947b057b56e2886ba789c5e789b191",
+        "start_node": 29,
+        "known_cells": 2126,
+        "range_frames": 23,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          6,
+          7,
+          9
+        ]
+      },
+      {
+        "root_id": "4dfe1534be447762f49448953cda5636ae067c5d7dfbcec45b73dea11aea1454",
+        "start_node": 174,
+        "known_cells": 6548,
+        "range_frames": 81,
+        "path_lengths": [
+          2,
+          4,
+          6,
+          8,
+          10,
+          12
+        ]
+      },
+      {
+        "root_id": "67d6b6b66d645c60f33b893c79b26ebfe3acffc7202f5a72c445a8488de05964",
+        "start_node": 49,
+        "known_cells": 1976,
+        "range_frames": 46,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "root_id": "ccbd1a99413d4ecbf94dc60ecccecee18be6b0ca104e6ce5390e54e105024595",
+        "start_node": 23,
+        "known_cells": 947,
+        "range_frames": 32,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          7,
+          9,
+          11
+        ]
+      },
+      {
+        "root_id": "2657d51c69b5c1c03a501c2124e4fdaeef556ffa0f18dc99718ea6e8df04a76c",
+        "start_node": 270,
+        "known_cells": 2135,
+        "range_frames": 66,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          7,
+          9,
+          11
+        ]
+      },
+      {
+        "root_id": "b30b61e8e87a4855a2dbec5c7f3a456deeb947e52b20f0cd244ae0bc54339f9a",
+        "start_node": 27,
+        "known_cells": 2132,
+        "range_frames": 20,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "root_id": "e424a20ed743b40de7990be421535349d96627a7875da81642d1496e20cad64a",
+        "start_node": 21,
+        "known_cells": 2018,
+        "range_frames": 36,
+        "path_lengths": [
+          2,
+          4,
+          6,
+          9,
+          11,
+          14
+        ]
+      },
+      {
+        "root_id": "0ef4d3fd4cb00b4ad0dfa5cf61f35fc4ecc34a5286df3c4e8e9e8e58a5aacf68",
+        "start_node": 23,
+        "known_cells": 5685,
+        "range_frames": 38,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          7,
+          9,
+          11
+        ]
+      },
+      {
+        "root_id": "3fe13bf576f14944ffa22c5542e64936b2f9997ac7bbd103c39e5ef5212e8263",
+        "start_node": 34,
+        "known_cells": 1292,
+        "range_frames": 40,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          6,
+          7,
+          9
+        ]
+      },
+      {
+        "root_id": "8a21decf837201e43efc16afdb69e15e8751fddfb7a5717972a1df4ec52314e5",
+        "start_node": 59,
+        "known_cells": 2081,
+        "range_frames": 30,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "root_id": "5dcf9b79154eb9d3924bda8a4ab42f9de697c5deacfcf30b5b91c39b91085556",
+        "start_node": 10,
+        "known_cells": 1029,
+        "range_frames": 26,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          6,
+          7,
+          9
+        ]
+      },
+      {
+        "root_id": "53c4f344d9c38f0879eafd9589d185f05f2a93a7966fb0c14f2782e1ca265a55",
+        "start_node": 48,
+        "known_cells": 2875,
+        "range_frames": 45,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8
+        ]
+      },
+      {
+        "root_id": "d993e9756aee3a61552105dbd73c5d79b3ff52776b55f494476de7012f1ca4f7",
+        "start_node": 52,
+        "known_cells": 3482,
+        "range_frames": 50,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "root_id": "0d489ff6e6a4233a66de22a33fd05f4ce731d36a507cb89ab9a185369754bd6e",
+        "start_node": 31,
+        "known_cells": 1179,
+        "range_frames": 28,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          6,
+          7,
+          9
+        ]
+      },
+      {
+        "root_id": "d45f581cf10da215cd8f7a5a53bd28a8b5b9c4b7e7ba0936e813ea8b47f4c818",
+        "start_node": 6,
+        "known_cells": 926,
+        "range_frames": 19,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "root_id": "a5f57d59c00a370239b31fab6175a902d87d58ae09521b0a1b5a375b4ebc569b",
+        "start_node": 41,
+        "known_cells": 1758,
+        "range_frames": 37,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8
+        ]
+      },
+      {
+        "root_id": "333ad90108506f08a2b82a7ed58ad1d0bf7b90731d4fe3558d915888eefe1ad9",
+        "start_node": 29,
+        "known_cells": 1804,
+        "range_frames": 36,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          7,
+          9,
+          11
+        ]
+      },
+      {
+        "root_id": "ce0cafad45b002e88a0dcfd14ec61eadddcd3482daa979f8fb37b16d459ba213",
+        "start_node": 58,
+        "known_cells": 1937,
+        "range_frames": 28,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          7,
+          9,
+          11
+        ]
+      },
+      {
+        "root_id": "60ba53be5faf55653a862d494e1955b9321fae3b1734d94007d21567541b54c2",
+        "start_node": 31,
+        "known_cells": 1547,
+        "range_frames": 48,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "root_id": "a44bf6784d3d9a45422b8b5416599e58c8193684d55ce2b97092ea6d79dc7105",
+        "start_node": 21,
+        "known_cells": 1246,
+        "range_frames": 104,
+        "path_lengths": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8
+        ]
+      },
+      {
+        "root_id": "f2477a318bbcb1ad9958e6cee963bd1e81f5dc5decdc279d14db9b7e8e352953",
+        "start_node": 25,
+        "known_cells": 1514,
+        "range_frames": 38,
+        "path_lengths": [
+          2,
+          4,
+          7,
+          9,
+          12,
+          15
+        ]
+      },
+      {
+        "root_id": "8a91a30164ca5b0dd6f88de0f7eb71d7cc2839754c98b5e184ac34c51d8a549a",
+        "start_node": 8,
+        "known_cells": 1903,
+        "range_frames": 23,
+        "path_lengths": [
+          2,
+          3,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "root_id": "8c106228c83b537a851b7f72f0ff8d4af06bc4b0091368fe8a7bcc4b54717f06",
+        "start_node": 61,
+        "known_cells": 2282,
+        "range_frames": 50,
+        "path_lengths": [
+          2,
+          6,
+          10,
+          14,
+          18,
+          22
+        ]
+      }
+    ]
+  },
+  "checkpoint_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605",
+  "scope": "Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.",
+  "excluded": "Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.",
+  "startup": [
+    {
+      "model": "baseline",
+      "constructor_ms": 1118.2606518268585,
+      "first_complete_K6_ms": 820.830593816936
+    },
+    {
+      "model": "range",
+      "constructor_ms": 131.03415700607002,
+      "first_complete_K6_ms": 1476.5084800310433
+    }
+  ],
+  "cost": [
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "cold",
+      "k": 1,
+      "calls": 42,
+      "p50_ms": 19.60901089478284,
+      "p95_ms": 30.503902619238925,
+      "p99_ms": 43.64630479598412,
+      "max_ms": 50.3058428876102,
+      "candidate_cells_min": 30209,
+      "candidate_cells_max": 35278
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "cold",
+      "k": 4,
+      "calls": 42,
+      "p50_ms": 28.144251904450357,
+      "p95_ms": 37.912950164172784,
+      "p99_ms": 38.760669964831315,
+      "max_ms": 39.158358005806804,
+      "candidate_cells_min": 120836,
+      "candidate_cells_max": 143797
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "cold",
+      "k": 6,
+      "calls": 42,
+      "p50_ms": 34.407921601086855,
+      "p95_ms": 45.61379913939162,
+      "p99_ms": 47.05290482612327,
+      "max_ms": 47.382530057802796,
+      "candidate_cells_min": 181254,
+      "candidate_cells_max": 218853
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "map_warm_new_queries",
+      "k": 1,
+      "calls": 42,
+      "p50_ms": 8.103119442239404,
+      "p95_ms": 12.240906595252453,
+      "p99_ms": 12.49932800186798,
+      "max_ms": 12.565192067995667,
+      "candidate_cells_min": 30209,
+      "candidate_cells_max": 35278
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "map_warm_new_queries",
+      "k": 4,
+      "calls": 42,
+      "p50_ms": 17.637213109992445,
+      "p95_ms": 20.626892370637503,
+      "p99_ms": 21.606416180729866,
+      "max_ms": 21.686606109142303,
+      "candidate_cells_min": 120836,
+      "candidate_cells_max": 143797
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "map_warm_new_queries",
+      "k": 6,
+      "calls": 42,
+      "p50_ms": 23.618960985913873,
+      "p95_ms": 26.483166334219277,
+      "p99_ms": 26.794412715826184,
+      "max_ms": 26.865539140999317,
+      "candidate_cells_min": 181254,
+      "candidate_cells_max": 218853
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "warm",
+      "k": 1,
+      "calls": 42,
+      "p50_ms": 7.506924448534846,
+      "p95_ms": 12.145390803925684,
+      "p99_ms": 12.327177268452942,
+      "max_ms": 12.3655388597399,
+      "candidate_cells_min": 30209,
+      "candidate_cells_max": 35278
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "warm",
+      "k": 4,
+      "calls": 42,
+      "p50_ms": 16.254229936748743,
+      "p95_ms": 20.135812705848362,
+      "p99_ms": 20.45041699660942,
+      "max_ms": 20.503917010501027,
+      "candidate_cells_min": 120836,
+      "candidate_cells_max": 143797
+    },
+    {
+      "model": "range",
+      "cohort": "dense",
+      "cache": "warm",
+      "k": 6,
+      "calls": 42,
+      "p50_ms": 22.462946362793446,
+      "p95_ms": 26.45952299935743,
+      "p99_ms": 34.688581037335055,
+      "max_ms": 39.577382849529386,
+      "candidate_cells_min": 181254,
+      "candidate_cells_max": 218853
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "cold",
+      "k": 1,
+      "calls": 42,
+      "p50_ms": 16.71334693673998,
+      "p95_ms": 25.248331262264383,
+      "p99_ms": 25.93777184607461,
+      "max_ms": 25.993430987000465,
+      "candidate_cells_min": 34854,
+      "candidate_cells_max": 36115
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "cold",
+      "k": 4,
+      "calls": 42,
+      "p50_ms": 25.12389945331961,
+      "p95_ms": 33.62642248393968,
+      "p99_ms": 35.54449220187961,
+      "max_ms": 36.53813013806939,
+      "candidate_cells_min": 139416,
+      "candidate_cells_max": 146682
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "cold",
+      "k": 6,
+      "calls": 42,
+      "p50_ms": 31.150093069300056,
+      "p95_ms": 38.88813155936075,
+      "p99_ms": 39.251769836992025,
+      "max_ms": 39.257684955373406,
+      "candidate_cells_min": 209124,
+      "candidate_cells_max": 221562
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "map_warm_new_queries",
+      "k": 1,
+      "calls": 42,
+      "p50_ms": 6.568129057995975,
+      "p95_ms": 8.028033887967467,
+      "p99_ms": 8.144693572539836,
+      "max_ms": 8.152308175340295,
+      "candidate_cells_min": 34854,
+      "candidate_cells_max": 36115
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "map_warm_new_queries",
+      "k": 4,
+      "calls": 42,
+      "p50_ms": 15.564152970910072,
+      "p95_ms": 16.341098549310118,
+      "p99_ms": 16.674131210893393,
+      "max_ms": 16.85394416563213,
+      "candidate_cells_min": 139416,
+      "candidate_cells_max": 146682
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "map_warm_new_queries",
+      "k": 6,
+      "calls": 42,
+      "p50_ms": 21.581709966994822,
+      "p95_ms": 22.444599005393684,
+      "p99_ms": 22.84096601884812,
+      "max_ms": 22.900632116943598,
+      "candidate_cells_min": 209124,
+      "candidate_cells_max": 221562
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "warm",
+      "k": 1,
+      "calls": 42,
+      "p50_ms": 6.452300352975726,
+      "p95_ms": 7.504211517516523,
+      "p99_ms": 11.15958514390511,
+      "max_ms": 13.659658841788769,
+      "candidate_cells_min": 34854,
+      "candidate_cells_max": 36115
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "warm",
+      "k": 4,
+      "calls": 42,
+      "p50_ms": 15.179615467786789,
+      "p95_ms": 16.501445055473596,
+      "p99_ms": 16.706722946837544,
+      "max_ms": 16.805539140477777,
+      "candidate_cells_min": 139416,
+      "candidate_cells_max": 146682
+    },
+    {
+      "model": "range",
+      "cohort": "representative",
+      "cache": "warm",
+      "k": 6,
+      "calls": 42,
+      "p50_ms": 21.280417451635003,
+      "p95_ms": 22.49864018522203,
+      "p99_ms": 23.155238477047533,
+      "max_ms": 23.319092812016606,
+      "candidate_cells_min": 209124,
+      "candidate_cells_max": 221562
+    }
+  ],
+  "load_isolation": "2026-10-26T06:38:11.253355+00:00",
+  "local_artifact": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/benchmark_epoch02_intermediate_graphs.json"
+}
