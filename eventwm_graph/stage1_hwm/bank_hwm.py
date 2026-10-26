@@ -48,7 +48,7 @@ def main():
             out = sample(net, b, a.worlds, g)
             if device.type == 'cuda':torch.cuda.synchronize(device)
             timing.append((time.perf_counter() - t0) / len(idx))
-            knots = out['knots'].cpu().numpy();present = out['present'].cpu().numpy();clp = out['count_logp'].cpu().numpy()
+            knots = out['knots'].cpu().numpy();present = out['present'].cpu().numpy();clp = out['count_logp']
             for j, ((root, anchor), i) in enumerate(part):
                 r = recs[(root, anchor)]
                 native = truth_times[root] - float(r['timestamp'])

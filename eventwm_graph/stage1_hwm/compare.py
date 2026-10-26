@@ -35,6 +35,10 @@ ROWS = [
     ('near occ Brier x100 1s', ('near_occupancy', '1.0', 'brier_x100', 'mean')), ('near occ Brier x100 2s', ('near_occupancy', '2.0', 'brier_x100', 'mean')),
     ('near occ ECE 1s', ('near_occupancy', '1.0', 'reliability', 'ece')),
 ]
+ROWS += [('cand r0.5 Brier', ('candidates', 'r0.5', 'brier', 'mean')), ('cand r0.5 pair acc', ('candidates', 'r0.5', 'pairwise', 'accuracy')),
+         ('cand r1 Brier', ('candidates', 'r1', 'brier', 'mean')), ('cand r1 pair acc', ('candidates', 'r1', 'pairwise', 'accuracy')),
+         ('cand r1 ECE', ('candidates', 'r1', 'reliability', 'ece')), ('cand min-dist MAE', ('candidates', 'min_distance', 'mae', 'mean')),
+         ('cand min-dist rho', ('candidates', 'min_distance', 'within_root_spearman', 'mean'))]
 for probe in ('executed', 'stationary'):
     for H in (1, 2, 3):
         for r in ('0.5', '1', '2'):

@@ -23,7 +23,7 @@ def replay(model, root_id, wanted):
         if j not in wanted:continue
         prefix = frames[:R + j + 1]
         model.predict(prefix[:-1], prefix[-1], partial_graph=dict(resolution=legal['partial_graph']['resolution'], timestamp=prefix[-1]['timestamp']), worlds=4)
-        live = _LiveStore(model._state, model._episode_start)
+        st = model.streams['default'];live = _LiveStore(st.state, st.episode_start)
         out[j] = collate(live, [0])
     return out
 

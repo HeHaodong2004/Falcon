@@ -92,7 +92,10 @@ def score(bank_dir, out, name, set_score=True, limit=0):
     recs = legacy_records();strata = native_strata();consts = legacy_constants()
     store = Store('dev');root_index = {r: i for i, r in enumerate(store.root_ids)}
     anchor_of = {(store.root_ids[store.a['anchor_root'][i]], int(store.a['j'][i])): i for i in range(store.n)}
-    path_rows = [];pop_rows = [];risk_rows = [];occ_rows = [];count_rows = []
+    path_rows = [];pop_rows = [];risk_rows = [];occ_rows = [];count_rows = [];query_rows = []
+    qpath = Path('/var/tmp/falcon-stage1-claude/hwm_data/dev_queries.pkl')
+    import pickle
+    queries = pickle.load(open(qpath, 'rb')) if qpath.exists() else None
     rel = collections.defaultdict(Reliability);cov_levels = collections.defaultdict(list)
     started = time.perf_counter();count = 0
     for bank in iter_banks(bank_dir):
@@ -197,6 +200,24 @@ def score(bank_dir, out, name, set_score=True, limit=0):
             risk_rows.append(dict(**meta, probe=probe, H=-1, radius=1., step_brier=float(np.mean((ps - ys) ** 2)),
                                   social_time_error=float(abs((ps * dt).sum() - (ys * dt).sum())), social_time_true=float((ys * dt).sum())))
             rel[(probe, 'step', 1.)].add(ps, ys)
+        # ---------------- sibling candidate queries (Root anchors only) ----------------
+        if int(r['anchor_index']) == 0 and queries is not None:
+            for q in queries.get(root, ()):
+                qt = q['poses'][:, 0] - r['timestamp']
+                ok = (qt > 1e-9) & (qt <= min(3.028001, T[-1] - r['timestamp'] + 1e-6))
+                if not ok.any():continue
+                bi = nearest(times, qt[ok]);tix = nearest(T, q['poses'][ok, 0])
+                robot = q['poses'][ok][:, [1, 3]]
+                dm = np.linalg.norm(positions[:, bi] - robot[None, :, None], axis=-1)
+                dm = np.where(present[:, None, :], dm, np.inf).min(-1).min(-1) if dm.shape[-1] else np.full(W, np.inf)
+                dtv = np.linalg.norm(truth[tix] - robot[:, None], axis=-1).min() if truth.shape[1] else np.inf
+                row = dict(**meta, query=q['query_id'], duration=float(qt[ok][-1]), true_min=float(min(dtv, 5.)),
+                           pred_min=float(np.mean(np.minimum(dm, 5.))))
+                for rad in (.5, 1.):
+                    pp = float(np.mean(dm < rad));yy = float(dtv < rad)
+                    row['p%g' % rad] = pp;row['y%g' % rad] = yy
+                    rel[('query', rad)].add([pp], [yy])
+                query_rows.append(row)
         # ---------------- near-robot 0.5 m occupancy ----------------
         centre = here_xz;bank_f = bank_all
         for H in (1., 2., 3.):
@@ -217,11 +238,49 @@ def score(bank_dir, out, name, set_score=True, limit=0):
         count += 1
         if limit and count >= limit:break
         if count % 2000 == 0:print(json.dumps(dict(scored=count, seconds=round(time.perf_counter() - started, 1))), flush=True)
-    return summarise(name, path_rows, pop_rows, risk_rows, occ_rows, rel, cov_levels, out, count_rows)
+    return summarise(name, path_rows, pop_rows, risk_rows, occ_rows, rel, cov_levels, out, count_rows, query_rows)
 
 
-def summarise(name, path_rows, pop_rows, risk_rows, occ_rows, rel, cov_levels, out, count_rows=()):
+def ranking(rows, key_p, key_y):
+    """Pooled within-Root pairwise ranking accuracy over candidate pairs with different outcomes."""
+    groups = collections.defaultdict(list)
+    for r in rows:groups[(r['root_id'], r['stream'])].append(r)
+    good = 0.;pairs = 0
+    for rs in groups.values():
+        for i in range(len(rs)):
+            for j in range(i + 1, len(rs)):
+                a, b = rs[i], rs[j]
+                if a[key_y] == b[key_y]:continue
+                hi, lo = (a, b) if a[key_y] > b[key_y] else (b, a)
+                good += 1. if hi[key_p] > lo[key_p] else .5 if hi[key_p] == lo[key_p] else 0.;pairs += 1
+    return dict(accuracy=good / pairs if pairs else None, pairs=pairs)
+
+
+def spearman_within(rows):
+    from scipy.stats import spearmanr
+    groups = collections.defaultdict(list);vals = []
+    for r in rows:groups[(r['root_id'], r['stream'])].append(r)
+    out = []
+    for key, rs in groups.items():
+        t = [r['true_min'] for r in rs];p = [r['pred_min'] for r in rs]
+        if len(rs) >= 3 and np.std(t) > 1e-9 and np.std(p) > 1e-9:
+            out.append(dict(root_id=rs[0]['root_id'], scene_id=rs[0]['scene_id'], rho=float(spearmanr(t, p).correlation)))
+    return out
+
+
+def summarise(name, path_rows, pop_rows, risk_rows, occ_rows, rel, cov_levels, out, count_rows=(), query_rows=()):
     s = dict(name=name)
+    if query_rows:
+        qs = {}
+        for rad in (.5, 1.):
+            part = [dict(r, b=(r['p%g' % rad] - r['y%g' % rad]) ** 2) for r in query_rows]
+            qs['r%g' % rad] = dict(brier=summarize(part, 'b'), base_rate=float(np.mean([r['y%g' % rad] for r in query_rows])),
+                                   mean_p=float(np.mean([r['p%g' % rad] for r in query_rows])), pairwise=ranking(query_rows, 'p%g' % rad, 'y%g' % rad),
+                                   reliability=rel[('query', rad)].summary())
+        rho = spearman_within(query_rows)
+        qs['min_distance'] = dict(mae=summarize([dict(r, e=abs(r['pred_min'] - r['true_min'])) for r in query_rows], 'e'),
+                                  within_root_spearman=summarize(rho, 'rho'), candidates=len(query_rows))
+        s['candidates'] = qs
     cal = {}
     for subset, pred in (('all', lambda r:True), ('h0', lambda r:r['h0'])):
         part = [r for r in count_rows if pred(r)]

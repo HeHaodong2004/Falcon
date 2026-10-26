@@ -69,6 +69,41 @@ class BEV(nn.Module):
         return f, pooled
 
 
+def cbr(i, o, s=1, d=1):
+    return nn.Sequential(nn.Conv2d(i, o, 3, s, padding=d, dilation=d, bias=False), nn.BatchNorm2d(o), nn.ReLU(inplace=True))
+
+
+class ResB(nn.Module):
+    def __init__(self, c, d=1):
+        super().__init__();self.a = cbr(c, c, d=d);self.b = nn.Sequential(nn.Conv2d(c, c, 3, padding=d, dilation=d, bias=False), nn.BatchNorm2d(c))
+
+    def forward(self, x):return F.relu(x + self.b(self.a(x)))
+
+
+class BEVFast(nn.Module):
+    """64x64 (0.4 m) canonical rasters -> 64x64 feature field; ~10x fewer MACs than ``BEV``."""
+
+    def __init__(self, c=(16, 32, 48), out=32):
+        super().__init__()
+        self.stem = cbr(8, c[0])                                    # map3 + vis3 + coords2 at 64
+        self.d1 = nn.Sequential(cbr(c[0], c[1], s=2), ResB(c[1]))   # 32
+        self.d2 = nn.Sequential(cbr(c[1], c[2], s=2), ResB(c[2]))  # 16
+        self.u1 = nn.Sequential(nn.Conv2d(c[2] + c[1], c[1], 1), nn.ReLU(inplace=True), cbr(c[1], c[1]))
+        self.u2 = nn.Sequential(nn.Conv2d(c[1] + c[0], out, 1), nn.ReLU(inplace=True))
+        self.pooled = 2 * c[2]
+
+    def forward(self, m, v):
+        B, _, H, W = m.shape
+        lin = torch.linspace(-1, 1, H, device=m.device)
+        coords = torch.stack(torch.meshgrid(lin, lin, indexing='ij'), 0)[None].expand(B, -1, -1, -1)
+        a = self.stem(torch.cat([m, v, coords], 1))
+        b = self.d1(a);c = self.d2(b)
+        pooled = torch.cat([c.mean((2, 3)), c.amax((2, 3))], 1)
+        u = self.u1(torch.cat([F.interpolate(c, scale_factor=2, mode='nearest'), b], 1))
+        f = self.u2(torch.cat([F.interpolate(u, scale_factor=2, mode='nearest'), a], 1))
+        return f, pooled
+
+
 def sample_field(field, points):
     """Bilinear sample [B,C,64,64] canonical field at canonical metres points [B,N,2] -> [B,N,C]."""
     # field indexed [u (H), v (W)]; grid x -> W (v), y -> H (u)
@@ -125,6 +160,23 @@ def mixture_logpdf(p, d, mask):
     return torch.logsumexp(comp + F.log_softmax(p['logits'], -1), -1)
 
 
+def log_tail(p_exist, visible, log_count, minimum, size=24):
+    """Differentiable log P(total >= minimum); p_exist already masked (0 for padded keys)."""
+    B, K = p_exist.shape
+    stale = torch.where(visible, torch.zeros_like(p_exist), p_exist)
+    pb = torch.zeros(B, size, device=p_exist.device, dtype=p_exist.dtype);pb = torch.cat([torch.ones_like(pb[:, :1]), pb[:, 1:]], 1)
+    for k in range(K):
+        q = stale[:, k:k + 1]
+        pb = pb * (1 - q) + F.pad(pb[:, :-1], (1, 0)) * q
+    res = log_count.exp()
+    conv = sum(F.pad(pb[:, :size - c], (c, 0)) * res[:, c:c + 1] for c in range(res.shape[1]))
+    vis = visible.sum(1)
+    j = torch.arange(size, device=p_exist.device)[None] - vis[:, None]
+    law = torch.where(j >= 0, torch.gather(conv, 1, j.clamp_min(0)), torch.zeros_like(conv))
+    below = (law * (torch.arange(size, device=p_exist.device)[None] < minimum[:, None])).sum(1)
+    return torch.log1p(-below.clamp(max=1 - 1e-6))
+
+
 def injections(nl, nh):
     """All partial injective maps from nl latent keys into nh humans (-1 = unmatched)."""
     rows = []
@@ -135,11 +187,18 @@ def injections(nl, nh):
 
 
 class HWM(nn.Module):
-    def __init__(self, d=128, modes=6, field=48, global_in=43, key_in=12):
+    def __init__(self, d=128, modes=6, field=48, global_in=43, key_in=12, arch='full', truncate=False, ablate=()):
         super().__init__()
-        self.bev = BEV(out=field)
+        self.arch = arch;self.truncate = truncate;self.ablate = tuple(ablate)
+        if arch == 'fast':
+            field = 32;self.bev = BEVFast(out=field);self.raster_spec = (64, .4)
+        else:
+            self.bev = BEV(out=field);self.raster_spec = (128, .2)
         self.register_buffer('ahead', torch.tensor([[0., 0.], [.6, 0.], [1.2, 0.], [2., 0.], [3., 0.], [1., .8], [1., -.8], [-.8, 0.]]), persistent=False)
-        self.hist = nn.GRU(4, 64, batch_first=True)
+        if arch == 'fast':
+            self.hist = nn.Sequential(nn.Linear(4 * HISTORY, 64), nn.SiLU(), nn.Linear(64, 64))
+        else:
+            self.hist = nn.GRU(4, 64, batch_first=True)
         self.key_mlp = nn.Sequential(nn.Linear(key_in + 64 + field * len(self.ahead), d), nn.SiLU(), nn.Linear(d, d))
         self.glob = nn.Sequential(nn.Linear(self.bev.pooled + global_in, d), nn.SiLU(), nn.Linear(d, d))
         layer = nn.TransformerEncoderLayer(d, 4, 2 * d, dropout=0., batch_first=True, norm_first=True)
@@ -157,12 +216,16 @@ class HWM(nn.Module):
 
     # ------------------------------------------------------------------
     def encode(self, b, m, v):
+        if 'map' in self.ablate:m = torch.cat([torch.ones_like(m[:, :1]), torch.zeros_like(m[:, 1:])], 1)
+        if 'map' in self.ablate or 'vis' in self.ablate:v = torch.cat([torch.ones_like(v[:, :1]), torch.zeros_like(v[:, 1:])], 1)
         f, pooled = self.bev(m, v)
         B = f.shape[0]
         g = self.glob(torch.cat([pooled, b['global']], -1))
         # key tokens
-        hist = b['key_hist'].reshape(-1, HISTORY, 4)
-        _, hh = self.hist(hist);hh = hh[-1].reshape(B, K_MAX, 64)
+        if self.arch == 'fast':
+            hh = self.hist(b['key_hist'].reshape(B, K_MAX, HISTORY * 4))
+        else:
+            _, hh = self.hist(b['key_hist'].reshape(-1, HISTORY, 4));hh = hh[-1].reshape(B, K_MAX, 64)
         vel = b['key_vel'];speed = vel.norm(dim=-1, keepdim=True)
         heading = torch.where(speed > .2, vel / speed.clamp_min(1e-6), torch.tensor([1., 0.], device=vel.device))
         normal = torch.stack([-heading[..., 1], heading[..., 0]], -1)
@@ -272,6 +335,9 @@ class HWM(nn.Module):
         marginal = torch.logsumexp(score, 1) + (res * unowned).sum(1)
         usable = (nlat <= L_MAX)
         total = fixed_ll.sum(1) + marginal
+        if self.truncate:
+            # Exact conditioning on the legal event total >= max simultaneous detections.
+            total = total - log_tail(log_p.exp() * kmask, visible & kmask, log_count, b['min_count'])
         nll = -(total * usable).sum() / usable.sum().clamp_min(1)
         stats = dict(nll=nll.detach(), key_nll=-(fixed_ll.sum(1) * usable).sum().detach() / usable.sum().clamp_min(1),
                      usable=usable.float().mean().detach())

@@ -77,8 +77,16 @@ def canon(points, origin, rot):
     return np.einsum('...ij,...j->...i', rot, points - origin)
 
 
-def collate(store, idx, flip=None):
-    """Padded numpy batch in the canonical frame. ``flip``: per-anchor reflection v->-v."""
+IGNORED = 3   # ablation only: unresolved key excluded from the likelihood
+
+
+def collate(store, idx, flip=None, hard_labels=False):
+    """Padded numpy batch in the canonical frame. ``flip``: per-anchor reflection v->-v.
+
+    ``hard_labels`` (ablation): replace the latent assignment of unresolved keys by the
+    extractor's heuristic labels; still-ambiguous keys are IGNORED and their humans
+    become residual targets.
+    """
     idx = np.asarray(idx);B = len(idx)
     a = store.a
     origin = a['robot'][idx, :2].astype(np.float64);theta = a['cam'][idx, 2].astype(np.float64)
@@ -133,6 +141,11 @@ def collate(store, idx, flip=None):
         lp = store.k['k_legacy_presence'][sel]
         ktype[b, :m] = np.where(np.isnan(lp), LATENT, np.where(lp > .5, FIXED_PRESENT, FIXED_ABSENT))
         kown[b, :m] = np.where(lp > .5, store.k['k_phys'][sel], -1)
+        if hard_labels:
+            ex = store.k['k_exist'][sel];oh = store.k['k_owner_h'][sel]
+            lat = ktype[b, :m] == LATENT
+            ktype[b, :m] = np.where(lat, np.where(np.isnan(ex), IGNORED, np.where(ex > .5, FIXED_PRESENT, FIXED_ABSENT)), ktype[b, :m])
+            kown[b, :m] = np.where(lat & (ex > .5), oh, kown[b, :m])
         h0, h1 = store.hum_off[i], store.hum_off[i + 1]
         nh = min(P, h1 - h0)
         hum[b, :nh] = canon(store.h['h_hum'][h0:h0 + nh].astype(np.float64), origin[b], rot[b])
@@ -141,7 +154,7 @@ def collate(store, idx, flip=None):
             if ktype[b, kk] == FIXED_PRESENT and kown[b, kk] < nh:hfixed[b, kown[b, kk]] = True
     batch.update(key_feat=kf, key_mask=kmask, key_hist=khist, key_last=klast, key_vel=kvel, key_age=kage,
                  key_type=ktype, key_owner=kown, key_column=kcol, hum=hum, hum_mask=hmask, hum_fixed=hfixed,
-                 tau_mask=tmask)
+                 tau_mask=tmask, min_count=a['summary'][idx][:, 3].astype(np.int64))
     return batch
 
 
@@ -156,7 +169,7 @@ def to_torch(batch, device):
     return out
 
 
-def rasters(batch, out=CROP):
+def rasters(batch, out=CROP, cell=COARSE):
     """Canonical map (3 one-hot channels, 0.2 m) and visibility (3 channels, 0.4 m) on device."""
     import torch.nn.functional as F
     device = batch['map'].device;B = batch['map'].shape[0]
@@ -167,8 +180,8 @@ def rasters(batch, out=CROP):
     seconds = torch.where(age == 255, torch.full_like(age, 254), age) * AGE_STEP
     vis = torch.stack([never, torch.log1p(seconds) / 2.6 * (1 - never), now], 1)
     # Canonical grid: pixel centres u,v in [-12.8,12.8).
-    half = out * COARSE / 2
-    c = (torch.arange(out, device=device).float() + .5) * COARSE - half
+    half = out * cell / 2
+    c = (torch.arange(out, device=device).float() + .5) * cell - half
     U, V = torch.meshgrid(c, c, indexing='ij')
     uv = torch.stack([U, V], -1).reshape(1, -1, 2).expand(B, -1, -1)
     rot = batch['rot']  # world->canonical; canonical->world is transpose
