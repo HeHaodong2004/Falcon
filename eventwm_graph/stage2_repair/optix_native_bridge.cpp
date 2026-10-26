@@ -28,7 +28,10 @@ extern "C" int falcon_optix_create(const char* ptx,size_t bytes,void** returned,
 static OptixBuildInput input(CUdeviceptr* vertices,unsigned triangles,unsigned* flags){
     OptixBuildInput in={};in.type=OPTIX_BUILD_INPUT_TYPE_TRIANGLES;in.triangleArray.vertexBuffers=vertices;in.triangleArray.numVertices=triangles*3;in.triangleArray.vertexFormat=OPTIX_VERTEX_FORMAT_FLOAT3;in.triangleArray.vertexStrideInBytes=3*sizeof(float);in.triangleArray.flags=flags;in.triangleArray.numSbtRecords=1;return in;
 }
-static OptixAccelBuildOptions build_options(){OptixAccelBuildOptions o={};o.buildFlags=OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;o.operation=OPTIX_BUILD_OPERATION_BUILD;return o;}
+#ifndef FALCON_OPTIX_FAST_BUILD
+#define FALCON_OPTIX_FAST_BUILD 0
+#endif
+static OptixAccelBuildOptions build_options(){OptixAccelBuildOptions o={};o.buildFlags=FALCON_OPTIX_FAST_BUILD?OPTIX_BUILD_FLAG_PREFER_FAST_BUILD:OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;o.operation=OPTIX_BUILD_OPERATION_BUILD;return o;}
 extern "C" int falcon_optix_sizes(void* pointer,unsigned long long vertex_pointer,unsigned count,unsigned long long* output,unsigned long long* temporary,char* error,size_t error_size){
     auto s=static_cast<State*>(pointer);CUdeviceptr vertices=vertex_pointer;unsigned flags=OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;auto in=input(&vertices,count,&flags);auto options=build_options();OptixAccelBufferSizes sizes={};CHECK(optixAccelComputeMemoryUsage(s->context,&options,&in,1,&sizes));*output=sizes.outputSizeInBytes;*temporary=sizes.tempSizeInBytes;return 0;
 }

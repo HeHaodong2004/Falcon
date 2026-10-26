@@ -64,13 +64,15 @@ def select_keyframes(origins,rotations,distance=.07,rotation=.07):
 
 
 class PlanarRangeMesh(GpuObservedRangeMesh):
-    def __init__(self,ranges,origins,rotations,timestamps,now,resolution,device='cuda:0',stride=1,tracks=None,epsilon=.00005,bvh='balanced',keyframe_distance=.07,keyframe_rotation=.07,tile_size=4):
+    def __init__(self,ranges,origins,rotations,timestamps,now,resolution,device='cuda:0',stride=1,tracks=None,epsilon=.00005,bvh='balanced',keyframe_distance=.07,keyframe_rotation=.07,tile_size=4,input_buffers=None):
         tick=time.perf_counter();validate(ranges,origins,rotations,timestamps,now)
         if stride!=1:raise ValueError('planar merging preserves full original range pixels')
         if tile_size not in(4,8):raise ValueError('supported measured planar tile sizes4/8')
         self.keyframes=select_keyframes(origins,rotations,keyframe_distance,keyframe_rotation)
         self.latest_sensor_time=float(timestamps[-1]);self.planes=[];self.tile_size=tile_size;device=torch.device(device);mod=CudaModule(SOURCE.replace('#define PLANAR_TILE 4','#define PLANAR_TILE %d'%tile_size),device)
-        def tensor(x,dtype):return torch.from_numpy(np.ascontiguousarray(x,dtype=dtype)).to(device)
+        def tensor(x,dtype):
+            if input_buffers is not None:return input_buffers.tensor(x,dtype)
+            return torch.from_numpy(np.ascontiguousarray(x,dtype=dtype)).to(device)
         active=[];offsets=[0]
         for i in self.keyframes:
             for track in tracks[i]if tracks is not None else[]:
@@ -80,7 +82,8 @@ class PlanarRangeMesh(GpuObservedRangeMesh):
                 active.append(p)
             offsets.append(len(active))
         nf=len(self.keyframes);_,h,w=ranges.shape;tiles=((w-2)//tile_size+1)*((h-2)//tile_size+1)*nf;total=tiles*2*tile_size*tile_size;vertices=torch.empty((total,9),device=device);keys=torch.empty(total,device=device,dtype=torch.int64)
-        mod.launch('planar_tiles',tiles,[tensor(ranges[self.keyframes],np.float32),tensor(origins[self.keyframes],np.float64),tensor(rotations[self.keyframes],np.float64),ct.c_int(nf),ct.c_int(h),ct.c_int(w),tensor(np.array(active).reshape(-1,3),np.float64),tensor(offsets,np.int32),ct.c_float(epsilon),vertices,keys])
+        selected=[tensor(a[self.keyframes],dt)for a,dt in [(ranges,np.float32),(origins,np.float64),(rotations,np.float64)]]if input_buffers is None else input_buffers.selected(self.keyframes)
+        mod.launch('planar_tiles',tiles,[*selected,ct.c_int(nf),ct.c_int(h),ct.c_int(w),tensor(np.array(active).reshape(-1,3),np.float64),tensor(offsets,np.int32),ct.c_float(epsilon),vertices,keys])
         vertices=vertices[keys!=torch.iinfo(torch.int64).max];self.triangles=int(len(vertices))
         if not self.triangles:raise ValueError('no observed planar surface')
         if bvh=='native':
