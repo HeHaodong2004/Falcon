@@ -68,10 +68,24 @@ results do not depend on cache state or on the number of lanes (`lanes=3` is che
    set (new channels get zero stem weights, so the warm model's function is unchanged at step 0).
 4. **Masked U-Net** (`model.py`): full cell resolution; every activation outside the query frame is
    zeroed and global context is a masked mean, so outputs do not depend on padding or batch composition.
-   Outputs revelation r and BLOCKED-given-revelation b. Optional cascade: a second masked U-Net refines
-   the first network's logits.
+   Outputs revelation r and BLOCKED-given-revelation b. Optional zero-initialized coarse-level side
+   branches (`side`, function-preserving for warm starts), optional cascade (a second masked U-Net refines
+   the first network's logits). Inference: F16 copy with BatchNorm folded into the convolutions.
 5. **Decision**: frozen in the checkpoint by `select.py` on scene-disjoint TRAIN validation, either
    `reveal` (r > t, then b > t_b) or `class` (FREE if r(1-b) > t_F, BLOCKED if rb > t_B, larger margin wins).
+6. **Training extras** (`train.py`): warm restarts, soft label-aware IoU loss (`--iou-weight`), EMA
+   (`--ema`), larger shuffle pool (`--pool-factor`), legal features on a side stream (`--overlap`),
+   channel extension (`--extend`), side branches (`--side`), distillation from frozen teachers
+   (`--teacher`, `--distill`).
+
+## Frozen deployable checkpoints
+
+| checkpoint | full development (original evaluator) | dense K=6 cold P50 / P95 |
+| --- | --- | --- |
+| `output/claude_stage2/final/v11.pt` (current best; use 256 px packets, `lanes=3`) | label-aware IoU 0.4688 (256 px) | 24.9 / 34.2 ms (GPU0, 256 px) |
+| `output/claude_stage2/final/v7.pt` | 0.4563 (128 px) | 31.1 / 35.9 ms (GPU0, 128 px) |
+
+See `docs/claude_stage2/STAGE2_CLAUDE_REPORT.md` for protocols, receipts and the full experiment log.
 
 ## Files
 
@@ -81,5 +95,8 @@ scene-disjoint TRAIN validation; `evaluate.py` original development evaluation (
 `summarize()` to `stage2_repair/range_full_evaluate.py`); `benchmark.py` original 32-workload complete
 latency; `test_api.py` contract tests. Diagnostics: `sim_eval.py`, `sim_check*.py`, `cam_check.py`,
 `blocked_debug.py`, `ray_debug.py`, `entry_debug.py`, `fp_debug.py`, `strata.py`, `aux_eval.py`,
-`fitcheck.py`, `check_past.py`, `fidelity_debug.py`, `near_ab.py`, `compare_pilot.py`, `viz*.py`.
+`fitcheck.py`, `check_past.py`, `fidelity_debug.py`, `near_ab.py`, `compare_pilot.py`, `viz*.py`,
+`human_diag.py`, `bucket_select.py`, `valcheck.py`, `prof_step.py`, `lanes_bench.py`. Tools:
+`sensor_select.py` (128 vs 256 px on TRAIN validation), `val256_expand.py` (256 px packets for validation
+Roots, unchanged environment replay), `make_ensemble.py`, `soup.py`.
 `quiet.py` runs a benchmark with this session's own background jobs paused (run as a module).
