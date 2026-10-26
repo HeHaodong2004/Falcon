@@ -259,21 +259,37 @@ R="$PY scripts/stage2_segment_run.py"
 # 1. train (TRAIN Roots with 128 px range packets; scene-disjoint validation)
 $R eventwm_graph.stage2_claude.train --name past_v7 --device cuda:0 --epochs 2 --workers 7 \
    --val-every 4000 --val-roots 160 --human-filter --human-occluders --splat 0 --sub 2 --render 192
+# 1b. warm restart + soft IoU loss (v7r)
+$R eventwm_graph.stage2_claude.train --name v7_restart_iou --device cuda:0 --epochs 1 --workers 7 --val-every 4000 \
+   --val-roots 160 --warm output/claude_stage2/training/past_v7/final.pt --lr 5e-4 --warmup 200 --iou-weight 0.5
+# 1c. new zero-initialized input channels + coarse-level side branches + EMA + extra TRAIN Roots (v11)
+$R eventwm_graph.stage2_claude.train --name v11_ext --device cuda:0 --epochs 1 --workers 7 --val-every 4000 --val-roots 160 \
+   --warm output/claude_stage2/training/v7_restart_iou/final.pt --extend --near 0.5 --lr 5e-4 --warmup 200 \
+   --iou-weight 0.5 --ema 0.999 --extra-sensor claude_train_range_128 --pool-factor 16 --overlap --side 3:192:3,4:256:4
+# 1d. self-distillation restart (v12)
+$R eventwm_graph.stage2_claude.train --name v12_distill --device cuda:0 --epochs 1 --workers 7 --val-every 4000 \
+   --val-roots 160 --warm output/claude_stage2/training/v11_ext/final.pt --extend --near 0.5 --lr 4e-4 --warmup 200 \
+   --iou-weight 0.5 --ema 0.999 --extra-sensor claude_train_range_128 --pool-factor 16 --overlap --side 3:192:3,4:256:4 \
+   --seed 2 --teacher output/claude_stage2/training/v11_ext/final.pt --distill 0.5
 # optional refinement stage on a frozen trained base
 $R eventwm_graph.stage2_claude.train --name cascade --device cuda:0 --epochs 1 --workers 7 \
    --cascade-from output/claude_stage2/training/past_v7/final.pt --widths 24,48,64,96,128 --blocks 1,1,2,2,2 --lr 1e-3
 # 2. operating point on TRAIN validation (400 Roots) and freezing into the deployable checkpoint
 $R eventwm_graph.stage2_claude.select --checkpoint <trained.pt> --device cuda:0 --roots 400 \
    --out <name> --freeze-to output/claude_stage2/final/<name>.pt
-# 3. original full development evaluation (2,110 Roots / 47,128 windows)
+# 2b. sensor resolution on the TRAIN-validation Roots with both packet resolutions (256 px packets for
+#     more validation Roots: unchanged environment replay, `val256_expand.py <part> <parts> <count>`)
+$R eventwm_graph.stage2_claude.sensor_select output/claude_stage2/final/<name>.pt cuda:0
+# 3. original full development evaluation (2,110 Roots / 47,128 windows); 256 px: --sensor-directory full_range_branches_256
 $R eventwm_graph.stage2_claude.evaluate --checkpoint output/claude_stage2/final/<name>.pt \
-   --name full_<name> --split full --workers 6 --device cuda:0
+   --name full_<name> --split full --workers 6 --device cuda:0 [--sensor-directory full_range_branches_256]
 # 4. contract tests (exact domain, zero horizon, no mutation, single == batched)
 $R eventwm_graph.stage2_claude.test_api output/claude_stage2/final/<name>.pt cuda:1
 # 5. complete K=1/4/6 latency on the original 32 workloads, own background jobs paused
 $PY -m eventwm_graph.stage2_claude.quiet --receipt output/claude_stage2/benchmark/quiet_<name>.json \
    --pattern "stage2_claude.train" -- $R eventwm_graph.stage2_claude.benchmark \
-   --checkpoint output/claude_stage2/final/<name>.pt --name <name>_bench128 --repetitions 3 --device cuda:1
+   --checkpoint output/claude_stage2/final/<name>.pt --name <name>_bench128 --repetitions 3 --device cuda:1 \
+   [--sensor-directory range_benchmark_256] [--lanes 3]
 ```
 
 ## 12. Process, data and evaluation-integrity notes
