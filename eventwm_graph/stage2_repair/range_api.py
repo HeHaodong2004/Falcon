@@ -95,6 +95,8 @@ class RangeEvidencePredictor(GlobalTimePredictor):
         self.mesh_cache.move_to_end(identity);self.active_mesh=self.mesh_cache[identity];self.active_graph=self.prepare_graph(partial_graph);self.current_origin=origins[-1];self.current_rotation=rotations[-1];mesh_at=time.perf_counter()
         result=super().predict_segments(partial_graph=partial_graph,trajectories=paths,materialize=materialize)
         for d in result:
+            point_source=d['provenance'].pop('training_source_commit',None)
+            d['provenance'].update(frozen_point_source_commit=point_source,training_source_commit=self.config.get('training_source_commit'),training_source_file_hashes=self.config.get('sources',{}))
             d['provenance'].update(input='current_legal_graph_supplied_base_path_and_measured_past_current_range_history',sensor_extension=True,privileged_runtime_inputs=False,range_history_identity=identity)
             d['provenance']['range_mesh_pixel_stride']=self.mesh_stride
             d['provenance']['observed_obstacle_schema']=self.config.get('observed_obstacle_schema','legacy_8cell_crop')

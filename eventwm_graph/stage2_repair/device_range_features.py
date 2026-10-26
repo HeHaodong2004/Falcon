@@ -38,5 +38,5 @@ def extract(predictor,prepared,contexts,batch):
     support,difference=mesh.pipeline_support_cache[support_key];frame=torch.zeros((nv,area),dtype=torch.int32,device=device);out=torch.empty((n,16),device=device)
     module.launch('generated_views',nu*nv,[uk,ff,ct.c_int(nu),cam,ct.c_int(nv),batch['unknown'],ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nx),ct.c_int(nz),ct.c_double(r),frame,*mesh.kernel.mesh])
     module.launch('wall_views',nv*105,[cam,ct.c_int(nv),batch['unknown'],ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nx),ct.c_int(nz),ct.c_double(r),frame,*mesh.kernel.mesh])
-    module.launch('pack_evidence',n,[frame,ct.c_int(area),keys,batch['ids'],batch['cells'],batch['queries'],ct.c_int(n),step,offset,init,param,interval_t,when_t,duration_t,ff,support,difference,obstacle,ct.c_double(r),ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nz),out])
-    return out
+    kernel.pack(n,[frame,ct.c_int(area),keys,batch['ids'],batch['cells'],batch['queries'],ct.c_int(n),step,offset,init,param,interval_t,when_t,duration_t,ff,support,difference,obstacle,ct.c_double(r),ct.c_int(int(low[0])),ct.c_int(int(low[1])),ct.c_int(nz),out])
+    return kernel.transform_evidence(out)

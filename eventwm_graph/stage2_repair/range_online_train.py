@@ -1,5 +1,6 @@
 """Bounded fit on expanded existing recordings, fresh original-cell features."""
 import argparse
+import subprocess
 from pathlib import Path
 import time
 import numpy as np
@@ -55,8 +56,9 @@ def make_batch(items,builder,device,ray_residual=False):
     return batch,ledger
 
 
-def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False):
+def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False,initial_visibility=False):
     if stream_preparation and not wait:raise ValueError('streamed preparation requires explicit --wait')
+    if ray_residual and initial_visibility:raise ValueError('bounded candidates are tested separately')
     torch.set_num_threads(1);torch.manual_seed(5511);torch.backends.cuda.matmul.allow_tf32=False
     tick=time.perf_counter();dest=OUT/'training'/name
     if resume:
@@ -79,19 +81,27 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     data=group_class(m,wait_for_preparation=stream_preparation);loader=DataLoader(data,batch_size=batch_size,num_workers=workers,collate_fn=keep,persistent_workers=True,multiprocessing_context='fork',prefetch_factor=2)
     warm=Path(resume or warm)if(resume or warm)else OUT/'training/support_pretrained256_control/selected.pt'
     saved=torch.load(warm,map_location='cpu')
-    if ray_residual:
+    if initial_visibility:
+        from .initial_model import InitialVisibilityNet
+        model=InitialVisibilityNet().to(device);model.initialize_spatial(saved['model'])
+    elif ray_residual:
         from .ray_residual_model import RayResidualEvidenceNet
         model=RayResidualEvidenceNet().to(device);model.initialize_spatial(saved['model'])
     else:model=SpatialEvidenceNet().to(device);model.load_state_dict(saved['model'])
-    builder=LegalFeatureBuilder(model,device,device_canvas=device_canvas,device_edt=device_edt)
+    builder=LegalFeatureBuilder(model,device,device_canvas=device_canvas,device_edt=device_edt,initial_visibility=initial_visibility)
     optim=torch.optim.AdamW([p for p in model.parameters()if p.requires_grad],lr=.0002,weight_decay=.0001);scaler=torch.cuda.amp.GradScaler()
     cfg=dict(schema='legal_range_spatial_1',name=name,epochs=epochs,roots=m['roots'],scenes=m['scenes'],windows=m['windows'],groups=m['groups'],base_checkpoint=saved['config']['base_checkpoint'],warm=str(warm),warm_sha256=sha(warm),snapshot_sha256=sha(dest/'snapshot.json'),source_manifest_sha256=m['source_manifest_sha256'],observed_obstacle_schema='capped_2m_complete',device=device,batch_size=batch_size,workers=workers,learning_rate=.0002,sampling='Fresh128positive/384nearUNKNOWN/128remainingUNKNOWN every pass over all original windows; exact inverse inclusion equalScene/Root/window weights. Full candidate construction before sampling, no hard windows dropped.',objective='Same primary pos8revelation BCE +8R conditional BCE +.1typedDice +.25auxiliary published-certificate-class UNION.',inputs='Only current legal graph, supplied trajectory, measured ancestor/current range arrays and legally observed track history/current camera. No private full scene or future truth inputs.',sources={n:sha(Path(__file__).with_name(n))for n in ['range_online_train.py','range_online_data.py','range_online_features.py','range_fast.py','range_gpu.py','range_spatial.py']})
     cfg['dev_feature_manifest']=str((OUT/'range_evidence_dev_v2/manifest.json').resolve())
+    cfg['training_source_commit']=subprocess.check_output(['git','rev-parse','HEAD'],cwd=Path(__file__).resolve().parents[2],text=True).strip()
     cfg['cardinal_augmentation']=bool(augment_cardinal)
     cfg['device_canvas']=bool(device_canvas)
     cfg['device_edt']=bool(device_edt)
     cfg['smoke_groups']=int(smoke_groups)
     cfg['ray_residual']=bool(ray_residual)
+    cfg['initial_visibility']=bool(initial_visibility)
+    if initial_visibility:
+        cfg['schema']='legal_range_initial_visibility_1';cfg['initial_code_manifest']=str((OUT/'range_initial_visibility_dev_v1/manifest.json').resolve())
+        for n in ['initial_model.py','initial_visibility.py']:cfg['sources'][n]=sha(Path(__file__).with_name(n))
     cfg['stream_preparation']=bool(stream_preparation)
     cfg['prepared_roots_at_start']=m['roots']-len(missing)
     if stream_preparation:cfg['preparation_order']='Fixed full training snapshot and all original windows. Within each seeded worker shuffle, consume prepared Roots first, then wait for every pendingRoot. None excluded. Actual first-visit Root order saved locally; readiness can change SGD order, not supervision or universe.'
@@ -107,6 +117,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
         if saved['config']['snapshot_sha256']!=sha(dest/'snapshot.json')or saved['config']['epochs']!=epochs or saved['config']['batch_size']!=batch_size:raise ValueError('resume snapshot or optimization schedule changed')
         if bool(saved['config'].get('cardinal_augmentation'))!=bool(augment_cardinal):raise ValueError('resume augmentation changed')
         if bool(saved['config'].get('ray_residual'))!=bool(ray_residual):raise ValueError('resume model type changed')
+        if bool(saved['config'].get('initial_visibility'))!=bool(initial_visibility):raise ValueError('resume feature type changed')
         optim.load_state_dict(saved['optimizer']);scaler.load_state_dict(saved['scaler']);updates=int(saved['updates']);first_epoch=int(saved['epoch'])+1
         logs=[r for r in read(dest/'learning.json')if r['epoch']<first_epoch];elapsed_base=float(logs[-1]['seconds'])if logs else 0.
         cfg.update(resume_checkpoint=str(warm.resolve()),resume_sha256=sha(warm),resume_epoch=int(saved['epoch']),original_warm=saved['config']['warm'],resume_note='Exact completed-epoch optimizer/scaler/update state. Same all-window snapshot and deterministic epoch sampling. CUDA code lifetime repair; original configs/checkpoints retained.')
@@ -143,4 +154,4 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');p.add_argument('--initial-visibility',action='store_true');run(**vars(p.parse_args()))

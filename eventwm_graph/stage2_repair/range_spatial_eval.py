@@ -29,8 +29,11 @@ def full_training_groups():
 
 
 def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prepared=None):
-    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');ray_residual=saved['schema']=='legal_range_ray_residual_1'
-    if ray_residual:
+    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');ray_residual=saved['schema']=='legal_range_ray_residual_1';initial_visibility=saved['schema']=='legal_range_initial_visibility_1'
+    if initial_visibility:
+        from .initial_model import InitialVisibilityNet
+        model=InitialVisibilityNet().to(device).eval()
+    elif ray_residual:
         from .ray_residual_model import RayResidualEvidenceNet
         model=RayResidualEvidenceNet().to(device).eval()
     else:model=SpatialEvidenceNet().to(device).eval()
@@ -38,6 +41,10 @@ def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prep
     if ray_residual:
         from .ray_residual_groups import attach
         attach(groups,training=training or full_training)
+    if initial_visibility:
+        if training or full_training:raise ValueError('initial sidecar is dev-only; use real online fitting inputs for training diagnostics')
+        from .initial_cache import attach
+        attach(groups,saved['config']['initial_code_manifest'])
     def tensor(x,dtype):return torch.from_numpy(np.ascontiguousarray(x,dtype=dtype)).to(device)
     for g in groups:
         probability=[]
@@ -46,7 +53,9 @@ def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prep
         with torch.inference_mode(),torch.cuda.amp.autocast():
             encoded=model.encode(tensor(g['maps'][None],np.float32))
             for begin in range(0,len(g['y']),65536):
-                sl=slice(begin,begin+65536);x=tensor(g['x'][sl],np.float32);extra=tensor(g['extra'][sl],np.float32);indices=tensor(g['indices'][sl],np.int64);ids=torch.zeros(len(x),dtype=torch.long,device=device);p,_=model.probabilities(x,extra,indices,ids,encoded,*([tensor(g['ray_origins'][sl],np.float32)]if ray_residual else[]));probability.append(p.float().cpu().numpy())
+                sl=slice(begin,begin+65536);x=tensor(g['x'][sl],np.float32);extra=tensor(g['extra'][sl],np.float32)
+                if initial_visibility:extra=torch.cat([extra,tensor(g['initial_extra'][sl],np.float32)],1)
+                indices=tensor(g['indices'][sl],np.int64);ids=torch.zeros(len(x),dtype=torch.long,device=device);p,_=model.probabilities(x,extra,indices,ids,encoded,*([tensor(g['ray_origins'][sl],np.float32)]if ray_residual else[]));probability.append(p.float().cpu().numpy())
         p=np.concatenate(probability)
         for e in g['segments']:
             sl=slice(e['start'],e['end']);cm,sc,ee=score(p[sl],g['y'][sl]);roots[g['root_id']].append((cm,sc,ee,not bool(np.any(g['y'][sl]))));pooled+=cm;count+=1

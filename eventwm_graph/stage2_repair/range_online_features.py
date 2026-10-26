@@ -29,10 +29,13 @@ class ArrayGlobal(ArrayPrepared):
 
 
 class LegalFeatureBuilder:
-    def __init__(self,model,device='cuda:0',device_canvas=False,device_edt=False):
+    def __init__(self,model,device='cuda:0',device_canvas=False,device_edt=False,initial_visibility=False):
         self.device=torch.device(device)
         self.engine=CudaExecution(model.point.point.prior,device)
         self.range_kernel=ReusedExactKernel(device);self.canvas=RangeCanvas(device);self.edt=None
+        if initial_visibility:
+            from .initial_visibility import TrainingInitialKernel
+            self.range_kernel=TrainingInitialKernel(device)
         if device_canvas or device_edt:
             from .gpu_edt import GridEDT
             self.edt=GridEDT(device)

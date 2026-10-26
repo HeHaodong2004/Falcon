@@ -22,6 +22,9 @@ def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=F
         if implementation=='ray-residual':
             from .ray_residual_api import RayResidualPredictor
             return RayResidualPredictor
+        if implementation=='initial-visibility':
+            from .initial_api import InitialVisibilityPredictor
+            return InitialVisibilityPredictor
         if implementation=='captured-pipeline':
             from .captured_head import CapturedPipelinePredictor
             return CapturedPipelinePredictor
@@ -61,4 +64,4 @@ def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=F
 
 
 def add_exact_options(parser):
-    parser.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns','captured-pipeline','ray-residual']);parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')
+    parser.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns','captured-pipeline','ray-residual','initial-visibility']);parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')

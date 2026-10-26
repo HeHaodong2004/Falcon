@@ -28,6 +28,7 @@ def run(names,epochs=4,device='cuda:1',watch=False,output_name='online_selection
                 except (EOFError,RuntimeError):continue
                 expected=str((OUT/'range_evidence_dev_v2/manifest.json').resolve())
                 if str(Path(saved['config']['dev_feature_manifest']).resolve())!=expected:raise ValueError('unexpected dev feature schema')
+                if saved['config'].get('initial_visibility')and not Path(saved['config']['initial_code_manifest']).exists():continue
                 evaluate(cp,device=device,_prepared=prepared)
                 score=read(OUT/'pilot'/('%s_dev_epoch%02d.json'%(name,epoch)));rule=score['best_rule'];record=dict(epoch=epoch,rule=rule,metrics=score['rules'][rule],checkpoint=str(cp.resolve()),checkpoint_sha256=sha(cp));results[name].append(record);done.add((name,epoch));progress=True
                 best=max(results[name],key=lambda r:r['metrics']['label_aware_delta_iou'])
