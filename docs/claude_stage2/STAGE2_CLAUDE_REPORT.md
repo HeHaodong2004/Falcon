@@ -50,6 +50,10 @@ Pooled confusion (rows true U/F/B, cols predicted): [[1703774272, 1512853, 24694
 | new_cells:1-99 | 18807 | 0.4537 | 0.4539 |
 | new_cells:>=100 | 25760 | 0.4418 | 0.4554 |
 
+Per-Root comparison with v7 (same 2,110 Roots, per-Root mean confusion): label-aware IoU improved on
+69.9 % of Roots (worse on 28.8 %), mean +0.0140 / median +0.0128; per-scene mean improved in 94 of 108
+scenes (range -0.024 ... +0.066).
+
 Complete latency of the same frozen `final/v11.pt` (original 32 workloads with 256 px packets
 `range_benchmark_256`, K=1/4/6, 3 repetitions, `lanes=3`, BatchNorm folded; physical GPU0 with this
 session's own training paused by `quiet.py`; another session's Stage-1 jobs kept running on physical
