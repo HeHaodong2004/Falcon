@@ -17,19 +17,23 @@ from .range_history import ancestor_frames
 from eventwm_graph.stage1.runtime import NativeEpisode, SharedFuture
 
 
-def run(roots=2110, offset=0, split='dev'):
+def run(roots=2110, offset=0, split='dev',sensor_size=128,destination=None):
     import magnum as mn
     import falcon.additional_action as native_actions
     from habitat.tasks.nav.nav import NavigationEpisode, NavigationGoal
     rows, manifest_path = source_rows(split)
     if split != 'dev':raise ValueError('full preparation is development-only, no confirmation set')
     rows = rows[offset:offset+roots]
-    dest = OUT/'full_range_branches'
+    if sensor_size not in (128,256):raise ValueError('supported current sensor sizes128/256')
+    if sensor_size!=128 and destination is None:raise ValueError('resolution change requires separate sensor artifacts')
+    if destination is not None and Path(destination).name!=destination:raise ValueError('destination must be a simple artifact directory name')
+    dest = OUT/(destination or'full_range_branches')
     dest.mkdir(exist_ok=True)
     for row in rows:
         path = dest/(row['root_id']+'.npz')
         receipt = path.with_suffix('.json')
         identity = dict(role='ENVIRONMENT-only past/current range sensor extension',
+            sensor_size=sensor_size,
             source_manifest_sha256=sha(manifest_path), files=row['files'],
             sources={p:sha(Path(__file__).with_name(p)) for p in ['range_full_replay.py','range_branch_replay.py','current_range_sensor.py']})
         sources=dest/'sources';sources.mkdir(exist_ok=True)
@@ -38,7 +42,11 @@ def run(roots=2110, offset=0, split='dev'):
             if not snapshot.exists():snapshot.write_bytes(Path(__file__).with_name(name).read_bytes())
         if receipt.exists():
             prior=read(receipt)
-            if prior['identity']!=identity or prior['sha256']!=sha(path):
+            matched_source=prior['identity']==identity
+            # A previously measured pilot frame packet is exactly the same
+            # legal sensor input. Preserve its ORIGINAL producer receipt.
+            equivalent_pilot=(sensor_size==256 and prior['identity'].get('sensor_size')==256 and prior['identity']['files']==row['files']and prior['identity']['sources'].get('current_range_sensor.py')==identity['sources']['current_range_sensor.py']and max(prior['max_errors'].values())<=1.e-6)
+            if not(matched_source or equivalent_pilot)or prior['sha256']!=sha(path):
                 raise ValueError('range replay cache identity changed')
             print('REUSE',row['root_id'],flush=True)
             continue
@@ -49,7 +57,7 @@ def run(roots=2110, offset=0, split='dev'):
         episode=NavigationEpisode(episode_id=ep['episode_id'],scene_id=ep['scene_id'],start_position=ep['start_position'],start_rotation=ep['start_rotation'],goals=[NavigationGoal(**g)for g in ep['goals']],info=copy.deepcopy(ep['info']))
         tick=time.perf_counter(); errors=[]; depth=[]; origins=[]; rotations=[]; timestamps=[]
         with NativeEpisode(SimpleNamespace(contract=config),episode,seed,visual=False)as rt:
-            sensor=CurrentRangeSensor(rt,legal['partial_graph']['resolution'])
+            sensor=CurrentRangeSensor(rt,legal['partial_graph']['resolution'],size=sensor_size)
             def capture(expected, timestamp):
                 packet=sensor.measure();o,r=packet['camera_origin'],packet['camera_rotation']
                 err=dict(origin=float(np.linalg.norm(o-expected['camera_origin'])),rotation=float(np.max(abs(r-np.asarray(expected['camera_rotation'])))),timestamp=abs(timestamp-expected['timestamp']))
@@ -86,4 +94,4 @@ def run(roots=2110, offset=0, split='dev'):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=2110);p.add_argument('--offset',type=int,default=0);p.add_argument('--split',choices=['train','dev'],default='dev');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=2110);p.add_argument('--offset',type=int,default=0);p.add_argument('--split',choices=['train','dev'],default='dev');p.add_argument('--sensor-size',type=int,default=128);p.add_argument('--destination');run(**vars(p.parse_args()))
