@@ -11,7 +11,8 @@ from .range_history import ancestor_frames
 from eventwm_graph.stage2_hf.packed import load_arrays,get_segment
 
 
-def inventory(roots=4096):
+def inventory(roots=4096,sensor_directory='expanded_train_range_branches'):
+    if Path(sensor_directory).name!=sensor_directory:raise ValueError('sensor directory must be a simple artifact name')
     rows,source=source_rows('train');rows=rows[:roots]
     dev,_=source_rows('dev')
     assert not ({r['scene_id']for r in rows}&{r['scene_id']for r in dev})
@@ -20,7 +21,7 @@ def inventory(roots=4096):
     for row in rows:
         packed=read(HF/'packed/full'/(row['root_id']+'.json'))
         if packed['source_members']!=row['files']:raise ValueError('packed training source changed')
-        records.append(dict(source=row,packed=packed,sensor_path=str(OUT/'expanded_train_range_branches'/(row['root_id']+'.npz'))))
+        records.append(dict(source=row,packed=packed,sensor_path=str(OUT/sensor_directory/(row['root_id']+'.npz'))))
     return dict(roots=len(records),scenes=len({r['source']['scene_id']for r in records}),
                 windows=sum(len(r['packed']['segments'])for r in records),
                 groups=sum(len({e['start_node']for e in r['packed']['segments']})for r in records),

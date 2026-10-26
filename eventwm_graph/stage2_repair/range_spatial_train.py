@@ -11,8 +11,8 @@ from .range_spatial import SpatialEvidenceNet
 from eventwm_graph.stage2_hf.packed import load_arrays,get_segment
 
 
-def load_groups(split,point_manifest=None):
-    m=read(OUT/('range_bev_'+split)/'manifest.json');counts=Counter(r['scene_id']for r in m['records']);factor={s:m['roots']/(len(counts)*n)for s,n in counts.items()};groups=[]
+def load_groups(split,point_manifest=None,map_manifest=None):
+    m=read(map_manifest or OUT/('range_bev_'+split)/'manifest.json');counts=Counter(r['scene_id']for r in m['records']);factor={s:m['roots']/(len(counts)*n)for s,n in counts.items()};groups=[]
     override={r['root_id']:r for r in read(point_manifest)['records']}if point_manifest else{}
     for row in m['records']:
         with np.load(row['path'])as z:maps=z['maps'];low=z['lo'];aux=z['aux'];mask=z['mask']

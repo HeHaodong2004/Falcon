@@ -26,9 +26,9 @@ from eventwm_graph.stage2_segment.prepared import content_key
 def gzread(path):return json.loads(gzip.decompress(path.read_bytes()))
 
 
-def evaluate_root(model,row,dest,checkpoint_sha,source_sha):
+def evaluate_root(model,row,dest,checkpoint_sha,source_sha,sensor_directory='full_range_branches'):
     rid=row['root_id'];path=dest/(rid+'.json.gz')
-    sensor_path=OUT/'full_range_branches'/(rid+'.npz')
+    sensor_path=OUT/sensor_directory/(rid+'.npz')
     sensor_receipt=read(sensor_path.with_suffix('.json'))
     if sha(sensor_path)!=sensor_receipt['sha256']:raise ValueError('sensor arrays changed')
     if sensor_receipt['identity']['files']!=row['files']:raise ValueError('sensor source Root changed')
@@ -79,7 +79,8 @@ def evaluate_root(model,row,dest,checkpoint_sha,source_sha):
     model.clear_cache();return value
 
 
-def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exact_fast=False,implementation=None):
+def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exact_fast=False,implementation=None,sensor_directory='full_range_branches'):
+    if Path(sensor_directory).name!=sensor_directory:raise ValueError('sensor directory must be a simple artifact name')
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False
     if not 0<=shard<shards:raise ValueError('invalid evaluation shard')
     rows,manifest=source_rows('dev');all_rows=rows
@@ -94,19 +95,19 @@ def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exac
         from .range_implementations import predictor_class
         cls=predictor_class(spatial=True,implementation=implementation)
     model=cls(checkpoint,device=device)
-    identity=dict(checkpoint=str(checkpoint),checkpoint_sha256=checkpoint_sha,source_manifest_sha256=sha(manifest),evaluator_sha256=source_sha,model_schema=model.predictor_schema,implementation=cls.__name__,rule=model.decision_rule,threshold=model.threshold,role='LEGAL SENSOR EXTENSION; ORIGINAL full development. No confirmation data. Complete future graph checked at every window.',shards=shards,smoke_limit=limit)
+    identity=dict(checkpoint=str(checkpoint),checkpoint_sha256=checkpoint_sha,source_manifest_sha256=sha(manifest),evaluator_sha256=source_sha,model_schema=model.predictor_schema,implementation=cls.__name__,rule=model.decision_rule,threshold=model.threshold,role='LEGAL SENSOR EXTENSION; ORIGINAL full development. No confirmation data. Complete future graph checked at every window.',shards=shards,smoke_limit=limit,sensor_directory=sensor_directory)
     ip=dest/'identity.json'
     if ip.exists()and read(ip)!=identity:raise ValueError('use a new evaluation destination')
     save(ip,identity);remaining=list(selected);done=[];tick=time.perf_counter();last=0.
     while remaining:
-        ready=[r for r in remaining if (OUT/'full_range_branches'/(r['root_id']+'.json')).exists()]
+        ready=[r for r in remaining if (OUT/sensor_directory/(r['root_id']+'.json')).exists()]
         if not ready:
             if not wait:break
             if time.perf_counter()-last>30:
                 print('WAITING',shard,'completed',len(done),'remaining',len(remaining),flush=True);last=time.perf_counter()
             time.sleep(5);continue
         for row in ready:
-            done.append(evaluate_root(model,row,dest,checkpoint_sha,source_sha));remaining.remove(row)
+            done.append(evaluate_root(model,row,dest,checkpoint_sha,source_sha,sensor_directory));remaining.remove(row)
             if len(done)%8==0 or not remaining:
                 progress=dict(shard=shard,completed=len(done),total=len(selected),pending=len(remaining),seconds=time.perf_counter()-tick)
                 save(dest/('progress_shard%d.json'%shard),progress);print(progress,flush=True)
@@ -121,4 +122,4 @@ def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exac
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--name',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1);p.add_argument('--wait',action='store_true');p.add_argument('--limit',type=int,default=0);p.add_argument('--exact-fast',action='store_true');p.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns']);run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--name',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1);p.add_argument('--wait',action='store_true');p.add_argument('--limit',type=int,default=0);p.add_argument('--exact-fast',action='store_true');p.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns','fast-point','full-history']);p.add_argument('--sensor-directory',default='full_range_branches');run(**vars(p.parse_args()))

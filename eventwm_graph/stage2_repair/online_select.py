@@ -12,9 +12,10 @@ from .range_spatial_eval import evaluate
 from .range_spatial_train import load_groups
 
 
-def run(names,epochs=4,device='cuda:1',watch=False,output_name='online_selections'):
+def run(names,epochs=4,device='cuda:1',watch=False,output_name='online_selections',feature_manifest=None,map_manifest=None):
     if not output_name or Path(output_name).name!=output_name:raise ValueError('selection output must be a simple filename stem')
-    prepared=load_groups('dev',OUT/'range_evidence_dev_v2/manifest.json');results={n:[]for n in names};done=set();tick=time.perf_counter();destination=OUT/(output_name+'.json')
+    feature_manifest=Path(feature_manifest or OUT/'range_evidence_dev_v2/manifest.json').resolve();map_manifest=Path(map_manifest).resolve()if map_manifest else None
+    prepared=load_groups('dev',feature_manifest,map_manifest);results={n:[]for n in names};done=set();tick=time.perf_counter();destination=OUT/(output_name+'.json')
     while len(done)<len(names)*epochs:
         progress=False
         for name in names:
@@ -26,8 +27,9 @@ def run(names,epochs=4,device='cuda:1',watch=False,output_name='online_selection
                 # never infer a completed checkpoint from the learning log.
                 try:saved=torch.load(cp,map_location='cpu')
                 except (EOFError,RuntimeError):continue
-                expected=str((OUT/'range_evidence_dev_v2/manifest.json').resolve())
+                expected=str(feature_manifest)
                 if str(Path(saved['config']['dev_feature_manifest']).resolve())!=expected:raise ValueError('unexpected dev feature schema')
+                if saved['config'].get('dev_map_manifest')!=(str(map_manifest)if map_manifest else None):raise ValueError('unexpected dev map input schema')
                 if saved['config'].get('initial_visibility')and not Path(saved['config']['initial_code_manifest']).exists():continue
                 evaluate(cp,device=device,_prepared=prepared)
                 score=read(OUT/'pilot'/('%s_dev_epoch%02d.json'%(name,epoch)));rule=score['best_rule'];record=dict(epoch=epoch,rule=rule,metrics=score['rules'][rule],checkpoint=str(cp.resolve()),checkpoint_sha256=sha(cp));results[name].append(record);done.add((name,epoch));progress=True
@@ -44,4 +46,4 @@ def run(names,epochs=4,device='cuda:1',watch=False,output_name='online_selection
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--names',nargs='+',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:1');p.add_argument('--watch',action='store_true');p.add_argument('--output-name',default='online_selections');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--names',nargs='+',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:1');p.add_argument('--watch',action='store_true');p.add_argument('--output-name',default='online_selections');p.add_argument('--feature-manifest');p.add_argument('--map-manifest');run(**vars(p.parse_args()))

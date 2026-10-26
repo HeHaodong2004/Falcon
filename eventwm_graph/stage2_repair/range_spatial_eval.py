@@ -37,7 +37,7 @@ def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prep
         from .ray_residual_model import RayResidualEvidenceNet
         model=RayResidualEvidenceNet().to(device).eval()
     else:model=SpatialEvidenceNet().to(device).eval()
-    model.load_state_dict(saved['model']);manifest,groups=_prepared if _prepared is not None else full_training_groups()if full_training else load_groups('train'if training else'dev',None if training else saved.get('config',{}).get('dev_feature_manifest'));roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
+    model.load_state_dict(saved['model']);manifest,groups=_prepared if _prepared is not None else full_training_groups()if full_training else load_groups('train'if training else'dev',None if training else saved.get('config',{}).get('dev_feature_manifest'),None if training else saved.get('config',{}).get('dev_map_manifest'));roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
     if ray_residual:
         from .ray_residual_groups import attach
         attach(groups,training=training or full_training)

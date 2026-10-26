@@ -56,10 +56,11 @@ def make_batch(items,builder,device,ray_residual=False):
     return batch,ledger
 
 
-def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False,initial_visibility=False,typed_micro_dice=False,train_range_head=False):
+def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False,initial_visibility=False,typed_micro_dice=False,train_range_head=False,sensor_directory='expanded_train_range_branches',dev_feature_manifest=None,dev_map_manifest=None):
     if stream_preparation and not wait:raise ValueError('streamed preparation requires explicit --wait')
     if ray_residual and initial_visibility:raise ValueError('bounded candidates are tested separately')
     if train_range_head and(ray_residual or initial_visibility):raise ValueError('joint range-head fitting is tested on the unchanged spatial model separately')
+    if sensor_directory!='expanded_train_range_branches'and(not dev_feature_manifest or not dev_map_manifest):raise ValueError('a sensor change requires BOTH matching development point features and map canvases')
     torch.set_num_threads(1);torch.manual_seed(5511);torch.backends.cuda.matmul.allow_tf32=False
     tick=time.perf_counter();dest=OUT/'training'/name
     if resume:
@@ -67,7 +68,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
         m=read(dest/'snapshot.json')
         if m['roots']!=roots:raise ValueError('resume Root count changed')
     else:
-        m=inventory(roots);dest.mkdir(exist_ok=False);save(dest/'snapshot.json',m)
+        m=inventory(roots,sensor_directory=sensor_directory);dest.mkdir(exist_ok=False);save(dest/'snapshot.json',m)
     print('INVENTORY',{k:v for k,v in m.items()if k!='records'},flush=True)
     while True:
         missing=[r['source']['root_id']for r in m['records']if not Path(r['sensor_path']).with_suffix('.json').exists()]
@@ -93,7 +94,14 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     builder=LegalFeatureBuilder(model,device,device_canvas=device_canvas,device_edt=device_edt,initial_visibility=initial_visibility)
     optim=torch.optim.AdamW([p for p in model.parameters()if p.requires_grad],lr=.0002,weight_decay=.0001);scaler=torch.cuda.amp.GradScaler()
     cfg=dict(schema='legal_range_spatial_1',name=name,epochs=epochs,roots=m['roots'],scenes=m['scenes'],windows=m['windows'],groups=m['groups'],base_checkpoint=saved['config']['base_checkpoint'],warm=str(warm),warm_sha256=sha(warm),snapshot_sha256=sha(dest/'snapshot.json'),source_manifest_sha256=m['source_manifest_sha256'],observed_obstacle_schema='capped_2m_complete',device=device,batch_size=batch_size,workers=workers,learning_rate=.0002,sampling='Fresh128positive/384nearUNKNOWN/128remainingUNKNOWN every pass over all original windows; exact inverse inclusion equalScene/Root/window weights. Full candidate construction before sampling, no hard windows dropped.',objective='Same primary pos8revelation BCE +8R conditional BCE +.1typedDice +.25auxiliary published-certificate-class UNION.',inputs='Only current legal graph, supplied trajectory, measured ancestor/current range arrays and legally observed track history/current camera. No private full scene or future truth inputs.',sources={n:sha(Path(__file__).with_name(n))for n in ['range_online_train.py','range_online_data.py','range_online_features.py','range_fast.py','range_gpu.py','range_spatial.py']})
-    cfg['dev_feature_manifest']=str((OUT/'range_evidence_dev_v2/manifest.json').resolve())
+    cfg['dev_feature_manifest']=str(Path(dev_feature_manifest or OUT/'range_evidence_dev_v2/manifest.json').resolve())
+    cfg['dev_map_manifest']=str(Path(dev_map_manifest).resolve())if dev_map_manifest else None
+    cfg['sensor_directory']=sensor_directory
+    if sensor_directory!='expanded_train_range_branches':
+        pm=read(cfg['dev_feature_manifest']);mm=read(cfg['dev_map_manifest'])
+        if pm.get('sensor_size')!=256 or mm.get('sensor_size')!=256:raise ValueError('expected matching256pixel development inputs')
+        cfg['sensor_size']=256
+        cfg['dev_feature_manifest_sha256']=sha(cfg['dev_feature_manifest']);cfg['dev_map_manifest_sha256']=sha(cfg['dev_map_manifest'])
     cfg['training_source_commit']=subprocess.check_output(['git','rev-parse','HEAD'],cwd=Path(__file__).resolve().parents[2],text=True).strip()
     cfg['cardinal_augmentation']=bool(augment_cardinal)
     cfg['device_canvas']=bool(device_canvas)
@@ -128,6 +136,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
         if bool(saved['config'].get('initial_visibility'))!=bool(initial_visibility):raise ValueError('resume feature type changed')
         if bool(saved['config'].get('typed_micro_dice'))!=bool(typed_micro_dice):raise ValueError('resume overlap objective changed')
         if bool(saved['config'].get('train_range_head'))!=bool(train_range_head):raise ValueError('resume frozen parameter contract changed')
+        if saved['config'].get('sensor_directory','expanded_train_range_branches')!=sensor_directory:raise ValueError('resume sensor source changed')
         optim.load_state_dict(saved['optimizer']);scaler.load_state_dict(saved['scaler']);updates=int(saved['updates']);first_epoch=int(saved['epoch'])+1
         logs=[r for r in read(dest/'learning.json')if r['epoch']<first_epoch];elapsed_base=float(logs[-1]['seconds'])if logs else 0.
         cfg.update(resume_checkpoint=str(warm.resolve()),resume_sha256=sha(warm),resume_epoch=int(saved['epoch']),original_warm=saved['config']['warm'],resume_note='Exact completed-epoch optimizer/scaler/update state. Same all-window snapshot and deterministic epoch sampling. CUDA code lifetime repair; original configs/checkpoints retained.')
@@ -167,4 +176,4 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');p.add_argument('--initial-visibility',action='store_true');p.add_argument('--typed-micro-dice',action='store_true');p.add_argument('--train-range-head',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');p.add_argument('--initial-visibility',action='store_true');p.add_argument('--typed-micro-dice',action='store_true');p.add_argument('--train-range-head',action='store_true');p.add_argument('--sensor-directory',default='expanded_train_range_branches');p.add_argument('--dev-feature-manifest');p.add_argument('--dev-map-manifest');run(**vars(p.parse_args()))
