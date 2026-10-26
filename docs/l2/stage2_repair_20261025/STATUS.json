@@ -195,7 +195,7 @@
     "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --radix --repetitions 3 --device cuda:1"
   ],
   "deployment_readiness": "Below target. Sensor-extension model also needs explicit range-packet integration; ideal current-range replay is not rendered RGB-D validation. Sensor acquisition and serialization are excluded from Stage2 primary inference timing and must be reported separately. No standalone forward benchmark guarantees total Layer3 RL runtime.",
-  "updated_utc": "2026-10-26T00:57:49.945601+00:00",
+  "updated_utc": "2026-10-26T01:53:35.523448+00:00",
   "confirmed_acceleration_defect": {
     "scope": "New observed-range prototype, not original-model plateau",
     "cause": "Balanced Morton hierarchy traverses excessively many overlapping measured triangles",
@@ -214,9 +214,9 @@
     "expanded_training_range_roots_requested": 4096,
     "full_development_range_roots_requested": 2110,
     "minimum_work_until_utc": "2026-10-26 10:15 UTC",
-    "expanded_training": "Frozen source01c600fb;4096Roots463Scenes96186windows62338startinggraphs. Queued4epoch fresh-cell fit;4000of4096sensor receipts nearly ready. Exact2m obstacle schema and V2dev features. Original all-window universe retained.",
+    "expanded_training": "4096Root primary fit RUNNING CUDA0;4epochs planned,62338graphs96186windows/epoch. Encoder gradients nonzero. Epoch1 reconstruction evaluation not yet available.",
     "full_development_evaluation": "Older0.37198pilot model COMPLETE all2110Roots108Scenes47128windows: labelIoU0.36448214/revelation0.42113314. Newer0.38742pilot model full evaluation pending.",
-    "bounded_surface_completion_comparison": "Preparing256trainingRoot later-measured-depth targets. Three surface heights, observation masks, future human hits masked. Loss-only head; original certificates and deployed inputs/architecture unchanged. No result yet."
+    "bounded_surface_completion_comparison": "256Root paired4epoch comparison complete: control0.37399299,teacher0.38577244 pilot. Teacher below existingbest0.38742267, not deployed. All4096Root larger targets prepared;8group training smoke complete, no missing/outside positives, gradients nonzero. Matched4096Root auxiliary fit next."
   },
   "diagnostics": {
     "support_oracle": "PRIVILEGED diagnostic only: perfect static support + partial observed visibility0.38018. Support knowledge alone is insufficient to meet0.50; missing visibility/geometry remains.",
@@ -242,6 +242,13 @@
       "epochs": 16,
       "selected_for_deployment": false,
       "reason": "Much poorer generalization; retained measured-geometry model."
+    },
+    {
+      "model": "Guarded ray-direction normalization",
+      "synthetic_vectors_bit_exact": 1040000,
+      "real_workload_features_bit_exact": true,
+      "selected_for_deployment": false,
+      "reason": "No useful measured complete inference speed gain."
     }
   ],
   "full_development_completed": {
@@ -294,5 +301,383 @@
     "height_mae_on_correct_predicted_new_cells": 0.01187417106956646,
     "role": "Actual original full universe; legal sensor extension, not original G-only input parity. Both acceptance requirements remain unmet."
   },
-  "exact_acceleration": "FastExactKernel precomputes63probe/camera constants and uses equivalent convex frustum rejection with numerical fallback; all63LOS retained. Independent120028random/boundary tests and real full-output parity passed. Actual all666 pilot hard confusion and IoUs match0.3874226726/0.4451020477 exactly. No passing complete latency result."
+  "exact_acceleration": "FastExactKernel precomputes63probe/camera constants and uses equivalent convex frustum rejection with numerical fallback; all63LOS retained. Independent120028random/boundary tests and real full-output parity passed. Actual all666 pilot hard confusion and IoUs match0.3874226726/0.4451020477 exactly. No passing complete latency result.",
+  "latest_complete_benchmark": {
+    "checkpoint_sha256": "6e6879c1e679e51231d46961492eee99be877a0f0302038d1b842a19fa0fddf4",
+    "implementation": "BatchedSpatialPredictor",
+    "device": "cuda:1",
+    "hardware": "NVIDIA GeForce RTX 3090",
+    "summary": [
+      {
+        "model": "baseline",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 18.632472027093172,
+        "p95_ms": 32.79472172725945,
+        "p99_ms": 43.633427657187,
+        "max_ms": 50.26155710220337,
+        "candidate_cells_min": 34507,
+        "candidate_cells_max": 47012
+      },
+      {
+        "model": "baseline",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 53.44454664736986,
+        "p95_ms": 110.915384220425,
+        "p99_ms": 145.68350174929947,
+        "max_ms": 151.13299200311303,
+        "candidate_cells_min": 137168,
+        "candidate_cells_max": 164904
+      },
+      {
+        "model": "baseline",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 71.52397138997912,
+        "p95_ms": 140.11100656352932,
+        "p99_ms": 194.03036377858373,
+        "max_ms": 203.64927011542022,
+        "candidate_cells_min": 203542,
+        "candidate_cells_max": 253792
+      },
+      {
+        "model": "baseline",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 9.3015719903633,
+        "p95_ms": 20.213360479101535,
+        "p99_ms": 22.523623842280358,
+        "max_ms": 22.6309469435364,
+        "candidate_cells_min": 34507,
+        "candidate_cells_max": 47012
+      },
+      {
+        "model": "baseline",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 37.49468410387635,
+        "p95_ms": 62.00672875856981,
+        "p99_ms": 128.16193982725966,
+        "max_ms": 139.71652695909142,
+        "candidate_cells_min": 137168,
+        "candidate_cells_max": 164904
+      },
+      {
+        "model": "baseline",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 61.713881557807326,
+        "p95_ms": 155.22728029172868,
+        "p99_ms": 196.75356276566163,
+        "max_ms": 198.2785591389984,
+        "candidate_cells_min": 203542,
+        "candidate_cells_max": 253792
+      },
+      {
+        "model": "baseline",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 15.697479015216231,
+        "p95_ms": 24.1514254361391,
+        "p99_ms": 26.72783861635253,
+        "max_ms": 26.80734801106155,
+        "candidate_cells_min": 35386,
+        "candidate_cells_max": 45774
+      },
+      {
+        "model": "baseline",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 41.281208861619234,
+        "p95_ms": 59.10609995480627,
+        "p99_ms": 122.83274485496804,
+        "max_ms": 125.20511401817203,
+        "candidate_cells_min": 141860,
+        "candidate_cells_max": 157428
+      },
+      {
+        "model": "baseline",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 58.61353257205337,
+        "p95_ms": 86.83019384043291,
+        "p99_ms": 130.86052073864272,
+        "max_ms": 150.1669269055128,
+        "candidate_cells_min": 212790,
+        "candidate_cells_max": 235041
+      },
+      {
+        "model": "baseline",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 8.601185865700245,
+        "p95_ms": 15.199167351238422,
+        "p99_ms": 17.58367443457246,
+        "max_ms": 18.230363028123975,
+        "candidate_cells_min": 35386,
+        "candidate_cells_max": 45774
+      },
+      {
+        "model": "baseline",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 31.46713157184422,
+        "p95_ms": 42.674052249640226,
+        "p99_ms": 85.30802462948495,
+        "max_ms": 122.35396704636514,
+        "candidate_cells_min": 141860,
+        "candidate_cells_max": 157428
+      },
+      {
+        "model": "baseline",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 51.12433643080294,
+        "p95_ms": 81.07974267331883,
+        "p99_ms": 122.66598477261144,
+        "max_ms": 134.747110074386,
+        "candidate_cells_min": 212790,
+        "candidate_cells_max": 235041
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 40.40240845642984,
+        "p95_ms": 55.198575835675,
+        "p99_ms": 73.31307683605704,
+        "max_ms": 87.95152115635574,
+        "candidate_cells_min": 34507,
+        "candidate_cells_max": 47012
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 69.00156801566482,
+        "p95_ms": 94.04354233993217,
+        "p99_ms": 95.05800051847473,
+        "max_ms": 95.81715916283429,
+        "candidate_cells_min": 137168,
+        "candidate_cells_max": 164904
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 79.71376006025821,
+        "p95_ms": 115.01657272456211,
+        "p99_ms": 125.66645568469539,
+        "max_ms": 126.02720712311566,
+        "candidate_cells_min": 203542,
+        "candidate_cells_max": 253792
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 22.095551481470466,
+        "p95_ms": 34.30552475620061,
+        "p99_ms": 34.79142976924777,
+        "max_ms": 34.94457411579788,
+        "candidate_cells_min": 34507,
+        "candidate_cells_max": 47012
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 46.36298946570605,
+        "p95_ms": 72.05238410970195,
+        "p99_ms": 75.67946309456602,
+        "max_ms": 75.77447593212128,
+        "candidate_cells_min": 137168,
+        "candidate_cells_max": 164904
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 59.68453350942582,
+        "p95_ms": 95.41591751622033,
+        "p99_ms": 104.61078765569255,
+        "max_ms": 104.64063403196633,
+        "candidate_cells_min": 203542,
+        "candidate_cells_max": 253792
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 34.94123066775501,
+        "p95_ms": 46.653874253388494,
+        "p99_ms": 48.33880339283496,
+        "max_ms": 48.52731805294752,
+        "candidate_cells_min": 35386,
+        "candidate_cells_max": 45774
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 54.7802303917706,
+        "p95_ms": 67.63924049446359,
+        "p99_ms": 69.71137412823737,
+        "max_ms": 70.18372695893049,
+        "candidate_cells_min": 141860,
+        "candidate_cells_max": 157428
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 67.17766856309026,
+        "p95_ms": 80.2092558820732,
+        "p99_ms": 83.2373285270296,
+        "max_ms": 85.26275516487658,
+        "candidate_cells_min": 212790,
+        "candidate_cells_max": 235041
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 19.84558440744877,
+        "p95_ms": 28.32013868028297,
+        "p99_ms": 31.149992884602398,
+        "max_ms": 31.2067661434412,
+        "candidate_cells_min": 35386,
+        "candidate_cells_max": 45774
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 38.7256913818419,
+        "p95_ms": 50.22208266891539,
+        "p99_ms": 52.540181854274124,
+        "max_ms": 53.24748996645212,
+        "candidate_cells_min": 141860,
+        "candidate_cells_max": 157428
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 50.240669515915215,
+        "p95_ms": 61.5650646854192,
+        "p99_ms": 62.05459023360163,
+        "max_ms": 62.14781990274787,
+        "candidate_cells_min": 212790,
+        "candidate_cells_max": 235041
+      }
+    ],
+    "startup": [
+      {
+        "model": "baseline",
+        "constructor_ms": 1093.214550986886,
+        "first_complete_K6_ms": 1038.3395350072533
+      },
+      {
+        "model": "range",
+        "constructor_ms": 30.35255102440715,
+        "first_complete_K6_ms": 1549.3193080183119
+      }
+    ],
+    "scope": "Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.",
+    "excluded": "Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.",
+    "load_isolation": {
+      "started_utc": "2026-10-26T01:15:35.866259+00:00",
+      "paused_owned_jobs": [
+        {
+          "pid": 3288920,
+          "starttime": "177435380",
+          "args": [
+            "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
+            "scripts/stage2_segment_run.py",
+            "eventwm_graph.stage2_repair.range_full_evaluate",
+            "--checkpoint",
+            "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/training/support_pretrained256_control/selected.pt",
+            "--name",
+            "legal_range_support_pretrained256",
+            "--exact-fast",
+            "--device",
+            "cuda:1"
+          ]
+        },
+        {
+          "pid": 3290007,
+          "starttime": "177528542",
+          "args": [
+            "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
+            "scripts/stage2_segment_run.py",
+            "eventwm_graph.stage2_repair.surface_online_targets",
+            "--device",
+            "cuda:1"
+          ]
+        }
+      ],
+      "other_jobs": "Untouched. Expanded4096Root training continues onGPU0.",
+      "source_commit": "97791750226a377599341bcbb78bf7255619f88d",
+      "resumed_utc": "2026-10-26T01:17:00.690078+00:00"
+    },
+    "acceptance": false
+  },
+  "hardware_traversal_diagnostic": {
+    "status": "OptiX7.7 custom12triangleleaf intersector preserves exact features on5real workloads and40000real closest rays; independent synthetic rays passed. Not yet selected.",
+    "group20_warm_ms": 42.87,
+    "group20_cold_ms": 66.4,
+    "group30_cold_ms": 122.35,
+    "scope": "Three-workload diagnosis only. Does not meet complete32workload speed requirement.",
+    "inputs": "Same legal measured range mesh; no hidden geometry. Optional external NVIDIA headers, CUDA headers stored under ignored local output/deps; no system environment/driver modification."
+  }
 }
