@@ -209,8 +209,11 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | cascade_v7f | refiner on frozen final v7 (0.4454) | 0.4435 @4k, 0.4451 @8k — no gain; stopped |
 | ensemble | v7 @20k + v9 @12k (weaker member) | 0.4218 vs 0.4279 single (class rule) — worse |
 | 256 px input | final v7, no retraining, 38 TRAIN-val Roots with both resolutions | 0.4454 vs 0.4430 (128 px), class rule |
+| 256 px input | v7r (frozen class rule), 199 TRAIN-val Roots / 22 scenes with both resolutions (161 new 256 px packets, unchanged environment replay) | 0.4567 vs 0.4546 (128 px) hierarchical; pooled 0.4509 vs 0.4497 |
 | v7_restart_iou | final v7 + 1 epoch warm restart (peak 5e-4) + 0.5 x soft label-aware IoU loss | 0.4351 @4k, 0.4450 @8k, 0.4510 @12k, 0.4517 @16k, 0.4546 @20k, **final 0.4569** (v7 0.4454) |
-| v11_ext | warm start from v7_restart_iou with three new zero-initialized input channels (`human_future`, `wall_hit_distance`, `wall_unknown_hit`), zero-initialized coarse-level side branches (level 3: 192 x 3 blocks, level 4: 256 x 4; 3.55M -> 10.42M parameters), near-camera fix (0.5 m), +2,914 new TRAIN Roots, EMA 0.999, shuffle pool 16 batches, overlapped feature production, 1 epoch, IoU loss 0.5 | (running) |
+| v11_ext | warm start from v7_restart_iou with three new zero-initialized input channels (`human_future`, `wall_hit_distance`, `wall_unknown_hit`), zero-initialized coarse-level side branches (level 3: 192 x 3 blocks, level 4: 256 x 4; 3.55M -> 10.42M parameters), near-camera fix (0.5 m), +2,914 new TRAIN Roots, EMA 0.999, shuffle pool 16 batches, overlapped feature production, 1 epoch, IoU loss 0.5 | 0.4573 @4k, 0.4597 @8k, 0.4583 @12k, 0.4629 @16k, 0.4622 @20k, 0.4627 @24k, **final 0.4629** |
+| ens_v7r_v11 | logit ensemble of v7_restart_iou + v11_ext (teacher candidate) | 0.4608 (< v11_ext alone; not used) |
+| v12_distill | warm start from v11_ext, 1 epoch (peak 4e-4), self-distillation from frozen v11_ext (soft targets 50 %), seed 2, otherwise as v11_ext | (running) |
 
 An equal-strength second member for an ensemble (v7 config, seed 1, +2,914 new TRAIN Roots) was
 started but stopped: from 17:21 UTC an external Stage-1 training job (another session) occupies
