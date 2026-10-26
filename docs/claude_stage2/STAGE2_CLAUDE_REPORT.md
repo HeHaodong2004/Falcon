@@ -309,12 +309,23 @@ physical GPU1, which would have made the run take ~9 h and slowed the other job.
 * The range sensor extension is the same ideal simulator sensing used by the previous model; a real
   front end must supply equivalent calibrated ranges, timestamps and tracks.
 * Remaining error is dominated by never-observed space (wall bands at the far boundary of newly
-  revealed free regions, FREE support behind unseen obstacles). Most promising next steps: (1) an
-  ensemble of equal-strength members (needs a free GPU); (2) longer schedules (validation still rose
-  ~0.01 per 4k steps during the cosine decay); (3) explicit geometry imagination — predict wall/floor
-  geometry for unknown space, re-run the exact wall-ray/probe simulation on the imagined map and feed
-  the result back (the auxiliary head alone did not learn unseen walls well); (4) sub-voxel surface
-  geometry for the remaining ~13 % visibility-simulation infidelity near object edges.
+  revealed free regions, FREE support behind unseen obstacles): cells whose probes are possible but
+  cross unknown space hold ~56 % of the targets at IoU ~0.35, while every simulation-determined stratum
+  is at 0.71-0.90 (section 3). Rotation windows (44 % of windows, the robot turning into unseen
+  directions) stay at 0.40 on full development.
+* What still helps is more optimization of the same information: no model overfits (v11: 120 TRAIN
+  Roots 0.4455 vs 120 validation Roots 0.4668), and each warm-restart cycle still added validation
+  accuracy, but with diminishing returns (TRAIN-validation 400 Roots, class rule: v7 0.4628 -> v7r 0.4711
+  -> v11 0.4750). Ensembles or weight averages of lineage members with a weaker member do not help;
+  3x coarse-level capacity, new legal inputs and EMA together gave +0.004 (400 Roots) / +0.006 (160).
+* Most promising next steps: (1) explicit, sampled geometry imagination — generate plausible completions
+  of the unknown space (rooms continue, walls close), re-run the exact wall-ray/probe simulation on each
+  sample and average the certificates, instead of asking one network to output marginals directly
+  (the auxiliary wall head alone did not learn unseen walls well: best IoU 0.21); (2) many more
+  training Roots: 105,838 eligible TRAIN Roots exist but only 18,424 have range packets (the
+  environment replay costs ~1 CPU-minute per Root); (3) per-pose human motion inside the simulation
+  (windows with a human within 2 m of the path: 28 % of targets, IoU 0.425 vs 0.463 without);
+  (4) sub-voxel surface geometry for the remaining ~13 % visibility-simulation infidelity.
 
 ## 11. Reproduction
 
