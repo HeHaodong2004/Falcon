@@ -112,14 +112,8 @@ class TimePredictor(SegmentPredictor):
             keys=domains[domainkey];ctx._candidate_keys=keys;keysets.append(keys)
         return keysets
 
-    def predict_segments(self,*,partial_graph,trajectories,materialize=True):
-        start=time.perf_counter();prepared=self.prepare_graph(partial_graph);prepared_at=time.perf_counter()
-        # Validation lives in the feature context, including strictly increasing
-        # times and starting graph timestamp. Validate before any network call.
-        trajectories=list(trajectories)
-        if len(trajectories)>1 and hasattr(prepared,'prewarm'):prepared.prewarm(trajectories)
-        contexts=[self.feature_class(partial_graph,p,prepared)for p in trajectories]
-        contexts_at=time.perf_counter();xs=[];details=[];feature_profiles=[]
+    def _forward_batch(self,prepared,contexts,partial_graph):
+        xs=[];details=[];feature_profiles=[]
         with torch.inference_mode():
             keysets=self._candidate_keys(prepared,contexts)
             if self.cuda is not None:
@@ -130,10 +124,17 @@ class TimePredictor(SegmentPredictor):
                 for ctx,keys in zip(contexts,keysets):
                     x,baseline=transform(ctx,keys);xs.append(torch.from_numpy(x).to(self.device));baselines.append(baseline)
             for ctx,keys,baseline in zip(contexts,keysets,baselines):details.append((keys,baseline,self._projection(prepared,partial_graph,ctx.path)))
-            features_at=time.perf_counter()
-            # Concatenation batches different trajectory lengths/extents while
-            # preserving each exact candidate order. A bounded tile limits RAM.
-            returned=self._network(xs,details)
+            features_at=time.perf_counter();returned=self._network(xs,details)
+        return details,returned,features_at,feature_profiles
+
+    def predict_segments(self,*,partial_graph,trajectories,materialize=True):
+        start=time.perf_counter();prepared=self.prepare_graph(partial_graph);prepared_at=time.perf_counter()
+        # Validation lives in the feature context, including strictly increasing
+        # times and starting graph timestamp. Validate before any network call.
+        trajectories=list(trajectories)
+        if len(trajectories)>1 and hasattr(prepared,'prewarm'):prepared.prewarm(trajectories)
+        contexts=[self.feature_class(partial_graph,p,prepared)for p in trajectories]
+        contexts_at=time.perf_counter();details,returned,features_at,feature_profiles=self._forward_batch(prepared,contexts,partial_graph)
         network_at=time.perf_counter();out=[];update_seconds=0.
         for ctx,(keys,baseline,_),values in zip(contexts,details,returned):
             prob,heights,states,newkeys,newstates,newheights,unknown=self._decode(values,baseline,keys,len(ctx.path)==1)

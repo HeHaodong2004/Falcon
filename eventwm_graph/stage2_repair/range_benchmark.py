@@ -43,7 +43,7 @@ def run(checkpoint,device='cuda:1',repetitions=3,proxy=False,spatial=False,radix
         return result
     for label in models:
         tick=time.perf_counter();call(label,*work[0],6);torch.cuda.synchronize(device);startup.append(dict(model=label,constructor_ms=(baseline_constructor if label=='baseline'else candidate_constructor)*1000,first_complete_K6_ms=(time.perf_counter()-tick)*1000))
-    order=sorted(range(len(work)),key=lambda i:len(work[i][0]['graph']['cells']));dense=set(order[len(order)//2:]);load=subprocess.check_output(['ps','-eo','pid,ppid,etime,pcpu,pmem,args','--sort=-pcpu'],text=True).splitlines()[:25]
+    order=sorted(range(len(work)),key=lambda i:len(work[i][0]['graph']['cells']));dense=set(order[len(order)//2:]);load=subprocess.check_output(['ps','-eo','pid,ppid,stat,etime,pcpu,pmem,args','--sort=-pcpu'],text=True).splitlines()[:25]
     for rep in range(repetitions):
         for i in order[::1 if rep%2 else-1]:
             ex,packet,tracks=work[i]

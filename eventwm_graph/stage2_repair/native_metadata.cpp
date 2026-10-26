@@ -1,0 +1,35 @@
+// One pass over already validated legal graph cells; no simulator/map inputs.
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+#include <cmath>
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+
+struct Buffer {Py_buffer value={};bool open=false;~Buffer(){if(open)PyBuffer_Release(&value);}bool get(PyObject* o){open=PyObject_GetBuffer(o,&value,PyBUF_CONTIG)==0;return open;}};
+static PyObject* extract(PyObject*,PyObject* args){
+    PyObject *cells,*order,*first,*last,*ids;if(!PyArg_ParseTuple(args,"OOOOO",&cells,&order,&first,&last,&ids))return nullptr;
+    if(!PyList_CheckExact(cells))Py_RETURN_NONE;
+    Py_ssize_t n=PyList_Size(cells);Buffer ob,fb,lb,ib;
+    if(!ob.get(order)||!fb.get(first)||!lb.get(last)||!ib.get(ids)){PyErr_Clear();Py_RETURN_NONE;}
+    if(ob.value.len!=n*8||fb.value.len!=n*8||lb.value.len!=n*8||ib.value.len!=n*4)Py_RETURN_NONE;
+    auto ord=static_cast<const int64_t*>(ob.value.buf);auto f=static_cast<double*>(fb.value.buf);auto l=static_cast<double*>(lb.value.buf);auto sid=static_cast<int32_t*>(ib.value.buf);
+    PyObject* names=PyList_New(0);if(!names)return nullptr;std::unordered_map<std::string,int> lookup;
+    for(Py_ssize_t i=0;i<n;i++){
+        if(ord[i]<0||ord[i]>=n){Py_DECREF(names);Py_RETURN_NONE;}
+        PyObject* cell=PyList_GET_ITEM(cells,ord[i]);
+        if(!PyDict_CheckExact(cell)||PyDict_Size(cell)!=6){Py_DECREF(names);Py_RETURN_NONE;}
+        PyObject *source=PyDict_GetItemString(cell,"source"),*a=PyDict_GetItemString(cell,"first_seen"),*b=PyDict_GetItemString(cell,"last_seen");
+        if(!source||!PyUnicode_CheckExact(source)||!a||!b){Py_DECREF(names);Py_RETURN_NONE;}
+        if(!PyDict_GetItemString(cell,"cell")||!PyDict_GetItemString(cell,"state")||!PyDict_GetItemString(cell,"height")){Py_DECREF(names);Py_RETURN_NONE;}
+        if((!PyFloat_CheckExact(a)&&!PyLong_CheckExact(a))||(!PyFloat_CheckExact(b)&&!PyLong_CheckExact(b))){Py_DECREF(names);Py_RETURN_NONE;}
+        Py_ssize_t length;const char* text=PyUnicode_AsUTF8AndSize(source,&length);f[i]=PyFloat_AsDouble(a);l[i]=PyFloat_AsDouble(b);
+        if(!text||PyErr_Occurred()||!std::isfinite(f[i])||!std::isfinite(l[i])){PyErr_Clear();Py_DECREF(names);Py_RETURN_NONE;}
+        std::string key(text,length);auto found=lookup.find(key);
+        if(found==lookup.end()){int id=lookup.size();lookup.emplace(key,id);if(PyList_Append(names,source)){Py_DECREF(names);return nullptr;}sid[i]=id;}else sid[i]=found->second;
+    }
+    return names;
+}
+static PyMethodDef methods[]={{"extract",extract,METH_VARARGS,"Validated canonical metadata columns, or None for the original fallback."},{nullptr,nullptr,0,nullptr}};
+static PyModuleDef definition={PyModuleDef_HEAD_INIT,"_falcon_native_metadata",nullptr,-1,methods};
+PyMODINIT_FUNC PyInit__falcon_native_metadata(){return PyModule_Create(&definition);}

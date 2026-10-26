@@ -1,0 +1,430 @@
+{
+  "updated_utc": "2026-10-26T04:01:39.758207+00:00",
+  "role": "Executable progress report; both goals remain unmet. Sensor-input extension explicit; ideal recorded range replay not validated as renderedRGB-D.",
+  "latest_pilot": {
+    "role": "LEGAL PAST/CURRENT RANGE SENSOR EXTENSION; fixed666-window pilot only",
+    "roots": 31,
+    "scenes": 16,
+    "windows": 666,
+    "epoch": 2,
+    "rule": "argmax",
+    "metrics": {
+      "unknown": {
+        "precision": 0.9965277933455124,
+        "recall": 0.998535694766024,
+        "f1": 0.9975307336447867
+      },
+      "free": {
+        "precision": 0.5476592438708764,
+        "recall": 0.6395446743299164,
+        "f1": 0.5900461536481038
+      },
+      "blocked": {
+        "precision": 0.7901878570432378,
+        "recall": 0.45995860474072675,
+        "f1": 0.5814577976568001
+      },
+      "label_aware_delta_iou": 0.4127557281695153,
+      "revelation_iou": 0.4618505450892762,
+      "missed_revelations": 125.3686298738775,
+      "incorrect_free_blocked": 11.502971482789233,
+      "false_revelations": 52.76436922664193,
+      "terminal_label_agreement_on_true_revelations": 0.5080912298054785,
+      "revelation_precision": 0.7434159351551309,
+      "revelation_recall": 0.5494322567211828,
+      "revelation_f1": 0.6318710850992921,
+      "false_revelation_rate": 0.0014643052339759425,
+      "wrong_free_blocked_rate": 0.04134102691570426,
+      "false_free_unknown_count": 32.503780614474394,
+      "false_free_blocked_count": 6.889474545581678,
+      "false_free_unknown_fraction": 0.3732310173523007,
+      "false_free_blocked_fraction": 0.0791097387768229,
+      "false_free_on_actual_blocked_rate": 0.03382657229086653
+    },
+    "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/training/range_online4096/epoch02.pt",
+    "checkpoint_sha256": "80755c9d2b60323085b8d37fe7175e464dd6566629f1d3790d516c3f25fc33b5",
+    "deployment_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/training/range_online4096/selected_epoch02_argmax.pt",
+    "deployment_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605"
+  },
+  "matched_complete_speed": {
+    "role": "Matched frozen epoch02 checkpoint, same RTX3090 GPU0, precision,32 original workloads and K1/4/6. Full cold and warm hypothetical materialization; no target acceptance claim.",
+    "load_isolation": {
+      "started_utc": "2026-10-26T03:58:11.546869+00:00",
+      "resumed_utc": "2026-10-26T04:00:19.540795+00:00",
+      "pause_primary": true,
+      "unchanged": "All unrelated work continues. No collector/Stage1 job selected. Owned primary fit is paused only when explicitly requested.",
+      "owned_processes_temporarily_paused": 28
+    },
+    "models": {
+      "optix-triangle": {
+        "checkpoint_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605",
+        "implementation": "OptixTriangleSpatialPredictor",
+        "precision": {
+          "baseline": "F32 TF32off",
+          "range": "AMP spatial encoder/head; frozen F32 prior TF32off; F64 camera/frustum geometry"
+        },
+        "summary": [
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "cold",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 28.182458481751382,
+            "p95_ms": 40.081382484640926,
+            "p99_ms": 45.966268288902945,
+            "max_ms": 49.50776812620461,
+            "candidate_cells_min": 34507,
+            "candidate_cells_max": 47012
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "cold",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 51.6171584604308,
+            "p95_ms": 61.16305402247235,
+            "p99_ms": 70.70587841561066,
+            "max_ms": 78.36986193433404,
+            "candidate_cells_min": 137168,
+            "candidate_cells_max": 164904
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "cold",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 63.202052493579686,
+            "p95_ms": 78.10948259430005,
+            "p99_ms": 97.16023935005072,
+            "max_ms": 110.14192597940564,
+            "candidate_cells_min": 203542,
+            "candidate_cells_max": 253792
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "warm",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 11.445663985796273,
+            "p95_ms": 18.56515030376613,
+            "p99_ms": 19.295081165619195,
+            "max_ms": 19.438739866018295,
+            "candidate_cells_min": 34507,
+            "candidate_cells_max": 47012
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "warm",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 31.410689116455615,
+            "p95_ms": 41.658599639777094,
+            "p99_ms": 42.85931640537456,
+            "max_ms": 42.8619310259819,
+            "candidate_cells_min": 137168,
+            "candidate_cells_max": 164904
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "warm",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 41.67930397670716,
+            "p95_ms": 57.58830459089949,
+            "p99_ms": 70.39621146861467,
+            "max_ms": 79.46407794952393,
+            "candidate_cells_min": 203542,
+            "candidate_cells_max": 253792
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "cold",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 25.02013265620917,
+            "p95_ms": 30.375562806148082,
+            "p99_ms": 31.37721155071631,
+            "max_ms": 31.73160902224481,
+            "candidate_cells_min": 35386,
+            "candidate_cells_max": 45774
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "cold",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 42.50901658087969,
+            "p95_ms": 53.062357753515236,
+            "p99_ms": 68.0746455397457,
+            "max_ms": 74.775350978598,
+            "candidate_cells_min": 141860,
+            "candidate_cells_max": 157428
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "cold",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 54.11662696860731,
+            "p95_ms": 62.11811878019943,
+            "p99_ms": 64.90023190155625,
+            "max_ms": 65.82974293269217,
+            "candidate_cells_min": 212790,
+            "candidate_cells_max": 235041
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "warm",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 10.519008035771549,
+            "p95_ms": 15.063436806667593,
+            "p99_ms": 16.040033975150436,
+            "max_ms": 16.17074804380536,
+            "candidate_cells_min": 35386,
+            "candidate_cells_max": 45774
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "warm",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 27.322949026711285,
+            "p95_ms": 32.94730397174135,
+            "p99_ms": 33.389126802794635,
+            "max_ms": 33.619720954447985,
+            "candidate_cells_min": 141860,
+            "candidate_cells_max": 157428
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "warm",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 37.6057360554114,
+            "p95_ms": 44.84557686373591,
+            "p99_ms": 47.07361630862579,
+            "max_ms": 47.90475498884916,
+            "candidate_cells_min": 212790,
+            "candidate_cells_max": 235041
+          }
+        ],
+        "startup": [
+          {
+            "model": "baseline",
+            "constructor_ms": 1151.6463509760797,
+            "first_complete_K6_ms": 956.7106750328094
+          },
+          {
+            "model": "range",
+            "constructor_ms": 167.18336497433484,
+            "first_complete_K6_ms": 1498.0326960794628
+          }
+        ],
+        "scope": "Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.",
+        "excluded": "Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime."
+      },
+      "fast-pipeline": {
+        "checkpoint_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605",
+        "implementation": "FastPreparedPipelinePredictor",
+        "precision": {
+          "baseline": "F32 TF32off",
+          "range": "AMP spatial encoder/head; frozen F32 prior TF32off; F64 camera/frustum geometry"
+        },
+        "summary": [
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "cold",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 19.68948496505618,
+            "p95_ms": 26.91404219949618,
+            "p99_ms": 27.697143310215324,
+            "max_ms": 27.929421048611403,
+            "candidate_cells_min": 34507,
+            "candidate_cells_max": 47012
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "cold",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 33.952986472286284,
+            "p95_ms": 42.09530840162188,
+            "p99_ms": 51.508831921964905,
+            "max_ms": 59.39240078441799,
+            "candidate_cells_min": 137168,
+            "candidate_cells_max": 164904
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "cold",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 41.25102492980659,
+            "p95_ms": 51.76545315189287,
+            "p99_ms": 52.927251970395446,
+            "max_ms": 53.74366580508649,
+            "candidate_cells_min": 203542,
+            "candidate_cells_max": 253792
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "warm",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 8.089202106930315,
+            "p95_ms": 13.735300919506699,
+            "p99_ms": 14.1309337108396,
+            "max_ms": 14.44732490926981,
+            "candidate_cells_min": 34507,
+            "candidate_cells_max": 47012
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "warm",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 20.8750800229609,
+            "p95_ms": 29.349209577776488,
+            "p99_ms": 30.05835512885824,
+            "max_ms": 30.203375034034252,
+            "candidate_cells_min": 137168,
+            "candidate_cells_max": 164904
+          },
+          {
+            "model": "range",
+            "cohort": "dense",
+            "cache": "warm",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 28.28009845688939,
+            "p95_ms": 39.080776914488524,
+            "p99_ms": 40.40256588254124,
+            "max_ms": 41.35799594223499,
+            "candidate_cells_min": 203542,
+            "candidate_cells_max": 253792
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "cold",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 18.132798024453223,
+            "p95_ms": 21.136861224658787,
+            "p99_ms": 21.720203887671232,
+            "max_ms": 21.872379118576646,
+            "candidate_cells_min": 35386,
+            "candidate_cells_max": 45774
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "cold",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 27.671608375385404,
+            "p95_ms": 32.72692564642057,
+            "p99_ms": 34.72462540958077,
+            "max_ms": 36.229101940989494,
+            "candidate_cells_min": 141860,
+            "candidate_cells_max": 157428
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "cold",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 34.4298523850739,
+            "p95_ms": 39.059095981065184,
+            "p99_ms": 41.397339878603816,
+            "max_ms": 41.917228838428855,
+            "candidate_cells_min": 212790,
+            "candidate_cells_max": 235041
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "warm",
+            "k": 1,
+            "calls": 48,
+            "p50_ms": 7.173983962275088,
+            "p95_ms": 10.889822791796176,
+            "p99_ms": 11.427746000699699,
+            "max_ms": 11.572716990485787,
+            "candidate_cells_min": 35386,
+            "candidate_cells_max": 45774
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "warm",
+            "k": 4,
+            "calls": 48,
+            "p50_ms": 18.1430735392496,
+            "p95_ms": 21.66971517726779,
+            "p99_ms": 22.916388905141503,
+            "max_ms": 22.92759600095451,
+            "candidate_cells_min": 141860,
+            "candidate_cells_max": 157428
+          },
+          {
+            "model": "range",
+            "cohort": "representative",
+            "cache": "warm",
+            "k": 6,
+            "calls": 48,
+            "p50_ms": 24.330740445293486,
+            "p95_ms": 30.35677726147696,
+            "p99_ms": 31.63668575696647,
+            "max_ms": 31.679107109084725,
+            "candidate_cells_min": 212790,
+            "candidate_cells_max": 235041
+          }
+        ],
+        "startup": [
+          {
+            "model": "baseline",
+            "constructor_ms": 3.725278889760375,
+            "first_complete_K6_ms": 67.6570818759501
+          },
+          {
+            "model": "range",
+            "constructor_ms": 94.45730899460614,
+            "first_complete_K6_ms": 47.9534319601953
+          }
+        ],
+        "scope": "Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.",
+        "excluded": "Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime."
+      }
+    },
+    "artifact": "output/stage2_repair_20261025/matched_pipeline_epoch02_gpu0.json"
+  },
+  "verification": {
+    "all666_epoch01_public_api": "Identical0.40639060987361236 label IoU and0.46727246750840945 revelation IoU; identical pooled confusion old GPUcandidate vs new devicepipeline.",
+    "five_full_workloads": "Fast canonical metadata + concurrent complete device pipeline matches all original candidate keys, states, heights and normal materialized future cell keys.",
+    "mixed_single_batch": "Exact88+16 feature values, keys, hard states and heights. AMP probabilities differ at most0.000375 with different GEMM row counts;7e-4absolute/1e-3relative test tolerance. Start-only UNKNOWN; stationary later timestamps retain normal prediction. Forced original fallback matches.",
+    "prototype_defect": "Torch CUDA nonzero returned column-major pairs; explicit contiguous fixed incorrect raw-pointer key reads. New prototype only; not original baseline plateau cause.",
+    "synthetic_module_memory": "256 discarded NVRTC module instances showed zero increase in GPU allocation in a quiet test; this particular leak hypothesis not supported."
+  },
+  "training_augmentation": "Tested90degree legal world-coordinate augmentation, including correctnegativecellkey(-k-1) transformation. Input/label/camera/track identities transform together. Not yet trained or selected."
+}

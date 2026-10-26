@@ -47,7 +47,7 @@ def make_batch(items,builder,device):
     return batch,ledger
 
 
-def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False):
+def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False):
     torch.set_num_threads(1);torch.manual_seed(5511);torch.backends.cuda.matmul.allow_tf32=False
     tick=time.perf_counter();m=inventory(roots);print('INVENTORY',{k:v for k,v in m.items()if k!='records'},flush=True)
     dest=OUT/'training'/name;dest.mkdir(exist_ok=False);save(dest/'snapshot.json',m)
@@ -57,12 +57,18 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
         save(dest/'waiting.json',dict(ready=m['roots']-len(missing),requested=m['roots'],pending=missing,seconds=time.perf_counter()-tick))
         if not wait:raise FileNotFoundError('sensor packets pending; use --wait or a completed eligible snapshot')
         print('WAITING',m['roots']-len(missing),'/',m['roots'],flush=True);time.sleep(30)
-    data=OnlineRangeGroups(m);loader=DataLoader(data,batch_size=batch_size,num_workers=workers,collate_fn=keep,persistent_workers=True,multiprocessing_context='fork',prefetch_factor=2)
+    group_class=OnlineRangeGroups
+    if augment_cardinal:
+        from .cardinal_augment import CardinalOnlineGroups
+        group_class=CardinalOnlineGroups
+    data=group_class(m);loader=DataLoader(data,batch_size=batch_size,num_workers=workers,collate_fn=keep,persistent_workers=True,multiprocessing_context='fork',prefetch_factor=2)
     warm=Path(warm)if warm else OUT/'training/support_pretrained256_control/selected.pt'
     saved=torch.load(warm,map_location='cpu');model=SpatialEvidenceNet().to(device);model.load_state_dict(saved['model']);builder=LegalFeatureBuilder(model,device)
     optim=torch.optim.AdamW([p for p in model.parameters()if p.requires_grad],lr=.0002,weight_decay=.0001);scaler=torch.cuda.amp.GradScaler()
     cfg=dict(schema='legal_range_spatial_1',name=name,epochs=epochs,roots=m['roots'],scenes=m['scenes'],windows=m['windows'],groups=m['groups'],base_checkpoint=saved['config']['base_checkpoint'],warm=str(warm),warm_sha256=sha(warm),snapshot_sha256=sha(dest/'snapshot.json'),source_manifest_sha256=m['source_manifest_sha256'],observed_obstacle_schema='capped_2m_complete',device=device,batch_size=batch_size,workers=workers,learning_rate=.0002,sampling='Fresh128positive/384nearUNKNOWN/128remainingUNKNOWN every pass over all original windows; exact inverse inclusion equalScene/Root/window weights. Full candidate construction before sampling, no hard windows dropped.',objective='Same primary pos8revelation BCE +8R conditional BCE +.1typedDice +.25auxiliary published-certificate-class UNION.',inputs='Only current legal graph, supplied trajectory, measured ancestor/current range arrays and legally observed track history/current camera. No private full scene or future truth inputs.',sources={n:sha(Path(__file__).with_name(n))for n in ['range_online_train.py','range_online_data.py','range_online_features.py','range_fast.py','range_gpu.py','range_spatial.py']})
     cfg['dev_feature_manifest']=str((OUT/'range_evidence_dev_v2/manifest.json').resolve())
+    cfg['cardinal_augmentation']=bool(augment_cardinal)
+    if augment_cardinal:cfg['sources']['cardinal_augment.py']=sha(Path(__file__).with_name('cardinal_augment.py'))
     save(dest/'config.json',cfg);logs=[];tick=time.perf_counter();updates=0;total_updates=epochs*int(np.ceil(m['groups']/batch_size))
     for epoch in range(1,epochs+1):
         data.epoch.value=epoch;totals=np.zeros(3);batches=0;seen_groups=0;seen_roots=set();ledger={}
@@ -87,4 +93,4 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');run(**vars(p.parse_args()))
