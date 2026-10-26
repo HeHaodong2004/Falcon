@@ -1,0 +1,680 @@
+{
+ "salt": "querygen-oracle-suites-20261026",
+ "rule": "Frozen evaluation suites (declared before any Generator/Oracle iteration).\n\nSelection is a deterministic salted hash (no inspection of episodes or\noutcomes): Social-HM3D val scenes are ordered by sha256(SALT|scene); the first\nhalf form DEV (development + primary acceptance gate), the rest HOLDOUT.\nWithin each scene the episode with the smallest sha256(SALT|scene|episode_id)\nis chosen.  All Social-MP3D val scenes join HOLDOUT the same way (cross-dataset).\nHOLDOUT stays untouched until the Generator is frozen.",
+ "dev": [
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "Nfvxx8J5NCo",
+   "episode_id": "18",
+   "seed": 174611739,
+   "human_num": 2,
+   "geodesic": 9.981
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "TEEsavR23oF",
+   "episode_id": "12",
+   "seed": 1697355146,
+   "human_num": 2,
+   "geodesic": 5.369
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "auFeVz9Go4m",
+   "episode_id": "16",
+   "seed": 883132265,
+   "human_num": 6,
+   "geodesic": 15.037
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "HMkoS756sz6",
+   "episode_id": "10",
+   "seed": 1664035017,
+   "human_num": 2,
+   "geodesic": 4.242
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "AWUFxHEyV3T",
+   "episode_id": "0",
+   "seed": 420877988,
+   "human_num": 2,
+   "geodesic": 14.371
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "rsggHU7g7dh",
+   "episode_id": "12",
+   "seed": 1849888754,
+   "human_num": 6,
+   "geodesic": 14.907
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "Qpor2mEya8F",
+   "episode_id": "22",
+   "seed": 1520031807,
+   "human_num": 4,
+   "geodesic": 8.593
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "hkr2MGpHD6B",
+   "episode_id": "8",
+   "seed": 480501122,
+   "human_num": 6,
+   "geodesic": 6.255
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "LEFTm3JecaC",
+   "episode_id": "13",
+   "seed": 821365955,
+   "human_num": 2,
+   "geodesic": 2.925
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "7Ukhou1GxYi",
+   "episode_id": "14",
+   "seed": 427738242,
+   "human_num": 4,
+   "geodesic": 13.71
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "yr17PDCnDDW",
+   "episode_id": "5",
+   "seed": 1227719278,
+   "human_num": 6,
+   "geodesic": 10.829
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "QHhQZWdMpGJ",
+   "episode_id": "8",
+   "seed": 1659659155,
+   "human_num": 2,
+   "geodesic": 5.389
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "XNeHsjL6nBB",
+   "episode_id": "13",
+   "seed": 1737191133,
+   "human_num": 2,
+   "geodesic": 4.819
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "bxsVRursffK",
+   "episode_id": "11",
+   "seed": 722105015,
+   "human_num": 2,
+   "geodesic": 3.364
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "LT9Jq6dN3Ea",
+   "episode_id": "23",
+   "seed": 1081689443,
+   "human_num": 6,
+   "geodesic": 10.45
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "Dd4bFSTQ8gi",
+   "episode_id": "12",
+   "seed": 1267882180,
+   "human_num": 4,
+   "geodesic": 12.903
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "XMHNu9rRQ1y",
+   "episode_id": "3",
+   "seed": 939651363,
+   "human_num": 2,
+   "geodesic": 7.527
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "tQ5s4ShP627",
+   "episode_id": "5",
+   "seed": 1719590731,
+   "human_num": 2,
+   "geodesic": 9.442
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "eF36g7L6Z9M",
+   "episode_id": "18",
+   "seed": 1413557334,
+   "human_num": 6,
+   "geodesic": 13.062
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "YRUkbU5xsYj",
+   "episode_id": "10",
+   "seed": 95819214,
+   "human_num": 6,
+   "geodesic": 7.938
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "SByzJLxpRGn",
+   "episode_id": "13",
+   "seed": 1674310075,
+   "human_num": 2,
+   "geodesic": 7.234
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "bzCsHPLDztK",
+   "episode_id": "9",
+   "seed": 301390326,
+   "human_num": 2,
+   "geodesic": 12.413
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "bCPU9suPUw9",
+   "episode_id": "24",
+   "seed": 51837467,
+   "human_num": 2,
+   "geodesic": 2.924
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "FnSn2KSrALj",
+   "episode_id": "13",
+   "seed": 21756416,
+   "human_num": 2,
+   "geodesic": 5.027
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "yZME6UR9dUN",
+   "episode_id": "3",
+   "seed": 2089356374,
+   "human_num": 4,
+   "geodesic": 6.387
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "vd3HHTEpmyA",
+   "episode_id": "8",
+   "seed": 122585330,
+   "human_num": 4,
+   "geodesic": 3.157
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "5cdEh9F2hJL",
+   "episode_id": "6",
+   "seed": 878205022,
+   "human_num": 2,
+   "geodesic": 11.272
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "3t8DB4Uzvkt",
+   "episode_id": "9",
+   "seed": 1292640211,
+   "human_num": 4,
+   "geodesic": 9.477
+  }
+ ],
+ "holdout": [
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "LNg5mXe1BDj",
+   "episode_id": "23",
+   "seed": 869227301,
+   "human_num": 2,
+   "geodesic": 8.081
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "cYkrGrCg2kB",
+   "episode_id": "14",
+   "seed": 257060102,
+   "human_num": 2,
+   "geodesic": 5.839
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "kJJyRFXVpx2",
+   "episode_id": "17",
+   "seed": 691819280,
+   "human_num": 4,
+   "geodesic": 3.834
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "vBMLrTe4uLA",
+   "episode_id": "21",
+   "seed": 1625978847,
+   "human_num": 4,
+   "geodesic": 4.623
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "wcojb4TFT35",
+   "episode_id": "0",
+   "seed": 663771781,
+   "human_num": 2,
+   "geodesic": 6.75
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "X7gTkoDHViv",
+   "episode_id": "2",
+   "seed": 388888659,
+   "human_num": 2,
+   "geodesic": 5.63
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "X4qjx5vquwH",
+   "episode_id": "17",
+   "seed": 1147129660,
+   "human_num": 4,
+   "geodesic": 6.046
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "8CRYizAb6yd",
+   "episode_id": "1",
+   "seed": 472504993,
+   "human_num": 2,
+   "geodesic": 12.491
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "cvZr5TUy5C5",
+   "episode_id": "4",
+   "seed": 1467219122,
+   "human_num": 6,
+   "geodesic": 14.208
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "zt1RVoi7PcG",
+   "episode_id": "14",
+   "seed": 1140797962,
+   "human_num": 4,
+   "geodesic": 14.969
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "5jp3fCRSRjc",
+   "episode_id": "16",
+   "seed": 582072318,
+   "human_num": 6,
+   "geodesic": 8.674
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "p53SfW6mjZe",
+   "episode_id": "12",
+   "seed": 1066441283,
+   "human_num": 6,
+   "geodesic": 5.847
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "6D36GQHuP8H",
+   "episode_id": "9",
+   "seed": 501686756,
+   "human_num": 2,
+   "geodesic": 3.659
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "h1zeeAwLh9Z",
+   "episode_id": "13",
+   "seed": 1830882866,
+   "human_num": 4,
+   "geodesic": 2.144
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "RJaJt8UjXav",
+   "episode_id": "2",
+   "seed": 1531162417,
+   "human_num": 2,
+   "geodesic": 7.291
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "5hGmubEE6ZF",
+   "episode_id": "5",
+   "seed": 1844567015,
+   "human_num": 4,
+   "geodesic": 3.907
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "dHwjuKfkRUR",
+   "episode_id": "18",
+   "seed": 1299782318,
+   "human_num": 4,
+   "geodesic": 5.456
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "mv2HUxq3B53",
+   "episode_id": "24",
+   "seed": 1684194936,
+   "human_num": 4,
+   "geodesic": 12.013
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "y9hTuugGdiq",
+   "episode_id": "23",
+   "seed": 1553933589,
+   "human_num": 2,
+   "geodesic": 8.578
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "dVW2D7TDctW",
+   "episode_id": "8",
+   "seed": 442998659,
+   "human_num": 6,
+   "geodesic": 20.803
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "BHXhpBwSMLh",
+   "episode_id": "14",
+   "seed": 1565994117,
+   "human_num": 4,
+   "geodesic": 9.081
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "q5QZSEeHe5g",
+   "episode_id": "0",
+   "seed": 333446908,
+   "human_num": 2,
+   "geodesic": 7.819
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "SUHsP6z2gcJ",
+   "episode_id": "3",
+   "seed": 1266961776,
+   "human_num": 4,
+   "geodesic": 15.407
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "k1cupFYWXJ6",
+   "episode_id": "3",
+   "seed": 1926044562,
+   "human_num": 2,
+   "geodesic": 10.066
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "66seV3BWPoX",
+   "episode_id": "5",
+   "seed": 1224830453,
+   "human_num": 2,
+   "geodesic": 6.612
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "CrMo8WxCyVb",
+   "episode_id": "19",
+   "seed": 204915112,
+   "human_num": 4,
+   "geodesic": 7.185
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "QaLdnwvtxbs",
+   "episode_id": "12",
+   "seed": 960807473,
+   "human_num": 2,
+   "geodesic": 8.618
+  },
+  {
+   "dataset": "hm3d",
+   "split": "val",
+   "scene": "hDBqLgydy1n",
+   "episode_id": "3",
+   "seed": 1980168024,
+   "human_num": 4,
+   "geodesic": 2.618
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "zsNo4HB9uLZ",
+   "episode_id": "42",
+   "seed": 1173771162,
+   "human_num": 4,
+   "geodesic": 15.304
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "x8F5xyUWy9e",
+   "episode_id": "2",
+   "seed": 1923684356,
+   "human_num": 2,
+   "geodesic": 4.432
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "TbHJrupSAjP",
+   "episode_id": "6",
+   "seed": 2143194118,
+   "human_num": 6,
+   "geodesic": 11.193
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "EU6Fwq7SyZv",
+   "episode_id": "33",
+   "seed": 1017406970,
+   "human_num": 4,
+   "geodesic": 11.476
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "8194nk5LbLH",
+   "episode_id": "5",
+   "seed": 903644054,
+   "human_num": 4,
+   "geodesic": 9.86
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "oLBMNvg9in8",
+   "episode_id": "8",
+   "seed": 203124617,
+   "human_num": 4,
+   "geodesic": 3.457
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "Z6MFQCViBuw",
+   "episode_id": "6",
+   "seed": 1861431566,
+   "human_num": 6,
+   "geodesic": 9.192
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "X7HyMhZNoso",
+   "episode_id": "24",
+   "seed": 1040958526,
+   "human_num": 4,
+   "geodesic": 23.06
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "2azQ1b91cZZ",
+   "episode_id": "22",
+   "seed": 1113215035,
+   "human_num": 6,
+   "geodesic": 8.778
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "pLe4wQe7qrG",
+   "episode_id": "1",
+   "seed": 1558495172,
+   "human_num": 2,
+   "geodesic": 6.36
+  },
+  {
+   "dataset": "mp3d",
+   "split": "val",
+   "scene": "QUCTc6BB5sX",
+   "episode_id": "25",
+   "seed": 565577835,
+   "human_num": 6,
+   "geodesic": 7.533
+  }
+ ],
+ "dataset_file_sha256": {
+  "data/datasets/pointnav/social-hm3d/val/content/3t8DB4Uzvkt.json.gz": "f5f74a09bcdb0f50b5e547ccd0e76dd97f398579bcb60dd55f6f667e7855171f",
+  "data/datasets/pointnav/social-hm3d/val/content/5cdEh9F2hJL.json.gz": "fece70b1677dbc71e56f556000e64441e0a6f92023b612f6284a559c4641e4c4",
+  "data/datasets/pointnav/social-hm3d/val/content/5hGmubEE6ZF.json.gz": "e84d0ad48f7de86c02c37e4c0a2f7b364098a1008419da30b0520815b92fde46",
+  "data/datasets/pointnav/social-hm3d/val/content/5jp3fCRSRjc.json.gz": "64a19a53cb10e7923033c36eea082c11e29c385c058547359f174479d0545412",
+  "data/datasets/pointnav/social-hm3d/val/content/66seV3BWPoX.json.gz": "0f46dcc0210870acf8cfb06f60ae320b464ebd30ded9bef6e36193446c947e79",
+  "data/datasets/pointnav/social-hm3d/val/content/6D36GQHuP8H.json.gz": "05cfbfcdb197a63289a77fb7f3d7c9d0f7e0f5930b27fc921e1bd62bc9a090f5",
+  "data/datasets/pointnav/social-hm3d/val/content/7Ukhou1GxYi.json.gz": "42ab3002a11fdbdcd44cc2e8a7ffc2a3ce1ff0ee835a903baa6f327fd1144be5",
+  "data/datasets/pointnav/social-hm3d/val/content/8CRYizAb6yd.json.gz": "dd499698a0a4e8695abf656912667923ca9a01c591d9a455e2b16b7812d3057f",
+  "data/datasets/pointnav/social-hm3d/val/content/AWUFxHEyV3T.json.gz": "a0f262d72afab712ae5904ccf850b27a30bf1db8cf716b801625998bdcb02c7a",
+  "data/datasets/pointnav/social-hm3d/val/content/BHXhpBwSMLh.json.gz": "7efa813248f6706c64ab1cbd57d7f09b508053eb3c856883ad8cdfc965bd0df7",
+  "data/datasets/pointnav/social-hm3d/val/content/CrMo8WxCyVb.json.gz": "9901920cdd509e73b14446d8fbe6f34e613e80c310c666a8b2f2d63784e65ea1",
+  "data/datasets/pointnav/social-hm3d/val/content/Dd4bFSTQ8gi.json.gz": "51981e131877a8d3bcef45c770ba5033d5dab9cb0f9b987384be9ecaa78908b1",
+  "data/datasets/pointnav/social-hm3d/val/content/FnSn2KSrALj.json.gz": "7a0e22d8a1d2241f08172a3debdcacf4afd665fb07c4bb4aca70cec191bd98a7",
+  "data/datasets/pointnav/social-hm3d/val/content/HMkoS756sz6.json.gz": "6647f026a4cc8b29aee232cabb8f8a8d20fee796fde99111dec9c19653f45b29",
+  "data/datasets/pointnav/social-hm3d/val/content/LEFTm3JecaC.json.gz": "fb7fe2ddf458c4169b3f7c0997b9b41eb8b1fca73f8c45b8524202e077a2766a",
+  "data/datasets/pointnav/social-hm3d/val/content/LNg5mXe1BDj.json.gz": "b62012313a3691d8225c5c8420512569edc3248f9b8fb5b5fd8266ce7860bd14",
+  "data/datasets/pointnav/social-hm3d/val/content/LT9Jq6dN3Ea.json.gz": "f0ff36d29dad60e0c8b74fb6172e4a9527cb864a8d45b75cfefaa87f04125d99",
+  "data/datasets/pointnav/social-hm3d/val/content/Nfvxx8J5NCo.json.gz": "117348ae14414a9911bf5905ac79f910864b8f16dc702890fe26ed9b9c842473",
+  "data/datasets/pointnav/social-hm3d/val/content/QHhQZWdMpGJ.json.gz": "8c283ccf98adea6b8f274e0b6a60047cb0fd0d93401edb790915989a48d3b874",
+  "data/datasets/pointnav/social-hm3d/val/content/QaLdnwvtxbs.json.gz": "72c69863143c54dffc2cfe641bb43df030f1e6950116baee5e13afd5bb28babe",
+  "data/datasets/pointnav/social-hm3d/val/content/Qpor2mEya8F.json.gz": "de5a3a90d947e1d7a53a5450b3c30ba91c45006c4aa3f9772a6abeef366b07a8",
+  "data/datasets/pointnav/social-hm3d/val/content/RJaJt8UjXav.json.gz": "8d90c531030a8a916ae6fdbfc5907d9b337f9d71d4d3e1a6bfed5a324317d788",
+  "data/datasets/pointnav/social-hm3d/val/content/SByzJLxpRGn.json.gz": "347a20bd0969575cf434bf979b15f60728b69a259291831885e463f808f73940",
+  "data/datasets/pointnav/social-hm3d/val/content/SUHsP6z2gcJ.json.gz": "83350afd6f9f02733f3beb7eccda7ebd4673caca4070582beaec2b40403bf5e1",
+  "data/datasets/pointnav/social-hm3d/val/content/TEEsavR23oF.json.gz": "a3d4a64f68325bc286667e0efb5efdc6de304d6efef63467fefd03e76d88938d",
+  "data/datasets/pointnav/social-hm3d/val/content/X4qjx5vquwH.json.gz": "27bdecf6b81b956c44cd169432a72d68e62eb15b291bdb5b38394cb1027699ae",
+  "data/datasets/pointnav/social-hm3d/val/content/X7gTkoDHViv.json.gz": "c699c7108adeb3dc9fe32d81c967540b3da797f8366fc8bcc5e69da766bd12cc",
+  "data/datasets/pointnav/social-hm3d/val/content/XMHNu9rRQ1y.json.gz": "39625fb39032ee96e40a48edf7bcd3b99cf73c2d461434afca5cf5a46b739770",
+  "data/datasets/pointnav/social-hm3d/val/content/XNeHsjL6nBB.json.gz": "db8552cda88a867f6da79171addcaaabe0afcced819e9e663621b17a2bf0a88a",
+  "data/datasets/pointnav/social-hm3d/val/content/YRUkbU5xsYj.json.gz": "281c5d67717f930aa0a85845423f95110ea191efae4fcb7527892a9bffb709f2",
+  "data/datasets/pointnav/social-hm3d/val/content/auFeVz9Go4m.json.gz": "2599abb5473123d94cf8502c568d79bc0743c66d8e04426167b1cc1b0c9de31e",
+  "data/datasets/pointnav/social-hm3d/val/content/bCPU9suPUw9.json.gz": "dddb2757853d3645cd9a624a898981159094e09f602ab558a486d450ead46771",
+  "data/datasets/pointnav/social-hm3d/val/content/bxsVRursffK.json.gz": "ca1d2389c8942ad7514be8ef253a7bed59c2903a7be9c57464110625bc8c4d79",
+  "data/datasets/pointnav/social-hm3d/val/content/bzCsHPLDztK.json.gz": "af01c87cf7da19f20ea650a6d8d8d09f3a94302b8e77282112355e4200c18e5e",
+  "data/datasets/pointnav/social-hm3d/val/content/cYkrGrCg2kB.json.gz": "795c9ab41c47a8cc0b2525d2582f4f25c29bd60e28e502aec1eea0091f93a03d",
+  "data/datasets/pointnav/social-hm3d/val/content/cvZr5TUy5C5.json.gz": "b3bc7c6465148061d750c706b377fe7781d62c3c90772ae759b05aa42bd0b171",
+  "data/datasets/pointnav/social-hm3d/val/content/dHwjuKfkRUR.json.gz": "7d83829cbac76096d48d9f258ddaafc567d29b1d7f9d9cba413a1e17b40c5184",
+  "data/datasets/pointnav/social-hm3d/val/content/dVW2D7TDctW.json.gz": "4b003c553f06db35fca7403c1465cbd00fce9cca6f567fe53c7e774449d55d69",
+  "data/datasets/pointnav/social-hm3d/val/content/eF36g7L6Z9M.json.gz": "bce5325c2b6e2a75c480fc6f06ba0c944b74561007baac13901a32bc3e8be1ad",
+  "data/datasets/pointnav/social-hm3d/val/content/h1zeeAwLh9Z.json.gz": "e8207543575ee0317b95b7e81146392d4f13eadb10ff9a6891ca68478de14e5e",
+  "data/datasets/pointnav/social-hm3d/val/content/hDBqLgydy1n.json.gz": "1dcb2a22189f35f1ccf891e2f217295726b6dfd7548fca36b77ad9c48c894ba3",
+  "data/datasets/pointnav/social-hm3d/val/content/hkr2MGpHD6B.json.gz": "844ccbb92855f3b99244954ec6a65fd5077c769251e8f18ffed0fd361bc4bf99",
+  "data/datasets/pointnav/social-hm3d/val/content/k1cupFYWXJ6.json.gz": "c61f283fb29f75791a3164e56d763da7aef0f05325c594162e79d9ee5939aab7",
+  "data/datasets/pointnav/social-hm3d/val/content/kJJyRFXVpx2.json.gz": "aef95481bbd09de4a88baf16f0df703af7364ac430e884f532fae5f5fe76c382",
+  "data/datasets/pointnav/social-hm3d/val/content/mv2HUxq3B53.json.gz": "63f97881ff6f62e070bde70b01b3a2ed3ad4ceb2fbaa125e11cf0cb86a681529",
+  "data/datasets/pointnav/social-hm3d/val/content/p53SfW6mjZe.json.gz": "68997bd84b64f7df6e9ed871cb4d648d3dd6512c338619baad305ebd5092d54c",
+  "data/datasets/pointnav/social-hm3d/val/content/q5QZSEeHe5g.json.gz": "3a5f05c460c5c5f9ae14a9c081b5771b23b3ca39b7d2c4c9a2922d40ca8abf32",
+  "data/datasets/pointnav/social-hm3d/val/content/rsggHU7g7dh.json.gz": "6895b7b852cc1730ece9510d9eed64beeab3d17c4e03a41cabbeb4471468b794",
+  "data/datasets/pointnav/social-hm3d/val/content/tQ5s4ShP627.json.gz": "947f3470b37f81932b045755a69e8d41f897d7ab963c394d1fd926a77905ed31",
+  "data/datasets/pointnav/social-hm3d/val/content/vBMLrTe4uLA.json.gz": "86b31f6289a833b2b0526940900030f85e0aea369f5d24c2d2d7ff58e913f992",
+  "data/datasets/pointnav/social-hm3d/val/content/vd3HHTEpmyA.json.gz": "4ab2be633d906718e82e574a1d78ea37c9264bd388cf8075a66c0f6c0c77347d",
+  "data/datasets/pointnav/social-hm3d/val/content/wcojb4TFT35.json.gz": "f942d46c60c37e38ff580d546e0802b4d6b3f88dd72a9fbd308093dacf704757",
+  "data/datasets/pointnav/social-hm3d/val/content/y9hTuugGdiq.json.gz": "816116e1206aaac8034251a573de2d3b77a4df2484e23a4234d8d96e5b7c9c39",
+  "data/datasets/pointnav/social-hm3d/val/content/yZME6UR9dUN.json.gz": "589740b8a29b42ebf61c38a30cc8e9909b25f1fe20ad8bf137183dfcf5af7d81",
+  "data/datasets/pointnav/social-hm3d/val/content/yr17PDCnDDW.json.gz": "177f9d9bac1e7f8ce2b770b659f1af347021aa4d05232300af9a559747aa8ff6",
+  "data/datasets/pointnav/social-hm3d/val/content/zt1RVoi7PcG.json.gz": "16fd53f3761495691f5dd13f4b63340aa22d61556390843806c6b8882770d31c",
+  "data/datasets/pointnav/social-mp3d/val/content/2azQ1b91cZZ.json.gz": "12442511fb9f7d9663963af86a83bfc310e175d431fcf7d4af7adea0addf8330",
+  "data/datasets/pointnav/social-mp3d/val/content/8194nk5LbLH.json.gz": "a3553bdba201e01116f2e19764e35128238348b007b571d8bef1ac159c2664e0",
+  "data/datasets/pointnav/social-mp3d/val/content/EU6Fwq7SyZv.json.gz": "3097abd6ee672b7b5ab85d5308b0993382c12cf6fa2065a8ed57500cc893abb2",
+  "data/datasets/pointnav/social-mp3d/val/content/QUCTc6BB5sX.json.gz": "3310a8987316dd7ca9a13e73f13771942f7dd1386a552f0e581564eec7a91413",
+  "data/datasets/pointnav/social-mp3d/val/content/TbHJrupSAjP.json.gz": "9e432952bbe06b4c64063c16381ddb8a7924410b307db71e0e1ed215227739f9",
+  "data/datasets/pointnav/social-mp3d/val/content/X7HyMhZNoso.json.gz": "c460a67e86c8c955e4a1503c35eb36b67b548f051fb0de9bd17e269a50cbef57",
+  "data/datasets/pointnav/social-mp3d/val/content/Z6MFQCViBuw.json.gz": "d3493512be8f5fa6f78be00284869683746c639074c7645385ff95a8cb5ae4db",
+  "data/datasets/pointnav/social-mp3d/val/content/oLBMNvg9in8.json.gz": "54134bbb357d297e4f7df5f2cc83680c8460147ab97de613162645616f5c3bcf",
+  "data/datasets/pointnav/social-mp3d/val/content/pLe4wQe7qrG.json.gz": "70ac0df5f96ba68236f8328d939ba93c9eb82e78bc8721197ad2ff37601caa4f",
+  "data/datasets/pointnav/social-mp3d/val/content/x8F5xyUWy9e.json.gz": "827331b16fec2a0ef9279e197df4416d71c8bbdc08432abb75264da21c740f26",
+  "data/datasets/pointnav/social-mp3d/val/content/zsNo4HB9uLZ.json.gz": "4fdea3c019e3c4b46804002aaf094a57dfcd2e40667a9972ad4f6cb8e9fafb13"
+ }
+}
