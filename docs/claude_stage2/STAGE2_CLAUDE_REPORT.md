@@ -195,8 +195,8 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | cascade_v7f | refiner on frozen final v7 (0.4454) | 0.4435 @4k, 0.4451 @8k — no gain; stopped |
 | ensemble | v7 @20k + v9 @12k (weaker member) | 0.4218 vs 0.4279 single (class rule) — worse |
 | 256 px input | final v7, no retraining, 38 TRAIN-val Roots with both resolutions | 0.4454 vs 0.4430 (128 px), class rule |
-| v7_restart_iou | final v7 + 1 epoch warm restart (peak 5e-4) + 0.5 x soft label-aware IoU loss | 0.4351 @4k, 0.4450 @8k, 0.4510 @12k (running) |
-| v11_ext | warm start from the better of v7 / v7_restart_iou with two new zero-initialized input channels (`human_future`, `wall_hit_distance`), near-camera fix (0.5 m), +2,914 new TRAIN Roots, EMA 0.999, shuffle pool 16 batches, 1 epoch, IoU loss 0.5 | (queued) |
+| v7_restart_iou | final v7 + 1 epoch warm restart (peak 5e-4) + 0.5 x soft label-aware IoU loss | 0.4351 @4k, 0.4450 @8k, 0.4510 @12k, 0.4517 @16k, 0.4546 @20k, **final 0.4569** (v7 0.4454) |
+| v11_ext | warm start from v7_restart_iou with three new zero-initialized input channels (`human_future`, `wall_hit_distance`, `wall_unknown_hit`), zero-initialized coarse-level side branches (level 3: 192 x 3 blocks, level 4: 256 x 4; 3.55M -> 10.42M parameters), near-camera fix (0.5 m), +2,914 new TRAIN Roots, EMA 0.999, shuffle pool 16 batches, overlapped feature production, 1 epoch, IoU loss 0.5 | (running) |
 
 An equal-strength second member for an ensemble (v7 config, seed 1, +2,914 new TRAIN Roots) was
 started but stopped: from 17:21 UTC an external Stage-1 training job (another session) occupies
