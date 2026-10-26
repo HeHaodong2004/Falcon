@@ -14,7 +14,7 @@ from eventwm_graph.stage2_segment.prepared import content_key
 from scripts.stage2_diagnostic.common import extended_rates
 
 
-def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False,ray=False,complete_distance=False):
+def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=False,radix=False,ray=False,complete_distance=False,exact_fast=False,name=None):
     cls=RangeEvidencePredictor
     if planar:
         from .range_planar_api import PlanarRangePredictor
@@ -32,13 +32,23 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
         if proxy or radix:raise ValueError('learned viewing lines do not use measured triangle ray variants')
         from .range_ray_api import RayRangePredictor
         cls=RayRangePredictor
+    if exact_fast:
+        if ray or proxy:raise ValueError('exact acceleration preserves all63LOS probes')
+        from .range_exact_api import ExactFastRangePredictor,ExactFastSpatialPredictor
+        cls=ExactFastSpatialPredictor if spatial else ExactFastRangePredictor
     label='spatial_'if spatial else'';label+='proxy7'if proxy else'planar'if planar else'stride%d'%stride
     if radix:label+='_radix'
     if ray:label='ray'
     if complete_distance:label+='_distance2m'
+    if exact_fast:label+='_exactfast'
+    if name:label=name
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;model=cls(checkpoint,device=device,mesh_stride=stride)
     if complete_distance:model.config['observed_obstacle_schema']='capped_2m_complete'
-    raw,source=source_rows('dev');raw={r['root_id']:r for r in raw};manifest=read(HF/'light_eval_cache/manifest.json');dest=OUT/('range_runtime_'+label);dest.mkdir(exist_ok=True);roots=[];tick=time.perf_counter()
+    raw,source=source_rows('dev');raw={r['root_id']:r for r in raw};manifest=read(HF/'light_eval_cache/manifest.json');dest=OUT/('range_runtime_'+label);dest.mkdir(exist_ok=True)
+    identity=dict(checkpoint_sha256=sha(checkpoint),implementation=cls.__name__,observed_obstacle_schema=model.config.get('observed_obstacle_schema','legacy_8cell_crop'),evaluator_sha256=sha(__file__))
+    identity_path=dest/'identity.json'
+    if identity_path.exists()and read(identity_path)!=identity:raise ValueError('use --name for a different model/evaluator identity')
+    save(identity_path,identity);roots=[];tick=time.perf_counter()
     for row in manifest['rows']:
         rid=row['root_id'];legal=member(raw[rid],'legal_root.json.gz');nodes=member(raw[rid],'future_observations.json.gz');tracks=[o['tracks']for o in legal['history']]+[n['observation']['tracks']for n in nodes]
         with np.load(OUT/'range_branches'/(rid+'.npz'))as z:sensors={k:z[k]for k in z.files}
@@ -67,4 +77,4 @@ def run(checkpoint,device='cuda:0',stride=1,planar=False,proxy=False,spatial=Fal
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:0');p.add_argument('--stride',type=int,default=1);p.add_argument('--planar',action='store_true');p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');p.add_argument('--ray',action='store_true');p.add_argument('--complete-distance',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda:0');p.add_argument('--stride',type=int,default=1);p.add_argument('--planar',action='store_true');p.add_argument('--proxy',action='store_true');p.add_argument('--spatial',action='store_true');p.add_argument('--radix',action='store_true');p.add_argument('--ray',action='store_true');p.add_argument('--complete-distance',action='store_true');p.add_argument('--exact-fast',action='store_true');p.add_argument('--name');run(**vars(p.parse_args()))

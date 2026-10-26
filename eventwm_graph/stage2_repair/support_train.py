@@ -19,7 +19,7 @@ from .range_spatial import SpatialEvidenceNet
 
 
 class SupportGroups(FreshGroups):
-    def __init__(self, manifest, targets):
+    def __init__(self, manifest, targets, array_name='support_targets'):
         super().__init__(manifest)
         t = read(targets)
         assert t['source_manifest_sha256'] == sha(manifest)
@@ -30,7 +30,7 @@ class SupportGroups(FreshGroups):
             assert teacher['source_map_sha256'] == row['map_sha256']
             assert teacher['sha256'] == sha(teacher['path'])
             with np.load(teacher['path']) as z:
-                labels = z['support_targets']
+                labels = z[array_name]
             for group in row['groups']:
                 self.groups[cursor]['support_targets'] = labels[group['map_index']]
                 cursor += 1
@@ -45,19 +45,20 @@ class SupportGroups(FreshGroups):
             yield item
 
 
-def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256',draw_epoch_offset=0):
+def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256',draw_epoch_offset=0,teacher_kind='support'):
     torch.set_num_threads(1)
     torch.manual_seed(7811)
     torch.backends.cuda.matmul.allow_tf32 = False
-    data = SupportGroups(Path(manifest), Path(targets))
+    if teacher_kind not in ['support','surface']:raise ValueError('unsupported training-only target')
+    data = SupportGroups(Path(manifest), Path(targets),'surface_targets'if teacher_kind=='surface'else'support_targets')
     m = data.manifest
     loader = DataLoader(data, batch_size=8, num_workers=4, collate_fn=keep,
                         persistent_workers=True, multiprocessing_context='fork', prefetch_factor=2)
     initial = SpatialEvidenceNet()
     warm_state=torch.load(warm, map_location='cpu')
     initial.load_state_dict(warm_state['model'])
-    initial_head=nn.Conv2d(24,2,1)
-    if 'training_only_teacher_head'in warm_state:initial_head.load_state_dict(warm_state['training_only_teacher_head'])
+    initial_head=nn.Conv2d(24,3 if teacher_kind=='surface'else 2,1)
+    if 'training_only_teacher_head'in warm_state and teacher_kind=='support':initial_head.load_state_dict(warm_state['training_only_teacher_head'])
     variants = {}
     for variant, coefficient in [('control', 0.), ('teacher', .5)]:
         model = copy.deepcopy(initial).to(device)
@@ -73,10 +74,11 @@ def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256',dr
                    roots=m['roots'], scenes=m['scenes'], learning_rate=.0002,
                    manifest_sha256=sha(manifest), teacher_target_manifest_sha256=sha(targets),
                    auxiliary_coefficient=coefficient,
+                   teacher_kind=teacher_kind,
                    draw_epoch_offset=draw_epoch_offset,
                    inputs='Unchanged legal G/path/past-current ideal ranges/tracks. No private teacher array is an input.',
-                   supervision='Unchanged fresh original-cell increment BCE/Dice/class-UNION; optional dense projected-navmesh support and signed-distance auxiliary loss.',
-                   deployed_architecture='Unchanged SpatialEvidenceNet; two-channel teacher head discarded after training.',
+                   supervision='Unchanged fresh original-cell increment BCE/Dice/class-UNION; optional '+('later measured surface completion BCE on observed initially-unknown locations.'if teacher_kind=='surface'else'dense projected-navmesh support and signed-distance auxiliary loss.'),
+                   deployed_architecture='Unchanged SpatialEvidenceNet; training-only teacher head discarded.',
                    sources={f:sha(Path(__file__).with_name(f)) for f in ['support_train.py','support_teacher.py','range_spatial.py','fresh_data.py']})
         save(destination/'config.json', cfg)
     del initial
@@ -118,9 +120,15 @@ def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256',dr
                     dice+=1-(2*(weight*prob*truth).sum()+1.e-7)/((weight*(prob+truth)).sum()+1.e-7)
                 ac=F.binary_cross_entropy_with_logits(auxlogit.float(),certificate,reduction='none')
                 aux=(((ac*certificate_mask).sum((1,2))/certificate_mask.sum((1,2)).clamp_min(1))*aw).mean()*len(data.groups)/m['roots']
-                tc=F.binary_cross_entropy_with_logits(teacher_logits[:,0].float(),teacher[:,0],reduction='none')
-                tc=tc+(teacher_logits[:,1].float().tanh()-teacher[:,1]).square()
-                support=(((tc*domain).sum((1,2))/domain.sum((1,2)).clamp_min(1))*aw).mean()*len(data.groups)/m['roots']
+                if teacher_kind=='surface':
+                    tc=F.binary_cross_entropy_with_logits(teacher_logits.float(),teacher[:,:3],pos_weight=teacher_logits.new_tensor([8.,8.,8.])[:,None,None],reduction='none')
+                    mask=teacher[:,3:]*(1-maps[:,5:6]).clamp(0,1)
+                    per=(tc*mask).sum((1,2,3))/mask.sum((1,2,3)).clamp_min(1)
+                    support=(per*aw).mean()*len(data.groups)/m['roots']
+                else:
+                    tc=F.binary_cross_entropy_with_logits(teacher_logits[:,0].float(),teacher[:,0],reduction='none')
+                    tc=tc+(teacher_logits[:,1].float().tanh()-teacher[:,1]).square()
+                    support=(((tc*domain).sum((1,2))/domain.sum((1,2)).clamp_min(1))*aw).mean()*len(data.groups)/m['roots']
                 loss=main+.1*dice+.25*aux+coefficient*support
                 if not torch.isfinite(loss):raise ValueError('nonfinite auxiliary experiment')
                 optimizer.zero_grad(set_to_none=True);scaler.scale(loss).backward();scaler.unscale_(optimizer)
@@ -137,4 +145,4 @@ def run(manifest, targets, warm, epochs=4, device='cuda:0', name='support256',dr
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--manifest',required=True);p.add_argument('--targets',required=True);p.add_argument('--warm',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='support256');p.add_argument('--draw-epoch-offset',type=int,default=0);run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--manifest',required=True);p.add_argument('--targets',required=True);p.add_argument('--warm',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='support256');p.add_argument('--draw-epoch-offset',type=int,default=0);p.add_argument('--teacher-kind',choices=['support','surface'],default='support');run(**vars(p.parse_args()))

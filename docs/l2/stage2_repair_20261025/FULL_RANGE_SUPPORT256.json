@@ -1,0 +1,212 @@
+{
+  "roots": 2110,
+  "scenes": 108,
+  "windows": 47128,
+  "hierarchical": {
+    "baseline": {
+      "unknown": {
+        "precision": 0.997185485499536,
+        "recall": 0.9960215913752343,
+        "f1": 0.9966031986208281
+      },
+      "free": {
+        "precision": 0.3665031588776001,
+        "recall": 0.4197072670805029,
+        "f1": 0.39130500972798377
+      },
+      "blocked": {
+        "precision": 0.3136962848188283,
+        "recall": 0.3868102385258714,
+        "f1": 0.34643770103977223
+      },
+      "label_aware_delta_iou": 0.21773279820403424,
+      "revelation_iou": 0.2869848058890478,
+      "missed_revelations": 101.9553895150058,
+      "incorrect_free_blocked": 19.640027829031844,
+      "false_revelations": 144.28569673179757,
+      "terminal_label_agreement_on_true_revelations": 0.3952465847077549,
+      "revelation_precision": 0.4071987674594035,
+      "revelation_recall": 0.4929260381400856,
+      "revelation_f1": 0.44598009949433554,
+      "false_revelation_rate": 0.0039784086247658616,
+      "wrong_free_blocked_rate": 0.09767945343233073,
+      "false_free_unknown_count": 29.87762746167028,
+      "false_free_blocked_count": 7.5291089282486485,
+      "false_free_unknown_fraction": 0.5059886117811897,
+      "false_free_blocked_fraction": 0.12750822934121023,
+      "false_free_on_actual_blocked_rate": 0.05036082151237353
+    },
+    "candidate": {
+      "unknown": {
+        "precision": 0.997350077140407,
+        "recall": 0.9986802419138066,
+        "f1": 0.998014716312816
+      },
+      "free": {
+        "precision": 0.47184627946128743,
+        "recall": 0.43211552355924887,
+        "f1": 0.45110778222620507
+      },
+      "blocked": {
+        "precision": 0.684674875671779,
+        "recall": 0.48304242842995215,
+        "f1": 0.5664504815810435
+      },
+      "label_aware_delta_iou": 0.36448213965563486,
+      "revelation_iou": 0.42113313637364225,
+      "missed_revelations": 96.23342814028848,
+      "incorrect_free_blocked": 10.335154793619425,
+      "false_revelations": 47.86391568690513,
+      "terminal_label_agreement_on_true_revelations": 0.4699823735150344,
+      "revelation_precision": 0.6865423582873882,
+      "revelation_recall": 0.5213841474925127,
+      "revelation_f1": 0.5926723198478971,
+      "false_revelation_rate": 0.0013197580861934752,
+      "wrong_free_blocked_rate": 0.051401773977478256,
+      "false_free_unknown_count": 20.442409512422774,
+      "false_free_blocked_count": 4.497580526330512,
+      "false_free_unknown_fraction": 0.4329085386155099,
+      "false_free_blocked_fraction": 0.09524518192320275,
+      "false_free_on_actual_blocked_rate": 0.030083486941494493
+    }
+  },
+  "pooled": {
+    "baseline": {
+      "unknown": {
+        "precision": 0.9961078802511942,
+        "recall": 0.9939414317111559,
+        "f1": 0.9950234767392214
+      },
+      "free": {
+        "precision": 0.38507644272773983,
+        "recall": 0.4287485613065215,
+        "f1": 0.40574071819892366
+      },
+      "blocked": {
+        "precision": 0.305074453198316,
+        "recall": 0.40713482008283464,
+        "f1": 0.34879195560750303
+      },
+      "label_aware_delta_iou": 0.22394987900402624,
+      "revelation_iou": 0.3057858089067252,
+      "missed_revelations": 6632337.0,
+      "incorrect_free_blocked": 1635296.0,
+      "false_revelations": 10346560.0,
+      "terminal_label_agreement_on_true_revelations": 0.4141068194176227,
+      "revelation_precision": 0.4195603303693205,
+      "revelation_recall": 0.5299935278181576,
+      "revelation_f1": 0.4683552337925095,
+      "false_revelation_rate": 0.006058568288844145,
+      "wrong_free_blocked_rate": 0.11588670840053487,
+      "false_free_unknown_count": 2477215.0,
+      "false_free_blocked_count": 639284.0,
+      "false_free_unknown_fraction": 0.48878496669763155,
+      "false_free_blocked_fraction": 0.12613859057462865,
+      "false_free_on_actual_blocked_rate": 0.06687569199714456
+    },
+    "candidate": {
+      "unknown": {
+        "precision": 0.9959268560819058,
+        "recall": 0.9979786580863245,
+        "f1": 0.9969517013943056
+      },
+      "free": {
+        "precision": 0.5014761564189403,
+        "recall": 0.4189866457170488,
+        "f1": 0.45653515209408313
+      },
+      "blocked": {
+        "precision": 0.6428081402918406,
+        "recall": 0.4565711379341223,
+        "f1": 0.5339151826837327
+      },
+      "label_aware_delta_iou": 0.34025346966180753,
+      "revelation_iou": 0.4065844561453514,
+      "missed_revelations": 6970269.0,
+      "incorrect_free_blocked": 869223.0,
+      "false_revelations": 3451960.0,
+      "terminal_label_agreement_on_true_revelations": 0.44444741293788653,
+      "revelation_precision": 0.6741236448880812,
+      "revelation_recall": 0.5060456754763127,
+      "revelation_f1": 0.5781159522543969,
+      "false_revelation_rate": 0.0020213419136755053,
+      "wrong_free_blocked_rate": 0.061598262538426145,
+      "false_free_unknown_count": 1518976.0,
+      "false_free_blocked_count": 376970.0,
+      "false_free_unknown_fraction": 0.3994025957634784,
+      "false_free_blocked_fraction": 0.09912124781758136,
+      "false_free_on_actual_blocked_rate": 0.039434945364131724
+    }
+  },
+  "pooled_confusion": [
+    [
+      [
+        1697410043,
+        2477215,
+        7869345
+      ],
+      [
+        1604252,
+        1951609,
+        996012
+      ],
+      [
+        5028085,
+        639284,
+        3891919
+      ]
+    ],
+    [
+      [
+        1704304643,
+        1518976,
+        1932984
+      ],
+      [
+        2152446,
+        1907174,
+        492253
+      ],
+      [
+        4817823,
+        376970,
+        4364495
+      ]
+    ]
+  ],
+  "zero_new": {
+    "windows": 2561,
+    "candidate_exact_empty": 1995,
+    "baseline_exact_empty": 736
+  },
+  "out_of_domain_positives": 0,
+  "known_terminal_differences": 772362,
+  "height_mae_on_correct_predicted_new_cells": 0.01187417106956646,
+  "bootstrap_95": {
+    "baseline": [
+      0.2116870167779241,
+      0.22364667910410072
+    ],
+    "candidate": [
+      0.35127451591376685,
+      0.3789811500376729
+    ],
+    "paired_delta": [
+      0.1344674858986201,
+      0.16002554505454214
+    ]
+  },
+  "identity": {
+    "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/training/support256_teacher/selected.pt",
+    "checkpoint_sha256": "8109ec626d67ed83209a4ddc9c4bfb8d362203cfac3a547e04bdc8c048318714",
+    "source_manifest_sha256": "4187cf65a73c4eafdedbc7b862b01a9bc4820ece12b9e980e5305aa6559bc128",
+    "evaluator_sha256": "289ed84a7e112460b93d14755f9d49de45d5b68d6c73d150ed580693c95a3d96",
+    "model_schema": "legal_range_spatial_1",
+    "rule": "threshold",
+    "threshold": 0.4,
+    "role": "LEGAL SENSOR EXTENSION; ORIGINAL full development. No confirmation data. Complete future graph checked at every window.",
+    "shards": 2,
+    "smoke_limit": 0
+  },
+  "acceptance_universe_complete": true
+}

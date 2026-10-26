@@ -115,9 +115,12 @@ class GpuObservedRangeMesh(ObservedRangeMesh):
         self.builder=mod;self.obstacle_cache={}
         torch.cuda.synchronize(device);self.prepare_seconds=time.perf_counter()-tick
 
-    def obstacle_distance(self,keys,base_height):
-        """Distance to measured body-height surfaces; no native support query."""
-        from scipy.ndimage import distance_transform_edt
+    def begin_obstacle_distance(self,keys,base_height):
+        """Enqueue the map raster/copy before unrelated long visibility kernels.
+
+        The returned ticket keeps both allocations alive until its event has
+        completed. Only this small copy is synchronized when the EDT is needed.
+        """
         r=self.kernel.resolution;keys=np.asarray(keys)
         # Consumers clip this distance at2m. A smaller crop makes the feature
         # depend on which other trajectories/cells happen to share the batch.
@@ -125,10 +128,29 @@ class GpuObservedRangeMesh(ObservedRangeMesh):
         padding=getattr(self,'obstacle_padding_cells',int(np.ceil(2./r))+2)
         lo=np.array([keys[:,0].min(),keys[:,1].min()])-padding;shape=np.array([keys[:,0].max(),keys[:,1].max()])-lo+padding+1
         cache_key=tuple(lo)+tuple(shape)+(float(base_height),)
+        ticket=None
         if cache_key not in self.obstacle_cache:
             nx,nz=map(int,shape);field=torch.zeros((nx,nz),dtype=torch.int32,device=self.kernel.device)
             self.builder.launch('observed_obstacles',self.triangles,[self.kernel.static['triangles'],ct.c_int(self.triangles),ct.c_float(base_height+.2),ct.c_float(base_height+1.4),ct.c_float(r),ct.c_int(int(lo[0])),ct.c_int(int(lo[1])),ct.c_int(nx),ct.c_int(nz),field])
-            a=field.cpu().numpy();distance=distance_transform_edt(a==0)*r if a.any()else np.full(a.shape,100.)
-            self.obstacle_cache[cache_key]=distance
+            host=torch.empty((nx,nz),dtype=torch.int32,pin_memory=True)
+            with torch.cuda.device(self.kernel.device):
+                host.copy_(field,non_blocking=True)
+                event=torch.cuda.Event();event.record()
+            ticket=(host,field,event)
+        return cache_key,lo,np.asarray(keys),ticket
+
+    def finish_obstacle_distance(self,request):
+        from scipy.ndimage import distance_transform_edt
+        cache_key,lo,keys,ticket=request
+        if ticket is not None:
+            host,field,event=ticket;event.synchronize();a=host.numpy()
+            self.obstacle_cache[cache_key]=distance_transform_edt(a==0)*self.kernel.resolution if a.any()else np.full(a.shape,100.)
+            # Bound map-owned CPU storage when trial extents change repeatedly.
+            while len(self.obstacle_cache)>8:self.obstacle_cache.pop(next(iter(self.obstacle_cache)))
         ij=np.asarray(keys)-lo
         return self.obstacle_cache[cache_key][ij[:,0],ij[:,1]]
+
+    def obstacle_distance(self,keys,base_height):
+        """Synchronous reference wrapper with the same capped-distance schema."""
+        request=GpuObservedRangeMesh.begin_obstacle_distance(self,keys,base_height)
+        return GpuObservedRangeMesh.finish_obstacle_distance(self,request)

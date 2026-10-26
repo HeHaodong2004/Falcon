@@ -79,15 +79,19 @@ def evaluate_root(model,row,dest,checkpoint_sha,source_sha):
     model.clear_cache();return value
 
 
-def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0):
+def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0,exact_fast=False):
     torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False
     if not 0<=shard<shards:raise ValueError('invalid evaluation shard')
     rows,manifest=source_rows('dev');all_rows=rows
     if limit:rows=rows[:limit]
     selected=rows[shard::shards];dest=OUT/'full_evaluation'/name;dest.mkdir(parents=True,exist_ok=True)
     checkpoint_sha=sha(checkpoint);source_sha=sha(__file__)
-    model=RadixExactSpatialPredictor(checkpoint,device=device)
-    identity=dict(checkpoint=str(checkpoint),checkpoint_sha256=checkpoint_sha,source_manifest_sha256=sha(manifest),evaluator_sha256=source_sha,model_schema=model.predictor_schema,rule=model.decision_rule,threshold=model.threshold,role='LEGAL SENSOR EXTENSION; ORIGINAL full development. No confirmation data. Complete future graph checked at every window.',shards=shards,smoke_limit=limit)
+    cls=RadixExactSpatialPredictor
+    if exact_fast:
+        from .range_exact_api import ExactFastSpatialPredictor
+        cls=ExactFastSpatialPredictor
+    model=cls(checkpoint,device=device)
+    identity=dict(checkpoint=str(checkpoint),checkpoint_sha256=checkpoint_sha,source_manifest_sha256=sha(manifest),evaluator_sha256=source_sha,model_schema=model.predictor_schema,implementation=cls.__name__,rule=model.decision_rule,threshold=model.threshold,role='LEGAL SENSOR EXTENSION; ORIGINAL full development. No confirmation data. Complete future graph checked at every window.',shards=shards,smoke_limit=limit)
     ip=dest/'identity.json'
     if ip.exists()and read(ip)!=identity:raise ValueError('use a new evaluation destination')
     save(ip,identity);remaining=list(selected);done=[];tick=time.perf_counter();last=0.
@@ -114,4 +118,4 @@ def run(checkpoint,name,device='cuda:1',shard=0,shards=1,wait=False,limit=0):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--name',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1);p.add_argument('--wait',action='store_true');p.add_argument('--limit',type=int,default=0);run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--checkpoint',required=True);p.add_argument('--name',required=True);p.add_argument('--device',default='cuda:1');p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1);p.add_argument('--wait',action='store_true');p.add_argument('--limit',type=int,default=0);p.add_argument('--exact-fast',action='store_true');run(**vars(p.parse_args()))

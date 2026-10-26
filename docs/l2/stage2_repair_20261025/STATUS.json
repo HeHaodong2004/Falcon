@@ -63,10 +63,15 @@
       "selected_epoch": 1,
       "rule": "threshold_0.40",
       "checkpoint_sha256": "ca491b186d457ade582e04a9427a504df4a8411c03f198b1d39825d0a291d7fe",
-      "full_development_label_iou": null,
+      "full_development_label_iou": 0.36448213965563486,
       "public_API_full_pilot_verification": true,
       "public_API_pilot_label_iou": 0.3719839244644555,
-      "public_API_pilot_revelation_iou": 0.4300313818101775
+      "public_API_pilot_revelation_iou": 0.4300313818101775,
+      "full_development_revelation_iou": 0.42113313637364225,
+      "full_development_roots": 2110,
+      "full_development_windows": 47128,
+      "pooled_label_iou": 0.34025346966180753,
+      "pooled_revelation_iou": 0.4065844561453514
     },
     {
       "model": "GPU radix hierarchy;7LOS feature approximation",
@@ -175,7 +180,12 @@
     "range_runtime_spatial_stride1_radix_distance2m/summary.json",
     "range_ray256_selection.json",
     "range_ray_smallfit.json",
-    "range_ray_api_tests.log"
+    "range_ray_api_tests.log",
+    "full_evaluation/legal_range_support256/summary.json",
+    "range_runtime_support_pretrained256_exactfast/summary.json",
+    "cpu_cost_profile.json",
+    "async_distance_tests.log",
+    "figures_current_best/examples.json"
   ],
   "reproduce_examples": [
     "python scripts/stage2_segment_run.py unittest eventwm_graph.stage2_repair.test_contract eventwm_graph.stage2_repair.test_api eventwm_graph.stage2_repair.test_range eventwm_graph.stage2_repair.test_range_api eventwm_graph.stage2_repair.test_range_planar eventwm_graph.stage2_repair.test_fresh_sampling eventwm_graph.stage2_repair.test_fresh_workers eventwm_graph.stage2_repair.test_range_spatial_api",
@@ -185,7 +195,7 @@
     "python scripts/stage2_segment_run.py eventwm_graph.stage2_repair.range_benchmark --checkpoint output/stage2_repair_20261025/training/range_evidence64/selected.pt --proxy --radix --repetitions 3 --device cuda:1"
   ],
   "deployment_readiness": "Below target. Sensor-extension model also needs explicit range-packet integration; ideal current-range replay is not rendered RGB-D validation. Sensor acquisition and serialization are excluded from Stage2 primary inference timing and must be reported separately. No standalone forward benchmark guarantees total Layer3 RL runtime.",
-  "updated_utc": "2026-10-25 23:46 UTC",
+  "updated_utc": "2026-10-26T00:57:49.945601+00:00",
   "confirmed_acceleration_defect": {
     "scope": "New observed-range prototype, not original-model plateau",
     "cause": "Balanced Morton hierarchy traverses excessively many overlapping measured triangles",
@@ -204,8 +214,9 @@
     "expanded_training_range_roots_requested": 4096,
     "full_development_range_roots_requested": 2110,
     "minimum_work_until_utc": "2026-10-26 10:15 UTC",
-    "expanded_training": "Fresh original-cell online features on4096eligible training Roots;8Root smoke completed121graphs182windows6,714,486originalcandidate cells106,687freshsampled rows. All windows retained; separate1234known-cell corrections,0out-of-domain positives in this smoke. Full4096 waits for sensor preparation.",
-    "full_development_evaluation": "Frozen source efd0ae34,2GPUshards running older0.37198pilot checkpoint, complete original2110Roots47128windows; no summary score yet."
+    "expanded_training": "Frozen source01c600fb;4096Roots463Scenes96186windows62338startinggraphs. Queued4epoch fresh-cell fit;4000of4096sensor receipts nearly ready. Exact2m obstacle schema and V2dev features. Original all-window universe retained.",
+    "full_development_evaluation": "Older0.37198pilot model COMPLETE all2110Roots108Scenes47128windows: labelIoU0.36448214/revelation0.42113314. Newer0.38742pilot model full evaluation pending.",
+    "bounded_surface_completion_comparison": "Preparing256trainingRoot later-measured-depth targets. Three surface heights, observation masks, future human hits masked. Loss-only head; original certificates and deployed inputs/architecture unchanged. No result yet."
   },
   "diagnostics": {
     "support_oracle": "PRIVILEGED diagnostic only: perfect static support + partial observed visibility0.38018. Support knowledge alone is insufficient to meet0.50; missing visibility/geometry remains.",
@@ -232,5 +243,56 @@
       "selected_for_deployment": false,
       "reason": "Much poorer generalization; retained measured-geometry model."
     }
-  ]
+  ],
+  "full_development_completed": {
+    "roots": 2110,
+    "scenes": 108,
+    "windows": 47128,
+    "known_terminal_differences": 772362,
+    "out_of_domain_positives": 0,
+    "zero_new": {
+      "windows": 2561,
+      "candidate_exact_empty": 1995,
+      "baseline_exact_empty": 736
+    },
+    "pooled_confusion": [
+      [
+        [
+          1697410043,
+          2477215,
+          7869345
+        ],
+        [
+          1604252,
+          1951609,
+          996012
+        ],
+        [
+          5028085,
+          639284,
+          3891919
+        ]
+      ],
+      [
+        [
+          1704304643,
+          1518976,
+          1932984
+        ],
+        [
+          2152446,
+          1907174,
+          492253
+        ],
+        [
+          4817823,
+          376970,
+          4364495
+        ]
+      ]
+    ],
+    "height_mae_on_correct_predicted_new_cells": 0.01187417106956646,
+    "role": "Actual original full universe; legal sensor extension, not original G-only input parity. Both acceptance requirements remain unmet."
+  },
+  "exact_acceleration": "FastExactKernel precomputes63probe/camera constants and uses equivalent convex frustum rejection with numerical fallback; all63LOS retained. Independent120028random/boundary tests and real full-output parity passed. Actual all666 pilot hard confusion and IoUs match0.3874226726/0.4451020477 exactly. No passing complete latency result."
 }
