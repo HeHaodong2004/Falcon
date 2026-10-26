@@ -50,7 +50,29 @@ Pooled confusion (rows true U/F/B, cols predicted): [[1703774272, 1512853, 24694
 | new_cells:1-99 | 18807 | 0.4537 | 0.4539 |
 | new_cells:>=100 | 25760 | 0.4418 | 0.4554 |
 
-The required accuracy (> 0.50) is **not** reached; see sections 9-10.
+Complete latency of the same frozen `final/v11.pt` (original 32 workloads with 256 px packets
+`range_benchmark_256`, K=1/4/6, 3 repetitions, `lanes=3`, BatchNorm folded; physical GPU0 with this
+session's own training paused by `quiet.py`; another session's Stage-1 jobs kept running on physical
+GPU1 and the CPU) — `benchmark/v11_bench256.json`, `benchmark/quiet_v11_256.json`:
+
+| cohort / cache | K=1 P50 / P95 | K=4 P50 / P95 | K=6 P50 / P95 |
+| --- | ---: | ---: | ---: |
+| dense, cold | 11.610 / 25.327 | 19.798 / 29.855 | **24.905 / 34.200** |
+| dense, map_warm_new_queries | 7.172 / 9.380 | 16.656 / 20.231 | 21.298 / 25.428 |
+| dense, warm | 7.150 / 9.244 | 16.692 / 19.654 | 21.459 / 25.235 |
+| representative, cold | 10.075 / 11.787 | 16.956 / 21.286 | 21.531 / 23.623 |
+| representative, map_warm_new_queries | 6.297 / 8.275 | 14.245 / 16.599 | 18.924 / 21.499 |
+| representative, warm | 6.280 / 7.947 | 14.388 / 19.128 | 18.903 / 21.978 |
+
+startup: constructor 6168 ms (CUDA kernel compilation + graph capture), first complete K=6 call 147 ms.
+Median dense-cold K=6 stage times: graph preparation 1.8 ms, legal map 2.9 ms (256 px), query
+features 4.9 ms, network 11.3 ms (10.4M parameters; v7 with 3.6M parameters: 12.3 ms without lanes/folding),
+decode + sparse increment + complete native hypothetical graphs 3.0 ms. Contract tests on `final/v11.pt`
+(`test_api.py`): exact domain, zero horizon, no mutation, batched == single bit-identical,
+lanes=3 == lanes=1 bit-identical — all pass.
+
+The required accuracy (> 0.50) is **not** reached; see sections 9-10. The latency requirement is met
+(dense K=6 cold P95 34.2 ms < 50 ms, inside the preferred 20-30 ms range at P50).
 
 ### 1.1 Frozen model `final/v7.pt` (checkpoint `training/past_v7/final.pt` + frozen operating point)
 
