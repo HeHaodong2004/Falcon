@@ -1,0 +1,343 @@
+"""Deterministic, non-learning Query Generator (legal inputs only).
+
+Inputs: the legal state (partial certificate map, legal human tracks, pose and
+action history, public PointGoal), the currently executing query (for
+commitment), and the robot dynamics.  Output: <= ``budget`` executable,
+de-duplicated ``Query`` objects plus diagnostics.  Categories:
+
+  continue    keep executing the unfinished query (via-point progress kept)
+  goal        legal-map route to the PointGoal, STOP on arrival
+  stop        STOP now (only when the legal goal distance is small)
+  alt_route   via-point on a homotopically different goal route (the main
+              route's corridor is penalised and the goal field recomputed)
+  frontier    best frontier clusters by through-frontier cost to the goal
+  pass_*      pass a conflicting tracked human on the left/right, or behind
+              it, then rejoin the main route
+  yield       retreat to the nearby reachable point that maximises predicted
+              clearance from conflicting humans
+  wait        hold position for a short/long time facing the route
+  observe     rotate toward the goal direction / a recently lost human
+  advance     short straight move to gain manoeuvring space
+
+UNKNOWN is never treated as verified free: routes may cross it only
+optimistically (higher cost) and via-points must be on FREE cells.
+"""
+from dataclasses import dataclass, field
+import math
+import numpy as np
+from scipy import ndimage
+
+from .legal import FREE, BLOCKED, UNKNOWN
+from .gridplan import PlanningView, INF, path_length, point_along, _dijkstra
+from .control import to_plane, to_world, wrap, human_estimates, body_cost, heading_vec
+from .executor import Query, STOP_M
+from .dynamics import STEP_SECONDS
+
+
+@dataclass(frozen=True)
+class GeneratorConfig:
+    budget: int = 8
+    horizon_m: float = 3.0           # human relevance / conflict look-ahead along the route
+    human_range: float = 5.0
+    conflict_dist: float = 1.3       # human predicted path within this of the route -> conflict
+    pass_offset: float = 1.15        # lateral offset from the human at passing time
+    rejoin_m: float = 1.6
+    robot_speed: float = 2.0         # m/s effective (turning included) for ETA estimates
+    wait_short: int = 6
+    wait_long: int = 16
+    alt_routes: int = 2
+    alt_penalty: float = 8.0
+    alt_corridor_m: float = 0.8
+    alt_via_m: float = 2.5
+    frontiers: int = 2
+    stop_radius: float = 0.40
+    advance_m: float = 0.7
+    dedup_m: float = 0.45
+
+
+def _route_points(route, step=0.25):
+    if route is None or len(route) < 2:
+        return route
+    L = path_length(route)
+    n = max(2, int(L/step)+1)
+    return np.asarray([point_along(route, d) for d in np.linspace(0., L, n)])
+
+
+class QueryGenerator:
+    name = 'qg_v0'
+
+    def __init__(self, dyn, config=None):
+        self.dyn = dyn
+        self.cfg = config or GeneratorConfig()
+
+    # ------------------------------------------------------------------ utils
+    def _free_reachable(self, view, rfield, xz):
+        i, j = view.to_local(*xz)
+        return view.inside(i, j) and view.free[i, j] and rfield[i, j] < INF/2
+
+    def _stand_ok(self, legal, xz, heading):
+        P = to_plane(xz)
+        return body_cost(legal.map, P, heading) == 0
+
+    def _nearest_free(self, view, rfield, xz, radius=0.6):
+        i, j = view.to_local(*xz)
+        r = int(math.ceil(radius/view.res))
+        best = None
+        for a in range(i-r, i+r+1):
+            for b in range(j-r, j+r+1):
+                if not view.inside(a, b) or not view.free[a, b] or rfield[a, b] >= INF/2:
+                    continue
+                d = (a-i)**2+(b-j)**2
+                if best is None or d < best[0]:
+                    best = (d, a, b)
+        if best is None:
+            return None
+        return view.to_world(best[1], best[2])
+
+    # --------------------------------------------------------------- propose
+    def propose(self, legal, execution=None):
+        cfg = self.cfg
+        pose = legal.pose
+        robot_xz = (float(pose[0]), float(pose[2]))
+        goal_xz = (float(legal.goal[0]), float(legal.goal[2]))
+        view = PlanningView(legal.map, robot_xz, goal_xz)
+        gfield = view.field([goal_xz])
+        rfield = view.field([robot_xz])
+        route = view.route(gfield, robot_xz)
+        humans = [h for h in human_estimates(legal.tracks, legal.time)
+                  if float(np.hypot(*(h.position-to_plane(robot_xz)))) <= cfg.human_range]
+        cats = {k: [] for k in ('human', 'wait', 'alt', 'frontier', 'observe', 'advance', 'yield', 'turn')}
+        fixed = []
+        diag = dict(route_len=path_length(route) if route is not None else None, humans=len(humans))
+
+        if execution is not None and execution.status == 'running' and execution.query.kind != 'wait':
+            fixed.append(Query('continue', label='continue', meta=dict(of=execution.query.label)))
+        gd = math.hypot(goal_xz[0]-robot_xz[0], goal_xz[1]-robot_xz[1])
+        fixed.append(Query('goal', label='goal'))
+        if gd < cfg.stop_radius:
+            fixed.append(Query('stop', label='stop', meta=dict(legal_goal_distance=gd)))
+
+        route_dir = None
+        if route is not None and len(route) >= 2:
+            look = point_along(route, 0.8)
+            d = to_plane(look)-to_plane(robot_xz)
+            if float(np.hypot(*d)) > 1e-6:
+                route_dir = math.atan2(d[1], d[0])
+
+        # ---- humans: passing and yielding
+        conflicts = self._conflicts(route, humans, robot_xz)
+        for h, t_star, c_xz, c_dist in conflicts[:2]:
+            hp = h.at(t_star)
+            hv = h.velocity
+            sp = float(np.hypot(*hv))
+            # lateral axis: perpendicular to the robot's travel at the conflict
+            rd = to_plane(c_xz)-to_plane(robot_xz)
+            if float(np.hypot(*rd)) < 1e-6:
+                rd = heading_vec(pose[3])
+            rd = rd/np.linalg.norm(rd)
+            left = np.array([-rd[1], rd[0]])
+            rejoin = point_along(route, c_dist+cfg.rejoin_m)
+            for side, sgn in (('left', 1.), ('right', -1.)):
+                cand = to_world(hp+sgn*cfg.pass_offset*left)
+                via = self._nearest_free(view, rfield, cand, 0.5)
+                if via is not None:
+                    cats['human'].append(Query('goto', via=(via, tuple(rejoin)), speed=1.0,
+                                               label=f'pass_{side}', meta=dict(track=h.track_id, t_star=t_star)))
+            if sp > 0.15:
+                behind = to_world(h.position-hv/sp*0.9)
+                via = self._nearest_free(view, rfield, behind, 0.5)
+                if via is not None:
+                    cats['human'].append(Query('goto', via=(via, tuple(rejoin)), label='pass_behind',
+                                               meta=dict(track=h.track_id)))
+            y = self._yield_point(view, rfield, legal, robot_xz, [h])
+            if y is not None:
+                cats['yield'].append(Query('goto', via=(y,), heading=route_dir, label='yield',
+                                           meta=dict(track=h.track_id)))
+
+        # ---- temporal alternatives
+        # Holding alternates small in-place turns (no native pause action);
+        # it deliberately does not rotate toward the route (a sweep choice).
+        cats['wait'].append(Query('wait', duration=cfg.wait_short, label='wait_short'))
+        cats['wait'].append(Query('wait', duration=cfg.wait_long, label='wait_long'))
+
+        # ---- alternative routes
+        if route is not None:
+            for k, alt in enumerate(self._alt_routes(view, route, goal_xz, robot_xz)):
+                via = point_along(alt, cfg.alt_via_m)
+                via = self._nearest_free(view, rfield, tuple(via), 0.5) or tuple(via)
+                cats['alt'].append(Query('goto', via=(via,), label=f'alt_route{k}'))
+
+        # ---- frontiers
+        for k, (xz, score) in enumerate(self._frontiers(view, rfield, gfield, route)):
+            cats['frontier'].append(Query('goto', via=(xz,), label=f'frontier{k}', meta=dict(score=score)))
+
+        # ---- manoeuvre rotations toward the route heading, both directions
+        # (with a 1.23 m body and a blind near field, the sweep side matters)
+        if route_dir is not None and abs(wrap(route_dir-pose[3])) > math.radians(30):
+            err = wrap(route_dir-pose[3])
+            short, long_ = ('left', 'right') if err > 0 else ('right', 'left')
+            n_short = int(math.ceil(abs(err)/self.dyn.turn_rad))+2
+            n_long = int(math.ceil((2*math.pi-abs(err))/self.dyn.turn_rad))+2
+            cats['turn'].append(Query('rotate', heading=route_dir, duration=n_short, label=f'turn_{short}',
+                                      meta=dict(direction=short)))
+            cats['turn'].append(Query('rotate', heading=route_dir, duration=n_long, label=f'turn_{long_}',
+                                      meta=dict(direction=long_)))
+        # ---- observation rotations
+        gdir = math.atan2(-(goal_xz[1]-robot_xz[1]), goal_xz[0]-robot_xz[0])
+        if abs(wrap(gdir-pose[3])) > math.radians(50) and (route_dir is None or abs(wrap(gdir-route_dir)) > math.radians(30)):
+            cats['observe'].append(Query('rotate', heading=gdir, duration=40, label='look_goal'))
+        lost = [t for t in legal.tracks if not t.get('visible_now') and
+                legal.time-float(t['last_seen_time']) < 2.0]
+        if lost:
+            t = min(lost, key=lambda t: math.hypot(t['position'][0]-robot_xz[0], t['position'][2]-robot_xz[1]))
+            ldir = math.atan2(-(t['position'][2]-robot_xz[1]), t['position'][0]-robot_xz[0])
+            if abs(wrap(ldir-pose[3])) > math.radians(35):
+                cats['observe'].append(Query('rotate', heading=ldir, duration=40, label='look_lost_human'))
+
+        # ---- advance (manoeuvring space)
+        h = heading_vec(pose[3])
+        ahead = to_world(to_plane(robot_xz)+cfg.advance_m*h)
+        i, j = view.to_local(*ahead)
+        if view.inside(i, j) and not view.blocked[i, j]:
+            cats['advance'].append(Query('goto', via=(tuple(ahead),), label='advance'))
+
+        queries = self._select(fixed, cats)
+        diag.update(raw={k: len(v) for k, v in cats.items()}, fixed=len(fixed), kept=len(queries),
+                    conflicts=len(conflicts))
+        return queries, diag
+
+    # --------------------------------------------------------------- helpers
+    def _conflicts(self, route, humans, robot_xz):
+        """Humans whose constant-velocity path meets the next metres of route."""
+        cfg = self.cfg
+        if route is None or not humans:
+            return []
+        pts = _route_points(route)
+        if pts is None or len(pts) < 2:
+            return []
+        dists = np.concatenate([[0.], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
+        keep = dists <= cfg.horizon_m+1.
+        pts, dists = pts[keep], dists[keep]
+        P = to_plane(pts)
+        out = []
+        for h in humans:
+            best = None
+            for k, (q, d) in enumerate(zip(P, dists)):
+                t = d/cfg.robot_speed
+                sep = float(np.hypot(*(h.at(t)-q)))
+                if best is None or sep < best[0]:
+                    best = (sep, t, tuple(pts[k]), float(d))
+            if best is not None and best[0] <= cfg.conflict_dist:
+                out.append((h, best[1], best[2], best[3], best[0]))
+        out.sort(key=lambda r: (r[4], r[1]))
+        return [r[:4] for r in out]
+
+    def _yield_point(self, view, rfield, legal, robot_xz, humans):
+        P0 = to_plane(robot_xz)
+        best = None
+        for r in (0.8, 1.2, 1.6):
+            for a in np.linspace(0, 2*math.pi, 16, endpoint=False):
+                Q = P0+r*np.array([math.cos(a), math.sin(a)])
+                xz = to_world(Q)
+                if not self._free_reachable(view, rfield, tuple(xz)):
+                    continue
+                if body_cost(legal.map, Q, a) > 0:
+                    continue
+                clear = min(float(np.hypot(*(h.at(t)-Q))) for h in humans for t in np.linspace(0, 3., 7))
+                score = clear-0.1*r
+                if best is None or score > best[0]:
+                    best = (score, tuple(xz))
+        return None if best is None else best[1]
+
+    def _alt_routes(self, view, route, goal_xz, robot_xz):
+        cfg = self.cfg
+        out = []
+        prev = [route]
+        cost = view.cost.copy()
+        for _ in range(cfg.alt_routes):
+            mask = np.zeros(view.state.shape, dtype=bool)
+            for r in prev:
+                for x, z in _route_points(r, 0.2):
+                    i, j = view.to_local(x, z)
+                    if view.inside(i, j):
+                        mask[i, j] = True
+            # corridor of the previous routes (beyond the robot's immediate cell)
+            dist = ndimage.distance_transform_edt(~mask)*view.res
+            i0, j0 = view.to_local(*robot_xz)
+            near_robot = np.zeros_like(mask)
+            r0 = int(1.0/view.res)
+            near_robot[max(0, i0-r0):i0+r0+1, max(0, j0-r0):j0+r0+1] = True
+            pen = (dist < cfg.alt_corridor_m) & ~near_robot
+            c2 = np.where(pen, cost*cfg.alt_penalty, cost)
+            gi, gj = view.to_local(*goal_xz)
+            gi = min(max(gi, 0), view.state.shape[0]-1); gj = min(max(gj, 0), view.state.shape[1]-1)
+            f2 = _dijkstra(np.ascontiguousarray(c2), np.asarray([gi], dtype=np.int64), np.asarray([gj], dtype=np.int64),
+                           np.asarray([0.]), view.blocked)
+            alt = view.route(f2, robot_xz)
+            if alt is None:
+                break
+            # must genuinely diverge from the previous routes within the first metres
+            pts = _route_points(alt, 0.2)
+            pts = pts[:int(cfg.alt_via_m/0.2)+1]
+            far = 0
+            for x, z in pts:
+                i, j = view.to_local(x, z)
+                if view.inside(i, j) and dist[i, j] > cfg.alt_corridor_m*0.75:
+                    far += 1
+            if far < max(3, len(pts)//3) or path_length(alt) > 2.2*path_length(route)+2.:
+                break
+            out.append(alt)
+            prev.append(alt)
+        return out
+
+    def _frontiers(self, view, rfield, gfield, route):
+        cfg = self.cfg
+        unk = view.unknown
+        free = view.free & (rfield < INF/2)
+        nb = np.zeros_like(unk)
+        nb[1:, :] |= unk[:-1, :]; nb[:-1, :] |= unk[1:, :]; nb[:, 1:] |= unk[:, :-1]; nb[:, :-1] |= unk[:, 1:]
+        front = free & nb
+        if not front.any():
+            return []
+        lab, n = ndimage.label(front, structure=np.ones((3, 3)))
+        rpts = _route_points(route, 0.3) if route is not None else None
+        out = []
+        for c in range(1, n+1):
+            ii, jj = np.nonzero(lab == c)
+            if len(ii) < 4:
+                continue
+            score = rfield[ii, jj]+gfield[ii, jj]
+            k = int(np.argmin(score))
+            xz = view.to_world(int(ii[k]), int(jj[k]))
+            if rpts is not None and len(rpts):
+                if float(np.min(np.hypot(rpts[:, 0]-xz[0], rpts[:, 1]-xz[1]))) < 1.0:
+                    continue
+            out.append((tuple(xz), float(score[k])*view.res))
+        out.sort(key=lambda r: r[1])
+        return out[:cfg.frontiers]
+
+    def _select(self, fixed, cats):
+        cfg = self.cfg
+        chosen = list(fixed)
+
+        def dup(q):
+            for c in chosen:
+                if c.kind != q.kind or not q.via or not c.via:
+                    if c.signature() == q.signature():
+                        return True
+                    continue
+                if math.hypot(c.via[0][0]-q.via[0][0], c.via[0][1]-q.via[0][1]) < cfg.dedup_m:
+                    return True
+            return False
+        order = ('human', 'turn', 'wait', 'advance', 'alt', 'yield', 'frontier', 'observe')
+        pools = {k: list(cats[k]) for k in order}
+        while len(chosen) < cfg.budget and any(pools.values()):
+            for k in order:
+                while pools[k]:
+                    q = pools[k].pop(0)
+                    if not dup(q):
+                        chosen.append(q)
+                        break
+                if len(chosen) >= cfg.budget:
+                    break
+        return chosen[:cfg.budget]

@@ -83,6 +83,21 @@ class QueryExecution:
     def copy(self):
         return copy.deepcopy(self)
 
+    def decision_boundary(self):
+        """Drop derived caches (route view/field, static plan) at a decision.
+
+        Applied identically in Oracle branches and authoritative replay, so a
+        continued query re-derives them from the then-current legal map.
+        """
+        self.view = None
+        self.field = None
+        self.field_key = None
+        self.plan = None
+        self.plan_i = 0
+        self.plan_age = 0
+        if hasattr(self.adapter, 'reset'):
+            self.adapter.reset()
+
     @property
     def target(self):
         q = self.query
@@ -135,6 +150,19 @@ class QueryExecution:
                 self.status, self.reason = 'done', 'heading_reached'
             if q.kind == 'wait' and self.steps >= max(1, q.duration):
                 self.status, self.reason = 'done', 'waited'
+            if q.kind == 'rotate' and self.status == 'running' and self.dyn.discrete:
+                # Explicit-direction in-place rotation (the long way round is a
+                # legitimate manoeuvre choice when one sweep side is blocked).
+                direction = q.meta.get('direction')
+                if direction is None:
+                    direction = 'left' if wrap(face-pose[3]) > 0 else 'right'
+                ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=face)
+                from .planners import one_step_hard_ok
+                hard = one_step_hard_ok(ctx.humans, 0.30)
+                P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, direction)
+                if hard is None or hard(P1, psi1):
+                    return direction
+                return self.planner.act(ctx, self.adapter)
             ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=face)
             return self.planner.act(ctx, self.adapter)
         # goto / goal

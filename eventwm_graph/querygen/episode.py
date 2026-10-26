@@ -98,6 +98,8 @@ class EpisodeRuntime:
         """
         if parent.terminal:
             raise ValueError('Terminal branch')
+        if query is not None and query.kind == 'continue':
+            query, cont = None, True
         t = time.perf_counter()
         st = parent.copy()
         self.perf['copy_s'] += time.perf_counter()-t
@@ -106,6 +108,7 @@ class EpisodeRuntime:
             if st.execution is None or st.execution.status != 'running':
                 raise ValueError('Nothing to continue')
             ex = st.execution
+            ex.decision_boundary()
         else:
             ex = self.new_execution(query)
         st.execution = ex
@@ -163,6 +166,7 @@ class EpisodeRuntime:
             if st.outcome is not None or ex.status != 'running':
                 break
         st.sensor = sensor.state()
+        ex.decision_boundary()
         self._loaded = st
         if geodesic and st.outcome is None:
             st.geodesic = self.task.geodesic_to_goal()
@@ -196,6 +200,7 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
             if rec['cont']:
                 if ex is None or ex.status != 'running':
                     raise RuntimeError('Replay cannot continue a finished execution')
+                ex.decision_boundary()
             else:
                 ex = QueryExecution(rec['query'], make_planner(planner_name, **(planner_kw or {})), dyn)
             n = 0
@@ -219,6 +224,7 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
                 if ex.status != 'running':
                     break
             per_decision.append(n)
+            ex.decision_boundary()
         metrics = task.metrics()
         return dict(metrics=metrics, actions=actions, static_contact_steps=statics,
                     body_overlap_steps=overlaps, min_rect_distance=min_rect,

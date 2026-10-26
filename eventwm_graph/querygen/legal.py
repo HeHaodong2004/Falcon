@@ -26,7 +26,7 @@ class GridMap:
         self.ox, self.oz = cx-half_cells, cz-half_cells     # key of index (0,0)
         n = 2*half_cells+1
         self.state = np.zeros((n, n), dtype=np.uint8)
-        self.height = np.zeros((n, n), dtype=np.float32)
+        self.height = np.zeros((n, n), dtype=np.float64)
         self.first_seen = np.full((n, n), np.nan, dtype=np.float32)
         self.last_seen = np.full((n, n), np.nan, dtype=np.float32)
         self.revision = 0
@@ -77,35 +77,49 @@ class GridMap:
 
     # ------------------------------------------------------------ update
     def apply(self, row):
-        """Exactly ``PartialGraph.update`` for one observation row."""
+        """Exactly ``PartialGraph.update`` for one observation row (vectorised).
+
+        Within a frame BLOCKED wins over FREE for the same key; a later FREE
+        certificate may clear a BLOCKED cell; the proprioceptive ego cell is
+        ignored.  Revision increments iff any cell state or height changes.
+        """
         t = float(row['timestamp'])
         if not math.isfinite(t) or (self.timestamp is not None and t <= self.timestamp):
             raise ValueError('Map observations must arrive in strict timestamp order')
-        ups = [u for u in row['static_updates'] if u['source'] != EGO_SOURCE]
-        if any(float(u['timestamp']) != t for u in row['static_updates']):
+        allu = row['static_updates']
+        if any(float(u['timestamp']) != t for u in allu):
             raise ValueError('Future/stale static evidence is forbidden')
+        ups = [u for u in allu if u['source'] != EGO_SOURCE]
         changed = 0
         if ups:
             keys = np.asarray([u['cell'] for u in ups], dtype=np.int64)
-            self._ensure(keys)
             states = np.asarray([int(u['state']) for u in ups], dtype=np.uint8)
             if not np.isin(states, (FREE, BLOCKED)).all():
                 raise ValueError('Only measured free/occupied cells may be published')
             heights = np.asarray([float(u['height']) for u in ups], dtype=np.float64)
-            occupied = {tuple(k) for k, s in zip(keys.tolist(), states) if s == BLOCKED}
-            for (kx, kz), s, h in zip(keys.tolist(), states, heights):
-                if s == FREE and (kx, kz) in occupied:
-                    continue
-                i, j = kx-self.ox, kz-self.oz
-                previous = self.state[i, j]
-                old_h = self.height[i, j]
-                self.state[i, j] = s
-                self.height[i, j] = h
-                if math.isnan(self.first_seen[i, j]):
-                    self.first_seen[i, j] = t
-                self.last_seen[i, j] = t
-                if previous != s or (previous != UNKNOWN and abs(float(old_h)-h) > 1e-8):
-                    changed += 1
+            self._ensure(keys)
+            ii = keys[:, 0]-self.ox; jj = keys[:, 1]-self.oz
+            flat = ii*self.state.shape[1]+jj
+            blk = states == BLOCKED
+            # last occurrence wins per key (as sequential dict assignment)
+            order = np.arange(len(flat))
+            bflat, bidx = np.unique(flat[blk][::-1], return_index=True)
+            bsel = order[blk][::-1][bidx]
+            fmask = (~blk) & ~np.isin(flat, bflat)
+            fflat, fidx = np.unique(flat[fmask][::-1], return_index=True)
+            fsel = order[fmask][::-1][fidx]
+            sel = np.concatenate([bsel, fsel])
+            fl = flat[sel]
+            a, b = fl//self.state.shape[1], fl % self.state.shape[1]
+            prev = self.state[a, b]
+            old_h = self.height[a, b]
+            new_s = states[sel]; new_h = heights[sel]
+            changed = int(((prev != new_s) | ((prev != UNKNOWN) & (np.abs(old_h-new_h) > 1e-8))).sum())
+            self.state[a, b] = new_s
+            self.height[a, b] = new_h
+            fs = self.first_seen[a, b]
+            self.first_seen[a, b] = np.where(np.isnan(fs), t, fs)
+            self.last_seen[a, b] = t
         if changed:
             self.revision += 1
         self.timestamp = t
@@ -193,6 +207,13 @@ class LegalState:
         return s
 
 
+class _ShallowCopy:
+    """Module shim: ``deepcopy`` identity for read-only observation rows."""
+    @staticmethod
+    def deepcopy(x):
+        return x
+
+
 class LegalSensor:
     """Wrapper around the project's ideal geometry sensor with copyable state.
 
@@ -213,6 +234,12 @@ class LegalSensor:
                              episode=SimpleNamespace(scene_id=task.episode.scene_id,
                                                      info={'graph_navmesh': 'native_benchmark_navmesh'}))
         self.observer = FastGeometryObserver(rt, resolution, private_cache=private_cache if private_cache is not None else {})
+        # The observer deep-copies each full row into ``last_row`` only to
+        # serve repeated timestamps; rows are never mutated and timestamps
+        # never repeat here, so that copy (~30% of sensing time) is skipped.
+        from ..partial import fast_observer as _fo
+        if not isinstance(_fo.copy, _ShallowCopy):
+            _fo.copy = _ShallowCopy()
 
     def observe(self, timestamp):
         return self.observer.observe(timestamp)
