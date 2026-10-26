@@ -21,7 +21,7 @@ import numpy as np
 import torch
 
 from .legal_state import LegalState, camera_yaw, HISTORY
-from .data import collate, to_torch
+from .data import collate, collate_one, to_torch
 from .model import HWM, STEP, SEGMENTS, fold_batchnorm
 from .sampler import sample
 from eventwm_graph.l2_two_stage.types import JointHumanWorlds
@@ -62,6 +62,29 @@ class HumanWorlds(JointHumanWorlds):
     count_log_probability: np.ndarray = None   # exact log P(total present = c), c = 0..23
     existence_probability: np.ndarray = None   # per track key
     knots: np.ndarray = field(repr=False, default=None)   # [W,N,13,2] world, 0.25 s knots
+
+    def sandbox_positions(self, relative_times):
+        """[W,T,N,2] world XZ at exact relative times with absent people set to +inf (L2.5 convention)."""
+        p = np.array(self.positions_at(relative_times), np.float64)
+        p[~np.broadcast_to(self.present[:, None, :], p.shape[:3])] = np.inf
+        return p
+
+    def evaluate_candidates(self, robot_paths, lengths=None):
+        """Score K candidate robot paths with this ONE shared bank (no re-prediction).
+
+        robot_paths [K,T,4] = (x, y, z, yaw) at relative times ``(1..T) * 0.048 s`` (the L2.5
+        nominal action clock); ``lengths`` [K] valid steps. Returns the L2.5 joint-world
+        reduction (collision envelope / 1 m social events, first-event masses, minimum
+        distances), computed per world so human-human and time correlations are kept.
+        """
+        from eventwm_graph.l25.numeric import aggregate_joint
+        from eventwm_graph.partial.query import NOMINAL_STEP_SECONDS
+        robots = np.asarray(robot_paths, np.float64)
+        K, T = robots.shape[:2]
+        lengths = np.full(K, T) if lengths is None else np.asarray(lengths, int)
+        rel = np.arange(1, T + 1) * NOMINAL_STEP_SECONDS
+        if rel[-1] > float(self.times[-1]) + 1e-9:raise ValueError('candidates exceed the bank horizon')
+        return aggregate_joint(self.sandbox_positions(rel), robots, lengths, np.asarray(self.weights))
 
     def positions_at(self, relative_times):
         """Exact piecewise-linear evaluation at any times in [0, 3.028] s."""
@@ -163,7 +186,10 @@ class HumanWorldModel:
             st.sync(frames, resolution);streams.append(st)
             lives.append(_LiveStore(st.state, st.episode_start))
         synced = time.perf_counter()
-        batch = to_torch(collate(_MultiStore(lives) if len(lives) > 1 else lives[0], np.arange(len(lives)), trim=True), self.device)
+        if self.fast is not None and len(lives) == 1:
+            batch = collate_one(lives[0], 0)            # bitwise-identical single-anchor fast path
+        else:
+            batch = to_torch(collate(_MultiStore(lives) if len(lives) > 1 else lives[0], np.arange(len(lives)), trim=True), self.device)
         if seed is None:
             h = hashlib.sha256(b'stage1-hwm-1')
             for st, live in zip(streams, lives):

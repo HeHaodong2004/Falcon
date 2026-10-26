@@ -201,3 +201,49 @@ def rasters(batch, out=CROP, cell=COARSE):
     v = sample(torch.cat([vis, ones[:, :, ::VIS_POOL, ::VIS_POOL]], 1), COARSE * VIS_POOL, CROP // VIS_POOL)
     v = torch.cat([v[:, :1] + (1 - v[:, 3:4]), v[:, 1:3]], 1)
     return m, v
+
+
+def collate_one(store, i):
+    """Inference-only fast path of ``collate(store, [i], trim=True)`` as float32/int torch tensors.
+
+    Same arithmetic in the same order (float32 storage of poses preserved); no labels.
+    """
+    a = store.a
+    origin = a['robot'][i, :2].astype(np.float64);theta = float(a['cam'][i, 2])
+    c, s = np.cos(theta), np.sin(theta)
+    rot = np.array([[c, s], [-s, c]])
+    rh = a['robot_hist'][i].astype(np.float64)
+    rpos = np.einsum('ij,tj->ti', rot, rh[:, :2] - origin)
+    ryaw = rh[:, 2] - a['robot'][i, 2]
+    cam_rel = np.angle(np.exp(1j * (a['robot'][i, 2] - theta)))
+    elapsed = a['t'][i] - store.episode_start[a['anchor_root'][i]]
+    summ = a['summary'][i]
+    glob_feat = np.concatenate([rpos.reshape(-1) / 5., np.sin(ryaw), np.cos(ryaw),
+        [np.sin(cam_rel), np.cos(cam_rel), elapsed / 5., np.log1p(summ[0]) / 5., summ[1] / max(summ[0], 1), summ[2] / max(summ[1], 1), summ[3] / 5.]])
+    k0, k1 = store.key_off[i], store.key_off[i + 1];n = k1 - k0
+    K = int(max(1, min(K_MAX, n)))
+    order = np.arange(n)
+    if n > K:order = np.sort(np.argsort(-store.k['k_last_t'][k0:k1], kind='stable')[:K])
+    sel = k0 + order;m = len(sel)
+    kf = np.zeros((K, 12), np.float32);kmask = np.zeros(K, bool);khist = np.zeros((K, HISTORY, 4), np.float32)
+    klast = np.zeros((K, 2), np.float32);kvel = np.zeros((K, 2), np.float32);kage = np.zeros(K, np.float32);kcol = np.full(K, -1, np.int64)
+    if m:
+        kmask[:m] = True;kcol[:m] = order
+        last = np.einsum('ij,kj->ki', rot, store.k['k_last'][sel] - origin)
+        vel = store.k['k_velocity'][sel].astype(np.float64) @ rot.T
+        age = a['t'][i] - store.k['k_last_t'][sel]
+        hh = store.k['k_hist'][sel].astype(np.float64);hm = store.k['k_hist_mask'][sel]
+        hp = np.einsum('ij,kpj->kpi', rot, hh[:, :, 1:] - origin)
+        khist[:m, :, 0] = hh[:, :, 0] / 3.;khist[:m, :, 1:3] = (hp - last[:, None]) / 3.;khist[:m, :, 3] = hm
+        khist[:m, :, :3] *= hm[..., None]
+        vv = store.k['k_velocity_valid'][sel]
+        klast[:m] = last;kvel[:m] = vel * vv[:, None];kage[:m] = age
+        count = store.k['k_count'][sel];first = a['t'][i] - store.k['k_first'][sel]
+        kf[:m] = np.stack([last[:, 0] / 10, last[:, 1] / 10, vel[:, 0] / 2, vel[:, 1] / 2, vv.astype(np.float64), np.log1p(age),
+                           (age < 1e-6).astype(np.float64), np.log1p(count) / 3, np.log1p(first), np.linalg.norm(last, axis=-1) / 10,
+                           np.full(m, n / 5.), np.full(m, float(m < n))], -1)
+    t = torch.from_numpy
+    return dict(map=t(a['map'][i:i + 1]), vis=t(a['vis'][i:i + 1]), rot=t(rot.astype(np.float32)[None]), origin=t(origin.astype(np.float32)[None]),
+                corner=t(a['corner'][i:i + 1].astype(np.float32)), theta=t(np.array([theta], np.float32)), **{'global': t(glob_feat.astype(np.float32)[None])},
+                key_feat=t(kf[None]), key_mask=t(kmask[None]), key_hist=t(khist[None]), key_last=t(klast[None]), key_vel=t(kvel[None]),
+                key_age=t(kage[None]), key_column=t(kcol[None]), min_count=t(np.array([int(summ[3])], np.int64)))

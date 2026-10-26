@@ -142,8 +142,13 @@ def score(bank_dir, out, name, set_score=True, limit=0):
             if joint_draw:
                 draws = np.stack(joint_draw, axis=2);y = np.stack(joint_truth, axis=1)
                 cov, _, _ = coverage(draws, y)
+                x = draws.reshape(W, -1);obs = [];ref = []
+                for k in range(8):
+                    rest = np.delete(x, k, 0);c = rest.mean(0);q = np.quantile(np.linalg.norm(rest - c, axis=-1), .9)
+                    obs.append(np.linalg.norm(y.ravel() - c) <= q);ref.append(np.linalg.norm(x[k] - c) <= q)
                 path_rows.append(dict(**meta, physical=-1, horizon=h, visible=False, practical_gap=False, reappearance=bool(r['reappearance']),
-                                      joint_es=energy(draws, y) / np.sqrt(len(timeidx) * len(joint_draw)), joint_coverage90=cov))
+                                      joint_es=energy(draws, y) / np.sqrt(len(timeidx) * len(joint_draw)), joint_coverage90=cov,
+                                      joint_cov90_obs39=float(np.mean(obs)), joint_cov90_self39=float(np.mean(ref))))
             ti = nearest(T, r['timestamp'] + float(endpoint));actual = truth[ti]
             pred = occupancy(positions[:, timeidx[-1]], present, r['robotxy'])
             target = occupancy(actual[None], np.ones((1, len(actual)), bool), r['robotxy'])
@@ -307,6 +312,7 @@ def summarise(name, path_rows, pop_rows, risk_rows, occ_rows, rel, cov_levels, o
         groups[group] = {k: summarize(part, k) for k in ('path_es', 'coverage90', 'joint_es', 'joint_coverage90', 'error', 'radius90',
                                                        'cov90_obs39', 'cov90_self39')}
         groups[group]['cov90_gap'] = summarize([dict(r, g=r['cov90_obs39'] - r['cov90_self39']) for r in part if 'cov90_obs39' in r], 'g')
+        groups[group]['joint_cov90_gap'] = summarize([dict(r, g=r['joint_cov90_obs39'] - r['joint_cov90_self39']) for r in part if 'joint_cov90_obs39' in r], 'g')
     groups['horizons'] = {str(h): {k: summarize([r for r in path_rows if r.get('horizon') == h], k) for k in ('path_es', 'coverage90', 'joint_es')} for h in HORIZONS}
     ages = {'current': lambda a:a < 1e-7, '(0,.75)': lambda a:1e-7 <= a < .75 - 1e-7, '[.75,1.25]': lambda a:.75 - 1e-7 <= a <= 1.25 + 1e-7,
             '(1.25,3]': lambda a:1.25 + 1e-7 < a <= 3, '>3': lambda a:a > 3}
