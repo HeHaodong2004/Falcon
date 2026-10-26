@@ -5,8 +5,11 @@ Inputs: GroupContext/query canvases (legal only). Validation uses scene-
 disjoint TRAIN roots; development data is never read here.
 """
 import argparse
+import copy
 import json
 import math
+import queue
+import threading
 import time
 from pathlib import Path
 
@@ -45,7 +48,8 @@ def build_context(g, device, splat=None, config=None):
         geo['splat'] = splat
     ctx = GroupContext(g['gkeys'], g['gstates'], g['ranges'], g['origins'], g['rotations'], g['windows'][0]['path'][0],
                        g['res'], device, lo, hi, humans=g.get('humans'),
-                       current_humans=g.get('current_humans') if geo.pop('occluders', False) else None, **geo)
+                       current_humans=g.get('current_humans') if geo.pop('occluders', False) else None,
+                       human_motion=g.get('human_motion'), **geo)
     return ctx
 
 
@@ -254,7 +258,9 @@ def validate(model, rows, device, limit=160, taus=(.3, .4, .5, .6, .7), amp=True
 def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6, pos_weight=3., blocked_weight=2.,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
-        human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None):
+        human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None, ema=0., extend=False, pool_factor=4,
+        overlap=False):
+    cli_near = near
     GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
     dest = DEST/'training'/name
@@ -274,8 +280,15 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         cidx = channel_index(wc)
         GEOMETRY.update(splat=bool(wc.get('splat', True)), sub=int(wc.get('sub', 1)), render=int(wc.get('render', 96)),
                         occluders=bool(wc.get('human_occluders', False)), near=float(wc.get('near', 0.)))
-        splat, sub, render, human_occluders, near = GEOMETRY['splat'], GEOMETRY['sub'], GEOMETRY['render'], GEOMETRY['occluders'], GEOMETRY['near']
         human_filter = bool(wc.get('human_filter', False))
+        if extend:
+            # Warm start with the CURRENT channel set: channels the warm model
+            # lacks get zero stem weights (its function is unchanged at step 0);
+            # the near-camera setting may be refined at the same time.
+            map_channels, query_channels, cidx = MAP_CHANNELS, QUERY_CHANNELS, None
+            arch['valid_channel'] = CIN-1
+            GEOMETRY['near'] = float(cli_near)
+        splat, sub, render, human_occluders, near = GEOMETRY['splat'], GEOMETRY['sub'], GEOMETRY['render'], GEOMETRY['occluders'], GEOMETRY['near']
     if cascade_from:
         # Refinement stage on top of a frozen trained base model.
         base_saved = torch.load(cascade_from, map_location='cpu'); bc = base_saved['config']
@@ -289,7 +302,18 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         arch = dict(arch='cascade', base_config=base_cfg, refine_widths=widths, refine_blocks=tuple(int(v) for v in blocks.split(',')),
                     valid_channel=bc['valid_channel'], widths=bc['widths'])
     model = build_model(len(map_channels)+len(query_channels), arch).to(device).to(memory_format=torch.channels_last)
-    if warm:
+    if warm and extend:
+        sd = dict(warm_saved['model'])
+        old_names = list(wc['map_channels'])+list(wc['query_channels'])
+        full = list(map_channels)+list(query_channels)
+        w0 = sd['stem.conv.weight']
+        w1 = torch.zeros((w0.shape[0], len(full))+tuple(w0.shape[2:]), dtype=w0.dtype)
+        for i, n in enumerate(old_names):
+            w1[:, full.index(n)] = w0[:, i]
+        sd['stem.conv.weight'] = w1
+        model.load_state_dict(sd)
+        print('extended channels', [n for n in full if n not in old_names], flush=True)
+    elif warm:
         model.load_state_dict(warm_saved['model'])
     if cascade_from:
         model.base.load_state_dict(base_saved['model'])
@@ -301,11 +325,17 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         for r in extra[0]:
             r['sensor_dir'] = extra_sensor
         train_rows = train_rows+extra[0]
+    ema_model = None
+    if ema > 0:
+        # Exponential moving average of weights (and float buffers); validated and saved as 'model'.
+        ema_model = copy.deepcopy(model).eval()
+        for p_ in ema_model.parameters():
+            p_.requires_grad_(False)
     config = dict(name=name, map_channels=map_channels, query_channels=query_channels, **arch, batch=batch, size=size, human_filter=human_filter,
                   extra_sensor=extra_sensor, aux_weight=aux_weight, splat=bool(splat), sub=int(sub), render=int(render),
                   human_occluders=bool(human_occluders), near=float(near), iou_weight=float(iou_weight),
                   lr=lr, pos_weight=pos_weight, blocked_weight=blocked_weight, epochs=epochs, train_roots=len(train_rows),
-                  val_roots=len(val_rows), seed=seed, warm=warm, cascade_from=cascade_from)
+                  val_roots=len(val_rows), seed=seed, warm=warm, cascade_from=cascade_from, ema=float(ema), pool_factor=int(pool_factor), overlap=bool(overlap))
     (dest/'config.json').write_text(json.dumps(config, indent=1))
     print('train roots', len(train_rows), 'val roots', len(val_rows), 'params', sum(p.numel() for p in model.parameters()), flush=True)
     opt = torch.optim.AdamW([p_ for p_ in model.parameters() if p_.requires_grad], lr=lr, weight_decay=1e-4)
@@ -315,17 +345,68 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
     rng = np.random.default_rng(seed)
     step = 0; tick = time.time(); pool = []; losses = []; seen = 0
     history = []
-    for epoch in range(epochs):
-        loader = DataLoader(GroupStream(train_rows, seed*1000+epoch, tracks=human_filter, aux=aux_weight > 0), batch_size=None, num_workers=workers,
-                            collate_fn=collate, prefetch_factor=4, persistent_workers=False)
-        for item in loader:
-          if max_steps and step >= max_steps:
-              break
-          groups, aux_frames = (item['groups'], item['aux_frames']) if item.get('root') else ([item], None)
-          for g in groups:
-            ctx = build_context(g, device)
-            pool.extend(window_samples(g, ctx, size, rng, True, aux_frames))
-            while len(pool) >= 4*batch:
+
+    def loader_for(epoch):
+        return DataLoader(GroupStream(train_rows, seed*1000+epoch, tracks=human_filter, aux=aux_weight > 0), batch_size=None, num_workers=workers,
+                          collate_fn=collate, prefetch_factor=4, persistent_workers=False)
+
+    def produce(out, stop):
+        # Legal feature construction on a side stream, overlapping the training step.
+        prng = np.random.default_rng(seed+7919)
+        try:
+            with torch.cuda.device(device):
+                fstream = torch.cuda.Stream(device)
+                with torch.cuda.stream(fstream):
+                    for epoch in range(epochs):
+                        for item in loader_for(epoch):
+                            groups, aux_frames = (item['groups'], item['aux_frames']) if item.get('root') else ([item], None)
+                            for g in groups:
+                                if stop.is_set():
+                                    return
+                                ctx = build_context(g, device)
+                                samples = window_samples(g, ctx, size, prng, True, aux_frames)
+                                del ctx
+                                ready = torch.cuda.Event(); ready.record(fstream)
+                                out.put((epoch, samples, ready))
+        except BaseException as e:   # surfaced in the training thread
+            out.put(('error', e, None))
+            return
+        out.put(None)
+
+    def sample_stream():
+        if not overlap:
+            for epoch in range(epochs):
+                for item in loader_for(epoch):
+                    groups, aux_frames = (item['groups'], item['aux_frames']) if item.get('root') else ([item], None)
+                    for g in groups:
+                        ctx = build_context(g, device)
+                        yield epoch, window_samples(g, ctx, size, rng, True, aux_frames)
+            return
+        out = queue.Queue(maxsize=8); stop = threading.Event()
+        threading.Thread(target=produce, args=(out, stop), daemon=True).start()
+        main = torch.cuda.current_stream(device)
+        try:
+            while True:
+                it = out.get()
+                if it is None:
+                    return
+                if it[0] == 'error':
+                    raise it[1]
+                epoch, samples, ready = it
+                main.wait_event(ready)
+                for sm in samples:
+                    for t_ in (sm[0], sm[1], sm[3]):
+                        if t_ is not None:
+                            t_.record_stream(main)
+                yield epoch, samples
+        finally:
+            stop.set()
+            while not out.empty():
+                out.get_nowait()
+
+    for epoch, samples in sample_stream():
+            pool.extend(samples)
+            while len(pool) >= pool_factor*batch:
                 pick = rng.choice(len(pool), batch, replace=False)
                 items = [pool[i] for i in pick]
                 for i in sorted(pick, reverse=True):
@@ -346,24 +427,30 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                 scaler.unscale_(opt)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 5.)
                 scaler.step(opt); scaler.update()
+                if ema_model is not None:
+                    with torch.no_grad():
+                        d = min(ema, (1+step)/(10+step))
+                        ep = [q for q in ema_model.state_dict().values() if q.dtype.is_floating_point]
+                        mp = [q.detach() for q in model.state_dict().values() if q.dtype.is_floating_point]
+                        torch._foreach_mul_(ep, d); torch._foreach_add_(ep, mp, alpha=1-d)
                 losses.append(loss.item()); step += 1; seen += batch
                 if step % 200 == 0:
                     print(dict(epoch=epoch, step=step, loss=float(np.mean(losses[-200:])), lr=lr*sched(step),
                                windows_per_s=seen/(time.time()-tick), elapsed=time.time()-tick), flush=True)
                 if step % val_every == 0:
-                    v = validate(model, val_rows, device, val_roots, tracks=human_filter, cidx=cidx)
+                    v = validate(ema_model if ema_model is not None else model, val_rows, device, val_roots, tracks=human_filter, cidx=cidx)
                     history.append(dict(step=step, val=v)); print('VAL', step, json.dumps(v), flush=True)
-                    torch.save(dict(model=model.state_dict(), config=config, step=step, val=v), dest/('step%06d.pt' % step))
+                    torch.save(dict(model=(ema_model if ema_model is not None else model).state_dict(), raw=model.state_dict() if ema_model is not None else None,
+                                    config=config, step=step, val=v), dest/('step%06d.pt' % step))
                     (dest/'history.json').write_text(json.dumps(history, indent=1))
                 if max_steps and step >= max_steps:
                     break
             if max_steps and step >= max_steps:
                 break
-        if max_steps and step >= max_steps:
-            break
-    v = validate(model, val_rows, device, val_roots, tracks=human_filter, cidx=cidx)
+    v = validate(ema_model if ema_model is not None else model, val_rows, device, val_roots, tracks=human_filter, cidx=cidx)
     history.append(dict(step=step, val=v, final=True)); print('VAL FINAL', step, json.dumps(v), flush=True)
-    torch.save(dict(model=model.state_dict(), config=config, step=step, val=v), dest/'final.pt')
+    torch.save(dict(model=(ema_model if ema_model is not None else model).state_dict(), raw=model.state_dict() if ema_model is not None else None,
+                    config=config, step=step, val=v), dest/'final.pt')
     (dest/'history.json').write_text(json.dumps(history, indent=1))
 
 
@@ -398,4 +485,8 @@ if __name__ == '__main__':
     p.add_argument('--iou-weight', type=float, default=0.)
     p.add_argument('--warmup', type=int, default=500)
     p.add_argument('--cascade-from')
+    p.add_argument('--ema', type=float, default=0.)
+    p.add_argument('--extend', action='store_true')
+    p.add_argument('--pool-factor', type=int, default=4, help='shuffle pool size in batches (windows from more Roots per batch)')
+    p.add_argument('--overlap', action='store_true', help='build legal features on a side stream/thread, overlapping training')
     run(**vars(p.parse_args()))

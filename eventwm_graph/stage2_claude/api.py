@@ -86,7 +86,7 @@ def _rows(keys, mask):
 class LegalVoxelPredictor:
     predictor_schema = 'claude_legal_voxel_unet_1'
 
-    def __init__(self, checkpoint, *, device='cuda:0', threshold=None, cache_size=4, cuda_graphs=True):
+    def __init__(self, checkpoint, *, device='cuda:0', threshold=None, cache_size=4, cuda_graphs=True, lanes=None):
         saved = torch.load(checkpoint, map_location='cpu')
         config = saved['config']
         self.channels = channel_index(config)
@@ -98,8 +98,12 @@ class LegalVoxelPredictor:
         self.model.load_state_dict(saved['model'])
         self.model.eval()
         # Inference: F16 weights/activations, channels-last layout, CUDA graphs.
+        # lanes > 1: the per-query graphs of one call overlap on separate streams
+        # (identical kernels per query, so results do not depend on the lane).
+        lanes = int(saved.get('inference', {}).get('lanes', 1) if lanes is None else lanes)
         self.runner = GraphRunner(self.model, self.device, batches=(1,), sizes=(240, 256, 272, 288, 304, 320, 352, 384),
-                                  capture=cuda_graphs, channels=cin)
+                                  capture=cuda_graphs, channels=cin, lanes=lanes)
+        self.lanes = lanes
         self.config = config
         decision = dict(saved.get('decision', {}))
         if threshold is not None:
@@ -196,7 +200,9 @@ class LegalVoxelPredictor:
                                splat=bool(self.config.get('splat', True)), sub=int(self.config.get('sub', 1)),
                                render=int(self.config.get('render', 96)),
                                current_humans=current_humans(track_history) if self.config.get('human_occluders') else None,
-                               near=float(self.config.get('near', 0.)))
+                               near=float(self.config.get('near', 0.)),
+                               human_motion=current_humans(track_history, motion=True)
+                               if 'human_future' in self.config.get('query_channels', ()) else None)
             self.map_cache[key] = ctx
             while len(self.map_cache) > 2:
                 self.map_cache.popitem(last=False)

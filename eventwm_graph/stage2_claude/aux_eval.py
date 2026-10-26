@@ -22,7 +22,8 @@ def run(checkpoint, device='cuda:0', roots=60):
     _, val = split_roots()
     val = sorted(val, key=lambda r: r['root_id'])[:roots]
     unk_idx = [MAP_CHANNELS.index(n) for n in ('mid_unk', 'high_unk')]
-    stats = {k: np.zeros(4) for k in ('wall', 'floor')}   # tp, fp, fn, n
+    taus = (.1, .2, .3, .4, .5)
+    stats = {(k, t): np.zeros(4) for k in ('wall', 'floor') for t in taus}   # tp, fp, fn, n
     dist_stats = {}
     for row in val:
         for g in load_root(row, tracks=bool(saved['config'].get('human_filter')), aux=True):
@@ -39,16 +40,16 @@ def run(checkpoint, device='cuda:0', roots=60):
             A = aux_targets(ctx, frames, fr, x.shape[2], x.shape[3], device)
             with torch.cuda.amp.autocast():
                 logits = model(xin)
-            pw = torch.sigmoid(logits[0, 2].float()) > .5
-            pf = torch.sigmoid(logits[0, 3].float()) > .5
+            sw = torch.sigmoid(logits[0, 2].float()); sf = torch.sigmoid(logits[0, 3].float())
             unknown = (x[0, unk_idx[0]] > .99) & (x[0, unk_idx[1]] > .99) & (x[0, -1] > 0)
             obs = (A[0, 2] > 0) & unknown
-            for name, p, t in (('wall', pw, A[0, 0] > 0), ('floor', pf, A[0, 1] > 0)):
-                s = stats[name]
-                s += np.array([(p & t & obs).sum().item(), (p & ~t & obs).sum().item(), (~p & t & obs).sum().item(), obs.sum().item()])
-    for name, (tp, fp, fn, n) in stats.items():
-        print('%s in unseen-but-later-observed columns: n=%d positive rate %.3f precision %.3f recall %.3f IoU %.3f' % (
-            name, n, (tp+fn)/max(n, 1), tp/max(tp+fp, 1), tp/max(tp+fn, 1), tp/max(tp+fp+fn, 1)))
+            for name, sc, t in (('wall', sw, A[0, 0] > 0), ('floor', sf, A[0, 1] > 0)):
+                for tau in taus:
+                    p = sc > tau
+                    stats[(name, tau)] += np.array([(p & t & obs).sum().item(), (p & ~t & obs).sum().item(), (~p & t & obs).sum().item(), obs.sum().item()])
+    for (name, tau), (tp, fp, fn, n) in stats.items():
+        print('%s tau %.1f unseen-but-later-observed columns: n=%d positive rate %.3f precision %.3f recall %.3f IoU %.3f' % (
+            name, tau, n, (tp+fn)/max(n, 1), tp/max(tp+fp, 1), tp/max(tp+fn, 1), tp/max(tp+fp+fn, 1)))
 
 
 if __name__ == '__main__':

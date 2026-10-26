@@ -26,12 +26,12 @@ from eventwm_graph.stage2_repair.benchmark import summary
 DEST = OUT.parent/'claude_stage2'/'benchmark'
 
 
-def run(checkpoint, name, device='cuda:1', repetitions=3, sensor_directory='range_benchmark', threshold=None):
+def run(checkpoint, name, device='cuda:1', repetitions=3, sensor_directory='range_benchmark', threshold=None, lanes=None):
     torch.set_num_threads(1)
     gc.enable()
     from .api import LegalVoxelPredictor
     work = workloads(sensor_directory)
-    tick = time.perf_counter(); model = LegalVoxelPredictor(checkpoint, device=device, threshold=threshold); constructor = time.perf_counter()-tick
+    tick = time.perf_counter(); model = LegalVoxelPredictor(checkpoint, device=device, threshold=threshold, lanes=lanes); constructor = time.perf_counter()-tick
 
     def call(ex, packet, tracks, k, prime_map=False):
         paths = [np.asarray(p['trajectory'], np.float64) for p in ex['paths'][:k]]
@@ -67,7 +67,7 @@ def run(checkpoint, name, device='cuda:1', repetitions=3, sensor_directory='rang
                                      updates=[len(d['static_updates']) for d in result], profile=dict(model.last_batch_profile)))
         print('REPETITION', rep+1, flush=True)
     report = dict(checkpoint=str(checkpoint), checkpoint_sha256=sha(checkpoint), device=device, hardware=torch.cuda.get_device_name(torch.device(device)),
-                  sensor_directory=sensor_directory, implementation='LegalVoxelPredictor', api_sha256=sha(os.path.join(os.path.dirname(__file__), 'api.py')),
+                  sensor_directory=sensor_directory, implementation='LegalVoxelPredictor', lanes=model.lanes, api_sha256=sha(os.path.join(os.path.dirname(__file__), 'api.py')),
                   precision='voxel/visibility kernels F32; U-Net AMP F16; candidate domain exact original F32/F64 semantics',
                   input_contract='LEGAL measured current/past Euclidean ranges + legal track history + current graph + supplied paths; same original 32 maps/paths/full original cells.',
                   scope='Complete input validation/content identity, graph preparation, candidate universe, legal voxel map, query features, transfers/synchronization, network, decode, sparse increment and complete native hypothetical graphs. Cold clears graph AND legal-map caches.',
@@ -91,4 +91,5 @@ if __name__ == '__main__':
     p.add_argument('--repetitions', type=int, default=3)
     p.add_argument('--sensor-directory', default='range_benchmark')
     p.add_argument('--threshold', type=float)
+    p.add_argument('--lanes', type=int)
     run(**vars(p.parse_args()))

@@ -69,7 +69,8 @@ def load_root(row, sensor='expanded_train_range_branches', tracks=False, aux=Fal
                         rotations=s['rotations'][take].astype(np.float64), windows=windows,
                         windows_in_root=len(packed['segments']),
                         humans=human_arrays([track_rows[j] for j in take]) if track_rows is not None else None,
-                        current_humans=current_humans([track_rows[j] for j in take]) if track_rows is not None else None))
+                        current_humans=current_humans([track_rows[j] for j in take]) if track_rows is not None else None,
+                        human_motion=current_humans([track_rows[j] for j in take], motion=True) if track_rows is not None else None))
     if aux:
         # LABEL SIDE ONLY: every recorded frame of the Root (incl. future
         # branches) describes the static geometry the robot came to observe.

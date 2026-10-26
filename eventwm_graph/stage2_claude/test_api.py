@@ -70,3 +70,17 @@ for p, r in zip(many, res_many):
 assert not res_many[-1]['states'].any()
 print('PASS edge cases: %d queries incl. a %.1f m path (frame %d cells) and a zero-horizon query' % (
     len(many), float(np.linalg.norm(long[-1, [1, 3]]-long[0, [1, 3]])), int(max(crop_box(long, float(ex['graph']['resolution']))[1]-crop_box(long, float(ex['graph']['resolution']))[0]))))
+
+# ---- overlapped lanes (per-query graphs on several streams) must equal one lane exactly
+lanes = LegalVoxelPredictor(ckpt, device=dev, lanes=3)
+one = LegalVoxelPredictor(ckpt, device=dev, lanes=1)
+checked = 0
+for ex, packet, tracks in work[:6]:
+    paths = [np.asarray(p['trajectory'], np.float64) for p in ex['paths'][:6]]
+    a = lanes.predict_segments(partial_graph=ex['graph'], trajectories=paths, range_observations=packet, track_history=tracks)
+    b = one.predict_segments(partial_graph=ex['graph'], trajectories=paths, range_observations=packet, track_history=tracks)
+    for ra, rb in zip(a, b):
+        np.testing.assert_array_equal(ra['probabilities'], rb['probabilities'])
+        np.testing.assert_array_equal(ra['states'], rb['states'])
+        checked += len(ra['states'])
+print('PASS lanes=3 vs lanes=1: bit-identical probabilities and states on %d cells' % checked)

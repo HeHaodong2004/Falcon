@@ -217,7 +217,7 @@ class GraphRunner:
     graph or query state. Inputs are copied into a static buffer whose region
     outside the supplied tensor is zero, exactly like normal zero padding.
     """
-    def __init__(self, model, device, batches=(1, 2, 4, 6, 8), sizes=(240, 256, 272, 288, 320, 352), channels=36, capture=True):
+    def __init__(self, model, device, batches=(1, 2, 4, 6, 8), sizes=(240, 256, 272, 288, 320, 352), channels=36, capture=True, lanes=1):
         self.device = torch.device(device)
         self.model = model.eval().half().to(self.device).to(memory_format=torch.channels_last)
         self.channels = channels
@@ -225,11 +225,24 @@ class GraphRunner:
         self.sizes = tuple(sorted(sizes))
         self.graphs = {}
         self.pool = None
+        # Extra lanes: independent copies of the batch-1 graphs (own memory pool
+        # and stream each) so per-query graphs of one call overlap on the GPU.
+        # Every copy replays the same kernels on the same shapes, so a query's
+        # result does not depend on its lane.
+        self.lanes = []
         if capture:
             with torch.cuda.device(self.device):
                 for b in self.batches:
                     for s in self.sizes:
                         self._capture(b, s)
+                if lanes > 1 and 1 in self.batches:
+                    main_pool, main_graphs = self.pool, self.graphs
+                    for _ in range(lanes-1):
+                        self.pool, self.graphs = None, {}
+                        for s in self.sizes:
+                            self._capture(1, s)
+                        self.lanes.append((torch.cuda.Stream(self.device), self.graphs))
+                    self.pool, self.graphs = main_pool, main_graphs
 
     def _capture(self, b, s):
         x = torch.zeros((b, self.channels, s, s), dtype=torch.float16, device=self.device).contiguous(memory_format=torch.channels_last)
@@ -266,6 +279,32 @@ class GraphRunner:
         g.replay()
         return sy[0, :2, :fh, :fw].clone()
 
+    def _lanes_call(self, x, frames):
+        q, c, h, w = x.shape
+        cur = torch.cuda.current_stream(self.device)
+        out = torch.zeros((q, 2, h, w), dtype=torch.float16, device=x.device)
+        ready = torch.cuda.Event(); ready.record(cur)
+        lanes = [(cur, self.graphs)]+self.lanes
+        used = set()
+        for i in range(q):
+            k = i % len(lanes)
+            stream, graphs = lanes[k]
+            fh, fw = int(frames[i][0]), int(frames[i][1])
+            size = next(s for s in self.sizes if s >= max(fh, fw))
+            g, sx, sy = graphs[(1, size)]
+            with torch.cuda.stream(stream):
+                if k and k not in used:
+                    stream.wait_event(ready)
+                used.add(k)
+                sx.zero_()
+                sx[0, :, :fh, :fw].copy_(x[i, :, :fh, :fw])
+                g.replay()
+                out[i, :, :fh, :fw] = sy[0, :2, :fh, :fw]
+        for k in used:
+            if k:
+                cur.wait_stream(lanes[k][0])
+        return out
+
     def _call(self, x, frames=None):
         if frames is not None and getattr(self, 'tta', False):
             # Test-time augmentation: frame and its transpose (a dihedral
@@ -283,6 +322,9 @@ class GraphRunner:
         query is computed alone in the batch-1 graph of ITS OWN size bucket,
         so its result is identical whatever else is in the call."""
         q, c, h, w = x.shape
+        if frames is not None and 1 in self.batches and self.lanes and q > 1 and all(
+                any(s >= max(int(f[0]), int(f[1])) for s in self.sizes) for f in frames):
+            return self._lanes_call(x, frames)
         if frames is not None and 1 in self.batches:
             out = torch.zeros((q, 2, h, w), dtype=torch.float16, device=x.device)
             # (auxiliary training heads, if any, are ignored at inference)

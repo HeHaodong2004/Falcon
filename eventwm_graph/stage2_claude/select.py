@@ -21,19 +21,22 @@ RB, BB = 100, 20
 
 
 @torch.no_grad()
-def collect(checkpoint, device='cuda:0', roots=400, offset=0, tta=False):
+def collect(checkpoint, device='cuda:0', roots=400, offset=0, tta=False, sensor='expanded_train_range_branches', rows=None):
     saved = torch.load(checkpoint, map_location='cpu')
     cidx = channel_index(saved['config']); cin = len(saved['config']['map_channels'])+len(saved['config']['query_channels'])
     model = build_model(cin, saved['config']); model.load_state_dict(saved['model'])
     runner = GraphRunner(model.to(device), device, batches=(1,), sizes=(240, 256, 272, 288, 304, 320, 352, 384), channels=cin)
     runner.tta = tta
-    _, val = split_roots()
-    val = sorted(val, key=lambda r: r['root_id'])[offset:offset+roots]
+    if rows is None:
+        _, val = split_roots()
+        val = sorted(val, key=lambda r: r['root_id'])[offset:offset+roots]
+    else:
+        val = rows
     records = []
     tick = time.time()
     for row in val:
         root = []
-        for g in load_root(row, tracks=bool(saved['config'].get('human_filter'))):
+        for g in load_root(row, sensor=sensor, tracks=bool(saved['config'].get('human_filter'))):
             ctx = build_context(g, device, config=saved['config'])
             windows = g['windows']
             boxes = [crop_box(w['path'], ctx.res) for w in windows]

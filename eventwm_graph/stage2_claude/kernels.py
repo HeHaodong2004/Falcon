@@ -270,6 +270,32 @@ extern "C" __global__ void stamp_humans(Vol v,unsigned char* state,const float* 
 // EXACT original candidate domain (stage2_quality.features.candidate_mask):
 // x=f32((k+.5)*f32(res)); keep if sqrt(f64 dx^2+f64 dz^2)<=11 for any unique
 // f32 supplied position. Explicit _rn intrinsics: no contraction/fast math.
+// Constant-velocity sweep of the CURRENT legally tracked humans over each
+// query's duration (x/z of position and estimated velocity; motion rows
+// [px,py,pz,vx,vy,vz]): 1-s/(T+1) for the earliest time s in [0,T] at which a
+// human is within radius of the cell center, else 0.
+extern "C" __global__ void human_sweep(const int* frames,int Q,int Hp,int Wp,Vol v,const float* motion,int nh,
+    const float* durations,float radius,int C,int ch,float* x){
+  long long t=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(t>=(long long)Q*Hp*Wp)return;
+  int q=t/((long long)Hp*Wp);int a=(t/Wp)%Hp,b=t%Wp;
+  const int* fr=frames+4*q;if(a>=fr[2]||b>=fr[3])return;
+  float cx=v.x0+(fr[0]+a+.5f)*v.cres,cz=v.z0+(fr[1]+b+.5f)*v.cres;
+  float T=fmaxf(durations[q],0.f),best=0.f,r2=radius*radius;
+  for(int h=0;h<nh;h++){
+    const float* m=motion+6*h;
+    float px=m[0]-cx,pz=m[2]-cz,vx=m[3],vz=m[5];
+    float vv=vx*vx+vz*vz,p2=px*px+pz*pz;
+    float s=0.f;
+    if(vv>1e-8f){s=-(px*vx+pz*vz)/vv;s=fminf(fmaxf(s,0.f),T);}
+    float dx=px+vx*s,dz=pz+vz*s;
+    if(dx*dx+dz*dz>r2)continue;
+    float s0=0.f;
+    if(p2>r2&&vv>1e-8f){float bq=(px*vx+pz*vz)/vv,cq=(p2-r2)/vv;s0=fmaxf(-bq-sqrtf(fmaxf(bq*bq-cq,0.f)),0.f);}
+    best=fmaxf(best,1.f-s0/(T+1.f));
+  }
+  x[(((long long)q*C+ch)*Hp+a)*Wp+b]=best;
+}
+
 extern "C" __global__ void domain_mask(const int* frames,int Q,int Hp,int Wp,Vol v,const unsigned char* graph_known,
     const float* positions,const int* pos_start,const int* pos_count,float res32,unsigned char* mask){
   long long t=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(t>=(long long)Q*Hp*Wp)return;

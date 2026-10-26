@@ -111,6 +111,10 @@ matches recorded future cameras to 0.0000 m / 0.0000 (`cam_check.py`).
 | Past visibility is decisive for short windows | among cells the future poses would fully see, FREE rate is 1.7 % if a legal PAST camera already saw them fully (not certifiable) vs 29.9 % otherwise (short windows; 11.5 % vs 48.2 % long) (`check_past.py`) |
 | Splatting hurts | measured-surface splatting increases spurious early wall-ray hits (9.8 % → 12.2 %); human ghost filtering removes ~1 % (`ray_debug.py`) |
 | 256 px sensing is not a lever here | same 128-trained model: pilot 0.3679 (128) vs 0.3705 (256) |
+| The frozen v7 does not overfit | 120 random TRAIN Roots 0.4329 vs 120 TRAIN-validation Roots 0.4506 (same code, threshold 0.6; `fitcheck.py`) |
+| Where v7's errors are (120 validation Roots, `strata.py`) | cells whose probes are possible but cross unknown space hold 56 % of targets at IoU 0.35 and 64 % of misses, 66 % of false revelations, 98 % of wrong types; known-wall cells (18 % of targets) reach 0.87; probes mostly known 0.89; long windows are hardest (<=0.5 s 0.53, 0.5-1 s 0.48, 1-2 s 0.41, >2 s 0.37 pooled) |
+| Humans near the path cost accuracy (`human_diag.py`) | windows with a tracked human within 2 m of the path: 28 % of targets, IoU 0.425; 2-4 m: 11 %, 0.434; none within 8 m: 55 %, 0.463 |
+| Unseen walls are hard to imagine (`aux_eval.py`, auxiliary head of aux_human_v3) | wall-band occupancy in never-observed columns that later get observed (16 % positive): best IoU 0.21 (precision 0.22 / recall 0.80 at 0.1; 0.65 / 0.05 at 0.5) |
 
 ## 4. Method
 
@@ -182,6 +186,21 @@ Pilot comparison with the previous model A (same 666 windows, per-window confusi
 (<=0.5 s) and small-reveal windows (false revelations 0.69 per target vs 0.29), which led to the
 past-pose visibility channels; v7 @4k: pooled 0.402 vs A 0.407, better than A on windows > 1 s.
 
+Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless noted):
+
+| Run | Change | val IoU |
+| --- | --- | ---: |
+| past_v7 final | (above), 2 epochs | **0.4454** (400 Roots, class rule: **0.4628**) |
+| cascade_v7s24 | refiner (24-48-64-96-128) on frozen v7 @24k (0.4222) | 0.4285 / 0.4248 / 0.4255 / 0.4317 / 0.4264 @2k..10k |
+| cascade_v7f | refiner on frozen final v7 (0.4454) | 0.4435 @4k, 0.4451 @8k — no gain; stopped |
+| ensemble | v7 @20k + v9 @12k (weaker member) | 0.4218 vs 0.4279 single (class rule) — worse |
+| 256 px input | final v7, no retraining, 38 TRAIN-val Roots with both resolutions | 0.4454 vs 0.4430 (128 px), class rule |
+| v7_restart_iou | final v7 + 1 epoch warm restart (peak 5e-4) + 0.5 x soft label-aware IoU loss | (running) |
+
+An equal-strength second member for an ensemble (v7 config, seed 1, +2,914 new TRAIN Roots) was
+started but stopped: from 17:21 UTC an external Stage-1 training job (another session) occupies
+physical GPU1, which would have made the run take ~9 h and slowed the other job.
+
 ## 9. Negative results
 
 * Auxiliary geometry supervision (walls/floor from all Root frames) did not improve the main metric;
@@ -189,11 +208,21 @@ past-pose visibility channels; v7 @4k: pooled 0.402 vs A 0.407, better than A on
 * 2× model width: +0.003 at equal steps.
 * Measured-surface splatting, 256 px sensing, sub-voxel hit refinement: no material gain.
 
+* Cascade refinement helps an under-trained base but not the converged one.
+* Ensembling with a weaker member reduces accuracy.
+
 ## 10. Limitations
 
 * Labels in never-observed space are only partially predictable from legal inputs (sections 3, 9).
 * The range sensor extension is the same ideal simulator sensing used by the previous model; a real
   front end must supply equivalent calibrated ranges, timestamps and tracks.
+* Remaining error is dominated by never-observed space (wall bands at the far boundary of newly
+  revealed free regions, FREE support behind unseen obstacles). Most promising next steps: (1) an
+  ensemble of equal-strength members (needs a free GPU); (2) longer schedules (validation still rose
+  ~0.01 per 4k steps during the cosine decay); (3) explicit geometry imagination — predict wall/floor
+  geometry for unknown space, re-run the exact wall-ray/probe simulation on the imagined map and feed
+  the result back (the auxiliary head alone did not learn unseen walls well); (4) sub-voxel surface
+  geometry for the remaining ~13 % visibility-simulation infidelity near object edges.
 
 ## 11. Reproduction
 

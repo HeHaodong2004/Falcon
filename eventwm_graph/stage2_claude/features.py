@@ -30,7 +30,7 @@ QUERY_CHANNELS = ['probe_known', 'probe_possible', 'probe_best_visible', 'probe_
                   'wall_known', 'wall_after_unknown', 'wall_unknown_traversal', 'wall_free_traversal',
                   'pose_cells', 'start_cell', 'end_cell', 'probe_unknown_depth', 'probe_unknown_depth_max',
                   'wall_unknown_entry', 'probe_possible_poses', 'probe_known_poses',
-                  'query_poses', 'query_duration', 'query_length', 'wall_hit_distance', 'frame_valid']
+                  'query_poses', 'query_duration', 'query_length', 'wall_hit_distance', 'human_future', 'frame_valid']
 VALID = len(QUERY_CHANNELS)-1
 
 
@@ -60,8 +60,10 @@ class GroupContext:
     """Legal state shared by every query from one starting graph."""
 
     def __init__(self, graph_keys, graph_states, ranges, origins, rotations, start_pose, res, device, lo, hi, humans=None, splat=True,
-                 sub=1, render=96, current_humans=None, near=0.):
+                 sub=1, render=96, current_humans=None, near=0., human_motion=None):
         self.device = torch.device(device)
+        # Current legal tracks [position, estimated velocity] for the future-sweep channel.
+        self.human_motion = None if human_motion is None else np.asarray(human_motion, np.float32).reshape(-1, 6)
         self.res = float(res)
         self.lo = np.asarray(lo, np.int64)
         self.shape = tuple(int(v) for v in (np.asarray(hi, np.int64)-self.lo))
@@ -192,6 +194,10 @@ def build_inputs(ctx, paths, frames, pad=16):
         rows = np.asarray(pose_rows, np.float64)
         oo, R = proxy_cameras(rows, ctx.extrinsic)
         floats += [pack_cams(oo, R).reshape(-1), rows[np.asarray(pose_list)][:, 2].astype(np.float32)]
+    motion = getattr(ctx, 'human_motion', None)
+    nh = 0 if motion is None else len(motion)
+    if nh:
+        floats += [np.asarray([float(np.asarray(p)[-1, 0]-np.asarray(p)[0, 0]) for p in paths], np.float32), motion.reshape(-1)]
     tf = upload(np.concatenate(floats).astype(np.float32), dev)
     o = 0
     t_pos = tf[o:o+2*len(positions)]; o += 2*len(positions)
@@ -216,7 +222,12 @@ def build_inputs(ctx, paths, frames, pad=16):
         x[:, nm+10:nm+12] = torch.clamp(traversal[:2*q].view(q, 2, Hp, Wp).float()*(1./(4096.*105*.5)), max=4.)
         x[:, nm+17] = torch.log1p(traversal[2*q:3*q].float())*.5
         x[:, nm+23] = torch.clamp(traversal[3*q:].float()*1e-4, max=.45)/.45
-    else:
+    if nh:
+        t_dur = tf[o:o+q]; o += q
+        t_motion = tf[o:o+6*nh]; o += 6*nh
+        m.launch('human_sweep', q*Hp*Wp, [t_frames, ct.c_int(q), ct.c_int(Hp), ct.c_int(Wp), ctx.vm.vol, t_motion, ct.c_int(nh),
+                                           t_dur, ct.c_float(.35), ct.c_int(C), ct.c_int(nm+QUERY_CHANNELS.index('human_future')), x], 256)
+    if not pose_rows:
         x[:, nm+3] = 1.
         x[:, nm+15:nm+17] = 1.
         x[:, nm+23] = 1.
@@ -238,9 +249,10 @@ def build_inputs(ctx, paths, frames, pad=16):
     return x.half(), mask, fr
 
 
-def current_humans(track_history, max_age=.5):
+def current_humans(track_history, max_age=.5, motion=False):
     """Legally tracked humans at the CURRENT frame (positions extrapolated by
-    their estimated velocity over the observation age, at most max_age s)."""
+    their estimated velocity over the observation age, at most max_age s).
+    motion=True returns rows [position, estimated velocity (0 if invalid)]."""
     rows = track_history[-1] if len(track_history) else []
     out = []
     for t in rows or ():
@@ -250,10 +262,12 @@ def current_humans(track_history, max_age=.5):
         if age > max_age:
             continue
         p = np.asarray(t['position'], np.float64)
+        v = np.zeros(3)
         if t.get('velocity_valid') and t.get('estimated_velocity') is not None:
-            p = p+np.asarray(t['estimated_velocity'], np.float64)*age
-        out.append(p)
-    return np.asarray(out, np.float32).reshape(-1, 3)
+            v = np.asarray(t['estimated_velocity'], np.float64)
+            p = p+v*age
+        out.append(np.concatenate([p, v]) if motion else p)
+    return np.asarray(out, np.float32).reshape(-1, 6 if motion else 3)
 
 
 def human_arrays(track_history):
