@@ -1,0 +1,34 @@
+{
+ "name": "hwm_lite2_e12",
+ "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage1-claude-20261026/output/stage1_hwm/runs/hwm_lite2_e12/best.pt",
+ "checkpoint_sha256": "401c55ac1f967c6e1609e14189da674968e3a294a87083021f50faaedee871d9",
+ "model": {
+  "d": 128,
+  "modes": 6,
+  "arch": "lite2",
+  "truncate": true,
+  "ablate": []
+ },
+ "selected_step": 73236,
+ "validation_nll": -16.850862563924586,
+ "worlds": 40,
+ "time_samples": 64,
+ "horizon_seconds": 3.0,
+ "cpu_threads": 1,
+ "device": "cpu",
+ "sampling_recalibration": "identity (validation study found no gain)",
+ "training": {
+  "epochs": 12,
+  "batch": 128,
+  "lr": 0.001,
+  "weight_decay": 0.0001,
+  "seed": 17,
+  "train_anchors": 781228,
+  "validation": "scene-held-out 1/16 of training scenes (hash rule train.validation_scene)"
+ },
+ "data": {
+  "train": "/var/tmp/falcon-stage1-claude/hwm_data/train (105,838 Roots, stride 6 + legacy schedule)",
+  "dev": "/var/tmp/falcon-stage1-claude/hwm_data/dev (2,110 Roots, legacy anchors)"
+ },
+ "selection_rule": "best validation NLL among candidates >=20% faster than legacy at P50 and P95 on every latency cohort (bracketed same-load benchmark)"
+}

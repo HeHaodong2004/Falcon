@@ -73,7 +73,8 @@ to the remaining humans, with each unmatched human explained by the residual pro
 supervision consistent with deployment semantics.
 
 Network (`model.HWM`): BEV CNN over map+visibility rasters (full: 128×128 at 0.2 m;
-fast: 64×64 at 0.4 m), key encoder (history GRU/MLP + map features sampled along the
+fast/lite/lite2: 64×64 at 0.4 m; the selected `lite2` uses one conv per scale, widths 16/32/48,
+32-channel field), key encoder (history GRU/MLP + map features sampled along the
 expected heading), 2-layer transformer over keys and a global token, heads for existence,
 key trajectories, residual count, residual density (FiLM-conditioned) and residual
 trajectories. AdamW, cosine schedule, random reflection augmentation.
