@@ -83,6 +83,14 @@ class PlanarRangeMesh(GpuObservedRangeMesh):
         mod.launch('planar_tiles',tiles,[tensor(ranges[self.keyframes],np.float32),tensor(origins[self.keyframes],np.float64),tensor(rotations[self.keyframes],np.float64),ct.c_int(nf),ct.c_int(h),ct.c_int(w),tensor(np.array(active).reshape(-1,3),np.float64),tensor(offsets,np.int32),ct.c_float(epsilon),vertices,keys])
         vertices=vertices[keys!=torch.iinfo(torch.int64).max];self.triangles=int(len(vertices))
         if not self.triangles:raise ValueError('no observed planar surface')
+        if bvh=='native':
+            # Hardware triangle traversal needs no software hierarchy or
+            # Morton sort. All measured triangles stay in original order.
+            packed=torch.cat([vertices[:,:3],vertices[:,3:6]-vertices[:,:3],vertices[:,6:9]-vertices[:,:3]],1)
+            arrays=dict(keys=np.empty((0,2),np.int32),targets=np.empty((0,63,3),np.float64),triangles=packed,bounds=torch.empty((0,6),device=device))
+            for name in ['left','right','first','count','indices']:arrays[name]=torch.empty(0,device=device,dtype=torch.int32)
+            self.builder=mod;self.obstacle_cache={};self.kernel=GeometryKernel(arrays,resolution,device);self.native_only=True
+            torch.cuda.synchronize(device);self.prepare_seconds=time.perf_counter()-tick;return
         if bvh=='radix':
             from .radix_bvh import build_arrays
             packed=torch.cat([vertices[:,:3],vertices[:,3:6]-vertices[:,:3],vertices[:,6:9]-vertices[:,:3]],1)

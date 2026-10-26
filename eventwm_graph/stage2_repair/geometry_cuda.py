@@ -100,6 +100,7 @@ class GeometryKernel:
         return torch.from_numpy(np.ascontiguousarray(value, dtype=dtype)).to(self.device)
 
     def compute(self, unknown, lo, cameras, candidate_sets, steps):
+        if not self.static['bounds'].numel():raise RuntimeError('hardware-only measured mesh has no software traversal tree; use its hardware range kernel')
         nx, nz = unknown.shape
         nviews = len(cameras)
         if nviews*nx*nz*4 > 512*1024*1024:

@@ -1,5 +1,5 @@
 {
-  "status": "ONGOING. Neither joint requirement is met. Continue legal-input quality and complete latency work.",
+  "status": "ONGOING. Required full-development labelIoU>0.50 remains unmet. Higher-resolution legal sensor inputs improve pilot accuracy but cold latency currently exceeds50ms; native triangle acceleration under matched cost test.",
   "requirements": {
     "original_full_development_label_aware_increment_iou": ">0.50",
     "complete_K6_P95_ms": "<50",
@@ -805,7 +805,7 @@
     "real_impact": "Auxiliary training failed inepoch2 at54400/62338groups; primaryepoch1 full evaluation failed after1552/2110Roots, bothcuModuleGetFunction CUDAstatus2. Full evaluator resumed with1552receipts preserved and unchanged evaluator/checkpoint/domain. Auxiliary epoch1 checkpoint restored with optimizer/scaler/head;8group smoke passes. Main fit remains running; will migrate at next complete epoch.",
     "accuracy_attribution": "This is a confirmed stability/resource defect in the new range path. It does not explain the original0.217 plateau or establish an IoU gain."
   },
-  "latest_update_utc": "2026-10-26 06:36 UTC",
+  "latest_update_utc": "2026-10-26 10:03 UTC",
   "latest_completed_primary_fit": "4096Roots4epochs; E2best pilot0.4127557282. E4declined0.3949835962. Expanded16384Root2epoch fit running, all385430windows470Scenes, not full105838Roottraining.",
   "latest_history_diagnostic": {
     "pruned_pilot": 0.4127557281695153,
@@ -815,5 +815,33 @@
     "quality_target_met": false,
     "detail": "HISTORY_APPROXIMATION.json; further intermediate-graph cost diagnostic pending."
   },
-  "bounded_initial_visibility_result": "4epochs256Roots complete; best0.4120872861 belowwarmE2; notselected."
+  "bounded_initial_visibility_result": "4epochs256Roots complete; best0.4120872861 belowwarmE2; notselected.",
+  "current_verified": {
+    "full_development": {
+      "label_iou": 0.4082849606325552,
+      "revelation_iou": 0.4548212895339588,
+      "roots": 2110,
+      "scenes": 108,
+      "windows": 47128,
+      "checkpoint": "range_online4096/selected_epoch02_argmax.pt",
+      "sensor_pixels": 128
+    },
+    "pilot": {
+      "label_iou": 0.4532446763805423,
+      "revelation_iou": 0.5061800299434354,
+      "roots": 31,
+      "windows": 666,
+      "checkpoint": "range_online16384_streamed/selected_epoch01_argmax.pt",
+      "checkpoint_sha256": "41602272b9b5a4a7355f97508de8585c0465ff59d82282cf8a50a8a2038a5218",
+      "sensor_pixels": 256,
+      "native_hardware_triangle_results_exact_same": true
+    },
+    "cost_sensor256": {
+      "dense_K6_cold_P95_ms": 64.089,
+      "dense_K6_mapwarm_newqueries_P95_ms": 40.108,
+      "dense_K6_warm_P95_ms": 37.363,
+      "native_hardware_triangles": "measurement pending"
+    },
+    "target_met": false
+  }
 }

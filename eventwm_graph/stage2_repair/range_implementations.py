@@ -25,6 +25,9 @@ def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=F
         if implementation=='fast-point':
             from .fast_point_api import FastPointPredictor
             return FastPointPredictor
+        if implementation=='native-triangle':
+            from .native_triangle_api import NativeTrianglePredictor
+            return NativeTrianglePredictor
         if implementation in ['tile8','tile8-fast-point']:
             from .tile8_api import Tile8Predictor,FastPointTile8Predictor
             return Tile8Predictor if implementation=='tile8'else FastPointTile8Predictor
@@ -73,4 +76,4 @@ def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=F
 
 
 def add_exact_options(parser):
-    parser.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns','full-history','fast-point','tile8','tile8-fast-point','captured-pipeline','ray-residual','initial-visibility']);parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')
+    parser.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns','full-history','fast-point','native-triangle','tile8','tile8-fast-point','captured-pipeline','ray-residual','initial-visibility']);parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')
