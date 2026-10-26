@@ -8,7 +8,9 @@ Trajectory-conditioned prediction of newly observable static certificates:
 ```python
 from eventwm_graph.stage2_claude.api import LegalVoxelPredictor
 
-predictor = LegalVoxelPredictor(checkpoint, device='cuda:0')      # CUDA graphs captured here (startup)
+predictor = LegalVoxelPredictor(checkpoint, device='cuda:0',      # CUDA graphs captured here (startup)
+                                lanes=None)                     # None: checkpoint setting (default 1); >1 overlaps
+                                                                # the per-query graphs on that many streams
 deltas = predictor.predict_segments(
     partial_graph=G_t,                  # causal_partial_cspace_graph_1 dict (never mutated)
     trajectories=[tau_1, ..., tau_K],   # each N_k x 5 [time, x, y, z, yaw]; shared starting pose = current pose
@@ -36,7 +38,7 @@ Each `delta` (one per trajectory, same order) contains:
 Guarantees (tested in `test_api.py`): exact original candidate domain; a starting-pose-only path reveals
 nothing; inputs are never mutated; **single-query and batched calls are bit-identical** (each query runs
 alone in the batch-1 CUDA graph of its own frame-size bucket; wall-ray traversal uses fixed-point atomics);
-results do not depend on cache state.
+results do not depend on cache state or on the number of lanes (`lanes=3` is checked bit-identical to `lanes=1`).
 
 ## Method
 
@@ -57,8 +59,11 @@ results do not depend on cache state.
    statistics from up to 16 legal PAST camera poses: what was already fully visible but is still
    uncertified is unlikely to be certified later) + query channels (probe statistics incl. unknown depth
    and pose fractions, known / after-unknown wall hits, distance to known hits, unknown traversal and
-   entry, path raster, window poses/duration/length, frame validity). Channel names are recorded in each
-   checkpoint and selected by name, so older checkpoints keep working.
+   entry, path raster, window poses/duration/length, the constant-velocity sweep of the currently tracked
+   humans over the window's duration (`human_future`, from legal track positions and estimated
+   velocities), frame validity). Channel names are recorded in each checkpoint and selected by name, so
+   older checkpoints keep working; `train.py --extend` warm-starts a checkpoint with the current channel
+   set (new channels get zero stem weights, so the warm model's function is unchanged at step 0).
 4. **Masked U-Net** (`model.py`): full cell resolution; every activation outside the query frame is
    zeroed and global context is a masked mean, so outputs do not depend on padding or batch composition.
    Outputs revelation r and BLOCKED-given-revelation b. Optional cascade: a second masked U-Net refines

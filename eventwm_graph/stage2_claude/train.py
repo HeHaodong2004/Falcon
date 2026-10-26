@@ -259,7 +259,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
         human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None, ema=0., extend=False, pool_factor=4,
-        overlap=False):
+        overlap=False, side=None):
     cli_near = near
     GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
@@ -289,6 +289,11 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
             arch['valid_channel'] = CIN-1
             GEOMETRY['near'] = float(cli_near)
         splat, sub, render, human_occluders, near = GEOMETRY['splat'], GEOMETRY['sub'], GEOMETRY['render'], GEOMETRY['occluders'], GEOMETRY['near']
+        if wc.get('side'):
+            arch['side'] = {str(k): tuple(v) for k, v in wc['side'].items()}
+    if side:
+        # Extra zero-initialized coarse-level capacity, e.g. "3:192:3,4:256:4" (level:width:blocks).
+        arch['side'] = dict(arch.get('side') or {}, **{f.split(':')[0]: (int(f.split(':')[1]), int(f.split(':')[2])) for f in side.split(',')})
     if cascade_from:
         # Refinement stage on top of a frozen trained base model.
         base_saved = torch.load(cascade_from, map_location='cpu'); bc = base_saved['config']
@@ -311,10 +316,12 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         for i, n in enumerate(old_names):
             w1[:, full.index(n)] = w0[:, i]
         sd['stem.conv.weight'] = w1
-        model.load_state_dict(sd)
-        print('extended channels', [n for n in full if n not in old_names], flush=True)
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        assert not unexpected and all(k.startswith('side.') for k in missing), (missing, unexpected)
+        print('extended channels', [n for n in full if n not in old_names], 'new side modules', len(missing), flush=True)
     elif warm:
-        model.load_state_dict(warm_saved['model'])
+        missing, unexpected = model.load_state_dict(warm_saved['model'], strict=False)
+        assert not unexpected and all(k.startswith('side.') for k in missing), (missing, unexpected)
     if cascade_from:
         model.base.load_state_dict(base_saved['model'])
         model.base.eval()
@@ -489,4 +496,5 @@ if __name__ == '__main__':
     p.add_argument('--extend', action='store_true')
     p.add_argument('--pool-factor', type=int, default=4, help='shuffle pool size in batches (windows from more Roots per batch)')
     p.add_argument('--overlap', action='store_true', help='build legal features on a side stream/thread, overlapping training')
+    p.add_argument('--side', help='zero-initialized extra capacity per encoder level, e.g. 3:192:3,4:256:4')
     run(**vars(p.parse_args()))

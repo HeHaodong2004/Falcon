@@ -195,7 +195,8 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | cascade_v7f | refiner on frozen final v7 (0.4454) | 0.4435 @4k, 0.4451 @8k — no gain; stopped |
 | ensemble | v7 @20k + v9 @12k (weaker member) | 0.4218 vs 0.4279 single (class rule) — worse |
 | 256 px input | final v7, no retraining, 38 TRAIN-val Roots with both resolutions | 0.4454 vs 0.4430 (128 px), class rule |
-| v7_restart_iou | final v7 + 1 epoch warm restart (peak 5e-4) + 0.5 x soft label-aware IoU loss | (running) |
+| v7_restart_iou | final v7 + 1 epoch warm restart (peak 5e-4) + 0.5 x soft label-aware IoU loss | 0.4351 @4k, 0.4450 @8k, 0.4510 @12k (running) |
+| v11_ext | warm start from the better of v7 / v7_restart_iou with two new zero-initialized input channels (`human_future`, `wall_hit_distance`), near-camera fix (0.5 m), +2,914 new TRAIN Roots, EMA 0.999, shuffle pool 16 batches, 1 epoch, IoU loss 0.5 | (queued) |
 
 An equal-strength second member for an ensemble (v7 config, seed 1, +2,914 new TRAIN Roots) was
 started but stopped: from 17:21 UTC an external Stage-1 training job (another session) occupies
@@ -209,6 +210,9 @@ physical GPU1, which would have made the run take ~9 h and slowed the other job.
 * Measured-surface splatting, 256 px sensing, sub-voxel hit refinement: no material gain.
 
 * Cascade refinement helps an under-trained base but not the converged one.
+* Window-duration-dependent class thresholds (4 duration buckets, coordinate ascent; `bucket_select.py`):
+  no held-out gain in two-fold cross-validation over 400 validation Roots (0.4667 vs 0.4666 global;
+  0.4604 vs 0.4609) — one global operating point is kept.
 * Ensembling with a weaker member reduces accuracy.
 
 ## 10. Limitations

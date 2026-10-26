@@ -91,6 +91,25 @@ class MBlock(nn.Module):
         return F.silu(x+self.b(self.a(x, m), m))*m
 
 
+class Side(nn.Module):
+    """Extra capacity at one encoder level that starts as a no-op: 1x1 projection
+    to `width`, residual blocks, 1x1 projection back whose BN scale and shift are
+    zero, added residually. A warm-started network keeps its function at step 0."""
+    def __init__(self, c, width, n, dilation=1):
+        super().__init__()
+        self.inp = MConvBN(c, width, k=1)
+        self.blocks = nn.ModuleList([MBlock(width, dilation=dilation if j % 2 else 1) for j in range(n)])
+        self.out = MConvBN(width, c, k=1, act=False)
+        nn.init.zeros_(self.out.bn.weight)
+        nn.init.zeros_(self.out.bn.bias)
+
+    def forward(self, x, m):
+        z = self.inp(x, m)
+        for blk in self.blocks:
+            z = blk(z, m)
+        return (x+self.out(z, m))*m
+
+
 class MaskedUNet(nn.Module):
     """U-Net whose valid-frame outputs are independent of canvas padding.
 
@@ -99,11 +118,14 @@ class MaskedUNet(nn.Module):
     prediction therefore does not depend on batch composition or padding.
     The validity mask is channel `valid_channel` of the input.
     """
-    def __init__(self, cin, widths=(32, 64, 96, 128, 192), blocks=(1, 2, 2, 2, 2), valid_channel=None, aux=0):
+    def __init__(self, cin, widths=(32, 64, 96, 128, 192), blocks=(1, 2, 2, 2, 2), valid_channel=None, aux=0, side=None):
         super().__init__()
         self.widths = widths
         self.aux = aux
         self.valid_channel = valid_channel
+        # side: {level (1-based encoder level): (width, blocks)} zero-initialized extra capacity
+        self.side = nn.ModuleDict({str(k): Side(widths[int(k)], int(w), int(n), dilation=2 if int(k) == len(widths)-1 else 1)
+                                   for k, (w, n) in (side or {}).items()})
         self.stem = MConvBN(cin, widths[0])
         self.stem_blocks = nn.ModuleList([MBlock(widths[0]) for _ in range(blocks[0])])
         self.down = nn.ModuleList()
@@ -132,6 +154,8 @@ class MaskedUNet(nn.Module):
             y = stage[0](skips[-1], masks[level])
             for blk in stage[1:]:
                 y = blk(y, masks[level])
+            if str(level) in self.side:
+                y = self.side[str(level)](y, masks[level])
             skips.append(y)
         m = masks[-1]
         g = (y*m).sum((2, 3))/m.sum((2, 3)).clamp(min=1)
@@ -199,7 +223,7 @@ def build_model(cin, config):
     arch = config.get('arch', 'unet')
     if arch == 'masked_unet':
         return MaskedUNet(cin, tuple(config['widths']), tuple(config.get('blocks', (1, 2, 2, 2, 2))), valid_channel=config['valid_channel'],
-                          aux=int(config.get('aux', 0)))
+                          aux=int(config.get('aux', 0)), side=config.get('side'))
     return UNet(cin, tuple(config['widths']))
 
 
