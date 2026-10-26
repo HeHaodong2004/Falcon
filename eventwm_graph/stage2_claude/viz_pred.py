@@ -14,7 +14,7 @@ from .train import build_context, frame_labels, CIN
 
 
 @torch.no_grad()
-def run(checkpoint, dest, device='cuda:0', roots=6, seed=0, tau=.6, taub=.5):
+def run(checkpoint, dest, device='cuda:0', roots=6, seed=0, tau=.6, taub=.5, short=False, long=False):
     saved = torch.load(checkpoint, map_location='cpu')
     cidx = channel_index(saved['config']); cin = len(saved['config']['map_channels'])+len(saved['config']['query_channels'])
     model = build_model(cin, saved['config']); model.load_state_dict(saved['model'])
@@ -25,7 +25,12 @@ def run(checkpoint, dest, device='cuda:0', roots=6, seed=0, tau=.6, taub=.5):
     for idx in rng.choice(len(val), roots, replace=False):
         row = val[int(idx)]
         groups = load_root(row, tracks=bool(saved['config'].get('human_filter')))
-        cands = [(g, i) for g in groups for i, w in enumerate(g['windows']) if len(w['tkeys']) > 80 and len(w['path']) > 1]
+        if long:
+            cands = [(g, i) for g in groups for i, w in enumerate(g['windows']) if len(w['tkeys']) > 300 and w['path'][-1, 0]-w['path'][0, 0] > 1.5]
+        elif short:
+            cands = [(g, i) for g in groups for i, w in enumerate(g['windows']) if 5 < len(w['tkeys']) < 100 and 1 < len(w['path']) and w['path'][-1, 0]-w['path'][0, 0] <= .5]
+        else:
+            cands = [(g, i) for g in groups for i, w in enumerate(g['windows']) if len(w['tkeys']) > 80 and len(w['path']) > 1]
         if not cands:
             continue
         g, i = cands[int(rng.integers(len(cands)))]
@@ -37,7 +42,8 @@ def run(checkpoint, dest, device='cuda:0', roots=6, seed=0, tau=.6, taub=.5):
         y = frame_labels(mask, fr, [w], ctx.lo)[0].cpu().numpy()
         logits = runner(xin, frames=fr[:, 2:])[0].float()
         r = torch.sigmoid(logits[0]).cpu().numpy(); b = torch.sigmoid(logits[1]).cpu().numpy()
-        pred = np.where(r > tau, np.where(b > taub, 2, 1), 0)
+        pf, pb = r*(1-b), r*b
+        pred = np.where((pf > .4) | (pb > .5), np.where(pb-.5 > pf-.4, 2, 1), 0)
         h, wd = int(fr[0, 2]), int(fr[0, 3])
         xm = x[0].float().cpu().numpy()
         base = np.zeros((h, wd, 3))
@@ -63,6 +69,7 @@ def run(checkpoint, dest, device='cuda:0', roots=6, seed=0, tau=.6, taub=.5):
                                          (r[:h, :wd], 'revelation probability')]):
             ax[k].imshow(np.transpose(im, (1, 0, 2)) if im.ndim == 3 else im.T, origin='lower', interpolation='nearest')
             ax[k].plot(pij[:, 0], pij[:, 1], 'c-', lw=2); ax[k].set_title(title)
+        pp = np.where(yy >= 0, pp, 0)
         nt = (yy > 0).sum(); tp = ((yy > 0) & (pp == yy)).sum(); fp = ((yy == 0) & (pp > 0)).sum(); wt = ((yy > 0) & (pp > 0) & (yy != pp)).sum()
         fig.suptitle('%s: %d poses %.2fs | targets %d correct %d false %d wrongtype %d | window IoU %.3f' % (
             row['root_id'][:8], len(w['path']), w['path'][-1, 0]-w['path'][0, 0], nt, tp, fp, wt, tp/max(nt+(pp > 0).sum()-tp, 1)))
@@ -78,4 +85,6 @@ if __name__ == '__main__':
     p.add_argument('--device', default='cuda:0')
     p.add_argument('--roots', type=int, default=6)
     p.add_argument('--tau', type=float, default=.6)
+    p.add_argument('--short', action='store_true')
+    p.add_argument('--long', action='store_true')
     run(**vars(p.parse_args()))

@@ -81,7 +81,7 @@ def evaluate_root(model, row, dest, checkpoint_sha, source_sha, sensor_directory
             for state, height in missing:
                 cm[state, 0] += 1
             future = delta['future_partial_graph']; columns = future.cell_columns
-            prepared = model.prepare_graph(graph); base = prepared.future_base.table
+            prepared = model.prepare_graph(graph); base = model._ensure_future_base(prepared, graph).table
             fc = codes(columns['cell']); ki = np.searchsorted(fc, codes(base.keys))
             np.testing.assert_array_equal(columns['cell'][ki], base.keys)
             for name, value in [('state', base.states), ('height', base.heights), ('first_seen', base.first), ('last_seen', base.last)]:

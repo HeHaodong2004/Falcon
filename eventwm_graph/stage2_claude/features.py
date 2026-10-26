@@ -30,7 +30,7 @@ QUERY_CHANNELS = ['probe_known', 'probe_possible', 'probe_best_visible', 'probe_
                   'wall_known', 'wall_after_unknown', 'wall_unknown_traversal', 'wall_free_traversal',
                   'pose_cells', 'start_cell', 'end_cell', 'probe_unknown_depth', 'probe_unknown_depth_max',
                   'wall_unknown_entry', 'probe_possible_poses', 'probe_known_poses',
-                  'query_poses', 'query_duration', 'query_length', 'frame_valid']
+                  'query_poses', 'query_duration', 'query_length', 'wall_hit_distance', 'frame_valid']
 VALID = len(QUERY_CHANNELS)-1
 
 
@@ -60,7 +60,7 @@ class GroupContext:
     """Legal state shared by every query from one starting graph."""
 
     def __init__(self, graph_keys, graph_states, ranges, origins, rotations, start_pose, res, device, lo, hi, humans=None, splat=True,
-                 sub=1, render=96, current_humans=None):
+                 sub=1, render=96, current_humans=None, near=0.):
         self.device = torch.device(device)
         self.res = float(res)
         self.lo = np.asarray(lo, np.int64)
@@ -70,7 +70,7 @@ class GroupContext:
         self.sub = int(sub)
         self.render = int(render)
         self.vm = VoxelMap(ranges, origins, rotations, self.lo, self.shape, self.res, self.base_y, self.device, humans=humans, splat=splat,
-                           sub=self.sub)
+                           sub=self.sub, near=near)
         if current_humans is not None:
             self.vm.stamp_humans(current_humans)
         self.extrinsic = camera_extrinsic(self.start_pose, origins[-1], rotations[-1])
@@ -117,7 +117,8 @@ def past_channels(ctx, out):
                                      t_frames, t_floor, ct.c_float(.15 if ctx.sub == 1 else .09), ct.c_float(.1 if ctx.sub == 1 else .06),
                                      ct.c_int(Hp), ct.c_int(Wp), ct.c_int(C), ct.c_int(0), buf], 128)
     wall = torch.zeros((1, 4, Hp, Wp), dtype=torch.float32, device=dev)
-    trav = torch.zeros((3, Hp, Wp), dtype=torch.int32, device=dev)
+    trav = torch.zeros((4, Hp, Wp), dtype=torch.int32, device=dev)
+    trav[3] = 2**30
     m.launch('wall_frame', P*105, [t_cams, t_wq, t_wy, ct.c_int(P), ctx.vm.vol, ctx.vm.state, t_frames, ct.c_int(Hp), ct.c_int(Wp),
                                    ct.c_int(4), ct.c_int(0), wall, ct.c_float(WALL_GAP), ct.c_float(WALL_OFFSET/ctx.sub), trav, ct.c_int(1)], 128)
     out[0] = buf[0, 0]; out[1] = buf[0, 1]; out[2] = buf[0, 2]; out[3] = buf[0, 4]
@@ -207,15 +208,18 @@ def build_inputs(ctx, paths, frames, pad=16):
                                            ct.c_int(Hp), ct.c_int(Wp), ct.c_int(C),
                                            ct.c_int(nm), x], 128)
         wcams = t_cams.view(-1, 12)[t_pl.long()].contiguous()
-        traversal = torch.zeros((3*q, Hp, Wp), dtype=torch.int32, device=dev)
+        traversal = torch.zeros((4*q, Hp, Wp), dtype=torch.int32, device=dev)
+        traversal[3*q:] = 2**30
         m.launch('wall_frame', len(pose_list)*105, [wcams, t_wq, t_wy, ct.c_int(len(pose_list)), ctx.vm.vol, ctx.vm.state, t_frames,
                                                      ct.c_int(Hp), ct.c_int(Wp), ct.c_int(C), ct.c_int(nm+8), x,
                                                      ct.c_float(WALL_GAP), ct.c_float(WALL_OFFSET/ctx.sub), traversal, ct.c_int(q)], 128)
         x[:, nm+10:nm+12] = torch.clamp(traversal[:2*q].view(q, 2, Hp, Wp).float()*(1./(4096.*105*.5)), max=4.)
-        x[:, nm+17] = torch.log1p(traversal[2*q:].float())*.5
+        x[:, nm+17] = torch.log1p(traversal[2*q:3*q].float())*.5
+        x[:, nm+23] = torch.clamp(traversal[3*q:].float()*1e-4, max=.45)/.45
     else:
         x[:, nm+3] = 1.
         x[:, nm+15:nm+17] = 1.
+        x[:, nm+23] = 1.
     # Probe "uncertain" defaults to 1 where no frustum pose exists (cells with
     # no probe evaluation keep the kernel's untouched zeros elsewhere).
     # Path raster (all queries, one upload): channel, query, a, b.

@@ -63,7 +63,7 @@ def pack_cams(origins, rotations):
 class VoxelMap:
     """Tri-state voxel volume over an axis-aligned cell-key box."""
 
-    def __init__(self, ranges, origins, rotations, lo_key, shape, res, base_y, device, keep=None, splat=True, humans=None, sub=1):
+    def __init__(self, ranges, origins, rotations, lo_key, shape, res, base_y, device, keep=None, splat=True, humans=None, sub=1, near=0.):
         # sub: voxels per cell edge (1: voxel = cell; 2: half-size voxels, also halving DY)
         self.device = torch.device(device)
         self.cell_res = float(res)
@@ -75,7 +75,7 @@ class VoxelMap:
         self.y0 = float(base_y)-Y_BELOW
         self.cell_shape = (int(shape[0]), int(shape[1]))
         self.vol = Vol(float(self.lo_key[0]*self.cell_res), float(self.lo_key[1]*self.cell_res), self.y0, self.res, DY/self.sub,
-                       self.shape[0], self.shape[1], self.ny, self.cell_res, self.sub)
+                       self.shape[0], self.shape[1], self.ny, self.cell_res, self.sub, float(near))
         m = module(self.device)
         ranges = upload(np.asarray(ranges, np.float32), self.device)
         cams = upload(pack_cams(origins, rotations), self.device)

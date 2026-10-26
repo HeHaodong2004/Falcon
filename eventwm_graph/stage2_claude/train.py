@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from eventwm_graph.stage2_repair.diagnose import OUT
 from eventwm_graph.stage2_segment.evaluate import rates
 from .data import GroupStream, split_roots, collate, scene_factors, load_root
-from .features import GroupContext, crop_box, build_inputs, MAP_CHANNELS, QUERY_CHANNELS, RADIUS
+from .features import GroupContext, crop_box, build_inputs, channel_index, MAP_CHANNELS, QUERY_CHANNELS, RADIUS
 from .geometry import upload
 from .model import UNet, build_model
 
@@ -32,7 +32,7 @@ def group_frame(windows, res):
     return lo, hi
 
 
-GEOMETRY = dict(splat=True, sub=1, render=96, occluders=False)   # set from the run/checkpoint configuration
+GEOMETRY = dict(splat=True, sub=1, render=96, occluders=False, near=0.)   # set from the run/checkpoint configuration
 
 
 def build_context(g, device, splat=None, config=None):
@@ -40,7 +40,7 @@ def build_context(g, device, splat=None, config=None):
     geo = dict(GEOMETRY)
     if config is not None:
         geo.update(splat=bool(config.get('splat', True)), sub=int(config.get('sub', 1)), render=int(config.get('render', 96)),
-                   occluders=bool(config.get('human_occluders', False)))
+                   occluders=bool(config.get('human_occluders', False)), near=float(config.get('near', 0.)))
     if splat is not None:
         geo['splat'] = splat
     ctx = GroupContext(g['gkeys'], g['gstates'], g['ranges'], g['origins'], g['rotations'], g['windows'][0]['path'][0],
@@ -180,6 +180,18 @@ def aux_targets(ctx, frames, fr, Hp, Wp, device):
     return out
 
 
+def soft_iou_loss(logits, y, w):
+    """1 - smooth label-aware IoU over the batch (window-weighted cell sums)."""
+    valid = (y >= 0).float()
+    r = torch.sigmoid(logits[:, 0].float()); b = torch.sigmoid(logits[:, 1].float())
+    pf, pb = r*(1-b), r*b
+    ww = w[:, None, None]*valid
+    tp = (ww*(pf*(y == 1).float()+pb*(y == 2).float())).sum()
+    pred = (ww*(pf+pb)).sum()
+    act = (ww*(y > 0).float()).sum()
+    return 1-tp/(act+pred-tp+1e-6)
+
+
 def loss_fn(logits, y, w, pos_weight, blocked_weight, norm, aux=None, aux_weight=0.):
     valid = (y >= 0).float()
     rev = (y > 0).float()
@@ -195,7 +207,7 @@ def loss_fn(logits, y, w, pos_weight, blocked_weight, norm, aux=None, aux_weight
 
 
 @torch.no_grad()
-def validate(model, rows, device, limit=160, taus=(.3, .4, .5, .6, .7), amp=True, tracks=False):
+def validate(model, rows, device, limit=160, taus=(.3, .4, .5, .6, .7), amp=True, tracks=False, cidx=None):
     model.eval()
     factors = scene_factors(rows)
     per_scene = {}
@@ -212,7 +224,7 @@ def validate(model, rows, device, limit=160, taus=(.3, .4, .5, .6, .7), amp=True
             x, mask, fr = build_inputs(ctx, [w['path'] for w in windows], [(lo, hi-lo) for lo, hi in frames])
             y = frame_labels(mask, fr, windows, ctx.lo)
             with torch.cuda.amp.autocast(enabled=amp):
-                logits = model(x)
+                logits = model(x[:, cidx] if cidx is not None else x)
             r = torch.sigmoid(logits[:, 0].float()); b = torch.sigmoid(logits[:, 1].float())
             for i, w in enumerate(windows):
                 valid = y[i] >= 0
@@ -242,8 +254,8 @@ def validate(model, rows, device, limit=160, taus=(.3, .4, .5, .6, .7), amp=True
 def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6, pos_weight=3., blocked_weight=2.,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
-        human_occluders=False):
-    GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders))
+        human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None):
+    GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
     dest = DEST/'training'/name
     dest.mkdir(parents=True, exist_ok=True)
@@ -251,25 +263,55 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
     val_rows = sorted(val_rows, key=lambda r: r['root_id'])
     widths = tuple(int(v) for v in widths.split(','))
     arch = dict(arch=arch, widths=widths, blocks=tuple(int(v) for v in blocks.split(',')), valid_channel=CIN-1, aux=2 if aux_weight > 0 else 0)
-    model = build_model(CIN, arch).to(device).to(memory_format=torch.channels_last)
+    map_channels, query_channels, cidx = MAP_CHANNELS, QUERY_CHANNELS, None
     if warm:
-        model.load_state_dict(torch.load(warm, map_location='cpu')['model'])
+        # Fine-tuning keeps the warm model's architecture and channel set.
+        warm_saved = torch.load(warm, map_location='cpu')
+        wc = warm_saved['config']
+        arch = dict(arch=wc.get('arch', 'masked_unet'), widths=tuple(wc['widths']), blocks=tuple(wc.get('blocks', (1, 2, 2, 2, 2))),
+                    valid_channel=wc['valid_channel'], aux=int(wc.get('aux', 0)))
+        map_channels, query_channels = list(wc['map_channels']), list(wc['query_channels'])
+        cidx = channel_index(wc)
+        GEOMETRY.update(splat=bool(wc.get('splat', True)), sub=int(wc.get('sub', 1)), render=int(wc.get('render', 96)),
+                        occluders=bool(wc.get('human_occluders', False)), near=float(wc.get('near', 0.)))
+        splat, sub, render, human_occluders, near = GEOMETRY['splat'], GEOMETRY['sub'], GEOMETRY['render'], GEOMETRY['occluders'], GEOMETRY['near']
+        human_filter = bool(wc.get('human_filter', False))
+    if cascade_from:
+        # Refinement stage on top of a frozen trained base model.
+        base_saved = torch.load(cascade_from, map_location='cpu'); bc = base_saved['config']
+        map_channels, query_channels = list(bc['map_channels']), list(bc['query_channels'])
+        cidx = channel_index(bc)
+        GEOMETRY.update(splat=bool(bc.get('splat', True)), sub=int(bc.get('sub', 1)), render=int(bc.get('render', 96)),
+                        occluders=bool(bc.get('human_occluders', False)), near=float(bc.get('near', 0.)))
+        splat, sub, render, human_occluders, near = GEOMETRY['splat'], GEOMETRY['sub'], GEOMETRY['render'], GEOMETRY['occluders'], GEOMETRY['near']
+        human_filter = bool(bc.get('human_filter', False))
+        base_cfg = {k: bc[k] for k in ('arch', 'widths', 'blocks', 'valid_channel', 'aux') if k in bc}
+        arch = dict(arch='cascade', base_config=base_cfg, refine_widths=widths, refine_blocks=tuple(int(v) for v in blocks.split(',')),
+                    valid_channel=bc['valid_channel'], widths=bc['widths'])
+    model = build_model(len(map_channels)+len(query_channels), arch).to(device).to(memory_format=torch.channels_last)
+    if warm:
+        model.load_state_dict(warm_saved['model'])
+    if cascade_from:
+        model.base.load_state_dict(base_saved['model'])
+        model.base.eval()
+        for p_ in model.base.parameters():
+            p_.requires_grad_(False)
     if extra_sensor:
         extra = split_roots(roots=0, sensor=extra_sensor, start=roots, val_mod=25)
         for r in extra[0]:
             r['sensor_dir'] = extra_sensor
         train_rows = train_rows+extra[0]
-    config = dict(name=name, map_channels=MAP_CHANNELS, query_channels=QUERY_CHANNELS, **arch, batch=batch, size=size, human_filter=human_filter,
+    config = dict(name=name, map_channels=map_channels, query_channels=query_channels, **arch, batch=batch, size=size, human_filter=human_filter,
                   extra_sensor=extra_sensor, aux_weight=aux_weight, splat=bool(splat), sub=int(sub), render=int(render),
-                  human_occluders=bool(human_occluders),
+                  human_occluders=bool(human_occluders), near=float(near), iou_weight=float(iou_weight),
                   lr=lr, pos_weight=pos_weight, blocked_weight=blocked_weight, epochs=epochs, train_roots=len(train_rows),
-                  val_roots=len(val_rows), seed=seed, warm=warm)
+                  val_roots=len(val_rows), seed=seed, warm=warm, cascade_from=cascade_from)
     (dest/'config.json').write_text(json.dumps(config, indent=1))
     print('train roots', len(train_rows), 'val roots', len(val_rows), 'params', sum(p.numel() for p in model.parameters()), flush=True)
-    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    opt = torch.optim.AdamW([p_ for p_ in model.parameters() if p_.requires_grad], lr=lr, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler()
     est_steps = int(epochs*len(train_rows)*23.5/batch) if not max_steps else max_steps
-    sched = lambda s: min(1., (s+1)/500)*.5*(1+math.cos(math.pi*min(1., s/est_steps)))
+    sched = lambda s: min(1., (s+1)/max(warmup, 1))*.5*(1+math.cos(math.pi*min(1., s/est_steps)))
     rng = np.random.default_rng(seed)
     step = 0; tick = time.time(); pool = []; losses = []; seen = 0
     history = []
@@ -289,12 +331,16 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                 for i in sorted(pick, reverse=True):
                     pool.pop(i)
                 x, y, A = collate_frames(items, device)
+                if cidx is not None:
+                    x = x[:, cidx].contiguous(memory_format=torch.channels_last)
                 w = torch.tensor([it[2] for it in items], device=device, dtype=torch.float32)
                 for gparam in opt.param_groups:
                     gparam['lr'] = lr*sched(step)
                 with torch.cuda.amp.autocast():
                     logits = model(x)
                 loss = loss_fn(logits, y, w, pos_weight, blocked_weight, 2000., A, aux_weight)
+                if iou_weight > 0:
+                    loss = loss+iou_weight*soft_iou_loss(logits, y, w)
                 opt.zero_grad(set_to_none=True)
                 scaler.scale(loss).backward()
                 scaler.unscale_(opt)
@@ -305,7 +351,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                     print(dict(epoch=epoch, step=step, loss=float(np.mean(losses[-200:])), lr=lr*sched(step),
                                windows_per_s=seen/(time.time()-tick), elapsed=time.time()-tick), flush=True)
                 if step % val_every == 0:
-                    v = validate(model, val_rows, device, val_roots, tracks=human_filter)
+                    v = validate(model, val_rows, device, val_roots, tracks=human_filter, cidx=cidx)
                     history.append(dict(step=step, val=v)); print('VAL', step, json.dumps(v), flush=True)
                     torch.save(dict(model=model.state_dict(), config=config, step=step, val=v), dest/('step%06d.pt' % step))
                     (dest/'history.json').write_text(json.dumps(history, indent=1))
@@ -315,7 +361,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                 break
         if max_steps and step >= max_steps:
             break
-    v = validate(model, val_rows, device, val_roots, tracks=human_filter)
+    v = validate(model, val_rows, device, val_roots, tracks=human_filter, cidx=cidx)
     history.append(dict(step=step, val=v, final=True)); print('VAL FINAL', step, json.dumps(v), flush=True)
     torch.save(dict(model=model.state_dict(), config=config, step=step, val=v), dest/'final.pt')
     (dest/'history.json').write_text(json.dumps(history, indent=1))
@@ -348,4 +394,8 @@ if __name__ == '__main__':
     p.add_argument('--sub', type=int, default=1)
     p.add_argument('--render', type=int, default=96)
     p.add_argument('--human-occluders', action='store_true')
+    p.add_argument('--near', type=float, default=0.)
+    p.add_argument('--iou-weight', type=float, default=0.)
+    p.add_argument('--warmup', type=int, default=500)
+    p.add_argument('--cascade-from')
     run(**vars(p.parse_args()))

@@ -40,19 +40,31 @@ results do not depend on cache state.
 
 ## Method
 
-1. **Legal voxel map** (`geometry.py`, `kernels.py`): 0.1 m (x,z cell grid) x 0.1 m (height) tri-state
-   volume (UNKNOWN / FREE / OCCUPIED) from all legal past/current range frames: measured hits mark
-   OCCUPIED (optionally skipping hits on legally tracked visible humans); projective carving marks FREE.
+1. **Legal voxel map** (`geometry.py`, `kernels.py`): tri-state volume (UNKNOWN / FREE / OCCUPIED)
+   over the cell grid with `sub` voxels per cell edge (production: 2, i.e. 5 cm) and 5 cm height bins
+   from base-0.4 m to base+2.0 m, built from all legal past/current range frames: measured hits mark
+   OCCUPIED (hits on humans legally tracked and visible in that frame are skipped), projective carving
+   marks FREE. Currently tracked humans (latest legal frame, velocity-extrapolated over their
+   observation age) are stamped as dynamic occluders. Unknown voxels within `near` m of a camera are
+   treated as the robot's own volume.
 2. **Certificate simulation along each supplied trajectory**: future camera poses from the current rigid
-   camera/base extrinsic; per pose a 96x96 visibility render (first OCCUPIED / first UNKNOWN distance);
-   the exact 63-probe FREE certificate geometry (5 square + 16 halo probes x 3 heights) is tested
-   against the renders; the exact 35x3 wall rays are marched (DDA) with the 0.25 m inflation rule.
-3. **BEV canvas per query** (`features.py`): 20 map channels (graph FREE/BLOCKED, per-height-band
-   occupied/free/unknown fractions) + query channels (probe statistics, unknown depth, wall-ray hits,
-   unknown traversal/entry, path raster, frame validity) on the query's original candidate crop.
+   camera/base extrinsic; per unique pose a `render`x`render` visibility image (first OCCUPIED/human and
+   first UNKNOWN distance, production 192); the exact 63-probe FREE certificate geometry is tested against
+   the renders; the exact 35x3 wall rays are DDA-marched with the 0.25 m inflation rule and the
+   (base+0.2, base+1.4) band; human voxels consume rays without certificates.
+3. **Inputs per query** (`features.py`, exact original candidate crop frame): map channels (graph
+   FREE/BLOCKED, per-height-band occupied/free/unknown fractions, current humans, and probe/wall-ray
+   statistics from up to 16 legal PAST camera poses: what was already fully visible but is still
+   uncertified is unlikely to be certified later) + query channels (probe statistics incl. unknown depth
+   and pose fractions, known / after-unknown wall hits, distance to known hits, unknown traversal and
+   entry, path raster, window poses/duration/length, frame validity). Channel names are recorded in each
+   checkpoint and selected by name, so older checkpoints keep working.
 4. **Masked U-Net** (`model.py`): full cell resolution; every activation outside the query frame is
    zeroed and global context is a masked mean, so outputs do not depend on padding or batch composition.
-   Outputs revelation r and BLOCKED-given-revelation b.
+   Outputs revelation r and BLOCKED-given-revelation b. Optional cascade: a second masked U-Net refines
+   the first network's logits.
+5. **Decision**: frozen in the checkpoint by `select.py` on scene-disjoint TRAIN validation, either
+   `reveal` (r > t, then b > t_b) or `class` (FREE if r(1-b) > t_F, BLOCKED if rb > t_B, larger margin wins).
 
 ## Files
 
@@ -62,4 +74,5 @@ scene-disjoint TRAIN validation; `evaluate.py` original development evaluation (
 `summarize()` to `stage2_repair/range_full_evaluate.py`); `benchmark.py` original 32-workload complete
 latency; `test_api.py` contract tests. Diagnostics: `sim_eval.py`, `sim_check*.py`, `cam_check.py`,
 `blocked_debug.py`, `ray_debug.py`, `entry_debug.py`, `fp_debug.py`, `strata.py`, `aux_eval.py`,
-`fitcheck.py`, `viz*.py`.
+`fitcheck.py`, `check_past.py`, `fidelity_debug.py`, `near_ab.py`, `compare_pilot.py`, `viz*.py`.
+`quiet.py` runs a benchmark with this session's own background jobs paused (run as a module).

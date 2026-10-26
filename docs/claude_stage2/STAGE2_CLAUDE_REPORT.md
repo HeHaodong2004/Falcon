@@ -1,0 +1,244 @@
+# Stage 2 redesign — legal voxel simulation + masked BEV U-Net (Claude, 2026-10-26)
+
+Status: DRAFT — final accuracy/latency tables are filled in from the frozen
+evaluation and benchmark receipts (section 1).
+
+## 1. Results
+
+### 1.1 Frozen model `final/v7.pt` (checkpoint `training/past_v7/final.pt` + frozen operating point)
+
+Operating point selected on 400 scene-disjoint TRAIN-validation Roots (`select.py`): class rule,
+FREE if r(1-b) > 0.425, BLOCKED if rb > 0.525 (validation label-aware IoU 0.4628; single-threshold
+rule 0.4597). Original full development set, 128 px sensing (`full_range_branches`), original
+evaluator assertions (`evaluate.py`):
+
+| Model | full-dev label-aware IoU | revelation IoU | pooled IoU | dense K=6 cold P95 |
+| --- | ---: | ---: | ---: | ---: |
+| previous best A (handoff, 128 px) | 0.4171 | 0.4667 | 0.3992 | 58.6 ms (256 px workloads) |
+| **this work, v7 (128 px)** | **0.4563** | **0.4903** | **0.4423** | **29.0–35.9 ms** (below) |
+
+| metric | previous baseline | this model |
+| --- | ---: | ---: |
+| hierarchical label_aware_delta_iou | 0.217733 | 0.456265 |
+| hierarchical revelation_iou | 0.286985 | 0.490326 |
+| hierarchical revelation_precision | 0.407199 | 0.679549 |
+| hierarchical revelation_recall | 0.492926 | 0.637797 |
+| hierarchical free precision / recall | 0.3665 / 0.4197 | 0.5903 / 0.6383 |
+| hierarchical blocked precision / recall | 0.3137 / 0.3868 | 0.6709 / 0.5967 |
+| pooled label_aware_delta_iou | 0.223950 | 0.442303 |
+
+Roots 2110, scenes 108, windows 47128; zero-new windows {"windows": 2561, "candidate_exact_empty": 1596, "baseline_exact_empty": 736}; out-of-domain positives 0; bootstrap 95% candidate [0.4438, 0.4687], paired delta vs baseline [0.227, 0.2499]
+
+Pooled confusion (rows true U/F/B, cols predicted): [[1703743207, 1525941, 2487455], [1604469, 2838314, 109090], [3744407, 407953, 5406928]]
+
+| stratum | windows | label-aware IoU (pooled) |
+| --- | ---: | ---: |
+| duration:0.5-1 | 9894 | 0.4467 |
+| duration:1-2 | 5793 | 0.4126 |
+| duration:<=0.5 | 30397 | 0.4805 |
+| duration:>2 | 1044 | 0.4192 |
+| human:present | 40140 | 0.4390 |
+| human:zero | 6988 | 0.4608 |
+| motion:mixed | 23987 | 0.4742 |
+| motion:rotation | 20534 | 0.3862 |
+| motion:translation | 2607 | 0.5200 |
+| new_cells:0 | 2561 | 0.0000 |
+| new_cells:1-99 | 18807 | 0.4537 |
+| new_cells:>=100 | 25760 | 0.4418 |
+
+### 1.2 Complete latency (original 32 workloads, 128 px packets, K=1/4/6, 3 repetitions)
+
+Frozen `final/v7.pt`, physical GPU0 (RTX 3090 with the desktop session), this session's own jobs
+paused (`quiet_final_v7_128_gpu0.json`); an external Stage-1 training job (another session, not
+paused) occupied physical GPU1 and ~9 CPU processes during this run:
+
+| cohort / cache | K=1 P50 / P95 | K=4 P50 / P95 | K=6 P50 / P95 |
+| --- | ---: | ---: | ---: |
+| dense, cold | 12.312 / 18.040 | 23.236 / 27.500 | 31.088 / 35.913 |
+| dense, map_warm_new_queries | 8.223 / 10.204 | 19.278 / 23.931 | 25.472 / 29.911 |
+| dense, warm | 7.953 / 10.715 | 19.464 / 23.393 | 25.481 / 31.222 |
+| representative, cold | 10.141 / 14.346 | 19.277 / 22.237 | 25.619 / 29.247 |
+| representative, map_warm_new_queries | 7.219 / 9.934 | 17.106 / 19.263 | 23.354 / 27.100 |
+| representative, warm | 7.076 / 10.602 | 17.068 / 21.124 | 23.689 / 27.592 |
+
+startup: {"constructor_ms": 5470.571909099817, "first_complete_K6_ms": 177.11907299235463}; load average before/after: [12.240234375, 7.8291015625, 10.171875] / [12.9833984375, 8.35791015625, 10.28564453125]; device cuda:0 (NVIDIA GeForce RTX 3090)
+
+Same architecture and features (v7 step 20000), physical GPU1 at 15:12 UTC before the external job
+started, own jobs paused (`quiet_v7s20000.json`):
+
+| cohort / cache | K=1 P50 / P95 | K=4 P50 / P95 | K=6 P50 / P95 |
+| --- | ---: | ---: | ---: |
+| dense, cold | 9.686 / 15.835 | 19.066 / 23.894 | 24.642 / 28.980 |
+| dense, map_warm_new_queries | 6.195 / 8.025 | 15.864 / 19.063 | 21.628 / 25.393 |
+| dense, warm | 6.226 / 8.169 | 15.775 / 18.881 | 21.750 / 25.681 |
+| representative, cold | 8.426 / 9.897 | 16.113 / 17.832 | 21.542 / 23.365 |
+| representative, map_warm_new_queries | 5.680 / 7.286 | 14.194 / 15.638 | 19.724 / 21.570 |
+| representative, warm | 5.584 / 7.117 | 14.200 / 15.878 | 19.827 / 21.523 |
+
+startup: {"constructor_ms": 4289.102727081627, "first_complete_K6_ms": 143.9595310948789}; load average before/after: [11.8017578125, 12.42626953125, 13.6103515625] / [9.439453125, 11.8466796875, 13.39404296875]; device cuda:1 (NVIDIA GeForce RTX 3090)
+
+On physical GPU1 *shared with the external Stage-1 training* the same benchmark measured dense K=6
+cold P50 51.8 / P95 63.4 ms (`final_v7_bench128_r2.json`): GPU time-sharing with another training
+job roughly doubles the GPU stages; this is reported, not selected away.
+
+
+## 2. What the label is (read from the environment observer)
+
+`eventwm_graph/partial/observer.py` / `fast_observer.py` publish, at every observation pose:
+
+* **FREE** for a cell iff (a) navmesh support (center snaps, clearance ≥ r/√2+0.008 on the
+  0.25 m-inflated navmesh, 9 sample points step-reachable) and (b) all **63 probes**
+  (center + 4 corners at 0.49·r, 16 halo points at 0.25+r/√2, at +0.025/+0.7/+1.4 m) are inside
+  the 90°×90°, 10 m frustum and have a clear line of sight (humans occlude).
+* **BLOCKED** for every cell whose center lies within 0.25 m (xz) of the first hit of one of
+  **35×3 wall rays** (x∈[−0.95,0.95], y∈{−0.5,0,0.5}) if the hit is static and its height is in
+  (base+0.2, base+1.4). A human hit consumes the ray without a certificate.
+
+Verified: rebuilding BLOCKED targets from the *actual* future depth at the wall-ray pixels
+reproduces 95.4 % of BLOCKED targets with 91 % precision (`blocked_debug.py`); the legal
+proxy future camera (current rigid camera/base extrinsic applied to the supplied path)
+matches recorded future cameras to 0.0000 m / 0.0000 (`cam_check.py`).
+
+## 3. Information-budget diagnostics (TRAIN roots unless noted)
+
+| Finding | Evidence |
+| --- | --- |
+| Most new cells are in never-measured space | only 59 % of BLOCKED targets have any measured wall-band hit within 0.25 m; simulating the exact wall rays on legal geometry recovers 24 % of new BLOCKED cells (95 % with the real future depth) |
+| Rays enter unknown space next to the robot | median unknown-entry distance 1.33 m from the future camera; real hit median 1.5 m beyond entry (`entry_debug.py`). Windows start early in episodes (≈0.6 s history) and the robot turns into unseen directions |
+| The previous model and this one underfit | train ≈ validation IoU (0.34 vs 0.37 at the same checkpoint, `fitcheck.py`); old A: train 0.4195 vs dev 0.4171 |
+| Error strata (v2) | 53 % of targets are cells whose probes are possible but cross unknown space (IoU 0.31, 58 % of misses, 51 % of false, 90 % of wrong-type); simulation-determined strata reach IoU 0.71–0.89 (`strata.py`) |
+| Simulation fidelity | fraction of actually certified FREE cells reproduced as known-visible from the very poses that certified them: 72.8 % (10 cm voxels, 96² renders, splatting) → 82.1 % (192² renders) → 85.8 % (5 cm voxels) → 87.1 % (+ unknown voxels within 0.5 m of the camera treated as the robot's own volume); 0.3 % false certification throughout (`sim_check2.py`) |
+| Past visibility is decisive for short windows | among cells the future poses would fully see, FREE rate is 1.7 % if a legal PAST camera already saw them fully (not certifiable) vs 29.9 % otherwise (short windows; 11.5 % vs 48.2 % long) (`check_past.py`) |
+| Splatting hurts | measured-surface splatting increases spurious early wall-ray hits (9.8 % → 12.2 %); human ghost filtering removes ~1 % (`ray_debug.py`) |
+| 256 px sensing is not a lever here | same 128-trained model: pilot 0.3679 (128) vs 0.3705 (256) |
+
+## 4. Method
+
+1. **Legal tri-state voxel map** (`geometry.py`, `kernels.py`): 5 cm voxels (2×2 per graph cell,
+   5 cm height bins, base−0.4 … base+2.0 m). OCCUPIED from measured hits (hits on legally tracked,
+   visible humans are skipped), FREE by projective carving (margin 4.5 cm), else UNKNOWN. Currently
+   tracked humans are stamped as dynamic occluders (block lines of sight; consume wall rays).
+2. **Certificate simulation along each supplied trajectory**: proxy future cameras; per unique pose
+   a 192×192 render (distance to first OCCUPIED/human and first UNKNOWN voxel); the exact 63-probe
+   geometry is tested against the renders; the exact 35×3 wall rays are DDA-marched with the 0.25 m
+   inflation rule and the (base+0.2, base+1.4) band.
+3. **Inputs per query** (exact original candidate crop frame): 26 map channels (graph FREE/BLOCKED,
+   per-height-band occupied/free/unknown fractions, current humans, and probe/wall statistics from
+   up to 16 legal PAST camera poses) + 25 query channels (probe statistics incl. unknown depth and
+   pose fractions, known/after-unknown wall hits, hit distance, unknown traversal/entry, path raster,
+   window length/duration/distance, frame validity).
+4. **Masked U-Net** (`model.py`): full cell resolution, widths 32-64-96-128-192; activations outside
+   the frame are zeroed at every layer and the global context is a masked mean, so predictions do
+   not depend on padding or batch composition. Heads: revelation r and BLOCKED|revealed b.
+5. **Training** (`train.py`): TRAIN roots only, scene-disjoint validation (4 % of TRAIN scenes);
+   dense per-cell BCE (pos-weight 3) + 2×BCE on b over revealed cells, window weights =
+   scene factor / windows-in-Root (the evaluation hierarchy); AdamW 2e-3, cosine, AMP, dihedral
+   augmentation inside the frame.
+6. **Decision**: frozen operating point selected on TRAIN validation (`select.py`), stored in the
+   checkpoint; development data are only used for the final evaluation.
+7. **Inference** (`api.py`): exact original domain on GPU, per-query batch-1 CUDA graphs (bit-identical
+   single vs batched), one pinned device→host transfer, original sparse increment and native
+   hypothetical graph materialization.
+
+## 5. Interface
+
+See `eventwm_graph/stage2_claude/README.md` (unchanged `predict_segments` contract).
+
+## 6. Accuracy protocol
+
+`evaluate.py` mirrors `stage2_repair/range_full_evaluate.py`: original replay/windows, legal
+ancestor range frames and tracks only, exact domain SHA-256 and target counts asserted against the
+frozen original baseline receipts, labels asserted equal to the frozen label arrays, every
+materialized hypothetical graph verified, original `summarize()` (equal scene/Root/window mean
+confusion → rates; pooled; bootstrap). 128 px sensing (`full_range_branches`, complete for all 2,110
+Roots).
+
+## 7. Latency protocol
+
+`benchmark.py` mirrors `stage2_repair/range_benchmark.py`: the original 32 workloads/paths, K=1/4/6,
+cold (graph AND legal-map caches cleared), warm, reusable-map/new-queries, 3 repetitions, dense =
+upper half by known cells. Timed: validation, content identities, graph preparation, candidate
+universe, legal map, features, transfers, network, decode, sparse increment, complete native
+hypothetical graphs. Excluded: deserialization, serialization, sensor acquisition. CUDA graph capture
+is part of the constructor (startup), like kernel compilation.
+
+## 8. Experiment log
+
+| Run | Change | val IoU @4k steps |
+| --- | --- | ---: |
+| unet_v1 | unmasked U-Net, 256 crops | (framing-inconsistent; abandoned) |
+| masked_v2 | masked U-Net, exact frames | 0.347 (0.357 @8k, 0.366 @12k) |
+| aux_human_v3 | + label-side geometry aux loss + human ghost filter | 0.338 (0.349 @8k) |
+| big_v4 | + 2× width | 0.350 |
+| past_v7 | 5 cm voxels, 192² renders, no splat, human filter + current-human occluders, past-pose channels, query scalars | **0.383** (0.391 @8k, 0.412 @12k, 0.414 @16k, 0.415 @20k) |
+| near_v9 | v7 + near-camera fix + wall-hit distance channel + 1.7k extra TRAIN Roots, 3 epochs | 0.303 (0.386 @8k, 0.398 @12k) |
+
+Decision-rule selection on identical TRAIN-validation Roots (v7 @8k, 160 Roots): single revelation
+threshold 0.391 vs class-specific thresholds (FREE if r(1-b)>0.40, BLOCKED if rb>0.50) 0.402.
+Dihedral test-time augmentation (frame + transpose): +0.001 (v7 @12k) — not adopted.
+
+Pilot comparison with the previous model A (same 666 windows, per-window confusion receipts,
+`compare_pilot.py`; used diagnostically, never for selection): v2 @4k trailed A mainly on short
+(<=0.5 s) and small-reveal windows (false revelations 0.69 per target vs 0.29), which led to the
+past-pose visibility channels; v7 @4k: pooled 0.402 vs A 0.407, better than A on windows > 1 s.
+
+## 9. Negative results
+
+* Auxiliary geometry supervision (walls/floor from all Root frames) did not improve the main metric;
+  unseen-wall completion stayed poor (precision 0.55 / recall 0.08 at 4k steps).
+* 2× model width: +0.003 at equal steps.
+* Measured-surface splatting, 256 px sensing, sub-voxel hit refinement: no material gain.
+
+## 10. Limitations
+
+* Labels in never-observed space are only partially predictable from legal inputs (sections 3, 9).
+* The range sensor extension is the same ideal simulator sensing used by the previous model; a real
+  front end must supply equivalent calibrated ranges, timestamps and tracks.
+
+## 11. Reproduction
+
+Environment as in the handoff (`conda activate eventwm-falcon`; `output -> $DEV/output`; data link).
+All commands from the repository root; `CUDA_VISIBLE_DEVICES=0,1` (the conda activation otherwise
+exports `CUDA_VISIBLE_DEVICES=1`).
+
+```bash
+PY=/home/haodong/miniforge3/envs/eventwm-falcon/bin/python
+R="$PY scripts/stage2_segment_run.py"
+# 1. train (TRAIN Roots with 128 px range packets; scene-disjoint validation)
+$R eventwm_graph.stage2_claude.train --name past_v7 --device cuda:0 --epochs 2 --workers 7 \
+   --val-every 4000 --val-roots 160 --human-filter --human-occluders --splat 0 --sub 2 --render 192
+# optional refinement stage on a frozen trained base
+$R eventwm_graph.stage2_claude.train --name cascade --device cuda:0 --epochs 1 --workers 7 \
+   --cascade-from output/claude_stage2/training/past_v7/final.pt --widths 24,48,64,96,128 --blocks 1,1,2,2,2 --lr 1e-3
+# 2. operating point on TRAIN validation (400 Roots) and freezing into the deployable checkpoint
+$R eventwm_graph.stage2_claude.select --checkpoint <trained.pt> --device cuda:0 --roots 400 \
+   --out <name> --freeze-to output/claude_stage2/final/<name>.pt
+# 3. original full development evaluation (2,110 Roots / 47,128 windows)
+$R eventwm_graph.stage2_claude.evaluate --checkpoint output/claude_stage2/final/<name>.pt \
+   --name full_<name> --split full --workers 6 --device cuda:0
+# 4. contract tests (exact domain, zero horizon, no mutation, single == batched)
+$R eventwm_graph.stage2_claude.test_api output/claude_stage2/final/<name>.pt cuda:1
+# 5. complete K=1/4/6 latency on the original 32 workloads, own background jobs paused
+$PY -m eventwm_graph.stage2_claude.quiet --receipt output/claude_stage2/benchmark/quiet_<name>.json \
+   --pattern "stage2_claude.train" -- $R eventwm_graph.stage2_claude.benchmark \
+   --checkpoint output/claude_stage2/final/<name>.pt --name <name>_bench128 --repetitions 3 --device cuda:1
+```
+
+## 12. Process, data and evaluation-integrity notes
+
+* With the user's explicit permission, the previous A epoch-2 training (+selector) and the
+  sensor-256 TRAIN preparation workers were stopped at 11:35 UTC; the sensor-256 DEV preparation
+  workers stopped at the same time and were later resumed from their frozen worktree
+  (`eventwm-falcon-stage2-sensor256-20261026-0924`, same source identity, existing packets reused) and
+  completed all 2,110 Roots. No checkpoints, datasets or results were deleted.
+* New TRAIN range packets (128 px) for 3,082 additional Roots (`source_rows('train')[16384:]`) were
+  produced with the unchanged environment replay (`range_train_expand.py`) into
+  `$OUT/claude_train_range_128 -> /var/tmp/claude-stage2/train128`.
+* Model development used TRAIN Roots only; operating points were selected on scene-disjoint TRAIN
+  validation Roots. The fixed 31-Root development pilot was used for diagnostic comparisons with the
+  previous model (window-level receipts) and as a regression check of the public API; these
+  diagnostics informed feature design (e.g. past-pose visibility). The full development set was
+  evaluated only for frozen candidates (section 1 lists every full-development evaluation run).
+* Latency was measured on the RTX 3090 used by the previous benchmarks (physical GPU1) with this
+  session's own background jobs paused by `quiet.py` (receipts list the paused PIDs/command lines and
+  load averages); no external process was paused.

@@ -14,7 +14,7 @@ import eventwm_graph.stage2_claude.geometry as G
 
 
 def main(n=16, device='cuda:1'):
-    RENDER = int(sys.argv[1]); G.MARGIN = float(sys.argv[2]); TOL = float(sys.argv[3]); SPLAT = sys.argv[4] == '1'; SUB = int(sys.argv[5]) if len(sys.argv) > 5 else 1
+    RENDER = int(sys.argv[1]); G.MARGIN = float(sys.argv[2]); TOL = float(sys.argv[3]); SPLAT = sys.argv[4] == '1'; SUB = int(sys.argv[5]) if len(sys.argv) > 5 else 1; NEAR = float(sys.argv[6]) if len(sys.argv) > 6 else 0.; HUM = len(sys.argv) > 7 and sys.argv[7] == '1'
     tot = np.zeros(4)
     rows, _ = source_rows('train')
     pick = np.random.default_rng(7).choice(16384, n, replace=False)
@@ -28,8 +28,15 @@ def main(n=16, device='cuda:1'):
         gk, gs, path = seg[0], seg[1], seg[3]
         sid = packed['segments'][0]['start_node']
         take = ancestor_frames(s['parents'], s['history_count'], sid)
+        humans = None
+        if HUM:
+            from eventwm_graph.stage2_repair.diagnose import member
+            from .features import human_arrays
+            legal = member(row, 'legal_root.json.gz'); nodes = member(row, 'future_observations.json.gz')
+            tr = [o['tracks'] for o in legal['history']]+[n['observation']['tracks'] for n in nodes]
+            humans = human_arrays([tr[j] for j in take])
         lo, hi = crop_box(path, res)
-        vm = VoxelMap(s['depth'][take], s['origins'][take], s['rotations'][take], lo, hi-lo, res, path[0, 2], device, splat=SPLAT, sub=SUB)
+        vm = VoxelMap(s['depth'][take], s['origins'][take], s['rotations'][take], lo, hi-lo, res, path[0, 2], device, splat=SPLAT, sub=SUB, near=NEAR, humans=humans)
         cams = pack_cams(s['origins'][take], s['rotations'][take])
         imgs = vm.render(cams, RENDER)
         g = vm.grid(); band = slice(int((Y_BELOW+.05)/DY)*SUB, int((Y_BELOW+1.5)/DY)*SUB)
@@ -50,8 +57,8 @@ def main(n=16, device='cuda:1'):
             if name == 'UNKNOWN':
                 kn = (pr[:, 0] > 0) & sup
                 out.append('UNKNOWN known&sup count %d' % kn.sum())
-    print('sub %d render %d margin %.2f tol %.2f splat %s: certified FREE reproduced %.3f ; uncertified UNKNOWN wrongly known-visible %d of %d' % (
-        SUB, RENDER, G.MARGIN, TOL, SPLAT, tot[0]/tot[1], tot[2], tot[3]))
+    print('human %s near %.2f sub %d render %d margin %.2f tol %.2f splat %s: certified FREE reproduced %.3f ; uncertified UNKNOWN wrongly known-visible %d of %d' % (
+        HUM, NEAR, SUB, RENDER, G.MARGIN, TOL, SPLAT, tot[0]/tot[1], tot[2], tot[3]))
 
 
 if __name__ == '__main__':

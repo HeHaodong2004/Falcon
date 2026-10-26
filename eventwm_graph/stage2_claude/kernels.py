@@ -24,7 +24,9 @@ from eventwm_graph.stage2_segment.cuda_kernel import checked
 
 SOURCE = r'''
 #define MAXR 10.0f
-struct Vol {float x0,z0,y0,res,dy;int nx,nz,ny;float cres;int sub;};
+// Unknown voxels within v.near m of a camera are its own robot/sensor volume,
+// which the environment sensor ignores; they never occlude or hide surfaces.
+struct Vol {float x0,z0,y0,res,dy;int nx,nz,ny;float cres;int sub;float near;};
 
 __device__ __forceinline__ int vindex(const Vol& v,int ix,int iz,int iy){return (ix*v.nz+iz)*v.ny+iy;}
 
@@ -141,7 +143,7 @@ __device__ void march(const Vol& v,const unsigned char* state,float ox,float oy,
     if(s>=2){*t_occ=t;return;}
     float tn;int axis;
     if(tx<tz&&tx<ty){tn=tx;axis=0;}else if(tz<ty){tn=tz;axis=1;}else{tn=ty;axis=2;}
-    if(s==0){if(*t_unk>1e8f)*t_unk=t;*u_len+=fminf(tn,tmax)-t;}
+    if(s==0&&tn>v.near){float t0=fmaxf(t,v.near);if(*t_unk>1e8f)*t_unk=t0;*u_len+=fminf(tn,tmax)-t0;}
     t=tn;
     if(axis==0){tx+=ddx;ix+=sx;}else if(axis==1){tz+=ddz;iz+=sz;}else{ty+=ddy;iy+=sy;}
     if(t>tmax)return;
@@ -373,6 +375,7 @@ extern "C" __global__ void wall_frame(const float* cams,const int* pose_query,co
     if(s==2){t_occ=tt;break;}
     float tn;int axis;
     if(tx<tz&&tx<ty){tn=tx;axis=0;}else if(tz<ty){tn=tz;axis=1;}else{tn=ty;axis=2;}
+    if(s==0&&tn<=v.near)s=1;        // own robot/sensor volume
     float seg=fminf(tn,MAXR)-tt;
     float ymid=oy+dy*(tt+.5f*seg);
     if(seg>0.f&&ymid>ylo&&ymid<yhi){
@@ -396,12 +399,15 @@ extern "C" __global__ void wall_frame(const float* cams,const int* pose_query,co
   int channel=ulen<gap?0:1;
   int kx=(int)floorf(px/v.cres),kz=(int)floorf(pz/v.cres);
   int lox=(int)lrintf(v.x0/v.cres),loz=(int)lrintf(v.z0/v.cres);
-  int span=(int)ceilf(.25f/v.cres)+1;
+  int span=(int)ceilf(.45f/v.cres)+1;
   for(int ax=-span;ax<=span;ax++)for(int az=-span;az<=span;az++){
-    float cx=(kx+ax+.5f)*v.cres-px,cz=(kz+az+.5f)*v.cres-pz;
-    if(cx*cx+cz*cz>.0625f)continue;
+    float cx=(kx+ax+.5f)*v.cres-px,cz=(kz+az+.5f)*v.cres-pz;float d2=cx*cx+cz*cz;
+    if(d2>.2025f)continue;
     int fa=kx+ax-lox-fr[0],fb=kz+az-loz-fr[1];if(fa<0||fb<0||fa>=fr[2]||fb>=fr[3])continue;
-    base[channel*plane+(long long)fa*Wp+fb]=1.f;
+    long long cell=(long long)fa*Wp+fb;
+    // Distance (1e-4 m) from the cell center to the nearest known simulated hit.
+    if(channel==0)atomicMin(traversal+(3LL*Q+q)*plane+cell,(unsigned int)lrintf(sqrtf(d2)*10000.f));
+    if(d2<=.0625f)base[channel*plane+cell]=1.f;
   }
 }
 // Sub-voxel surface statistics: per-voxel sum of measured hit points + count
@@ -544,7 +550,7 @@ class _Module:
 
 class Vol(ct.Structure):
     _fields_ = [('x0', ct.c_float), ('z0', ct.c_float), ('y0', ct.c_float), ('res', ct.c_float), ('dy', ct.c_float),
-                ('nx', ct.c_int), ('nz', ct.c_int), ('ny', ct.c_int), ('cres', ct.c_float), ('sub', ct.c_int)]
+                ('nx', ct.c_int), ('nz', ct.c_int), ('ny', ct.c_int), ('cres', ct.c_float), ('sub', ct.c_int), ('near', ct.c_float)]
 
 
 def module(device):

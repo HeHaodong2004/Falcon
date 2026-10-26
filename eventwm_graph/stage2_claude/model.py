@@ -143,7 +143,59 @@ class MaskedUNet(nn.Module):
         return self.head_b(self.head_a(y, masks[0]))
 
 
+class Cascade(nn.Module):
+    """Base masked U-Net followed by a refinement masked U-Net that sees the
+    inputs plus the base logits and FREE/BLOCKED probabilities, so revealed free
+    regions and their bounding wall bands can be made consistent."""
+    def __init__(self, cin, base_config, widths=(24, 48, 64, 96, 128), blocks=(1, 1, 2, 2, 2)):
+        super().__init__()
+        self.base = MaskedUNet(cin, tuple(base_config['widths']), tuple(base_config.get('blocks', (1, 2, 2, 2, 2))),
+                               valid_channel=base_config['valid_channel'], aux=int(base_config.get('aux', 0)))
+        self.valid_channel = base_config['valid_channel']
+        self.refine = MaskedUNet(cin+4, widths, blocks, valid_channel=self.valid_channel)
+        self.freeze_base = True
+
+    def train(self, mode=True):
+        super().train(mode)
+        if self.freeze_base:
+            self.base.eval()
+        return self
+
+    def forward(self, x, mask=None):
+        if mask is None:
+            mask = x[:, self.valid_channel:self.valid_channel+1]
+        if self.freeze_base:
+            with torch.no_grad():
+                b = self.base(x, mask)[:, :2]
+        else:
+            b = self.base(x, mask)[:, :2]
+        r = torch.sigmoid(b[:, :1].float()); bb = torch.sigmoid(b[:, 1:2].float())
+        z = torch.cat([x, b.to(x.dtype), (r*(1-bb)).to(x.dtype), (r*bb).to(x.dtype)], 1)
+        return b+self.refine(z, mask)
+
+
+class Ensemble(nn.Module):
+    """Logit average of member models, each reading its own recorded channels
+    (indices into the full builder output) and its own frame-validity mask."""
+    def __init__(self, members):
+        super().__init__()
+        self.nets = nn.ModuleList([build_model(len(m['map_channels'])+len(m['query_channels']), m) for m in members])
+        for i, m in enumerate(members):
+            self.register_buffer('idx%d' % i, torch.as_tensor(m['channel_index'], dtype=torch.long), persistent=False)
+
+    def forward(self, x, mask=None):
+        out = 0.
+        for i, net in enumerate(self.nets):
+            out = out+net(x.index_select(1, getattr(self, 'idx%d' % i)))[:, :2]
+        return out/len(self.nets)
+
+
 def build_model(cin, config):
+    if config.get('arch') == 'ensemble':
+        return Ensemble(config['members'])
+    if config.get('arch') == 'cascade':
+        return Cascade(cin, config['base_config'], tuple(config.get('refine_widths', (24, 48, 64, 96, 128))),
+                       tuple(config.get('refine_blocks', (1, 1, 2, 2, 2))))
     arch = config.get('arch', 'unet')
     if arch == 'masked_unet':
         return MaskedUNet(cin, tuple(config['widths']), tuple(config.get('blocks', (1, 2, 2, 2, 2))), valid_channel=config['valid_channel'],
@@ -198,7 +250,35 @@ class GraphRunner:
         with torch.cuda.device(self.device):
             return self._call(x, frames)
 
+    def _single(self, xi, c):
+        """One query (1, C, fh, fw) through the batch-1 graph of its size bucket."""
+        fh, fw = xi.shape[-2], xi.shape[-1]
+        size = next((s for s in self.sizes if s >= max(fh, fw)), None)
+        if size is None or (1, size) not in self.graphs:
+            ph, pw = fh+(-fh) % 16, fw+(-fw) % 16
+            xp = torch.zeros((1, c, ph, pw), dtype=torch.float16, device=xi.device)
+            xp[0, :, :fh, :fw] = xi[0]
+            with torch.no_grad():
+                return self.model(xp.contiguous(memory_format=torch.channels_last))[0, :2, :fh, :fw].clone()
+        g, sx, sy = self.graphs[(1, size)]
+        sx.zero_()
+        sx[0, :, :fh, :fw].copy_(xi[0])
+        g.replay()
+        return sy[0, :2, :fh, :fw].clone()
+
     def _call(self, x, frames=None):
+        if frames is not None and getattr(self, 'tta', False):
+            # Test-time augmentation: frame and its transpose (a dihedral
+            # symmetry of the problem), logits averaged. Still per query.
+            q, c, h, w = x.shape
+            out = torch.zeros((q, 2, h, w), dtype=torch.float16, device=x.device)
+            for i in range(q):
+                fh, fw = int(frames[i][0]), int(frames[i][1])
+                xi = x[i:i+1, :, :fh, :fw]
+                a = self._single(xi, c).float()
+                bt = self._single(xi.transpose(-1, -2), c).float().transpose(-1, -2)
+                out[i, :, :fh, :fw] = ((a+bt)*.5).half()
+            return out
         """frames: optional (Q,2) per-query valid sizes. With frames, every
         query is computed alone in the batch-1 graph of ITS OWN size bucket,
         so its result is identical whatever else is in the call."""

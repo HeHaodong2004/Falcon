@@ -134,16 +134,24 @@ class LegalVoxelPredictor:
             return self.graph_cache[key]
         p = FastCompiledGraph(graph)
         p.future_base = None
-        if p.native_eligible:
-            try:
-                p.future_base = FastNativeBase(graph, p)
-            except (TypeError, ValueError, OverflowError):
-                p.future_base = None
+        p.future_base_ready = False
         p.unknown_grids = OrderedDict()
         self.graph_cache[key] = p
         while len(self.graph_cache) > self.cache_size:
             self.graph_cache.popitem(last=False)
         return p
+
+    @staticmethod
+    def _ensure_future_base(prepared, graph):
+        """Native hypothetical-graph base (built lazily so it overlaps GPU work)."""
+        if not prepared.future_base_ready:
+            if prepared.native_eligible:
+                try:
+                    prepared.future_base = FastNativeBase(graph, prepared)
+                except (TypeError, ValueError, OverflowError):
+                    prepared.future_base = None
+            prepared.future_base_ready = True
+        return prepared.future_base
 
     def _candidates(self, prepared, path):
         """Exact original candidate universe and order for one trajectory."""
@@ -187,7 +195,8 @@ class LegalVoxelPredictor:
             ctx = GroupContext(prepared.keys, prepared.values, ranges, origins, rotations, start, res, self.device, lo, hi, humans=humans,
                                splat=bool(self.config.get('splat', True)), sub=int(self.config.get('sub', 1)),
                                render=int(self.config.get('render', 96)),
-                               current_humans=current_humans(track_history) if self.config.get('human_occluders') else None)
+                               current_humans=current_humans(track_history) if self.config.get('human_occluders') else None,
+                               near=float(self.config.get('near', 0.)))
             self.map_cache[key] = ctx
             while len(self.map_cache) > 2:
                 self.map_cache.popitem(last=False)
@@ -236,6 +245,9 @@ class LegalVoxelPredictor:
             x = x[:, self.channels]
         features_at = time.perf_counter()
         logits = self.runner(x, frames=fr[:, 2:])
+        # CPU work that does not depend on predictions overlaps queued GPU work.
+        if materialize:
+            self._ensure_future_base(prepared, partial_graph)
         # Exact candidate universe (row-major == original argwhere order),
         # decoded on device; one pinned device->host transfer.
         q = len(paths)

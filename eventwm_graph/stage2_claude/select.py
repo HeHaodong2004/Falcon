@@ -21,11 +21,12 @@ RB, BB = 100, 20
 
 
 @torch.no_grad()
-def collect(checkpoint, device='cuda:0', roots=400, offset=0):
+def collect(checkpoint, device='cuda:0', roots=400, offset=0, tta=False):
     saved = torch.load(checkpoint, map_location='cpu')
     cidx = channel_index(saved['config']); cin = len(saved['config']['map_channels'])+len(saved['config']['query_channels'])
     model = build_model(cin, saved['config']); model.load_state_dict(saved['model'])
     runner = GraphRunner(model.to(device), device, batches=(1,), sizes=(240, 256, 272, 288, 304, 320, 352, 384), channels=cin)
+    runner.tta = tta
     _, val = split_roots()
     val = sorted(val, key=lambda r: r['root_id'])[offset:offset+roots]
     records = []
@@ -118,8 +119,21 @@ def freeze(checkpoint, best, dest):
     return dest
 
 
-def run(checkpoint, device='cuda:0', roots=400, out=None, freeze_to=None):
-    records = collect(checkpoint, device, roots)
+def cached_collect(checkpoint, device, roots, tta=False):
+    import hashlib, pickle
+    from eventwm_graph.stage2_repair.diagnose import sha
+    key = hashlib.sha256(('%s:%d:%s:%s' % (sha(checkpoint), roots, RB*1000+BB, 'tta' if tta else '')).encode()).hexdigest()[:16]
+    path = DEST/'selection'/('hist_%s.pkl' % key)
+    if path.exists():
+        return pickle.loads(path.read_bytes())
+    records = collect(checkpoint, device, roots, tta=tta)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(pickle.dumps(records))
+    return records
+
+
+def run(checkpoint, device='cuda:0', roots=400, out=None, freeze_to=None, tta=False):
+    records = cached_collect(checkpoint, device, roots, tta)
     grid = []
     for tr in range(20, 95, 2):
         for tb in (6, 8, 10, 12, 14):
@@ -131,6 +145,8 @@ def run(checkpoint, device='cuda:0', roots=400, out=None, freeze_to=None):
             grid.append(dict(rule='class', tau_free=float(tf), tau_blocked=float(tbb), hier=h['label_aware_delta_iou'],
                              pooled=p['label_aware_delta_iou'], rev=h['revelation_iou']))
     best = max(grid, key=lambda g: g['hier'])
+    print('BEST reveal rule', json.dumps(max((g for g in grid if g['rule'] == 'reveal'), key=lambda g: g['hier'])))
+    print('BEST class rule ', json.dumps(max((g for g in grid if g['rule'] == 'class'), key=lambda g: g['hier'])))
     print('BEST', json.dumps(best))
     for g in sorted(grid, key=lambda g: -g['hier'])[:8]:
         print(json.dumps(g))
@@ -152,4 +168,5 @@ if __name__ == '__main__':
     p.add_argument('--roots', type=int, default=400)
     p.add_argument('--out')
     p.add_argument('--freeze-to')
+    p.add_argument('--tta', action='store_true')
     run(**vars(p.parse_args()))

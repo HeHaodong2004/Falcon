@@ -42,3 +42,31 @@ for ex, packet, tracks in work[:12]:
 print('PASS exact domain (CPU reference), zero-horizon, no input mutation')
 print('batched vs single (CUDA graphs): max probability difference %.3g, differing hard states %d of %d' % (worst['single'], sdiff['single'], total))
 print('batched graphs vs eager (different canvas, numerics only): max probability difference %.3g, differing hard states %d of %d' % (worst['eager'], sdiff['eager'], total))
+
+# ---- edge cases: many queries, very long path (map rebuild + eager fallback), mixed horizons
+ex, packet, tracks = work[0]
+base = [np.asarray(p['trajectory'], np.float64) for p in ex['paths'][:6]]
+p0 = base[np.argmax([len(p) for p in base])]
+long = p0.copy()
+steps = 120
+ext = np.repeat(long[-1:], steps, 0)
+ext[:, 0] = long[-1, 0]+np.arange(1, steps+1)*.05
+ext[:, 1] = long[-1, 1]+np.arange(1, steps+1)*.12*np.cos(long[-1, 4]+np.pi/2)
+ext[:, 3] = long[-1, 3]+np.arange(1, steps+1)*.12*-np.sin(long[-1, 4]+np.pi/2)
+long = np.concatenate([long, ext])
+many = base+[b[:max(1, len(b)//2)] for b in base]+[long, base[0][:1]]
+g.clear_cache()
+res_many = g.predict_segments(partial_graph=ex['graph'], trajectories=many, range_observations=packet, track_history=tracks)
+assert len(res_many) == len(many)
+for p, r in zip(many, res_many):
+    single = g.predict_segments(partial_graph=ex['graph'], trajectories=[p], range_observations=packet, track_history=tracks)[0]
+    np.testing.assert_array_equal(single['candidate_cells'], r['candidate_cells'])
+    np.testing.assert_array_equal(single['states'], r['states'])
+    res = float(ex['graph']['resolution']); lo, hi = crop_box(p, res)
+    known = {tuple(c['cell']) for c in ex['graph']['cells']}
+    grid = np.array([(x, z) for x in range(lo[0], hi[0]) for z in range(lo[1], hi[1]) if (x, z) not in known], np.int32)
+    ref = grid[candidate_mask(grid, np.unique(p[:, [1, 3]].astype(np.float32), axis=0), res)]
+    np.testing.assert_array_equal(ref, r['candidate_cells'])
+assert not res_many[-1]['states'].any()
+print('PASS edge cases: %d queries incl. a %.1f m path (frame %d cells) and a zero-horizon query' % (
+    len(many), float(np.linalg.norm(long[-1, [1, 3]]-long[0, [1, 3]])), int(max(crop_box(long, float(ex['graph']['resolution']))[1]-crop_box(long, float(ex['graph']['resolution']))[0]))))
