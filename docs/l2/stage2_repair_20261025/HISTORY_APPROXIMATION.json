@@ -1,0 +1,666 @@
+{
+  "role": "Executed bounded real-data history approximation diagnostic. Not target achievement; no future or privileged runtime inputs.",
+  "checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/training/range_online4096/selected_epoch02_argmax.pt",
+  "checkpoint_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605",
+  "retention": {
+    "role": "Actual666pilot-window input-history approximation frequency; not an accuracy claim. Same motion-only keyframe rule as current PlanarRangeMesh.",
+    "windows": 666,
+    "available_mean": 23.755255255255257,
+    "selected_mean": 22.38888888888889,
+    "frames_removed_fraction": 0.05751848808545601,
+    "windows_with_any_removed": 216,
+    "max_available": 104,
+    "max_selected": 92
+  },
+  "pilot": {
+    "motion_pruned": {
+      "roots": 31,
+      "windows": 666,
+      "hierarchical": {
+        "unknown": {
+          "precision": 0.9965277933455124,
+          "recall": 0.998535694766024,
+          "f1": 0.9975307336447867
+        },
+        "free": {
+          "precision": 0.5476592438708764,
+          "recall": 0.6395446743299164,
+          "f1": 0.5900461536481038
+        },
+        "blocked": {
+          "precision": 0.7901878570432378,
+          "recall": 0.4599586047407268,
+          "f1": 0.5814577976568002
+        },
+        "label_aware_delta_iou": 0.4127557281695153,
+        "revelation_iou": 0.4618505450892763,
+        "missed_revelations": 125.36862987387747,
+        "incorrect_free_blocked": 11.502971482789233,
+        "false_revelations": 52.76436922664193,
+        "terminal_label_agreement_on_true_revelations": 0.5080912298054786,
+        "revelation_precision": 0.7434159351551309,
+        "revelation_recall": 0.5494322567211829,
+        "revelation_f1": 0.6318710850992921,
+        "false_revelation_rate": 0.0014643052339759425,
+        "wrong_free_blocked_rate": 0.04134102691570427,
+        "false_free_unknown_count": 32.503780614474394,
+        "false_free_blocked_count": 6.8894745455816775,
+        "false_free_unknown_fraction": 0.37323101735230074,
+        "false_free_blocked_fraction": 0.0791097387768229,
+        "false_free_on_actual_blocked_rate": 0.03382657229086653
+      },
+      "pooled": {
+        "unknown": {
+          "precision": 0.9955825532171358,
+          "recall": 0.9981191649863075,
+          "f1": 0.9968492454201943
+        },
+        "free": {
+          "precision": 0.5687044004801014,
+          "recall": 0.6370668036377919,
+          "f1": 0.6009476646834586
+        },
+        "blocked": {
+          "precision": 0.7386954951893465,
+          "recall": 0.4264946626853958,
+          "f1": 0.5407695626654435
+        },
+        "label_aware_delta_iou": 0.39083105380616906,
+        "revelation_iou": 0.4495264343679594,
+        "missed_revelations": 105985.0,
+        "incorrect_free_blocked": 11576.0,
+        "false_revelations": 45011.0,
+        "terminal_label_agreement_on_true_revelations": 0.4872847168009211,
+        "revelation_precision": 0.7325819733003797,
+        "revelation_recall": 0.5377707803620726,
+        "revelation_f1": 0.6202390293957868,
+        "false_revelation_rate": 0.0018808350136924755,
+        "wrong_free_blocked_rate": 0.050486063561151547,
+        "false_free_unknown_count": 25928.0,
+        "false_free_blocked_count": 6053.0,
+        "false_free_unknown_fraction": 0.349664873029359,
+        "false_free_blocked_fraction": 0.08163072649053957,
+        "false_free_on_actual_blocked_rate": 0.03711288374402963
+      }
+    },
+    "all_frames": {
+      "roots": 31,
+      "windows": 666,
+      "hierarchical": {
+        "unknown": {
+          "precision": 0.9965367773193902,
+          "recall": 0.9985378008421124,
+          "f1": 0.9975362855856482
+        },
+        "free": {
+          "precision": 0.5481802155567824,
+          "recall": 0.6394431680135695,
+          "f1": 0.590305139705471
+        },
+        "blocked": {
+          "precision": 0.7906745156065856,
+          "recall": 0.4615848119506888,
+          "f1": 0.5828878085697876
+        },
+        "label_aware_delta_iou": 0.41379037541086117,
+        "revelation_iou": 0.4629392551392253,
+        "missed_revelations": 125.04338801086435,
+        "incorrect_free_blocked": 11.50457280266501,
+        "false_revelations": 52.68847946420443,
+        "terminal_label_agreement_on_true_revelations": 0.5092543755565458,
+        "revelation_precision": 0.7440952729591878,
+        "revelation_recall": 0.5506011575250366,
+        "revelation_f1": 0.6328892378995848,
+        "false_revelation_rate": 0.0014621991578876432,
+        "wrong_free_blocked_rate": 0.04134678196849076,
+        "false_free_unknown_count": 32.414533728515316,
+        "false_free_blocked_count": 6.88971716980528,
+        "false_free_unknown_fraction": 0.3726194319269159,
+        "false_free_blocked_fraction": 0.07920035251630163,
+        "false_free_on_actual_blocked_rate": 0.033827763549471944
+      },
+      "pooled": {
+        "unknown": {
+          "precision": 0.9955911943425642,
+          "recall": 0.9981214214367472,
+          "f1": 0.9968547023299834
+        },
+        "free": {
+          "precision": 0.5691857011717696,
+          "recall": 0.6369610538719521,
+          "f1": 0.6011691737363656
+        },
+        "blocked": {
+          "precision": 0.7391705069124423,
+          "recall": 0.42780676529917777,
+          "f1": 0.5419508178894878
+        },
+        "label_aware_delta_iou": 0.39162774424910346,
+        "revelation_iou": 0.45037338467372595,
+        "missed_revelations": 105777.0,
+        "incorrect_free_blocked": 11577.0,
+        "false_revelations": 44957.0,
+        "terminal_label_agreement_on_true_revelations": 0.4881874997274206,
+        "revelation_precision": 0.7331469511073122,
+        "revelation_recall": 0.5386779245587485,
+        "revelation_f1": 0.6210447453502346,
+        "false_revelation_rate": 0.0018785785632528186,
+        "wrong_free_blocked_rate": 0.050490424831327874,
+        "false_free_unknown_count": 25860.0,
+        "false_free_blocked_count": 6053.0,
+        "false_free_unknown_fraction": 0.34910092337599224,
+        "false_free_blocked_fraction": 0.08171337545223824,
+        "false_free_on_actual_blocked_rate": 0.03711288374402963
+      }
+    }
+  },
+  "complete_cost": {
+    "motion_pruned": {
+      "local_artifact": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/benchmark_epoch02_lifetime_fast-columns.json",
+      "scope": "Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.",
+      "excluded": "Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.",
+      "startup": [
+        {
+          "model": "baseline",
+          "constructor_ms": 1119.0758210141212,
+          "first_complete_K6_ms": 940.4199060518295
+        },
+        {
+          "model": "range",
+          "constructor_ms": 164.52268906868994,
+          "first_complete_K6_ms": 1509.2659639194608
+        }
+      ],
+      "K1_4_6": [
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "cold",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 17.025939538143575,
+          "p95_ms": 24.90025635343045,
+          "p99_ms": 27.37057466292754,
+          "max_ms": 29.316376894712448,
+          "candidate_cells_min": 34507,
+          "candidate_cells_max": 47012
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "cold",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 31.88326198142022,
+          "p95_ms": 37.56687368731945,
+          "p99_ms": 39.01376452529803,
+          "max_ms": 39.045066107064486,
+          "candidate_cells_min": 137168,
+          "candidate_cells_max": 164904
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "cold",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 39.17002212256193,
+          "p95_ms": 47.57275617448613,
+          "p99_ms": 49.955964724067606,
+          "max_ms": 51.846652990207076,
+          "candidate_cells_min": 203542,
+          "candidate_cells_max": 253792
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "map_warm_new_queries",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 9.221644490025938,
+          "p95_ms": 14.531049295328557,
+          "p99_ms": 19.0362872555852,
+          "max_ms": 22.776206955313683,
+          "candidate_cells_min": 34507,
+          "candidate_cells_max": 47012
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "map_warm_new_queries",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 21.534238010644913,
+          "p95_ms": 29.988821898587045,
+          "p99_ms": 31.407836733851582,
+          "max_ms": 31.63988795131445,
+          "candidate_cells_min": 137168,
+          "candidate_cells_max": 164904
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "map_warm_new_queries",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 29.41079984884709,
+          "p95_ms": 39.45952027570456,
+          "p99_ms": 40.25851902086288,
+          "max_ms": 40.56482412852347,
+          "candidate_cells_min": 203542,
+          "candidate_cells_max": 253792
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "warm",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 8.132573566399515,
+          "p95_ms": 13.607324531767517,
+          "p99_ms": 16.630823775194592,
+          "max_ms": 18.92853109166026,
+          "candidate_cells_min": 34507,
+          "candidate_cells_max": 47012
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "warm",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 20.08345047943294,
+          "p95_ms": 28.892777743749317,
+          "p99_ms": 29.973629540763795,
+          "max_ms": 30.01235192641616,
+          "candidate_cells_min": 137168,
+          "candidate_cells_max": 164904
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "warm",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 28.355854912661016,
+          "p95_ms": 37.86709570558742,
+          "p99_ms": 38.86374515015632,
+          "max_ms": 38.96758519113064,
+          "candidate_cells_min": 203542,
+          "candidate_cells_max": 253792
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "cold",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 15.362704521976411,
+          "p95_ms": 18.44159208703786,
+          "p99_ms": 18.7861913559027,
+          "max_ms": 18.84422590956092,
+          "candidate_cells_min": 35386,
+          "candidate_cells_max": 45774
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "cold",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 24.803526466712356,
+          "p95_ms": 29.029149876441807,
+          "p99_ms": 30.19083875231445,
+          "max_ms": 30.599641846492887,
+          "candidate_cells_min": 141860,
+          "candidate_cells_max": 157428
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "cold",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 31.039213994517922,
+          "p95_ms": 36.06200902722776,
+          "p99_ms": 37.17704477254301,
+          "max_ms": 37.24787710234523,
+          "candidate_cells_min": 212790,
+          "candidate_cells_max": 235041
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "map_warm_new_queries",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 8.113470976240933,
+          "p95_ms": 11.912594281602649,
+          "p99_ms": 12.553874261211604,
+          "max_ms": 12.554701883345842,
+          "candidate_cells_min": 35386,
+          "candidate_cells_max": 45774
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "map_warm_new_queries",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 18.704759888350964,
+          "p95_ms": 22.34455121215433,
+          "p99_ms": 25.89674964547158,
+          "max_ms": 28.733454877510667,
+          "candidate_cells_min": 141860,
+          "candidate_cells_max": 157428
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "map_warm_new_queries",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 25.08953388314694,
+          "p95_ms": 30.218023259658363,
+          "p99_ms": 31.559499425347894,
+          "max_ms": 31.86796698719263,
+          "candidate_cells_min": 212790,
+          "candidate_cells_max": 235041
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "warm",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 7.099622045643628,
+          "p95_ms": 10.625212464947253,
+          "p99_ms": 11.315771930385381,
+          "max_ms": 11.693846201524138,
+          "candidate_cells_min": 35386,
+          "candidate_cells_max": 45774
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "warm",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 17.362951417453587,
+          "p95_ms": 20.806475088465955,
+          "p99_ms": 21.64209289010614,
+          "max_ms": 21.8654191121459,
+          "candidate_cells_min": 141860,
+          "candidate_cells_max": 157428
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "warm",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 23.47261505201459,
+          "p95_ms": 28.591108252294358,
+          "p99_ms": 29.510882722679526,
+          "max_ms": 29.590732883661985,
+          "candidate_cells_min": 212790,
+          "candidate_cells_max": 235041
+        }
+      ]
+    },
+    "all_frames": {
+      "local_artifact": "/home/haodong/workspace/projects/eventwm-falcon-stage2-repair-20261025/output/stage2_repair_20261025/benchmark_epoch02_lifetime_full-history.json",
+      "scope": "Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.",
+      "excluded": "Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.",
+      "startup": [
+        {
+          "model": "baseline",
+          "constructor_ms": 3.4788569901138544,
+          "first_complete_K6_ms": 67.22412002272904
+        },
+        {
+          "model": "range",
+          "constructor_ms": 87.20236015506089,
+          "first_complete_K6_ms": 37.85279905423522
+        }
+      ],
+      "K1_4_6": [
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "cold",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 17.052923096343875,
+          "p95_ms": 25.7587909582071,
+          "p99_ms": 26.689772417303175,
+          "max_ms": 27.09913393482566,
+          "candidate_cells_min": 34507,
+          "candidate_cells_max": 47012
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "cold",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 32.09678397979587,
+          "p95_ms": 38.41497510438785,
+          "p99_ms": 39.19032588368282,
+          "max_ms": 39.23776210285723,
+          "candidate_cells_min": 137168,
+          "candidate_cells_max": 164904
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "cold",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 38.696362054906785,
+          "p95_ms": 47.41068029543385,
+          "p99_ms": 48.41382225975394,
+          "max_ms": 48.51175984367728,
+          "candidate_cells_min": 203542,
+          "candidate_cells_max": 253792
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "map_warm_new_queries",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 9.33596002869308,
+          "p95_ms": 15.196485025808215,
+          "p99_ms": 15.713627825025469,
+          "max_ms": 16.037305118516088,
+          "candidate_cells_min": 34507,
+          "candidate_cells_max": 47012
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "map_warm_new_queries",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 21.558316075243056,
+          "p95_ms": 30.277609825134274,
+          "p99_ms": 31.63792747305706,
+          "max_ms": 31.85002296231687,
+          "candidate_cells_min": 137168,
+          "candidate_cells_max": 164904
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "map_warm_new_queries",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 29.27660394925624,
+          "p95_ms": 39.73565746564418,
+          "p99_ms": 40.35620415583253,
+          "max_ms": 40.36266799084842,
+          "candidate_cells_min": 203542,
+          "candidate_cells_max": 253792
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "warm",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 7.982876850292087,
+          "p95_ms": 13.492751342710108,
+          "p99_ms": 13.81755358306691,
+          "max_ms": 14.04516608454287,
+          "candidate_cells_min": 34507,
+          "candidate_cells_max": 47012
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "warm",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 20.246785483323038,
+          "p95_ms": 28.942076372914013,
+          "p99_ms": 30.110901992302388,
+          "max_ms": 30.337557196617126,
+          "candidate_cells_min": 137168,
+          "candidate_cells_max": 164904
+        },
+        {
+          "model": "range",
+          "cohort": "dense",
+          "cache": "warm",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 27.94538496527821,
+          "p95_ms": 38.43582060653716,
+          "p99_ms": 38.90535928774625,
+          "max_ms": 39.02953281067312,
+          "candidate_cells_min": 203542,
+          "candidate_cells_max": 253792
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "cold",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 15.915932483039796,
+          "p95_ms": 18.445468065328896,
+          "p99_ms": 19.728960255160928,
+          "max_ms": 20.24697489105165,
+          "candidate_cells_min": 35386,
+          "candidate_cells_max": 45774
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "cold",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 25.12015646789223,
+          "p95_ms": 29.032725340221077,
+          "p99_ms": 29.71666513942182,
+          "max_ms": 30.126882949844003,
+          "candidate_cells_min": 141860,
+          "candidate_cells_max": 157428
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "cold",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 31.46459860727191,
+          "p95_ms": 36.55714630149305,
+          "p99_ms": 37.48101289616898,
+          "max_ms": 37.75323601439595,
+          "candidate_cells_min": 212790,
+          "candidate_cells_max": 235041
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "map_warm_new_queries",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 8.23034136556089,
+          "p95_ms": 12.050039775203912,
+          "p99_ms": 12.926522893831134,
+          "max_ms": 13.038539793342352,
+          "candidate_cells_min": 35386,
+          "candidate_cells_max": 45774
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "map_warm_new_queries",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 18.83675903081894,
+          "p95_ms": 22.29371916037053,
+          "p99_ms": 22.98583414638415,
+          "max_ms": 23.31704506650567,
+          "candidate_cells_min": 141860,
+          "candidate_cells_max": 157428
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "map_warm_new_queries",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 25.34159750211984,
+          "p95_ms": 30.428384582046416,
+          "p99_ms": 31.280597031582147,
+          "max_ms": 31.28282120451331,
+          "candidate_cells_min": 212790,
+          "candidate_cells_max": 235041
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "warm",
+          "k": 1,
+          "calls": 48,
+          "p50_ms": 7.135800085961819,
+          "p95_ms": 10.674681153614072,
+          "p99_ms": 11.38537980383262,
+          "max_ms": 11.408978141844273,
+          "candidate_cells_min": 35386,
+          "candidate_cells_max": 45774
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "warm",
+          "k": 4,
+          "calls": 48,
+          "p50_ms": 17.889845999889076,
+          "p95_ms": 21.467687911354005,
+          "p99_ms": 22.127163149416447,
+          "max_ms": 22.28666190057993,
+          "candidate_cells_min": 141860,
+          "candidate_cells_max": 157428
+        },
+        {
+          "model": "range",
+          "cohort": "representative",
+          "cache": "warm",
+          "k": 6,
+          "calls": 48,
+          "p50_ms": 24.07601405866444,
+          "p95_ms": 28.8833845872432,
+          "p99_ms": 29.72729745088145,
+          "max_ms": 29.84949783422053,
+          "candidate_cells_min": 212790,
+          "candidate_cells_max": 235041
+        }
+      ]
+    }
+  },
+  "interpretation": "Retaining all legal past frames produces a small matched pilot gain. It does not explain the remaining gap to0.50. Both variants retain every original candidate cell and normal hypothetical graphs. Extra intermediate-graph costs pending."
+}

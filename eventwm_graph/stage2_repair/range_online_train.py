@@ -56,7 +56,7 @@ def make_batch(items,builder,device,ray_residual=False):
     return batch,ledger
 
 
-def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False,initial_visibility=False):
+def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False,initial_visibility=False,typed_micro_dice=False):
     if stream_preparation and not wait:raise ValueError('streamed preparation requires explicit --wait')
     if ray_residual and initial_visibility:raise ValueError('bounded candidates are tested separately')
     torch.set_num_threads(1);torch.manual_seed(5511);torch.backends.cuda.matmul.allow_tf32=False
@@ -99,6 +99,10 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     cfg['smoke_groups']=int(smoke_groups)
     cfg['ray_residual']=bool(ray_residual)
     cfg['initial_visibility']=bool(initial_visibility)
+    cfg['typed_micro_dice']=bool(typed_micro_dice)
+    if typed_micro_dice:
+        cfg['objective']='Original pos8 revelation BCE +8R conditional BCE +.1 twice typed MICRO Dice +.25 certificate-class auxiliary. Same weighted cells; no inference change.'
+        cfg['sources']['increment_loss.py']=sha(Path(__file__).with_name('increment_loss.py'))
     if initial_visibility:
         cfg['schema']='legal_range_initial_visibility_1';cfg['initial_code_manifest']=str((OUT/'range_initial_visibility_dev_v1/manifest.json').resolve())
         for n in ['initial_model.py','initial_visibility.py']:cfg['sources'][n]=sha(Path(__file__).with_name(n))
@@ -118,6 +122,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
         if bool(saved['config'].get('cardinal_augmentation'))!=bool(augment_cardinal):raise ValueError('resume augmentation changed')
         if bool(saved['config'].get('ray_residual'))!=bool(ray_residual):raise ValueError('resume model type changed')
         if bool(saved['config'].get('initial_visibility'))!=bool(initial_visibility):raise ValueError('resume feature type changed')
+        if bool(saved['config'].get('typed_micro_dice'))!=bool(typed_micro_dice):raise ValueError('resume overlap objective changed')
         optim.load_state_dict(saved['optimizer']);scaler.load_state_dict(saved['scaler']);updates=int(saved['updates']);first_epoch=int(saved['epoch'])+1
         logs=[r for r in read(dest/'learning.json')if r['epoch']<first_epoch];elapsed_base=float(logs[-1]['seconds'])if logs else 0.
         cfg.update(resume_checkpoint=str(warm.resolve()),resume_sha256=sha(warm),resume_epoch=int(saved['epoch']),original_warm=saved['config']['warm'],resume_note='Exact completed-epoch optimizer/scaler/update state. Same all-window snapshot and deterministic epoch sampling. CUDA code lifetime repair; original configs/checkpoints retained.')
@@ -136,6 +141,9 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
             ce=F.binary_cross_entropy_with_logits(rl.float(),r,pos_weight=rl.new_tensor(8.),reduction='none')+8*r*F.binary_cross_entropy_with_logits(bl.float(),(y==2).float(),reduction='none')
             main=(ce*w).sum()*m['groups']/(m['roots']*len(items));pr=(rl.float()-np.log(8.)).sigmoid();pb=bl.float().sigmoid();dice=0.
             for cls,prob in [(1,pr*(1-pb)),(2,pr*pb)]:truth=(y==cls).float();dice+=1-(2*(w*prob*truth).sum()+1.e-7)/((w*(prob+truth)).sum()+1.e-7)
+            if typed_micro_dice:
+                from .increment_loss import micro_dice
+                dice=micro_dice(pr,pb,y,w)
             ac=F.binary_cross_entropy_with_logits(auxlogit.float(),batch['aux'],reduction='none');per=(ac*batch['mask']).sum((1,2))/batch['mask'].sum((1,2)).clamp_min(1);aux=(per*batch['auxweight']).mean()*m['groups']/m['roots'];loss=main+.1*dice+.25*aux
             if not torch.isfinite(loss):raise ValueError('nonfinite online increment loss')
             optim.zero_grad(set_to_none=True);scaler.scale(loss).backward();scaler.unscale_(optim);gradient=torch.nn.utils.clip_grad_norm_(model.parameters(),5.);encoder_gradient=float(model.e0.net[0].weight.grad.norm());scaler.step(optim);scaler.update()
@@ -154,4 +162,4 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');p.add_argument('--initial-visibility',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');p.add_argument('--initial-visibility',action='store_true');p.add_argument('--typed-micro-dice',action='store_true');run(**vars(p.parse_args()))

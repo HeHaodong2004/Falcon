@@ -47,14 +47,25 @@ extern "C" __global__ void planar_tiles(const float* ranges,const double* origin
 '''
 
 
+def select_keyframes(origins,rotations,distance=.07,rotation=.07):
+    """Motion approximation only; zero thresholds retain all legal observations.
+
+    Identical camera poses can contain different later measurements. This rule
+    does not establish that the skipped frames contain no new information.
+    """
+    if distance<0 or rotation<0:raise ValueError('keyframe thresholds must be nonnegative')
+    selected=[];last=None
+    for i in range(len(origins)):
+        if last is not None and i!=len(origins)-1 and np.linalg.norm(origins[i]-origins[last])<distance and np.max(abs(rotations[i]-rotations[last]))<rotation:continue
+        selected.append(i);last=i
+    return selected
+
+
 class PlanarRangeMesh(GpuObservedRangeMesh):
-    def __init__(self,ranges,origins,rotations,timestamps,now,resolution,device='cuda:0',stride=1,tracks=None,epsilon=.00005,bvh='balanced'):
+    def __init__(self,ranges,origins,rotations,timestamps,now,resolution,device='cuda:0',stride=1,tracks=None,epsilon=.00005,bvh='balanced',keyframe_distance=.07,keyframe_rotation=.07):
         tick=time.perf_counter();validate(ranges,origins,rotations,timestamps,now)
         if stride!=1:raise ValueError('planar merging preserves full original range pixels')
-        self.keyframes=[];last=None
-        for i in range(len(ranges)):
-            if last is not None and i!=len(ranges)-1 and np.linalg.norm(origins[i]-origins[last])<.07 and np.max(abs(rotations[i]-rotations[last]))<.07:continue
-            self.keyframes.append(i);last=i
+        self.keyframes=select_keyframes(origins,rotations,keyframe_distance,keyframe_rotation)
         self.latest_sensor_time=float(timestamps[-1]);self.planes=[];device=torch.device(device);mod=CudaModule(SOURCE,device)
         def tensor(x,dtype):return torch.from_numpy(np.ascontiguousarray(x,dtype=dtype)).to(device)
         active=[];offsets=[0]

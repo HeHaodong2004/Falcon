@@ -804,5 +804,16 @@
     "regression": "Real-source loop; source/device/thread and mutable-wrapper isolation;5complete real predictions, mixed/single/batch/fallback and16real training groups. PostfixALL666publicAPI reproducesexact0.4127557281695153/0.4618505450892763 andidenticalconfusion.",
     "real_impact": "Auxiliary training failed inepoch2 at54400/62338groups; primaryepoch1 full evaluation failed after1552/2110Roots, bothcuModuleGetFunction CUDAstatus2. Full evaluator resumed with1552receipts preserved and unchanged evaluator/checkpoint/domain. Auxiliary epoch1 checkpoint restored with optimizer/scaler/head;8group smoke passes. Main fit remains running; will migrate at next complete epoch.",
     "accuracy_attribution": "This is a confirmed stability/resource defect in the new range path. It does not explain the original0.217 plateau or establish an IoU gain."
-  }
+  },
+  "latest_update_utc": "2026-10-26 06:36 UTC",
+  "latest_completed_primary_fit": "4096Roots4epochs; E2best pilot0.4127557282. E4declined0.3949835962. Expanded16384Root2epoch fit running, all385430windows470Scenes, not full105838Roottraining.",
+  "latest_history_diagnostic": {
+    "pruned_pilot": 0.4127557281695153,
+    "all_frames_pilot": 0.41379037541086117,
+    "dense_K6_cold_P95_ms_pruned": 47.57275617448613,
+    "dense_K6_cold_P95_ms_all_frames": 47.41068029543385,
+    "quality_target_met": false,
+    "detail": "HISTORY_APPROXIMATION.json; further intermediate-graph cost diagnostic pending."
+  },
+  "bounded_initial_visibility_result": "4epochs256Roots complete; best0.4120872861 belowwarmE2; notselected."
 }
