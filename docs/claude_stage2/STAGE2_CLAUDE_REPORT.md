@@ -227,7 +227,9 @@ physical GPU1, which would have made the run take ~9 h and slowed the other job.
 * Window-duration-dependent class thresholds (4 duration buckets, coordinate ascent; `bucket_select.py`):
   no held-out gain in two-fold cross-validation over 400 validation Roots (0.4667 vs 0.4666 global;
   0.4604 vs 0.4609) — one global operating point is kept.
-* Ensembling with a weaker member reduces accuracy.
+* Ensembling with a weaker member reduces accuracy; within the warm-restart lineage, neither the logit
+  ensemble of v7 + v7r (20 validation Roots: 0.5106 vs v7r 0.5109) nor the weight average of v7 and v7r
+  (160 Roots: 0.4506 vs v7r 0.4569) beats the newest member.
 
 ## 10. Limitations
 
