@@ -5,6 +5,53 @@ evaluation and benchmark receipts (section 1).
 
 ## 1. Results
 
+### 1.0 Current best: frozen model `final/v11.pt` (checkpoint `training/v11_ext/final.pt` + frozen operating point), 256 px sensing
+
+Lineage: v7 (2 epochs) -> v7_restart_iou (1-epoch warm restart + soft IoU loss) -> v11_ext (1-epoch warm
+restart with three new legal input channels, zero-initialized coarse-level capacity, EMA, +2,914 TRAIN
+Roots). Operating point selected on 400 scene-disjoint TRAIN-validation Roots (`select.py`): class rule,
+FREE if r(1-b) > 0.475, BLOCKED if rb > 0.575 (validation 0.4750; v7r 0.4711; v7 0.4628). Sensor
+resolution selected on the 199 TRAIN-validation Roots (22 scenes) that have both packet resolutions
+(`sensor_select.py`): 256 px 0.4621 vs 128 px 0.4597. ONE original full-development evaluation
+(`evaluate.py`, `--sensor-directory full_range_branches_256`, original assertions, `summarize()`):
+
+| Model | sensing | full-dev label-aware IoU | revelation IoU | pooled IoU | bootstrap 95 % |
+| --- | --- | ---: | ---: | ---: | --- |
+| graph-only baseline (original receipts) | — | 0.2177 | 0.2870 | 0.2240 | |
+| previous best A (handoff) | 128 px | 0.4171 | 0.4667 | 0.3992 | |
+| v7 (section 1.1) | 128 px | 0.4563 | 0.4903 | 0.4423 | [0.4438, 0.4687] |
+| **v11 (this section)** | 256 px | **0.4688** | **0.5026** | **0.4552** | [0.4557, 0.4815] |
+
+| metric | graph-only baseline | v11 |
+| --- | ---: | ---: |
+| hierarchical label_aware_delta_iou | 0.217733 | 0.468801 |
+| hierarchical revelation_iou | 0.286985 | 0.502619 |
+| hierarchical revelation_precision | 0.407199 | 0.688567 |
+| hierarchical revelation_recall | 0.492926 | 0.650496 |
+| hierarchical free precision / recall | 0.3665 / 0.4197 | 0.6043 / 0.6546 |
+| hierarchical blocked precision / recall | 0.3137 / 0.3868 | 0.6790 / 0.6090 |
+| pooled label_aware_delta_iou | 0.223950 | 0.455169 |
+
+Roots 2110, scenes 108, windows 47128; zero-new windows {"windows": 2561, "candidate_exact_empty": 1687, "baseline_exact_empty": 736}; out-of-domain positives 0; paired delta vs the graph-only baseline [0.239, 0.2631].
+
+Pooled confusion (rows true U/F/B, cols predicted): [[1703774272, 1512853, 2469478], [1501076, 2918772, 132025], [3622569, 384696, 5552023]]
+
+| stratum | windows | v7 (128 px) | v11 (256 px) |
+| --- | ---: | ---: | ---: |
+| duration:<=0.5 | 30397 | 0.4805 | 0.4917 |
+| duration:0.5-1 | 9894 | 0.4467 | 0.4586 |
+| duration:1-2 | 5793 | 0.4126 | 0.4259 |
+| duration:>2 | 1044 | 0.4192 | 0.4372 |
+| human:present | 40140 | 0.4390 | 0.4520 |
+| human:zero | 6988 | 0.4608 | 0.4726 |
+| motion:mixed | 23987 | 0.4742 | 0.4888 |
+| motion:rotation | 20534 | 0.3862 | 0.3967 |
+| motion:translation | 2607 | 0.5200 | 0.5396 |
+| new_cells:1-99 | 18807 | 0.4537 | 0.4539 |
+| new_cells:>=100 | 25760 | 0.4418 | 0.4554 |
+
+The required accuracy (> 0.50) is **not** reached; see sections 9-10.
+
 ### 1.1 Frozen model `final/v7.pt` (checkpoint `training/past_v7/final.pt` + frozen operating point)
 
 Operating point selected on 400 scene-disjoint TRAIN-validation Roots (`select.py`): class rule,
