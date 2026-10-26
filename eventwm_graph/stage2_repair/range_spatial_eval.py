@@ -29,7 +29,15 @@ def full_training_groups():
 
 
 def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prepared=None):
-    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');model=SpatialEvidenceNet().to(device).eval();model.load_state_dict(saved['model']);manifest,groups=_prepared if _prepared is not None else full_training_groups()if full_training else load_groups('train'if training else'dev',None if training else saved.get('config',{}).get('dev_feature_manifest'));roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
+    torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;tick=time.perf_counter();saved=torch.load(checkpoint,map_location='cpu');ray_residual=saved['schema']=='legal_range_ray_residual_1'
+    if ray_residual:
+        from .ray_residual_model import RayResidualEvidenceNet
+        model=RayResidualEvidenceNet().to(device).eval()
+    else:model=SpatialEvidenceNet().to(device).eval()
+    model.load_state_dict(saved['model']);manifest,groups=_prepared if _prepared is not None else full_training_groups()if full_training else load_groups('train'if training else'dev',None if training else saved.get('config',{}).get('dev_feature_manifest'));roots=defaultdict(list);root_scene={};pooled=np.zeros((14,3,3),np.int64);count=0
+    if ray_residual:
+        from .ray_residual_groups import attach
+        attach(groups,training=training or full_training)
     def tensor(x,dtype):return torch.from_numpy(np.ascontiguousarray(x,dtype=dtype)).to(device)
     for g in groups:
         probability=[]
@@ -38,7 +46,7 @@ def evaluate(checkpoint,device='cuda:1',training=False,full_training=False,_prep
         with torch.inference_mode(),torch.cuda.amp.autocast():
             encoded=model.encode(tensor(g['maps'][None],np.float32))
             for begin in range(0,len(g['y']),65536):
-                sl=slice(begin,begin+65536);x=tensor(g['x'][sl],np.float32);extra=tensor(g['extra'][sl],np.float32);indices=tensor(g['indices'][sl],np.int64);ids=torch.zeros(len(x),dtype=torch.long,device=device);p,_=model.probabilities(x,extra,indices,ids,encoded);probability.append(p.float().cpu().numpy())
+                sl=slice(begin,begin+65536);x=tensor(g['x'][sl],np.float32);extra=tensor(g['extra'][sl],np.float32);indices=tensor(g['indices'][sl],np.int64);ids=torch.zeros(len(x),dtype=torch.long,device=device);p,_=model.probabilities(x,extra,indices,ids,encoded,*([tensor(g['ray_origins'][sl],np.float32)]if ray_residual else[]));probability.append(p.float().cpu().numpy())
         p=np.concatenate(probability)
         for e in g['segments']:
             sl=slice(e['start'],e['end']);cm,sc,ee=score(p[sl],g['y'][sl]);roots[g['root_id']].append((cm,sc,ee,not bool(np.any(g['y'][sl]))));pooled+=cm;count+=1

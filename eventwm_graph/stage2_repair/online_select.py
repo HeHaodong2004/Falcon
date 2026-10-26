@@ -12,8 +12,9 @@ from .range_spatial_eval import evaluate
 from .range_spatial_train import load_groups
 
 
-def run(names,epochs=4,device='cuda:1',watch=False):
-    prepared=load_groups('dev',OUT/'range_evidence_dev_v2/manifest.json');results={n:[]for n in names};done=set();tick=time.perf_counter();destination=OUT/'online_selections.json'
+def run(names,epochs=4,device='cuda:1',watch=False,output_name='online_selections'):
+    if not output_name or Path(output_name).name!=output_name:raise ValueError('selection output must be a simple filename stem')
+    prepared=load_groups('dev',OUT/'range_evidence_dev_v2/manifest.json');results={n:[]for n in names};done=set();tick=time.perf_counter();destination=OUT/(output_name+'.json')
     while len(done)<len(names)*epochs:
         progress=False
         for name in names:
@@ -42,4 +43,4 @@ def run(names,epochs=4,device='cuda:1',watch=False):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--names',nargs='+',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:1');p.add_argument('--watch',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--names',nargs='+',required=True);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:1');p.add_argument('--watch',action='store_true');p.add_argument('--output-name',default='online_selections');run(**vars(p.parse_args()))

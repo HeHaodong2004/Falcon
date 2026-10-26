@@ -10,7 +10,7 @@ from .device_range_features import extract as range_features
 
 class DevicePipelinePredictor(OptixTriangleSpatialPredictor):
     parallel_features=False
-    def _probability_tiles(self,x,extra,indices,encoded,baseline):
+    def _probability_tiles(self,x,extra,indices,encoded,baseline,**kwargs):
         values=[];n=len(x)
         with torch.cuda.amp.autocast():
             for begin in range(0,n,self.tile_size):
@@ -46,7 +46,7 @@ class DevicePipelinePredictor(OptixTriangleSpatialPredictor):
             else:
                 x,baseline,fallbacks=point_features(self.cuda,prepared,contexts,batch);encoded,low=self._encoded_map([(None,None,c.path)for c in contexts]);extra=range_features(self,prepared,contexts,batch)
             features_at=time.perf_counter();indices=batch['keys'].long()-torch.as_tensor(low,device=self.device)
-            flat=self._probability_tiles(x,extra,indices,encoded,baseline).cpu().numpy();keys=batch['keys'].cpu().numpy();details=[];returned=[]
+            flat=self._probability_tiles(x,extra,indices,encoded,baseline,contexts=contexts,low=low,offsets=batch['offsets']).cpu().numpy();keys=batch['keys'].cpu().numpy();details=[];returned=[]
             for i,c in enumerate(contexts):
                 begin,end=map(int,batch['offsets'][i:i+2]);details.append((keys[begin:end],flat[begin:end,4],c.path));returned.append(flat[begin:end,:4])
         return details,returned,features_at,[dict(device_pipeline=True,rows=n,union_rows=len(batch['union']),boundary_fallbacks=fallbacks)]

@@ -13,7 +13,7 @@ from .diagnose import OUT,read,save
 
 
 @contextmanager
-def quiet_jobs(name,pause_primary=False):
+def quiet_jobs(name,pause_primary=False,extra_training_names=()):
     expanded=OUT/'expanded_train_range_jobs_16384.json';owned_preparation={j['pid']for j in read(expanded)}if expanded.exists()else set();paused=[]
     for path in Path('/proc').iterdir():
         if not path.name.isdigit():continue
@@ -21,6 +21,7 @@ def quiet_jobs(name,pause_primary=False):
         except (OSError,UnicodeError):continue
         if len(args)<3 or args[:2]!=[sys.executable,'scripts/stage2_segment_run.py']:continue
         module=args[2];own=(int(path.name)in owned_preparation and module=='eventwm_graph.stage2_repair.range_train_expand')or(module=='eventwm_graph.stage2_repair.range_online_surface_train'and 'range_surface_online4096'in args)or(module=='eventwm_graph.stage2_repair.online_select'and 'range_online4096'in args)or(module=='eventwm_graph.stage2_repair.range_full_evaluate'and any(n in args for n in ['legal_range_support_pretrained256','legal_range_online4096_epoch01']))or(pause_primary and module=='eventwm_graph.stage2_repair.range_online_train'and 'range_online4096'in args)
+        own=own or(module=='eventwm_graph.stage2_repair.range_online_train'and any(n in args for n in extra_training_names))or(module=='eventwm_graph.stage2_repair.online_select'and 'online_cardinal256_control'in args)
         if not own:continue
         try:
             pid=int(path.name);start=(path/'stat').read_text().split()[21];os.kill(pid,signal.SIGSTOP);paused.append(dict(pid=pid,starttime=start,args=args))

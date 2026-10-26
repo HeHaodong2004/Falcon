@@ -33,4 +33,4 @@ class CapturedPipelinePredictor(FastPreparedPipelinePredictor):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs);self.captured_head=CapturedSpatialHead(self.model,self.device,self.tile_size)
 
-    def _probability_tiles(self,x,extra,indices,encoded,baseline):return self.captured_head.run(x,extra,indices,encoded,baseline)
+    def _probability_tiles(self,x,extra,indices,encoded,baseline,**kwargs):return self.captured_head.run(x,extra,indices,encoded,baseline)

@@ -1,0 +1,65 @@
+{
+  "role": "Same24TRAINwindow fitting only. Not development, not >0.50 acceptance. Original common initialization and original fitting feature cache; fresh exact inverse-inclusion samples rather than everycell on everyupdate.",
+  "steps": 1000,
+  "rows": 870379,
+  "label_iou": 0.8757085020242918,
+  "revelation_iou": 0.8764682057513163,
+  "free": {
+    "precision": 0.9528389699038163,
+    "recall": 0.973067173637516,
+    "f1": 0.9628468411976799
+  },
+  "blocked": {
+    "precision": 0.89359477124183,
+    "recall": 0.9250338294993234,
+    "f1": 0.9090425531914894
+  },
+  "gradient_norm": 0.06704065203666687,
+  "ray_map_gradient": 0.017222214490175247,
+  "checkpoint_sha256": "300b2a79e209ff39aaa71c24f138ac42f9208f82a4056519a042b213cb453dfc",
+  "logs": [
+    {
+      "step": 0,
+      "gradient_norm": null,
+      "ray_map_gradient": null,
+      "seconds": 4.427907933946699,
+      "label_iou": 0.53501879057055,
+      "revelation_iou": 0.5548506171415387
+    },
+    {
+      "step": 100,
+      "gradient_norm": 0.06044395640492439,
+      "ray_map_gradient": 0.003407270647585392,
+      "seconds": 14.163186118938029,
+      "label_iou": 0.7444516547696299,
+      "revelation_iou": 0.7530976914047215
+    },
+    {
+      "step": 300,
+      "gradient_norm": 0.054312869906425476,
+      "ray_map_gradient": 0.005976956803351641,
+      "seconds": 31.8759178139735,
+      "label_iou": 0.8121252498334445,
+      "revelation_iou": 0.8147851614625036
+    },
+    {
+      "step": 600,
+      "gradient_norm": 0.04421267658472061,
+      "ray_map_gradient": 0.003031132509931922,
+      "seconds": 59.96209992701188,
+      "label_iou": 0.8494609343804073,
+      "revelation_iou": 0.8499534016775399
+    },
+    {
+      "step": 1000,
+      "gradient_norm": 0.06704065203666687,
+      "ray_map_gradient": 0.017222214490175247,
+      "seconds": 96.19495113100857,
+      "label_iou": 0.8757085020242918,
+      "revelation_iou": 0.8764682057513163
+    }
+  ],
+  "hypothesis": "Additional static context sampled along supplied legal camera-to-cell lines may help trajectory-dependent occlusion. All measured63LOS features and existingnetwork weights retained; added2logit branchinitiallyzero. No claim of generalization benefit yet.",
+  "regression": "Actual fivecompleteworkloads zero-residual equalbaseline; nonzero branch single/batch/fallback andindependentcurrent-camera-origin testPASS; two actual trainingupdatesgivegradienttoaddedheadandmap.",
+  "artifact": "output/stage2_repair_20261025/ray_residual_fit24.json"
+}
