@@ -286,7 +286,8 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | v7_restart_iou | final v7 + 1 epoch warm restart (peak 5e-4) + 0.5 x soft label-aware IoU loss | 0.4351 @4k, 0.4450 @8k, 0.4510 @12k, 0.4517 @16k, 0.4546 @20k, **final 0.4569** (v7 0.4454) |
 | v11_ext | warm start from v7_restart_iou with three new zero-initialized input channels (`human_future`, `wall_hit_distance`, `wall_unknown_hit`), zero-initialized coarse-level side branches (level 3: 192 x 3 blocks, level 4: 256 x 4; 3.55M -> 10.42M parameters), near-camera fix (0.5 m), +2,914 new TRAIN Roots, EMA 0.999, shuffle pool 16 batches, overlapped feature production, 1 epoch, IoU loss 0.5 | 0.4573 @4k, 0.4597 @8k, 0.4583 @12k, 0.4629 @16k, 0.4622 @20k, 0.4627 @24k, **final 0.4629** |
 | ens_v7r_v11 | logit ensemble of v7_restart_iou + v11_ext (teacher candidate) | 0.4608 (< v11_ext alone; not used) |
-| v12_distill | warm start from v11_ext, 1 epoch (peak 4e-4), self-distillation from frozen v11_ext (soft targets 50 %), seed 2, otherwise as v11_ext | 0.4645 @4k, 0.4609 @8k, 0.4644 @12k, 0.4676 @16k (running) |
+| v12_distill | warm start from v11_ext, 1 epoch (peak 4e-4), self-distillation from frozen v11_ext (soft targets 50 %), seed 2, otherwise as v11_ext | 0.4645 @4k, 0.4609 @8k, 0.4644 @12k, 0.4676 @16k, 0.4680 @20k, **final 0.4676** |
+| soup_v11_v12 | weight average of v11_ext and v12_distill | 0.4657 (< v12; not used) |
 | v13-15_chain | chain of 1-epoch self-distillation restarts (each warm-starts from and distils from the previous model), stopped when a cycle gains < 0.001 | (queued) |
 
 An equal-strength second member for an ensemble (v7 config, seed 1, +2,914 new TRAIN Roots) was
