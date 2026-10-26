@@ -61,7 +61,9 @@ results do not depend on cache state or on the number of lanes (`lanes=3` is che
    and pose fractions, known / after-unknown wall hits, distance to known hits, unknown traversal and
    entry, path raster, window poses/duration/length, the constant-velocity sweep of the currently tracked
    humans over the window's duration (`human_future`, from legal track positions and estimated
-   velocities), frame validity). Channel names are recorded in each checkpoint and selected by name, so
+   velocities), the expected first-hit density of the exact wall rays inside unknown space (`wall_unknown_hit`:
+   survival exp(-unknown length so far / 1 m) times the hit probability of each unknown segment), frame
+   validity). Channel names are recorded in each checkpoint and selected by name, so
    older checkpoints keep working; `train.py --extend` warm-starts a checkpoint with the current channel
    set (new channels get zero stem weights, so the warm model's function is unchanged at step 0).
 4. **Masked U-Net** (`model.py`): full cell resolution; every activation outside the query frame is
