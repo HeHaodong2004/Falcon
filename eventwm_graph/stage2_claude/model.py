@@ -233,6 +233,26 @@ def probabilities(logits):
     return torch.stack([1-r, r*(1-b), r*b], 1)
 
 
+def fold_bn(model):
+    """Inference copy semantics: fold each eval-mode BatchNorm into the preceding
+    convolution (conv weight*scale, bias = beta-mean*scale). Layers whose folded
+    weights would leave a safe F16 range keep their BatchNorm."""
+    for mod in model.modules():
+        if isinstance(mod, MConvBN) and isinstance(mod.bn, nn.BatchNorm2d):
+            conv, bn = mod.conv, mod.bn
+            scale = bn.weight.detach().float()/torch.sqrt(bn.running_var.float()+bn.eps)
+            w = conv.weight.detach().float()*scale[:, None, None, None]
+            if not torch.isfinite(w).all() or w.abs().max() > 1e3:
+                continue
+            fused = nn.Conv2d(conv.in_channels, conv.out_channels, conv.kernel_size, conv.stride, conv.padding, conv.dilation,
+                              bias=True).to(conv.weight.device)
+            fused.weight.data.copy_(w)
+            fused.bias.data.copy_(bn.bias.detach().float()-bn.running_mean.float()*scale)
+            mod.conv = fused
+            mod.bn = nn.Identity()
+    return model
+
+
 class GraphRunner:
     """Inference runner: frozen F16 channels-last network replayed through
     CUDA graphs captured once per (batch, square size) bucket.
@@ -241,9 +261,15 @@ class GraphRunner:
     graph or query state. Inputs are copied into a static buffer whose region
     outside the supplied tensor is zero, exactly like normal zero padding.
     """
-    def __init__(self, model, device, batches=(1, 2, 4, 6, 8), sizes=(240, 256, 272, 288, 320, 352), channels=36, capture=True, lanes=1):
+    def __init__(self, model, device, batches=(1, 2, 4, 6, 8), sizes=(240, 256, 272, 288, 320, 352), channels=36, capture=True, lanes=1,
+                 fold=True):
         self.device = torch.device(device)
-        self.model = model.eval().half().to(self.device).to(memory_format=torch.channels_last)
+        model = model.eval()
+        if fold:
+            # BatchNorm folded into the convolutions (an inference-only copy).
+            import copy
+            model = fold_bn(copy.deepcopy(model).float())
+        self.model = model.half().to(self.device).to(memory_format=torch.channels_last)
         self.channels = channels
         self.batches = tuple(sorted(batches))
         self.sizes = tuple(sorted(sizes))

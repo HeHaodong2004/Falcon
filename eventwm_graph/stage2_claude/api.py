@@ -103,6 +103,7 @@ class LegalVoxelPredictor:
         lanes = int(saved.get('inference', {}).get('lanes', 1) if lanes is None else lanes)
         self.runner = GraphRunner(self.model, self.device, batches=(1,), sizes=(240, 256, 272, 288, 304, 320, 352, 384),
                                   capture=cuda_graphs, channels=cin, lanes=lanes)
+        self.model = self.runner.model     # the inference copy (BatchNorm folded, F16)
         self.lanes = lanes
         self.config = config
         decision = dict(saved.get('decision', {}))
