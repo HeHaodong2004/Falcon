@@ -32,3 +32,16 @@ class FastNativeBase(Base):
         self.headers=freeze({k:graph[k]for k in ('schema','resolution','height','clearance','timestamp','revision','ego_support','visited')},canonical)
         self.headers=MappingProxyType(dict(self.headers,global_nodes=freeze(graph.get('global_nodes',{}),canonical),global_edges=freeze(graph.get('global_edges',[]),canonical)))
         self.identity=prepared.identity;self.valid_topology=certificate(graph,prepared);biased=(self.table.keys+np.int64(2147483648)).astype(np.uint64);self.known_codes=immutable_array((biased[:,0]<<np.uint64(32))|biased[:,1])
+
+
+class FastColumnsMixin:
+    def _canonical_columns(self,cells):
+        n=len(cells);keys=np.empty((n,2),np.int64);states=np.empty(n,np.uint8);heights=np.empty(n,np.float64)
+        if extension().columns(cells,keys,states,heights)is not True:return None
+        return keys,states,heights
+
+
+from .range_gpu_graph import DeviceGlobalPrepared
+
+
+class FastDeviceGlobalPrepared(FastColumnsMixin,DeviceGlobalPrepared):pass

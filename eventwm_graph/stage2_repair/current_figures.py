@@ -1,5 +1,6 @@
 """Same-world-cell certificate plots, including every positive/error cell."""
 from collections import defaultdict
+import argparse
 from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
@@ -12,8 +13,8 @@ from eventwm_graph.stage2_hf.packed import load_arrays
 from scripts.stage2_diagnostic.common import extended_rates
 
 
-def run():
-    source=OUT/'range_runtime_spatial_stride1_radix';summary=read(source/'summary.json');examples=[]
+def run(source=None,name='figures_current_best'):
+    source=Path(source)if source else OUT/'range_runtime_spatial_stride1_radix';summary=read(source/'summary.json');examples=[]
     for path in sorted(source.glob('*.npz')):
         rid=path.stem.rsplit('_',1)[0];ordinal=int(path.stem.rsplit('_',1)[1]);record=read(source/(rid+'.json'))['records'][ordinal-1]
         with np.load(path)as z:a={k:z[k]for k in z.files}
@@ -29,7 +30,7 @@ def run():
     if rotation:choices.append(('rotation',min(rotation,key=lambda e:e['iou'])))
     empty=[e for e in examples if e['true_count']==0]
     if empty:choices.append(('no_new_information',max(empty,key=lambda e:e['pred_count'])))
-    raw,_=source_rows('dev');raw={r['root_id']:r for r in raw};dest=OUT/'figures_current_best';dest.mkdir(exist_ok=True);reports=[]
+    raw,_=source_rows('dev');raw={r['root_id']:r for r in raw};dest=OUT/name;dest.mkdir(exist_ok=True);reports=[]
     for label,e in choices:
         with np.load(e['archive'])as z:a={k:z[k]for k in z.files}
         target=None
@@ -73,10 +74,11 @@ def run():
         caption=('Empty target; predicted%d new cells'%len(pred))if not truth else'Label-aware IoU %.3f; revelation IoU %.3f'%(rates['label_aware_delta_iou'],rates['revelation_iou'])
         fig.suptitle('%s | Root %s | %s'%(label,e['root_id'][:12],caption),fontsize=12)
         handles=[Patch(color=palette[1],label='certificate FREE'),Patch(color=palette[2],label='certificate BLOCKED'),Patch(color=[.02,.52,.87],label='missed new'),Patch(color=[.80,.10,.65],label='false new'),Patch(color=[.97,.50,.08],label='wrong FREE/BLOCKED')]
-        fig.legend(handles=handles,loc='lower center',ncol=5,frameon=False,fontsize=9);fig.tight_layout(rect=[0,.06,1,.93]);output=dest/(label+'.png');fig.savefig(output,dpi=170);plt.close(fig)
+        fig.legend(handles=handles,loc='lower center',bbox_to_anchor=(.5,.01),ncol=5,frameon=False,fontsize=9);fig.tight_layout(rect=[0,.12,1,.93]);output=dest/(label+'.png');fig.savefig(output,dpi=170);plt.close(fig)
         reports.append(dict(category=label,root_id=e['root_id'],start_node=e['record']['start_node'],end_node=e['record']['end_node'],resolution=resolution,confusion=cm.tolist(),metrics=rates,errors=dict(counts),out_of_domain_positives=e['record']['out_of_domain'],figure=str(output)))
     save(dest/'examples.json',dict(role='Actual observation-certificate labels, not physical occupancy; all positive/error cells shown on identical world-cell axes. Metrics include original full candidate domain and out-of-domain positives.',checkpoint=summary['checkpoint'],checkpoint_sha256=summary['checkpoint_sha256'],records=reports))
     print([(r['category'],r['metrics']['label_aware_delta_iou'],r['errors'])for r in reports],flush=True)
 
 
-if __name__=='__main__':run()
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--source');p.add_argument('--name',default='figures_current_best');run(**vars(p.parse_args()))

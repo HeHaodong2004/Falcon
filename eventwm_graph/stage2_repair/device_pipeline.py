@@ -10,6 +10,13 @@ from .device_range_features import extract as range_features
 
 class DevicePipelinePredictor(OptixTriangleSpatialPredictor):
     parallel_features=False
+    def _probability_tiles(self,x,extra,indices,encoded,baseline):
+        values=[];n=len(x)
+        with torch.cuda.amp.autocast():
+            for begin in range(0,n,self.tile_size):
+                end=min(begin+self.tile_size,n);ids=torch.zeros(end-begin,dtype=torch.long,device=self.device);p,h=self.model.probabilities(x[begin:end],extra[begin:end],indices[begin:end],ids,encoded);values.append(torch.cat([p.float(),h.float()[:,None],baseline[begin:end,None]],1))
+        return torch.cat(values)
+
     def _eligible(self,prepared,contexts):
         if not contexts or self.config.get('observed_obstacle_schema')!='capped_2m_complete':return False
         if prepared.global_fields is None or not isinstance(prepared.global_fields[1],torch.Tensor):return False
@@ -38,11 +45,8 @@ class DevicePipelinePredictor(OptixTriangleSpatialPredictor):
                 encoded,low=self._encoded_map([(None,None,c.path)for c in contexts]);x,baseline,fallbacks=point_features(self.cuda,prepared,contexts,batch);current.wait_event(ready)
             else:
                 x,baseline,fallbacks=point_features(self.cuda,prepared,contexts,batch);encoded,low=self._encoded_map([(None,None,c.path)for c in contexts]);extra=range_features(self,prepared,contexts,batch)
-            features_at=time.perf_counter();indices=batch['keys'].long()-torch.as_tensor(low,device=self.device);values=[]
-            with torch.cuda.amp.autocast():
-                for begin in range(0,n,self.tile_size):
-                    end=min(begin+self.tile_size,n);ids=torch.zeros(end-begin,dtype=torch.long,device=self.device);p,h=self.model.probabilities(x[begin:end],extra[begin:end],indices[begin:end],ids,encoded);values.append(torch.cat([p.float(),h.float()[:,None],baseline[begin:end,None]],1))
-            flat=torch.cat(values).cpu().numpy();keys=batch['keys'].cpu().numpy();details=[];returned=[]
+            features_at=time.perf_counter();indices=batch['keys'].long()-torch.as_tensor(low,device=self.device)
+            flat=self._probability_tiles(x,extra,indices,encoded,baseline).cpu().numpy();keys=batch['keys'].cpu().numpy();details=[];returned=[]
             for i,c in enumerate(contexts):
                 begin,end=map(int,batch['offsets'][i:i+2]);details.append((keys[begin:end],flat[begin:end,4],c.path));returned.append(flat[begin:end,:4])
         return details,returned,features_at,[dict(device_pipeline=True,rows=n,union_rows=len(batch['union']),boundary_fallbacks=fallbacks)]
@@ -60,10 +64,13 @@ class PreparedConcurrentPipelinePredictor(ConcurrentDevicePipelinePredictor):
         return mesh
 
 
-from .fast_native_base import FastNativeBase,extension
+from .fast_native_base import FastNativeBase,FastDeviceGlobalPrepared,extension
 
 
 class FastPreparedPipelinePredictor(PreparedConcurrentPipelinePredictor):
     native_base_class=FastNativeBase
     def __init__(self,*args,**kwargs):
         extension();super().__init__(*args,**kwargs)
+
+
+class ColumnPreparedPipelinePredictor(FastPreparedPipelinePredictor):prepared_class=FastDeviceGlobalPrepared

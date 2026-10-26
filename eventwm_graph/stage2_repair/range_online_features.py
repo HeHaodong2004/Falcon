@@ -21,7 +21,7 @@ class ArrayGlobal(ArrayPrepared):
         lo=((low-128)//32)*32;hi=((high+159)//32)*32;shape=hi-lo
         self.global_fields=None
         if int(np.prod(shape))<=6000000:
-            self.global_lo=lo;self.global_shape=shape;self.global_fields=super().crop(lo,shape)
+            self.global_lo=lo;self.global_shape=shape;self.global_fields=self.crop(lo,shape)
 
     def prewarm(self,paths):
         if all(self.contains_domain(p)for p in paths):return
@@ -29,13 +29,20 @@ class ArrayGlobal(ArrayPrepared):
 
 
 class LegalFeatureBuilder:
-    def __init__(self,model,device='cuda:0'):
+    def __init__(self,model,device='cuda:0',device_canvas=False,device_edt=False):
         self.device=torch.device(device)
         self.engine=CudaExecution(model.point.point.prior,device)
-        self.range_kernel=ReusedExactKernel(device);self.canvas=RangeCanvas(device)
+        self.range_kernel=ReusedExactKernel(device);self.canvas=RangeCanvas(device);self.edt=None
+        if device_canvas or device_edt:
+            from .gpu_edt import GridEDT
+            self.edt=GridEDT(device)
+        if device_canvas:
+            from .range_device_canvas import DeviceRangeCanvas
+            self.canvas=DeviceRangeCanvas(self.edt)
+        self.device_edt=device_edt
 
     def prepare(self,*,keys,states,heights,geometry,ego,now,paths):
-        prepared=ArrayGlobal(keys,states,heights,geometry,ego);prepared.prewarm(paths)
+        prepared=GpuArrayGlobal(keys,states,heights,geometry,ego,self.edt)if self.device_edt else ArrayGlobal(keys,states,heights,geometry,ego);prepared.prewarm(paths)
         graph=dict(schema='causal_partial_cspace_graph_1',timestamp=now,resolution=geometry[0],height=geometry[1],clearance=geometry[2])
         contexts=[GlobalFeatures(graph,p,prepared)for p in paths]
         return prepared,contexts
@@ -51,4 +58,22 @@ class LegalFeatureBuilder:
             details=[(k,b,p)for k,b,p in zip(keysets,baselines,paths)]
             extras=self.range_kernel.compute(mesh,details,known_keys,packet['origins'][-1],packet['rotations'][-1])
             canvas,low=self.canvas.build(known_keys,known_states,known_heights,ego,r,packet['ranges'],packet['origins'],packet['rotations'],packet['timestamps'],tracks)
-        return xs,extras,canvas.astype(np.float16),low,profile
+        return xs,extras,canvas if torch.is_tensor(canvas)else canvas.astype(np.float16),low,profile
+
+
+class GpuArrayGlobal(ArrayGlobal):
+    def __init__(self,keys,states,heights,geometry,ego,edt):
+        self.edt=edt;super().__init__(keys,states,heights,geometry,ego)
+
+    def crop(self,lo,shape):
+        if max(shape)>8192 or int(np.prod(shape))>2000000:return super().crop(lo,shape)
+        key=tuple(lo)+tuple(shape)
+        if key in self.crops:self.crop_hits+=1;self.crops.move_to_end(key);return self.crops[key]
+        self.crop_misses+=1;state=np.zeros(tuple(shape),np.uint8);height=np.full(tuple(shape),self.height,np.float32);ij=self.keys-lo;valid=np.all((ij>=0)&(ij<shape),1);at=ij[valid];known=self.heights[valid];state[at[:,0],at[:,1]]=self.values[valid];height[at[:,0],at[:,1]]=known
+        uniform=bool(len(known)and np.all(known.view(np.uint32)==known[:1].view(np.uint32)))
+        distance,baseline,_=self.edt.transform(state,height,self.resolution,self.height,nearest_height=not uniform)
+        if uniform:base=np.full(tuple(shape),known[0],np.float32)
+        else:base=baseline.cpu().numpy()
+        distances=distance.cpu().numpy();value=(state,base,[distances[0],distances[1]]);self.crops[key]=value
+        while len(self.crops)>self.crop_cache_size:self.crops.popitem(last=False)
+        return value

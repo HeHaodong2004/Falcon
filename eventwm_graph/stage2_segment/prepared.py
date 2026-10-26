@@ -28,12 +28,14 @@ def content_key(graph):
 
 
 class CompiledGraph(PreparedGraph):
+    def _canonical_columns(self,cells):return None
+
     def __init__(self,graph):
         if graph.get('schema')!='causal_partial_cspace_graph_1':raise ValueError('unsupported PartialGraph schema')
         self.resolution=float(graph['resolution']);self.height=float(graph['height'])
         if not np.isfinite(self.resolution) or not .02<=self.resolution<=1:raise ValueError('unsupported map resolution')
         if not np.isfinite([self.height,float(graph['timestamp']),float(graph['clearance'])]).all():raise ValueError('nonfinite graph geometry/clock')
-        cells=graph['cells'];rawkeys=np.asarray([c['cell'] for c in cells]).reshape(-1,2)
+        cells=graph['cells'];columns=self._canonical_columns(cells);rawkeys=columns[0]if columns is not None else np.asarray([c['cell'] for c in cells]).reshape(-1,2)
         if rawkeys.dtype.kind not in ('i','u') and len(cells):
             # Preserve the original unusual-coordinate digest and validation.
             super().__init__(graph);self.height64=np.asarray([c['height'] for c in cells],np.float64);self.native_eligible=False;return
@@ -42,7 +44,7 @@ class CompiledGraph(PreparedGraph):
         keys=rawkeys.astype(np.int64)
         if len(keys) and (np.any(keys<np.iinfo(np.int32).min) or np.any(keys>np.iinfo(np.int32).max)):
             raise ValueError('cell coordinates exceed supported int32 feature geometry')
-        values=np.asarray([c['state'] for c in cells]);heights=np.asarray([c['height'] for c in cells],np.float64)
+        values=columns[1]if columns is not None else np.asarray([c['state'] for c in cells]);heights=columns[2]if columns is not None else np.asarray([c['height'] for c in cells],np.float64)
         if not np.all((values==1)|(values==2)) or not np.isfinite(heights).all():raise ValueError('invalid known cell')
         order=np.lexsort((keys[:,1],keys[:,0])) if len(keys) else np.empty(0,np.int64)
         sortedkeys=keys[order]

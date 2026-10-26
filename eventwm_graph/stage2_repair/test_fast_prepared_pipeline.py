@@ -9,8 +9,9 @@ from .device_pipeline import FastPreparedPipelinePredictor as OptixSpatialPredic
 
 
 class FastPreparedPipelineParity(unittest.TestCase):
+    predictor_class=OptixSpatialPredictor
     def test_real_outputs_and_generated_evidence(self):
-        torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;cp=OUT/'training/support_pretrained256_control/selected.pt';device=os.environ.get('FALCON_TEST_DEVICE','cuda:1');old=BatchedSpatialPredictor(cp,device=device);new=OptixSpatialPredictor(cp,device=device)
+        torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;cp=OUT/'training/support_pretrained256_control/selected.pt';device=os.environ.get('FALCON_TEST_DEVICE','cuda:1');old=BatchedSpatialPredictor(cp,device=device);new=self.predictor_class(cp,device=device)
         for m in [old,new]:m.config['observed_obstacle_schema']='capped_2m_complete'
         for index in [0,18,20,30,31]:
             ex,packet,tracks=workloads()[index];paths=[np.asarray(e['trajectory'],np.float64)for e in ex['paths'][:6]];results=[];features=[]
@@ -24,7 +25,7 @@ class FastPreparedPipelineParity(unittest.TestCase):
                 np.testing.assert_array_equal(a['candidate_cells'],b['candidate_cells']);np.testing.assert_array_equal(a['states'],b['states']);np.testing.assert_array_equal(a['heights'],b['heights']);np.testing.assert_allclose(a['probabilities'],b['probabilities'],atol=3.e-6,rtol=3.e-5);np.testing.assert_array_equal(a['future_partial_graph'].cell_columns['cell'],b['future_partial_graph'].cell_columns['cell'])
 
     def test_mixed_horizons_single_batch_and_fallback(self):
-        torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;device=os.environ.get('FALCON_TEST_DEVICE','cuda:1');m=OptixSpatialPredictor(OUT/'training/range_online4096/selected_epoch02_argmax.pt',device=device)
+        torch.set_num_threads(1);torch.backends.cuda.matmul.allow_tf32=False;device=os.environ.get('FALCON_TEST_DEVICE','cuda:1');m=self.predictor_class(OUT/'training/range_online4096/selected_epoch02_argmax.pt',device=device)
         ex,packet,tracks=workloads()[18];paths=[np.asarray(e['trajectory'],np.float64)for e in ex['paths'][:4]];paths[0]=paths[0][:1];paths[1]=paths[1][:2]
         stationary=paths[2][:2].copy();stationary[1,1:]=stationary[0,1:];paths.append(stationary)
         def call(ps):return m.predict_segments(partial_graph=ex['graph'],trajectories=ps,range_observations=packet,track_history=tracks)
@@ -49,6 +50,12 @@ class FastPreparedPipelineParity(unittest.TestCase):
         finally:m._eligible=eligible
         for a,b in zip(reference,batch):
             np.testing.assert_array_equal(a['candidate_cells'],b['candidate_cells']);np.testing.assert_array_equal(a['states'],b['states']);np.testing.assert_array_equal(a['heights'],b['heights']);np.testing.assert_allclose(a['probabilities'],b['probabilities'],atol=3.e-6,rtol=3.e-5)
+
+
+from .device_pipeline import ColumnPreparedPipelinePredictor
+
+
+class ColumnPreparedParity(FastPreparedPipelineParity):predictor_class=ColumnPreparedPipelinePredictor
 
 
 if __name__=='__main__':unittest.main()

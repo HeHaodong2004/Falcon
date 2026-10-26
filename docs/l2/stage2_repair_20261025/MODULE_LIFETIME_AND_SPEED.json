@@ -1,0 +1,322 @@
+{
+  "updated_utc": "2026-10-26T04:25:48.565508+00:00",
+  "status": "Accuracy below >0.50. First complete32-workload denseK6coldP95<50ms measured; limited margin, no claim all calls<50ms.",
+  "pilot_public_api": {
+    "role": "LEGAL sensor-extension PUBLIC API on original fixed pilot; not full-development acceptance.",
+    "checkpoint_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605",
+    "roots": 31,
+    "windows": 666,
+    "hierarchical": {
+      "baseline": {
+        "unknown": {
+          "precision": 0.9961155663687382,
+          "recall": 0.9949841875419682,
+          "f1": 0.9955495555204158
+        },
+        "free": {
+          "precision": 0.3780793270363097,
+          "recall": 0.5206801637022872,
+          "f1": 0.4380669309693495
+        },
+        "blocked": {
+          "precision": 0.3134879333430888,
+          "recall": 0.333188093453078,
+          "f1": 0.3230379432762003
+        },
+        "label_aware_delta_iou": 0.21741272021230704,
+        "revelation_iou": 0.30161004802084523,
+        "missed_revelations": 139.8116282654932,
+        "incorrect_free_blocked": 31.743755550287798,
+        "false_revelations": 180.7383968631904,
+        "terminal_label_agreement_on_true_revelations": 0.3834396833484588,
+        "revelation_precision": 0.43372847572912304,
+        "revelation_recall": 0.4975249398905166,
+        "revelation_f1": 0.4634414869176162,
+        "false_revelation_rate": 0.005015812458031998,
+        "wrong_free_blocked_rate": 0.11408525654205781,
+        "false_free_unknown_count": 49.482549022005834,
+        "false_free_blocked_count": 14.390666458641078,
+        "false_free_unknown_fraction": 0.4818016433985387,
+        "false_free_blocked_fraction": 0.14011902956515163,
+        "false_free_on_actual_blocked_rate": 0.07065661046518482
+      },
+      "range": {
+        "unknown": {
+          "precision": 0.9965277933455124,
+          "recall": 0.998535694766024,
+          "f1": 0.9975307336447867
+        },
+        "free": {
+          "precision": 0.5476592438708764,
+          "recall": 0.6395446743299164,
+          "f1": 0.5900461536481038
+        },
+        "blocked": {
+          "precision": 0.7901878570432378,
+          "recall": 0.4599586047407268,
+          "f1": 0.5814577976568002
+        },
+        "label_aware_delta_iou": 0.4127557281695153,
+        "revelation_iou": 0.4618505450892763,
+        "missed_revelations": 125.36862987387747,
+        "incorrect_free_blocked": 11.502971482789233,
+        "false_revelations": 52.76436922664193,
+        "terminal_label_agreement_on_true_revelations": 0.5080912298054786,
+        "revelation_precision": 0.7434159351551309,
+        "revelation_recall": 0.5494322567211829,
+        "revelation_f1": 0.6318710850992921,
+        "false_revelation_rate": 0.0014643052339759425,
+        "wrong_free_blocked_rate": 0.04134102691570427,
+        "false_free_unknown_count": 32.503780614474394,
+        "false_free_blocked_count": 6.8894745455816775,
+        "false_free_unknown_fraction": 0.37323101735230074,
+        "false_free_blocked_fraction": 0.0791097387768229,
+        "false_free_on_actual_blocked_rate": 0.03382657229086653
+      }
+    },
+    "pooled_confusion": [
+      [
+        [
+          23768554,
+          44767,
+          118071
+        ],
+        [
+          15028,
+          37186,
+          13980
+        ],
+        [
+          91544,
+          14402,
+          57151
+        ]
+      ],
+      [
+        [
+          23886381,
+          25928,
+          19083
+        ],
+        [
+          18501,
+          42170,
+          5523
+        ],
+        [
+          87484,
+          6053,
+          69560
+        ]
+      ]
+    ]
+  },
+  "complete_speed": {
+    "checkpoint_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605",
+    "implementation": "ColumnPreparedPipelinePredictor",
+    "device": "cuda:0",
+    "hardware": "NVIDIA GeForce RTX 3090",
+    "precision": {
+      "baseline": "F32 TF32off",
+      "range": "AMP spatial encoder/head; frozen F32 prior TF32off; F64 camera/frustum geometry"
+    },
+    "scope": "Complete input normalization/content hashing, map/BVH build, graph/candidates/features, transfers/synchronization, network/probability/hard decoding, sparse increment and normal native hypothetical graphs. Cold clears graph AND mesh caches. Warm retains current-map state. Normal GC.",
+    "excluded": "Input file deserialization, output serialization, environment sensor acquisition; all sensor arrays and input graphs already supplied. Sensor extension is explicit; timing alone does not establish total RL runtime.",
+    "startup": [
+      {
+        "model": "baseline",
+        "constructor_ms": 1083.696739980951,
+        "first_complete_K6_ms": 985.5746310204268
+      },
+      {
+        "model": "range",
+        "constructor_ms": 185.62125484459102,
+        "first_complete_K6_ms": 1528.3885169774294
+      }
+    ],
+    "summary": [
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 18.694294500164688,
+        "p95_ms": 26.332058373373002,
+        "p99_ms": 36.653487747535124,
+        "max_ms": 42.35109896399081,
+        "candidate_cells_min": 34507,
+        "candidate_cells_max": 47012
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 33.21622603107244,
+        "p95_ms": 40.12612031074241,
+        "p99_ms": 45.65987271023915,
+        "max_ms": 47.8839089628309,
+        "candidate_cells_min": 137168,
+        "candidate_cells_max": 164904
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "cold",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 40.99480446893722,
+        "p95_ms": 49.19396825134754,
+        "p99_ms": 52.11479481076822,
+        "max_ms": 53.001486929133534,
+        "candidate_cells_min": 203542,
+        "candidate_cells_max": 253792
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 8.176401373930275,
+        "p95_ms": 13.478720432613045,
+        "p99_ms": 13.862384953536093,
+        "max_ms": 13.943772064521909,
+        "candidate_cells_min": 34507,
+        "candidate_cells_max": 47012
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 20.318531547673047,
+        "p95_ms": 29.031588300131258,
+        "p99_ms": 31.84633678290993,
+        "max_ms": 32.04251988790929,
+        "candidate_cells_min": 137168,
+        "candidate_cells_max": 164904
+      },
+      {
+        "model": "range",
+        "cohort": "dense",
+        "cache": "warm",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 28.46711699385196,
+        "p95_ms": 37.984248413704336,
+        "p99_ms": 39.77690246421844,
+        "max_ms": 40.91530409641564,
+        "candidate_cells_min": 203542,
+        "candidate_cells_max": 253792
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 17.322802101261914,
+        "p95_ms": 20.42194657260552,
+        "p99_ms": 21.18540864670649,
+        "max_ms": 21.25165704637766,
+        "candidate_cells_min": 35386,
+        "candidate_cells_max": 45774
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 27.01564144808799,
+        "p95_ms": 30.74947837740183,
+        "p99_ms": 32.00147882802412,
+        "max_ms": 32.066423911601305,
+        "candidate_cells_min": 141860,
+        "candidate_cells_max": 157428
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "cold",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 33.49695599172264,
+        "p95_ms": 39.234946633223444,
+        "p99_ms": 41.081023800652474,
+        "max_ms": 41.08784208074212,
+        "candidate_cells_min": 212790,
+        "candidate_cells_max": 235041
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 1,
+        "calls": 48,
+        "p50_ms": 7.094291504472494,
+        "p95_ms": 10.835800750646738,
+        "p99_ms": 11.286255975719541,
+        "max_ms": 11.322743026539683,
+        "candidate_cells_min": 35386,
+        "candidate_cells_max": 45774
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 4,
+        "calls": 48,
+        "p50_ms": 17.83913851249963,
+        "p95_ms": 21.570661198347807,
+        "p99_ms": 22.87011417094618,
+        "max_ms": 23.024160880595446,
+        "candidate_cells_min": 141860,
+        "candidate_cells_max": 157428
+      },
+      {
+        "model": "range",
+        "cohort": "representative",
+        "cache": "warm",
+        "k": 6,
+        "calls": 48,
+        "p50_ms": 24.259038968011737,
+        "p95_ms": 29.7514647943899,
+        "p99_ms": 31.80750361410901,
+        "max_ms": 32.18548092991114,
+        "candidate_cells_min": 212790,
+        "candidate_cells_max": 235041
+      }
+    ],
+    "artifact": "output/stage2_repair_20261025/benchmark_epoch02_gpu0_fast-columns.json",
+    "full_domain": "All32 original workloads,K1/4/6,3repetitions,cold/warm,normalGC/materialization. DenseK6coldP9549.193968ms,max53.001487ms; P95passes, no all-call guarantee."
+  },
+  "confirmed_implementation_defect": {
+    "function": "CudaModule.__init__ loads CUmodule repeatedly per map without unloading after wrapper disposal.",
+    "matched_memory_reproduction": {
+      "before": {
+        "repeated_real_training_module_sets": 1024,
+        "host_growth_MiB": 443.78125,
+        "gpu_growth_MiB": 92.0,
+        "scope": "Synthetic repetition of the actual Planar/radix/geometry CUDA sources and accessed functions, not reconstruction accuracy."
+      },
+      "after": {
+        "repeated_real_training_module_sets": 1024,
+        "host_growth_MiB": 0.04296875,
+        "gpu_growth_MiB": 0.0,
+        "scope": "Synthetic repetition of the actual Planar/radix/geometry CUDA sources and accessed functions, not reconstruction accuracy."
+      }
+    },
+    "fix": "One compiled-code record per exact source and Torch primary device; every predictor/OptiX mutable wrapper remains independent. No map tensor or prediction state is shared by code cache.",
+    "regression": "Real-source loop; source/device/thread and mutable-wrapper isolation;5complete real predictions, mixed/single/batch/fallback and16real training groups. PostfixALL666publicAPI reproducesexact0.4127557281695153/0.4618505450892763 andidenticalconfusion.",
+    "real_impact": "Auxiliary training failed inepoch2 at54400/62338groups; primaryepoch1 full evaluation failed after1552/2110Roots, bothcuModuleGetFunction CUDAstatus2. Full evaluator resumed with1552receipts preserved and unchanged evaluator/checkpoint/domain. Auxiliary epoch1 checkpoint restored with optimizer/scaler/head;8group smoke passes. Main fit remains running; will migrate at next complete epoch.",
+    "accuracy_attribution": "This is a confirmed stability/resource defect in the new range path. It does not explain the original0.217 plateau or establish an IoU gain."
+  },
+  "training_acceleration": "Exact GPU map EDT/canvas matches labels, weights, all88+16features and encoded maps on16real TRAINgroups; optional flags only.",
+  "rejected_optimization": "Captured CUDA neural head: denseK6coldP9551.69ms,warm40.06ms versus direct51.77/39.08 before column parsing. No useful gain; not selected.",
+  "runtime_inputs": "Explicit past/current legal ideal90degree range sensor extension. No scene/navmesh/futurecamera/futurehuman/futureobservation data enter runtime; ideal range replay still needs actual renderedRGB-D integration validation."
+}

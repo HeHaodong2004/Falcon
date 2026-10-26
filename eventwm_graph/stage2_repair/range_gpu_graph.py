@@ -40,6 +40,7 @@ class DeviceGlobalPrepared(GlobalPrepared):
 
 class DeviceGraphSpatialPredictor(ExactFastSpatialPredictor):
     native_base_class=Base
+    prepared_class=DeviceGlobalPrepared
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs);self.edt=GridEDT(self.device)
 
@@ -59,7 +60,7 @@ class DeviceGraphSpatialPredictor(ExactFastSpatialPredictor):
             self.cache_hits+=1;self.cache.move_to_end(key);p=self.cache[key]
             if inflight is not None:inflight[id(graph)]=(graph,p)
             return p
-        self.cache_misses+=1;p=DeviceGlobalPrepared(graph,self.edt);p.future_base=None
+        self.cache_misses+=1;p=self.prepared_class(graph,self.edt);p.future_base=None
         if p.native_eligible:
             try:p.future_base=self.native_base_class(graph,p)
             except(TypeError,ValueError,OverflowError):pass

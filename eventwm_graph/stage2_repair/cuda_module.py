@@ -5,12 +5,38 @@ import os
 from pathlib import Path
 import sys
 import tempfile
+import threading
 import torch
 from eventwm_graph.stage2_segment.cuda_kernel import checked
 
 
-class CudaModule:
+class _CodeModule:
+    # A compiled module contains code and function handles only, never map
+    # buffers. Loading it once per map leaked driver allocations because a
+    # dropped Python wrapper did not unload its CUmodule. Retain one wrapper
+    # per exact source and primary Torch device for this process instead.
+    _cache={}
+    _cache_lock=threading.RLock()
+
+    def __new__(cls,source,device):
+        device=torch.device(device)
+        if device.type!='cuda':raise ValueError('CUDA module requires a CUDA device')
+        index=torch.cuda.current_device()if device.index is None else device.index
+        cls._cache_lock.acquire()
+        try:
+            key=(cls,index,source);cached=cls._cache.get(key)
+            if cached is not None:return cached
+            value=super().__new__(cls);value._cache_key=key;return value
+        except BaseException:
+            cls._cache_lock.release();raise
+
     def __init__(self, source, device):
+        try:
+            if getattr(self,'_initialized',False):return
+            self._initialize(source,torch.device('cuda',self._cache_key[1]));self._initialized=True;type(self)._cache[self._cache_key]=self
+        finally:type(self)._cache_lock.release()
+
+    def _initialize(self, source, device):
         self.device = torch.device(device)
         self.functions = {}
         self.driver = ct.CDLL('libcuda.so.1')
@@ -48,6 +74,12 @@ class CudaModule:
                     checked(lib, 'nvrtcDestroyProgram', [ct.POINTER(ct.c_void_p)], ct.byref(program))
             self.module = ct.c_void_p()
             checked(self.driver, 'cuModuleLoadData', [ct.POINTER(ct.c_void_p), ct.c_void_p], ct.byref(self.module), ct.create_string_buffer(path.read_bytes()))
+
+class CudaModule:
+    def __init__(self,source,device):
+        # Wrapper subclasses can carry per-predictor mutable state (e.g.
+        # OptiX active_mesh). Share only the pure compiled-code record.
+        code=_CodeModule(source,device);self.device=code.device;self.driver=code.driver;self.module=code.module;self.functions=code.functions
 
     def launch(self, name, total, values, threads=128):
         if not total:
