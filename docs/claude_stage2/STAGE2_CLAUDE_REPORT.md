@@ -114,6 +114,7 @@ matches recorded future cameras to 0.0000 m / 0.0000 (`cam_check.py`).
 | The frozen v7 does not overfit | 120 random TRAIN Roots 0.4329 vs 120 TRAIN-validation Roots 0.4506 (same code, threshold 0.6; `fitcheck.py`) |
 | Where v7's errors are (120 validation Roots, `strata.py`) | cells whose probes are possible but cross unknown space hold 56 % of targets at IoU 0.35 and 64 % of misses, 66 % of false revelations, 98 % of wrong types; known-wall cells (18 % of targets) reach 0.87; probes mostly known 0.89; long windows are hardest (<=0.5 s 0.53, 0.5-1 s 0.48, 1-2 s 0.41, >2 s 0.37 pooled) |
 | Humans near the path cost accuracy (`human_diag.py`) | windows with a tracked human within 2 m of the path: 28 % of targets, IoU 0.425; 2-4 m: 11 %, 0.434; none within 8 m: 55 %, 0.463 |
+| What the warm restart + IoU loss improved (v7 -> v7r, same 120 validation Roots, `strata.py`) | pooled 0.4463 -> 0.4535; walls behind known geometry (`frustum_blocked`) 0.268 -> 0.289, rays only traversing unknown space 0.283 -> 0.306, no-evidence cells 0.146 -> 0.161, uncertain-probe cells 0.346 -> 0.349 with fewer false FREE (66 % -> 61 % of false revelations); known-geometry strata unchanged (0.87-0.90) |
 | Unseen walls are hard to imagine (`aux_eval.py`, auxiliary head of aux_human_v3) | wall-band occupancy in never-observed columns that later get observed (16 % positive): best IoU 0.21 (precision 0.22 / recall 0.80 at 0.1; 0.65 / 0.05 at 0.5) |
 
 ## 4. Method
@@ -128,9 +129,12 @@ matches recorded future cameras to 0.0000 m / 0.0000 (`cam_check.py`).
    inflation rule and the (base+0.2, base+1.4) band.
 3. **Inputs per query** (exact original candidate crop frame): 26 map channels (graph FREE/BLOCKED,
    per-height-band occupied/free/unknown fractions, current humans, and probe/wall statistics from
-   up to 16 legal PAST camera poses) + 25 query channels (probe statistics incl. unknown depth and
+   up to 16 legal PAST camera poses) + query channels (probe statistics incl. unknown depth and
    pose fractions, known/after-unknown wall hits, hit distance, unknown traversal/entry, path raster,
-   window length/duration/distance, frame validity).
+   window length/duration/distance, frame validity; v7 uses 24 of them). Added after v7: the
+   constant-velocity sweep of the currently tracked humans over the window (`human_future`) and the
+   expected first-hit density of the exact wall rays inside unknown space (`wall_unknown_hit`,
+   survival exp(-unknown length/1 m)).
 4. **Masked U-Net** (`model.py`): full cell resolution, widths 32-64-96-128-192; activations outside
    the frame are zeroed at every layer and the global context is a masked mean, so predictions do
    not depend on padding or batch composition. Heads: revelation r and BLOCKED|revealed b.
@@ -138,11 +142,21 @@ matches recorded future cameras to 0.0000 m / 0.0000 (`cam_check.py`).
    dense per-cell BCE (pos-weight 3) + 2×BCE on b over revealed cells, window weights =
    scene factor / windows-in-Root (the evaluation hierarchy); AdamW 2e-3, cosine, AMP, dihedral
    augmentation inside the frame.
+   Continued training (after v7) uses warm restarts (1 epoch, peak 4-5e-4, cosine) with
+   0.5 × a batch-level soft label-aware IoU loss (window-weighted like the metric), an EMA of the
+   weights (0.999, validated/saved), a 256-window shuffle pool (windows of more Roots per batch),
+   legal features built on a side CUDA stream/thread overlapping the training step, and optional
+   distillation toward a frozen teacher ensemble (logit average; soft-target BCE mixed 50/50 with the
+   hard loss). Warm starts can add input channels (`--extend`, zero stem weights) and coarse-level
+   capacity (`--side`: 1×1-projected residual branches at encoder levels 3/4 whose output BatchNorm
+   scale/shift start at zero), both function-preserving at step 0.
 6. **Decision**: frozen operating point selected on TRAIN validation (`select.py`), stored in the
    checkpoint; development data are only used for the final evaluation.
 7. **Inference** (`api.py`): exact original domain on GPU, per-query batch-1 CUDA graphs (bit-identical
    single vs batched), one pinned device→host transfer, original sparse increment and native
-   hypothetical graph materialization.
+   hypothetical graph materialization. BatchNorm is folded into the convolutions of the F16
+   inference copy, and with `lanes>1` the per-query graphs of one call are replayed on separate
+   streams (independent graph copies; results bit-identical to one lane, tested).
 
 ## 5. Interface
 
