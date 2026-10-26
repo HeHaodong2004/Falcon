@@ -33,11 +33,12 @@ def inventory():
     for i, r in enumerate(rows):
         legal = read(DEV_ROOTS / r['root_id'] / 'legal_root.json.gz');h = legal['history']
         keys = {str(t['track_id']) for ob in h for t in positives(ob)}
-        meta.append(dict(index=i, root_id=r['root_id'], positive_episodes=len(keys),
+        meta.append(dict(index=i, root_id=r['root_id'], positive_episodes=len(keys), frames=len(h),
                          static_updates=sum(len(ob['static_updates']) for ob in h), cells=len(legal['partial_graph']['cells'])))
     representative = meta[:200]
     dense = sorted(meta, key=lambda r:(r['positive_episodes'], r['static_updates'], r['cells']), reverse=True)[:30]
-    return representative, dense
+    longest = sorted(meta, key=lambda r:(r['frames'], r['static_updates']), reverse=True)[:30]
+    return representative, dense, longest
 
 
 def stats(x):
@@ -60,10 +61,10 @@ def main():
     a = p.parse_args()
     torch.set_num_threads(1)
     out = Path(__file__).resolve().parents[2] / 'output/stage1_hwm/benchmark' / a.name;out.mkdir(parents=True, exist_ok=False)
-    rep, dense = inventory()
+    rep, dense, longest = inventory()
     t0 = time.perf_counter();model = HumanWorldModel(a.checkpoint, a.device);load_ms = (time.perf_counter() - t0) * 1000
     rows = [];startup = [];cand_rows = []
-    cohorts = [('representative', rep), ('dense', dense)]
+    cohorts = [('representative', rep), ('dense', dense), ('longest', longest)]
     for cohort, roots in cohorts:
         for meta in roots:
             folder = DEV_ROOTS / meta['root_id']
@@ -93,10 +94,10 @@ def main():
     summary = dict(checkpoint=a.checkpoint, checkpoint_sha256=model.checkpoint_sha256, device=a.device, worlds=a.worlds, times=64, horizon=3.,
                    threads=torch.get_num_threads(), load_ms=load_ms, platform=platform.processor() or platform.machine(),
                    load_average=os.getloadavg(),
-                   online={c: stats([r['ms'] for r in rows if r['cohort'] == c]) for c in ('representative', 'dense')},
-                   online_profile={c: {k: stats([r[k] for r in rows if r['cohort'] == c]) for k in ('state_ms', 'sample_ms', 'output_ms')} for c in ('representative', 'dense')},
-                   startup={c: stats([r['ms'] for r in startup if r['cohort'] == c]) for c in ('representative', 'dense')},
-                   candidates={'%s_K%d' % (c, K): stats([r['ms'] for r in cand_rows if r['cohort'] == c and r['K'] == K]) for c in ('representative', 'dense') for K in a.candidates},
+                   online={c: stats([r['ms'] for r in rows if r['cohort'] == c]) for c in ('representative', 'dense', 'longest')},
+                   online_profile={c: {k: stats([r[k] for r in rows if r['cohort'] == c]) for k in ('state_ms', 'sample_ms', 'output_ms')} for c in ('representative', 'dense', 'longest')},
+                   startup={c: stats([r['ms'] for r in startup if r['cohort'] == c]) for c in ('representative', 'dense', 'longest')},
+                   candidates={'%s_K%d' % (c, K): stats([r['ms'] for r in cand_rows if r['cohort'] == c and r['K'] == K]) for c in ('representative', 'dense', 'longest') for K in a.candidates},
                    scope='Complete online call: one new actual frame ingested from the pre-arrival state, features, network, 40-world sampling, 64-time world output. Excludes JSON decoding. Startup (full raw-history replay) reported separately.')
     (out / 'summary.json').write_text(json.dumps(summary, indent=1))
     np.save(out / 'rows.npy', np.asarray(dict(online=rows, startup=startup, candidates=cand_rows), dtype=object), allow_pickle=True)

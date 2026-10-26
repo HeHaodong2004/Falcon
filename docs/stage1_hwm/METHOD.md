@@ -51,8 +51,10 @@ For one anchor the model defines a complete law over the human population:
    position's map features.
 3. **Legal population constraint.** Humans persist in this simulator, so the total count is at
    least the maximum number ever detected simultaneously. The law is conditioned exactly on
-   this event (training likelihood subtracts `log P(total ≥ m)`; sampling uses exact
-   rejection; the reported count law is truncated and renormalized).
+   this event: the training likelihood subtracts `log P(total ≥ m)`; sampling draws the total
+   from the truncated count law and then key existences sequentially from suffix
+   Poisson-binomial ⊗ residual distributions (exact, never fails, unlike rejection when the
+   event is improbable); the reported count law is truncated and renormalized.
 4. **Speed bound.** The collector certifies a 3 m/s horizontal human speed bound; sampled
    constant-velocity segments are projected onto it.
 
@@ -97,3 +99,31 @@ All models are scored from saved world banks by identical code:
   within-Root pairwise ranking accuracy and Spearman correlation of expected minimum
   distance.
 * **Consistency**: fraction of worlds violating the historical count bound or the speed bound.
+
+## Deployment inference path (CPU, 1 thread)
+
+`api.HumanWorldModel` keeps one incremental `LegalState` per robot stream and, on CPU with the
+fast/lite architectures, runs `infer.FastSampler`:
+
+* one TorchScript module (raster resampling, BEV, key/global encoders, transformer, all heads)
+  bound to the non-profiling executor and warmed up at construction (no shape
+  re-specialisation stalls; the global executor mode is restored afterwards);
+* NumPy/numba sampling: fused path drawing (`kernels.draw_paths`), exact conditional
+  population sampling, residual cell sampling, exact count law;
+* numba visibility raycast and vectorised crops/recentring; a bitwise-identical
+  single-anchor feature builder (`data.collate_one`).
+
+Equivalence evidence: online features equal offline extraction (79 anchors); scripted engine
+equals the eager network to 4e-6; fused kernel equals NumPy to 5e-7; fast-path dev banks
+reproduce the batched torch sampler's metrics within Monte Carlo noise with identical exact
+count NLL. `predict_batch` serves many streams with one network call (GPU or CPU).
+
+## Sandbox interface
+
+`HumanWorlds` subclasses the legacy `JointHumanWorlds` (positions [W,T,N,2], present [W,N],
+times, uniform weights, track keys, residual flags) and adds the exact count law, per-key
+existence probabilities and the 0.25 s knots (`positions_at` is exact at any time).
+`evaluate_candidates(robot_paths)` scores K candidate robot trajectories with the one shared
+bank through the L2.5 `aggregate_joint` reduction (collision envelope, 1 m social events,
+first-event masses, minimum distances); humans are exogenous, so the bank is valid for every
+candidate.

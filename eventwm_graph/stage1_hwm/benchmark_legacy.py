@@ -34,9 +34,10 @@ def main():
     rows = [r for r in manifest['rows'] if r['split'] == 'dev'];meta = []
     for i, r in enumerate(rows):
         legal = read(roots / r['root_id'] / 'legal_root.json.gz');h = legal['history']
-        meta.append(dict(root_id=r['root_id'], positive_episodes=len({str(t['track_id']) for ob in h for t in positives(ob)}),
+        meta.append(dict(root_id=r['root_id'], positive_episodes=len({str(t['track_id']) for ob in h for t in positives(ob)}), frames=len(h),
                          static_updates=sum(len(ob['static_updates']) for ob in h), cells=len(legal['partial_graph']['cells'])))
-    cohorts = [('representative', meta[:200]), ('dense', sorted(meta, key=lambda r:(r['positive_episodes'], r['static_updates'], r['cells']), reverse=True)[:30])]
+    cohorts = [('representative', meta[:200]), ('dense', sorted(meta, key=lambda r:(r['positive_episodes'], r['static_updates'], r['cells']), reverse=True)[:30]),
+               ('longest', sorted(meta, key=lambda r:(r['frames'], r['static_updates']), reverse=True)[:30])]
     model = HistoryConditionedWorldModel(a.checkpoint)
     online = [];startup = []
     for cohort, roots_ in cohorts:
@@ -55,8 +56,8 @@ def main():
                 online.append(dict(cohort=cohort, ms=(time.perf_counter() - tick) * 1000, people=int(out.positions.shape[2])))
             gc.collect()
     summary = dict(model='legacy HistoryConditionedWorldModel', checkpoint=a.checkpoint, worlds=a.worlds, threads=torch.get_num_threads(), load_average=os.getloadavg(),
-                   online={c: stats([r['ms'] for r in online if r['cohort'] == c]) for c in ('representative', 'dense')},
-                   startup={c: stats([r['ms'] for r in startup if r['cohort'] == c]) for c in ('representative', 'dense')})
+                   online={c: stats([r['ms'] for r in online if r['cohort'] == c]) for c in ('representative', 'dense', 'longest')},
+                   startup={c: stats([r['ms'] for r in startup if r['cohort'] == c]) for c in ('representative', 'dense', 'longest')})
     out = Path(a.out);out.mkdir(parents=True, exist_ok=True)
     (out / 'summary.json').write_text(json.dumps(summary, indent=1))
     print(json.dumps(summary, indent=1))

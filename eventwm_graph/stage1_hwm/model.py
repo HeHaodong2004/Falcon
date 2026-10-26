@@ -372,6 +372,7 @@ class HWM(nn.Module):
             # Exact conditioning on the legal event total >= max simultaneous detections.
             total = total - log_tail(log_p.exp() * kmask, visible & kmask, log_count, b['min_count'])
         nll = -(total * usable).sum() / usable.sum().clamp_min(1)
+        self._debug = dict(total=total.detach(), usable=usable.detach())
         stats = dict(nll=nll.detach(), key_nll=-(fixed_ll.sum(1) * usable).sum().detach() / usable.sum().clamp_min(1),
                      usable=usable.float().mean().detach())
         return nll, stats
