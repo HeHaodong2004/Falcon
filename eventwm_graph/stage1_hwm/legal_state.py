@@ -22,6 +22,7 @@ STEPS = np.arange(0.15, RANGE + 1e-9, 0.15)
 AGE_STEP = 0.05       # visibility age quantum (s); 254 cap, 255 never seen
 ROBOT_LAGS = np.arange(9) * .25
 FREE, BLOCKED = 1, 2
+USE_KERNELS = False   # numba raycast (identical result); enabled by the online API
 
 
 def positives(frame):
@@ -104,14 +105,15 @@ class LegalState:
         self._recentre(float(pose[0]), float(pose[2]))
         updates = frame['static_updates']
         occupied = {tuple(u['cell']) for u in updates if u['state'] == BLOCKED}
+        fine = self.fine
         for u in updates:
             if u['source'] == 'occupied_ego_base_support':continue
             key = tuple(u['cell']);state = int(u['state'])
             if state == FREE and key in occupied:continue
-            old = self.fine.get(key)
+            old = fine.get(key)
             if old == state:continue
             if old is not None:self._count(key, old, -1)
-            self.fine[key] = state;self._count(key, state, 1)
+            fine[key] = state;self._count(key, state, 1)
         valid = frame.get('observation_valid', True) and frame.get('human_sensor_available', True)
         if frame.get('observation_valid', True):
             self._visibility(frame['camera_origin'], frame['camera_rotation'], t)
@@ -138,6 +140,12 @@ class LegalState:
         self.timestamp = t
 
     def _visibility(self, origin, rotation, t):
+        if USE_KERNELS:
+            from .kernels import raycast
+            yaw = camera_yaw(rotation);angles = yaw + RAYS
+            raycast(self.blocked, self.last_visible, float(origin[0]), float(origin[2]), np.cos(angles), np.sin(angles),
+                    STEPS, COARSE, int(self.origin[0]), int(self.origin[1]), np.float32(t))
+            return
         ox, oz = float(origin[0]), float(origin[2])
         yaw = camera_yaw(rotation)
         angles = yaw + RAYS
@@ -159,16 +167,24 @@ class LegalState:
         cx, cz = self._coarse_index(x, z)
         i0, j0 = cx - CROP // 2 - self.origin[0], cz - CROP // 2 - self.origin[1]
         corner = np.array([(cx - CROP // 2) * COARSE, (cz - CROP // 2) * COARSE], np.float64)
-        state = np.zeros((CROP, CROP), np.uint8);seen = np.full((CROP, CROP), -np.inf, np.float32)
-        a0, b0 = max(0, i0), max(0, j0);a1, b1 = min(GRID, i0 + CROP), min(GRID, j0 + CROP)
-        if a1 > a0 and b1 > b0:
-            blocked = self.blocked[a0:a1, b0:b1] > 0;free = self.free[a0:a1, b0:b1] > 0
-            state[a0 - i0:a1 - i0, b0 - j0:b1 - j0] = np.where(blocked, BLOCKED, np.where(free, FREE, 0))
-            seen[a0 - i0:a1 - i0, b0 - j0:b1 - j0] = self.last_visible[a0:a1, b0:b1]
-        pooled = seen.reshape(CROP // VIS_POOL, VIS_POOL, CROP // VIS_POOL, VIS_POOL).max((1, 3))
+        if 0 <= i0 and i0 + CROP <= GRID and 0 <= j0 and j0 + CROP <= GRID:   # usual case: no padding
+            blocked = self.blocked[i0:i0 + CROP, j0:j0 + CROP];free = self.free[i0:i0 + CROP, j0:j0 + CROP]
+            state = (free > 0).astype(np.uint8);state[blocked > 0] = BLOCKED
+            seen = self.last_visible[i0:i0 + CROP, j0:j0 + CROP]
+        else:
+            state = np.zeros((CROP, CROP), np.uint8);seen = np.full((CROP, CROP), -np.inf, np.float32)
+            a0, b0 = max(0, i0), max(0, j0);a1, b1 = min(GRID, i0 + CROP), min(GRID, j0 + CROP)
+            if a1 > a0 and b1 > b0:
+                blocked = self.blocked[a0:a1, b0:b1] > 0;free = self.free[a0:a1, b0:b1] > 0
+                state[a0 - i0:a1 - i0, b0 - j0:b1 - j0] = np.where(blocked, BLOCKED, np.where(free, FREE, 0))
+                seen[a0 - i0:a1 - i0, b0 - j0:b1 - j0] = self.last_visible[a0:a1, b0:b1]
+        assert VIS_POOL == 2   # 2x2 max pool via strided slices (exact, avoids a slow strided reduce)
+        pooled = np.maximum(np.maximum(seen[0::2, 0::2], seen[1::2, 0::2]), np.maximum(seen[0::2, 1::2], seen[1::2, 1::2]))
         age = self.timestamp - pooled
-        code = np.where(np.isfinite(age), np.minimum(254, np.round(age / AGE_STEP)), 255).astype(np.uint8)
-        return state, code, corner
+        with np.errstate(invalid='ignore'):
+            code = np.minimum(254, np.round(age / AGE_STEP))
+        code[~np.isfinite(age)] = 255
+        return state, code.astype(np.uint8), corner
 
     def robot_history(self):
         times = np.array([r[0] for r in self.robot]);rows = np.array([r[1:4] for r in self.robot])

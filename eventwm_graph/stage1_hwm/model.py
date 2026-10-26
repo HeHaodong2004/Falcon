@@ -64,8 +64,8 @@ class BEV(nn.Module):
         a = self.mix(torch.cat([x, v64], 1))
         b = self.d1(a);c = self.d2(b)
         pooled = torch.cat([c.mean((2, 3)), c.amax((2, 3))], 1)
-        u = self.u1(torch.cat([F.interpolate(c, scale_factor=2, mode='nearest'), b], 1))
-        f = self.u2(torch.cat([F.interpolate(u, scale_factor=2, mode='nearest'), a], 1))
+        u = self.u1(torch.cat([F.interpolate(c, scale_factor=2., mode='nearest'), b], 1))
+        f = self.u2(torch.cat([F.interpolate(u, scale_factor=2., mode='nearest'), a], 1))
         return f, pooled
 
 
@@ -99,8 +99,32 @@ class BEVFast(nn.Module):
         a = self.stem(torch.cat([m, v, coords], 1))
         b = self.d1(a);c = self.d2(b)
         pooled = torch.cat([c.mean((2, 3)), c.amax((2, 3))], 1)
-        u = self.u1(torch.cat([F.interpolate(c, scale_factor=2, mode='nearest'), b], 1))
-        f = self.u2(torch.cat([F.interpolate(u, scale_factor=2, mode='nearest'), a], 1))
+        u = self.u1(torch.cat([F.interpolate(c, scale_factor=2., mode='nearest'), b], 1))
+        f = self.u2(torch.cat([F.interpolate(u, scale_factor=2., mode='nearest'), a], 1))
+        return f, pooled
+
+
+class BEVLite(nn.Module):
+    """64x64 (0.4 m) rasters, one conv per scale: ~20 M MACs (~1/3 of ``BEVFast``)."""
+
+    def __init__(self, c=(12, 24, 32), out=24):
+        super().__init__()
+        self.stem = cbr(8, c[0])
+        self.d1 = nn.Sequential(cbr(c[0], c[1], s=2), cbr(c[1], c[1]))     # 32
+        self.d2 = nn.Sequential(cbr(c[1], c[2], s=2), cbr(c[2], c[2]))     # 16
+        self.u1 = nn.Sequential(nn.Conv2d(c[2] + c[1], c[1], 1), nn.ReLU(inplace=True))
+        self.u2 = nn.Sequential(nn.Conv2d(c[1] + c[0], out, 1), nn.ReLU(inplace=True))
+        self.pooled = 2 * c[2]
+
+    def forward(self, m, v):
+        B, _, H, W = m.shape
+        lin = torch.linspace(-1, 1, H, device=m.device)
+        coords = torch.stack(torch.meshgrid(lin, lin, indexing='ij'), 0)[None].expand(B, -1, -1, -1)
+        a = self.stem(torch.cat([m, v, coords], 1))
+        b = self.d1(a);c = self.d2(b)
+        pooled = torch.cat([c.mean((2, 3)), c.amax((2, 3))], 1)
+        u = self.u1(torch.cat([F.interpolate(c, scale_factor=2., mode='nearest'), b], 1))
+        f = self.u2(torch.cat([F.interpolate(u, scale_factor=2., mode='nearest'), a], 1))
         return f, pooled
 
 
@@ -190,12 +214,14 @@ class HWM(nn.Module):
     def __init__(self, d=128, modes=6, field=48, global_in=43, key_in=12, arch='full', truncate=False, ablate=()):
         super().__init__()
         self.arch = arch;self.truncate = truncate;self.ablate = tuple(ablate)
-        if arch == 'fast':
+        if arch == 'lite':
+            field = 24;self.bev = BEVLite(out=field);self.raster_spec = (64, .4)
+        elif arch == 'fast':
             field = 32;self.bev = BEVFast(out=field);self.raster_spec = (64, .4)
         else:
             self.bev = BEV(out=field);self.raster_spec = (128, .2)
         self.register_buffer('ahead', torch.tensor([[0., 0.], [.6, 0.], [1.2, 0.], [2., 0.], [3., 0.], [1., .8], [1., -.8], [-.8, 0.]]), persistent=False)
-        if arch == 'fast':
+        if arch in ('fast', 'lite'):
             self.hist = nn.Sequential(nn.Linear(4 * HISTORY, 64), nn.SiLU(), nn.Linear(64, 64))
         else:
             self.hist = nn.GRU(4, 64, batch_first=True)
@@ -207,9 +233,14 @@ class HWM(nn.Module):
         self.exist = nn.Sequential(nn.Linear(d, d), nn.SiLU(), nn.Linear(d, 1))
         self.count = nn.Sequential(nn.Linear(d, d), nn.SiLU(), nn.Linear(d, MAX_COUNT + 1))
         self.film = nn.Linear(d, 2 * field)
-        self.density = nn.Sequential(nn.Conv2d(field, field, 1), nn.SiLU(), nn.Conv2d(field, 1, 1))
+        if arch == 'lite':
+            self.density = nn.Conv2d(field, 1, 1)
+            self.register_buffer('around', torch.tensor([[0., 0.], [.8, 0.], [-.8, 0.], [0., .8], [0., -.8]]), persistent=False)
+        else:
+            self.density = nn.Sequential(nn.Conv2d(field, field, 1), nn.SiLU(), nn.Conv2d(field, 1, 1))
+            self.register_buffer('around', self.ahead.clone(), persistent=False)
         self.outside = nn.Linear(d, 1)
-        self.hidden_embed = nn.Sequential(nn.Linear(field * len(self.ahead) + 2 + d, d), nn.SiLU(), nn.Linear(d, d))
+        self.hidden_embed = nn.Sequential(nn.Linear(field * len(self.around) + 2 + d, d), nn.SiLU(), nn.Linear(d, d))
         self.hidden_traj = TrajectoryHead(d, modes)
         self.d = d;self.field = field
         self.register_buffer('inj', injections(L_MAX, P_MAX), persistent=False)
@@ -219,20 +250,20 @@ class HWM(nn.Module):
         if 'map' in self.ablate:m = torch.cat([torch.ones_like(m[:, :1]), torch.zeros_like(m[:, 1:])], 1)
         if 'map' in self.ablate or 'vis' in self.ablate:v = torch.cat([torch.ones_like(v[:, :1]), torch.zeros_like(v[:, 1:])], 1)
         f, pooled = self.bev(m, v)
-        B = f.shape[0]
+        B = f.shape[0];Kd = b['key_mask'].shape[1]
         g = self.glob(torch.cat([pooled, b['global']], -1))
         # key tokens
-        if self.arch == 'fast':
-            hh = self.hist(b['key_hist'].reshape(B, K_MAX, HISTORY * 4))
+        if self.arch in ('fast', 'lite'):
+            hh = self.hist(b['key_hist'].reshape(B, Kd, HISTORY * 4))
         else:
-            _, hh = self.hist(b['key_hist'].reshape(-1, HISTORY, 4));hh = hh[-1].reshape(B, K_MAX, 64)
+            _, hh = self.hist(b['key_hist'].reshape(-1, HISTORY, 4));hh = hh[-1].reshape(B, Kd, 64)
         vel = b['key_vel'];speed = vel.norm(dim=-1, keepdim=True)
         heading = torch.where(speed > .2, vel / speed.clamp_min(1e-6), torch.tensor([1., 0.], device=vel.device))
         normal = torch.stack([-heading[..., 1], heading[..., 0]], -1)
         ahead = self.ahead
         center = b['key_last'] + vel * b['key_age'][..., None].clamp(max=2.)
         pts = center[..., None, :] + ahead[:, :1] * heading[..., None, :] + ahead[:, 1:] * normal[..., None, :]
-        sf = sample_field(f, pts.reshape(B, -1, 2)).reshape(B, K_MAX, -1)
+        sf = sample_field(f, pts.reshape(B, -1, 2)).reshape(B, Kd, -1)
         keys = self.key_mlp(torch.cat([b['key_feat'], hh, sf], -1))
         tokens = torch.cat([g[:, None], keys], 1)
         mask = torch.cat([torch.zeros(B, 1, dtype=torch.bool, device=f.device), ~b['key_mask']], 1)
@@ -252,8 +283,7 @@ class HWM(nn.Module):
     def hidden_params(self, enc, pos):
         """Mixture for hidden humans at canonical positions pos [B,N,2]."""
         B, N = pos.shape[:2]
-        ahead = self.ahead
-        pts = pos[..., None, :] + ahead[None, None]
+        pts = pos[..., None, :] + self.around[None, None]
         sf = sample_field(enc['field'], pts.reshape(B, -1, 2)).reshape(B, N, -1)
         h = self.hidden_embed(torch.cat([sf, pos / 10, enc['global_token'][:, None].expand(-1, N, -1)], -1))
         zeros = torch.zeros_like(pos)
@@ -282,10 +312,11 @@ class HWM(nn.Module):
         # Displacements of every human relative to every key: [B,K,P,S,2]
         steps = hum[:, :, 1:] - hum[:, :, :-1]                               # [B,P,12,2]
         d0 = hum[:, None, :, 0] - b['key_last'][:, :, None]                  # [B,K,P,2]
-        disp = torch.cat([d0[..., None, :], steps[:, None].expand(-1, K_MAX, -1, -1, -1)], -2)
+        Kd = b['key_mask'].shape[1]
+        disp = torch.cat([d0[..., None, :], steps[:, None].expand(-1, Kd, -1, -1, -1)], -2)
         stale = (b['key_age'] > 1e-6).float()
         seg_mask = torch.cat([stale[..., None, None].expand(-1, -1, P_MAX, 1),
-                              tmask[:, None, None, 1:].expand(-1, K_MAX, P_MAX, -1)], -1)
+                              tmask[:, None, None, 1:].expand(-1, Kd, P_MAX, -1)], -1)
         kp_e = {k: v.unsqueeze(2) for k, v in kp.items()}                    # broadcast over P
         logq = mixture_logpdf(kp_e, disp, seg_mask)                          # [B,K,P]
         visible = ~(b['key_age'] > 1e-6)
@@ -342,3 +373,20 @@ class HWM(nn.Module):
         stats = dict(nll=nll.detach(), key_nll=-(fixed_ll.sum(1) * usable).sum().detach() / usable.sum().clamp_min(1),
                      usable=usable.float().mean().detach())
         return nll, stats
+
+
+def fold_batchnorm(module):
+    """Fuse eval-mode (Conv2d, BatchNorm2d) pairs in Sequentials (exact up to float rounding)."""
+    from torch.nn.utils.fusion import fuse_conv_bn_eval
+    for name, child in module.named_children():
+        if isinstance(child, nn.Sequential):
+            items = list(child);out = [];i = 0
+            while i < len(items):
+                if i + 1 < len(items) and isinstance(items[i], nn.Conv2d) and isinstance(items[i + 1], nn.BatchNorm2d):
+                    out.append(fuse_conv_bn_eval(items[i].eval(), items[i + 1].eval()));i += 2
+                else:
+                    fold_batchnorm(items[i]);out.append(items[i]);i += 1
+            setattr(module, name, nn.Sequential(*out))
+        else:
+            fold_batchnorm(child)
+    return module

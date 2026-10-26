@@ -29,6 +29,11 @@ def main(checkpoint):
         st = single.streams[q['stream']];ref = collate(_LiveStore(st.state, st.episode_start), [0])
         for f in FIELDS:
             assert np.allclose(np.asarray(ref[f], np.float64)[0], np.asarray(multi[f], np.float64)[j], atol=1e-6), (j, f)
+        for o in (outs[j], one):   # batched torch sampler and single-call CPU fast path
+            assert o.positions.shape[:2] == (40, 64) and (o.present.sum(1) >= o.minimum_count).all()
+            assert abs(np.logaddexp.reduce(o.count_log_probability)) < 1e-9
+            step = np.linalg.norm(np.diff(o.knots, axis=2), axis=-1) / .25
+            assert (step[o.present] <= 3. * (1 + 1e-5)).all(), step[o.present].max()
         o = outs[j]
         assert o.track_keys[:len([k for k in one.track_keys if k.startswith('track:')])] == tuple(k for k in one.track_keys if k.startswith('track:'))
         assert o.positions.shape[:2] == (40, 64) and (o.present.sum(1) >= o.minimum_count).all()

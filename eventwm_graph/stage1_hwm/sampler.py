@@ -40,8 +40,9 @@ def draw_mixture(p, worlds, generator, zero_first):
 
 def count_log_law(exist_p, visible, key_mask, log_count, minimum=None, size=24):
     """Exact log P(total count = c), c < size: visible + Poisson-binomial(stale) + residual (float64 numpy)."""
-    p = exist_p.detach().cpu().numpy().astype(np.float64);vis_m = visible.cpu().numpy();km = key_mask.cpu().numpy()
-    res = np.exp(log_count.detach().cpu().numpy().astype(np.float64))
+    as_np = lambda x:x.detach().cpu().numpy() if isinstance(x, torch.Tensor) else np.asarray(x)
+    p = as_np(exist_p).astype(np.float64);vis_m = as_np(visible).astype(bool);km = as_np(key_mask).astype(bool)
+    res = np.exp(as_np(log_count).astype(np.float64))
     B, K = p.shape
     stale = np.where(km & ~vis_m, p, 0.)
     pb = np.zeros((B, size));pb[:, 0] = 1.
@@ -124,7 +125,8 @@ def sample(net, b, worlds, generator, max_hidden=MAX_COUNT):
     else:
         knots, present = key_knots, key_present
     count_logp = count_log_law(p_exist, visible, b['key_mask'], log_count, b['min_count'].cpu().numpy())
-    return dict(knots=knots, present=present, n_keys=K, count_logp=count_logp, p_exist=p_exist)
+    expected_residual = (log_count.exp() * torch.arange(log_count.shape[1], device=device)).sum(1).cpu().numpy()
+    return dict(knots=knots, present=present, n_keys=K, count_logp=count_logp, p_exist=p_exist, expected_residual=expected_residual)
 
 
 def interpolate(knots, times):

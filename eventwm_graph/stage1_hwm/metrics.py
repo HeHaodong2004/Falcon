@@ -130,6 +130,13 @@ def score(bank_dir, out, name, set_score=True, limit=0):
                                       error=distance / np.sqrt(len(timeidx)), radius90=radius / np.sqrt(len(timeidx))))
                 x = draws.reshape(W, -1);center = x.mean(0);radii = np.linalg.norm(x - center, axis=-1)
                 dist = np.linalg.norm(y.ravel() - center)
+                # Self-referenced coverage: leave world k out as pseudo-truth (the expected Coverage90 of a
+                # perfectly calibrated 39-world bank for this case) versus truth against the same 39 worlds.
+                obs = [];ref = []
+                for k in range(8):
+                    rest = np.delete(x, k, 0);c = rest.mean(0);q = np.quantile(np.linalg.norm(rest - c, axis=-1), .9)
+                    obs.append(np.linalg.norm(y.ravel() - c) <= q);ref.append(np.linalg.norm(x[k] - c) <= q)
+                path_rows[-1].update(cov90_obs39=float(np.mean(obs)), cov90_self39=float(np.mean(ref)))
                 for lv in LEVELS:cov_levels[(h, base['visible'], lv)].append(float(dist <= np.quantile(radii, lv)))
                 joint_draw.append(draws);joint_truth.append(y)
             if joint_draw:
@@ -297,7 +304,9 @@ def summarise(name, path_rows, pop_rows, risk_rows, occ_rows, rel, cov_levels, o
     for group, pred in [('all', lambda r:True), ('visible', lambda r:r.get('visible')), ('practical_gap', lambda r:r.get('practical_gap')),
                         ('reappearance', lambda r:r.get('reappearance'))]:
         part = [r for r in path_rows if pred(r)]
-        groups[group] = {k: summarize(part, k) for k in ('path_es', 'coverage90', 'joint_es', 'joint_coverage90', 'error', 'radius90')}
+        groups[group] = {k: summarize(part, k) for k in ('path_es', 'coverage90', 'joint_es', 'joint_coverage90', 'error', 'radius90',
+                                                       'cov90_obs39', 'cov90_self39')}
+        groups[group]['cov90_gap'] = summarize([dict(r, g=r['cov90_obs39'] - r['cov90_self39']) for r in part if 'cov90_obs39' in r], 'g')
     groups['horizons'] = {str(h): {k: summarize([r for r in path_rows if r.get('horizon') == h], k) for k in ('path_es', 'coverage90', 'joint_es')} for h in HORIZONS}
     ages = {'current': lambda a:a < 1e-7, '(0,.75)': lambda a:1e-7 <= a < .75 - 1e-7, '[.75,1.25]': lambda a:.75 - 1e-7 <= a <= 1.25 + 1e-7,
             '(1.25,3]': lambda a:1.25 + 1e-7 < a <= 3, '>3': lambda a:a > 3}

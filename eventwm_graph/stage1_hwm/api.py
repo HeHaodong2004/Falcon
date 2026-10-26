@@ -22,7 +22,7 @@ import torch
 
 from .legal_state import LegalState, camera_yaw, HISTORY
 from .data import collate, to_torch
-from .model import HWM, STEP, SEGMENTS
+from .model import HWM, STEP, SEGMENTS, fold_batchnorm
 from .sampler import sample
 from eventwm_graph.l2_two_stage.types import JointHumanWorlds
 
@@ -56,7 +56,7 @@ class HumanWorlds(JointHumanWorlds):
 
     Inherited fields: timestamp, times [T] (relative s), weights [W], positions [W,T,N,2]
     world XZ, present [W,N], track_keys, unseen [N] (residual slots), poisson_rate (here:
-    expected residual count in the bank), support, minimum_count (legal lower bound
+    the model's expected residual count before the legal truncation), support, minimum_count (legal lower bound
     enforced exactly), law (None: the law is the network + this sampler), version.
     """
     count_log_probability: np.ndarray = None   # exact log P(total present = c), c = 0..23
@@ -119,7 +119,15 @@ class HumanWorldModel:
         state = torch.load(checkpoint, map_location='cpu')
         self.network = HWM(**state['config'].get('model', {}))
         self.network.load_state_dict(state['model']);self.network.eval().requires_grad_(False)
+        if self.network.arch in ('fast', 'lite'):fold_batchnorm(self.network)
         self.device = torch.device(device);self.network.to(self.device)
+        # CPU deployment path: one TorchScript engine + NumPy sampling (same law, fewer dispatches).
+        from . import legal_state
+        legal_state.USE_KERNELS = True   # numba raycast: identical visibility raster (tested), fewer dispatches
+        self.fast = None
+        if self.device.type == 'cpu' and self.network.arch in ('fast', 'lite'):
+            from .infer import FastSampler
+            self.fast = FastSampler(self.network)
         self.checkpoint_sha256 = hashlib.sha256(open(checkpoint, 'rb').read()).hexdigest()
         self.streams = {}
         self.last_profile = {}
@@ -155,15 +163,20 @@ class HumanWorldModel:
             st.sync(frames, resolution);streams.append(st)
             lives.append(_LiveStore(st.state, st.episode_start))
         synced = time.perf_counter()
-        batch = to_torch(collate(_MultiStore(lives) if len(lives) > 1 else lives[0], np.arange(len(lives))), self.device)
+        batch = to_torch(collate(_MultiStore(lives) if len(lives) > 1 else lives[0], np.arange(len(lives)), trim=True), self.device)
         if seed is None:
             h = hashlib.sha256(b'stage1-hwm-1')
             for st, live in zip(streams, lives):
                 h.update(np.float64(st.state.timestamp).tobytes());h.update(live.a['robot'].tobytes())
                 for k in ('last', 'last_t'):h.update(np.ascontiguousarray(live.k['k_' + k]).tobytes())
             seed = int.from_bytes(h.digest()[:8], 'little')
-        g = torch.Generator(device=self.device);g.manual_seed(int(seed) % (2 ** 63))
-        out = sample(self.network, batch, worlds, g)
+        if self.fast is not None and len(requests) == 1:
+            out = self.fast(batch, worlds, np.random.default_rng(int(seed) % (2 ** 63)))
+            out = dict(out, knots=torch.from_numpy(out['knots'][None]), present=torch.from_numpy(out['present'][None]),
+                       p_exist=torch.from_numpy(np.asarray(out['p_exist'])[None]), count_logp=out['count_logp'][None])
+        else:
+            g = torch.Generator(device=self.device);g.manual_seed(int(seed) % (2 ** 63))
+            out = sample(self.network, batch, worlds, g)
         sampled = time.perf_counter()
         if times is None:times = np.linspace(0., float(horizon), 64)
         times = np.asarray(times, np.float64)
@@ -174,16 +187,16 @@ class HumanWorldModel:
         results = []
         for j, (st, live) in enumerate(zip(streams, lives)):
             col = cols[j];n_keys = len(live.keys)
-            order = [int(np.flatnonzero(col == i)[0]) for i in range(n_keys) if np.any(col == i)]
-            hidden = [c for c in range(K, all_knots.shape[2]) if all_present[j, :, c].any()]
-            keep = order + hidden
+            slots = np.flatnonzero(col >= 0);order = slots[np.argsort(col[slots], kind='stable')]
+            hidden = K + np.flatnonzero(all_present[j, :, K:].any(0))
+            keep = np.r_[order, hidden].astype(int)
             knots = np.einsum('ji,...j->...i', rots[j], all_knots[j][:, keep]) + origins[j]
             present = all_present[j][:, keep]
             positions = (knots[:, :, si] + fr[None, None, :, None] * (knots[:, :, si + 1] - knots[:, :, si])).transpose(0, 2, 1, 3)
             keys = tuple('track:' + live.keys[int(col[i])] for i in order) + tuple('residual:%d' % i for i in range(len(hidden)))
             result = HumanWorlds(float(st.state.timestamp), times, np.full(worlds, 1. / worlds), positions, present, keys,
                                  np.r_[np.zeros(len(order), bool), np.ones(len(hidden), bool)],
-                                 float(present[:, len(order):].sum(1).mean()) if hidden else 0.,
+                                 float(out['expected_residual'][j]),
                                  ('IID_JOINT_WORLDS', 'TRACK_KEYS_ARE_NOT_IDENTITIES', 'UNKNOWN_GEOMETRY_LEARNED_PRIOR',
                                   'MONTE_CARLO_BANK_NOT_SAFETY_CERTIFICATE', 'HUMANS_EXOGENOUS_TO_ROBOT'),
                                  int(st.state.max_simultaneous), None, VERSION, out['count_logp'][j], p_all[j][order], knots).validate()

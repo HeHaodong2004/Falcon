@@ -80,7 +80,7 @@ def canon(points, origin, rot):
 IGNORED = 3   # ablation only: unresolved key excluded from the likelihood
 
 
-def collate(store, idx, flip=None, hard_labels=False):
+def collate(store, idx, flip=None, hard_labels=False, trim=False):
     """Padded numpy batch in the canonical frame. ``flip``: per-anchor reflection v->-v.
 
     ``hard_labels`` (ablation): replace the latent assignment of unresolved keys by the
@@ -109,6 +109,8 @@ def collate(store, idx, flip=None, hard_labels=False):
     batch['global'] = glob_feat.astype(np.float32)
     # Keys.
     K = K_MAX
+    if trim:   # inference: only as many key slots as the batch really has (>=1)
+        K = int(max(1, min(K_MAX, max(store.key_off[i + 1] - store.key_off[i] for i in idx))))
     kf = np.zeros((B, K, 12), np.float32);kmask = np.zeros((B, K), bool);khist = np.zeros((B, K, HISTORY, 4), np.float32)
     klast = np.zeros((B, K, 2), np.float32);kvel = np.zeros((B, K, 2), np.float32);kage = np.zeros((B, K), np.float32)
     ktype = np.full((B, K), -1, np.int64);kown = np.full((B, K), -1, np.int64);kcol = np.full((B, K), -1, np.int64)

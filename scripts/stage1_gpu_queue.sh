@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GPU queue (one Stage 1 job at a time on the session's GPU): score hwm_a, then train/score hwm_fast_t.
+# GPU queue (one Stage 1 job at a time on the session's GPU): score hwm_a, then train/score hwm_lite_t, hwm_fast_t.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 PY=/home/haodong/miniforge3/envs/eventwm-falcon/bin/python
@@ -11,6 +11,9 @@ score() {
 }
 wait_for hwm_a
 score hwm_a &
+$RUN eventwm_graph.stage1_hwm.train hwm_lite_t --arch lite --truncate --epochs 6 --batch 128 --device cuda:0 --workers 8 --val-every 3000 > output/logs/train_hwm_lite_t.log 2>&1
+wait
+score hwm_lite_t &
 $RUN eventwm_graph.stage1_hwm.train hwm_fast_t --arch fast --truncate --epochs 6 --batch 128 --device cuda:0 --workers 8 --val-every 3000 > output/logs/train_hwm_fast_t.log 2>&1
 wait
 score hwm_fast_t

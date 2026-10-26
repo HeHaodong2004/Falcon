@@ -22,6 +22,8 @@ ROWS = [
     ('Cov90 all', ('paths', 'all', 'coverage90', 'mean')), ('Cov90 visible', ('paths', 'visible', 'coverage90', 'mean')),
     ('Cov90 gap', ('paths', 'practical_gap', 'coverage90', 'mean')), ('Cov90 reappear', ('paths', 'reappearance', 'coverage90', 'mean')),
     ('joint Cov90', ('paths', 'all', 'joint_coverage90', 'mean')),
+    ('Cov90 obs-self gap all', ('paths', 'all', 'cov90_gap', 'mean')), ('Cov90 obs-self gap visible', ('paths', 'visible', 'cov90_gap', 'mean')),
+    ('Cov90 obs-self gap gap', ('paths', 'practical_gap', 'cov90_gap', 'mean')), ('Cov90 self-ref all', ('paths', 'all', 'cov90_self39', 'mean')),
     ('count NLL', ('population', 'all', 'count_nll', 'mean')), ('count RPS', ('population', 'all', 'count_rps', 'mean')),
     ('occ Brier 2m', ('population', 'all', 'occupancy_brier', 'mean')), ('joint set kernel', ('population', 'all', 'joint_set_kernel', 'mean')),
     ('count NLL valid-empty', ('population', 'valid_empty', 'count_nll', 'mean')),
