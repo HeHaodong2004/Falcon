@@ -30,7 +30,8 @@ QUERY_CHANNELS = ['probe_known', 'probe_possible', 'probe_best_visible', 'probe_
                   'wall_known', 'wall_after_unknown', 'wall_unknown_traversal', 'wall_free_traversal',
                   'pose_cells', 'start_cell', 'end_cell', 'probe_unknown_depth', 'probe_unknown_depth_max',
                   'wall_unknown_entry', 'probe_possible_poses', 'probe_known_poses',
-                  'query_poses', 'query_duration', 'query_length', 'wall_hit_distance', 'human_future', 'frame_valid']
+                  'query_poses', 'query_duration', 'query_length', 'wall_hit_distance', 'human_future', 'wall_unknown_hit',
+                  'frame_valid']
 VALID = len(QUERY_CHANNELS)-1
 
 
@@ -119,7 +120,7 @@ def past_channels(ctx, out):
                                      t_frames, t_floor, ct.c_float(.15 if ctx.sub == 1 else .09), ct.c_float(.1 if ctx.sub == 1 else .06),
                                      ct.c_int(Hp), ct.c_int(Wp), ct.c_int(C), ct.c_int(0), buf], 128)
     wall = torch.zeros((1, 4, Hp, Wp), dtype=torch.float32, device=dev)
-    trav = torch.zeros((4, Hp, Wp), dtype=torch.int32, device=dev)
+    trav = torch.zeros((5, Hp, Wp), dtype=torch.int32, device=dev)
     trav[3] = 2**30
     m.launch('wall_frame', P*105, [t_cams, t_wq, t_wy, ct.c_int(P), ctx.vm.vol, ctx.vm.state, t_frames, ct.c_int(Hp), ct.c_int(Wp),
                                    ct.c_int(4), ct.c_int(0), wall, ct.c_float(WALL_GAP), ct.c_float(WALL_OFFSET/ctx.sub), trav, ct.c_int(1)], 128)
@@ -214,14 +215,15 @@ def build_inputs(ctx, paths, frames, pad=16):
                                            ct.c_int(Hp), ct.c_int(Wp), ct.c_int(C),
                                            ct.c_int(nm), x], 128)
         wcams = t_cams.view(-1, 12)[t_pl.long()].contiguous()
-        traversal = torch.zeros((4*q, Hp, Wp), dtype=torch.int32, device=dev)
-        traversal[3*q:] = 2**30
+        traversal = torch.zeros((5*q, Hp, Wp), dtype=torch.int32, device=dev)
+        traversal[3*q:4*q] = 2**30
         m.launch('wall_frame', len(pose_list)*105, [wcams, t_wq, t_wy, ct.c_int(len(pose_list)), ctx.vm.vol, ctx.vm.state, t_frames,
                                                      ct.c_int(Hp), ct.c_int(Wp), ct.c_int(C), ct.c_int(nm+8), x,
                                                      ct.c_float(WALL_GAP), ct.c_float(WALL_OFFSET/ctx.sub), traversal, ct.c_int(q)], 128)
         x[:, nm+10:nm+12] = torch.clamp(traversal[:2*q].view(q, 2, Hp, Wp).float()*(1./(4096.*105*.5)), max=4.)
         x[:, nm+17] = torch.log1p(traversal[2*q:3*q].float())*.5
-        x[:, nm+23] = torch.clamp(traversal[3*q:].float()*1e-4, max=.45)/.45
+        x[:, nm+23] = torch.clamp(traversal[3*q:4*q].float()*1e-4, max=.45)/.45
+        x[:, nm+QUERY_CHANNELS.index('wall_unknown_hit')] = torch.log1p(traversal[4*q:].float()*(1./4096.))
     if nh:
         t_dur = tf[o:o+q]; o += q
         t_motion = tf[o:o+6*nh]; o += 6*nh

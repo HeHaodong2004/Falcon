@@ -412,6 +412,10 @@ extern "C" __global__ void wall_frame(const float* cams,const int* pose_query,co
         atomicAdd(traversal+((long long)q*2+(s==0?0:1))*plane+cell,units);
         // First entry of this ray into UNKNOWN space (wall band).
         if(s==0&&!entered){entered=true;atomicAdd(traversal+(2LL*Q+q)*plane+cell,1u);}
+        // Expected first-hit density in UNKNOWN space under an exponential free
+        // path (1 m) in unknown length: P(survive so far)*P(hit in segment).
+        if(s==0){float w=__expf(-ulen)*(1.f-__expf(-seg));
+          atomicAdd(traversal+(4LL*Q+q)*plane+cell,(unsigned int)lrintf(w*4096.f));}
       }
     }
     if(s==0)ulen+=seg;
