@@ -1,0 +1,211 @@
+{
+  "role": "Measured reconstruction on training data, not a generalization or acceptance result. Original full candidate cells and all848windows retained.",
+  "source_commit": "b4c7e238",
+  "measurements": [
+    {
+      "checkpoint_sha256": "41602272b9b5a4a7355f97508de8585c0465ff59d82282cf8a50a8a2038a5218",
+      "snapshot_sha256": "8ab5a6e31d34d69bcbd1c55f5553313479b3851a0fb89cfcb854cb797f053aaf",
+      "sensor_pixels": 128,
+      "roots": 32,
+      "scenes": 27,
+      "windows": 848,
+      "hierarchical": {
+        "unknown": {
+          "precision": 0.9963568598546398,
+          "recall": 0.9984586569061297,
+          "f1": 0.9974066511223932
+        },
+        "free": {
+          "precision": 0.6343643805853794,
+          "recall": 0.659245682796475,
+          "f1": 0.6465657481474375
+        },
+        "blocked": {
+          "precision": 0.7459754887977492,
+          "recall": 0.44056704046498996,
+          "f1": 0.553966175259234
+        },
+        "label_aware_delta_iou": 0.41950389930139764,
+        "revelation_iou": 0.4697139651103637,
+        "missed_revelations": 131.50711020800497,
+        "incorrect_free_blocked": 12.475299001625736,
+        "false_revelations": 55.52102889396994,
+        "terminal_label_agreement_on_true_revelations": 0.5154911844757247,
+        "revelation_precision": 0.7489846899501946,
+        "revelation_recall": 0.5574712595124505,
+        "revelation_f1": 0.6391909939769701,
+        "false_revelation_rate": 0.0015413430938703528,
+        "wrong_free_blocked_rate": 0.041980075036725815,
+        "false_free_unknown_count": 29.975066280136936,
+        "false_free_blocked_count": 8.713280856609222,
+        "false_free_unknown_fraction": 0.28328819237466013,
+        "false_free_blocked_fraction": 0.0823474270399605,
+        "false_free_on_actual_blocked_rate": 0.044602467518785
+      },
+      "pooled": {
+        "unknown": {
+          "precision": 0.9959166831785949,
+          "recall": 0.9981852426454553,
+          "f1": 0.997049672516086
+        },
+        "free": {
+          "precision": 0.6252060485369363,
+          "recall": 0.6688957755667917,
+          "f1": 0.6463134151206371
+        },
+        "blocked": {
+          "precision": 0.7602715673650943,
+          "recall": 0.4638765036577527,
+          "f1": 0.5761919245684739
+        },
+        "label_aware_delta_iou": 0.4322982395581636,
+        "revelation_iou": 0.4838673685415117,
+        "missed_revelations": 124987.0,
+        "incorrect_free_blocked": 12585.0,
+        "false_revelations": 55422.0,
+        "terminal_label_agreement_on_true_revelations": 0.5322557612930865,
+        "revelation_precision": 0.7531896701446874,
+        "revelation_recall": 0.575044709946348,
+        "revelation_f1": 0.6521706438185285,
+        "false_revelation_rate": 0.0018147573545446865,
+        "wrong_free_blocked_rate": 0.04278894865326162,
+        "false_free_unknown_count": 30001.0,
+        "false_free_blocked_count": 9334.0,
+        "false_free_unknown_fraction": 0.28585720955493515,
+        "false_free_blocked_fraction": 0.08893674190812856,
+        "false_free_on_actual_blocked_rate": 0.04761710420258951
+      },
+      "pooled_confusion": [
+        [
+          30484198,
+          30001,
+          25421
+        ],
+        [
+          29229,
+          65616,
+          3251
+        ],
+        [
+          95758,
+          9334,
+          90930
+        ]
+      ]
+    },
+    {
+      "checkpoint_sha256": "41602272b9b5a4a7355f97508de8585c0465ff59d82282cf8a50a8a2038a5218",
+      "snapshot_sha256": "8ab5a6e31d34d69bcbd1c55f5553313479b3851a0fb89cfcb854cb797f053aaf",
+      "sensor_pixels": 256,
+      "roots": 32,
+      "scenes": 27,
+      "windows": 848,
+      "hierarchical": {
+        "unknown": {
+          "precision": 0.9965468360486174,
+          "recall": 0.9985953087207563,
+          "f1": 0.9975700207703195
+        },
+        "free": {
+          "precision": 0.6603811524863265,
+          "recall": 0.6575022669427608,
+          "f1": 0.6589385652854345
+        },
+        "blocked": {
+          "precision": 0.766489128745317,
+          "recall": 0.47771216330208144,
+          "f1": 0.5885883292050206
+        },
+        "label_aware_delta_iou": 0.4451514978056988,
+        "revelation_iou": 0.4961003677351349,
+        "missed_revelations": 124.64279818435968,
+        "incorrect_free_blocked": 12.2606645713083,
+        "false_revelations": 50.59866645664718,
+        "terminal_label_agreement_on_true_revelations": 0.5393122330357305,
+        "revelation_precision": 0.7732300869255914,
+        "revelation_recall": 0.5805700512761249,
+        "revelation_f1": 0.6631912917529115,
+        "false_revelation_rate": 0.0014046912792437998,
+        "wrong_free_blocked_rate": 0.0412578182403944,
+        "false_free_unknown_count": 25.985672215766172,
+        "false_free_blocked_count": 8.44278346283838,
+        "false_free_unknown_fraction": 0.25633517030713066,
+        "false_free_blocked_fraction": 0.08328367720654298,
+        "false_free_on_actual_blocked_rate": 0.04321781672901636
+      },
+      "pooled": {
+        "unknown": {
+          "precision": 0.9961085408330079,
+          "recall": 0.9983323302647512,
+          "f1": 0.9972191957930391
+        },
+        "free": {
+          "precision": 0.6480352973764394,
+          "recall": 0.6677744250530093,
+          "f1": 0.6577568028918566
+        },
+        "blocked": {
+          "precision": 0.7778463017099836,
+          "recall": 0.49544438889512404,
+          "f1": 0.6053285215207073
+        },
+        "label_aware_delta_iou": 0.45497757621708124,
+        "revelation_iou": 0.5072018965477267,
+        "missed_revelations": 119109.0,
+        "incorrect_free_blocked": 12385.0,
+        "false_revelations": 50930.0,
+        "terminal_label_agreement_on_true_revelations": 0.5529209364948762,
+        "revelation_precision": 0.7745851756447537,
+        "revelation_recall": 0.5950298859641369,
+        "revelation_f1": 0.6730377631682681,
+        "false_revelation_rate": 0.0016676697352488341,
+        "wrong_free_blocked_rate": 0.04210894946926064,
+        "false_free_unknown_count": 26505.0,
+        "false_free_blocked_count": 9073.0,
+        "false_free_unknown_fraction": 0.2622076688694551,
+        "false_free_blocked_fraction": 0.0897570337541055,
+        "false_free_on_actual_blocked_rate": 0.04628562100172429
+      },
+      "pooled_confusion": [
+        [
+          30488690,
+          26505,
+          24425
+        ],
+        [
+          29278,
+          65506,
+          3312
+        ],
+        [
+          89831,
+          9073,
+          97118
+        ]
+      ]
+    }
+  ],
+  "interpretation": "This fixed training diagnostic is also below0.50 and does not show a large held-out gap. Different scene/window cohorts prevent treating the training-versus-dev difference as causal evidence. Small24-examplefitscanreach0.90, so the data pipeline canfit; optimizing many-window reconstruction/representation remains necessary.",
+  "coarse_context_diagnostic": {
+    "role": "Descriptive original-cell analysis on62archived real pilot examples, not full-development causal evidence. Coarse blocks equal current192-map2x2original-cell grouping. Mixed supervision is not proof that context pooling causes the error; exact per-cell range/point features also exist.",
+    "counts": {
+      "windows": 62,
+      "rows": 2255058,
+      "true_positive_rows": 12570,
+      "total_cell_errors": 7644,
+      "mixed_block_rows": 7501,
+      "mixed_block_true_rows": 3424,
+      "mixed_block_errors": 2087,
+      "mixed_block_missed_new": 1669,
+      "mixed_block_false_new": 377,
+      "mixed_block_wrong_type": 41
+    },
+    "fraction_of_errors_in_mixed_blocks": 0.2730245944531659
+  },
+  "bilinear_frozen_model": {
+    "label_iou": 0.45345576322161957,
+    "revelation_iou": 0.5058246688157761,
+    "reference_label_iou": 0.4532446763805423,
+    "interpretation": "Tiny frozen-weight difference; not evidence of a material fix. No bilinear training selected."
+  }
+}

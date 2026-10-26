@@ -31,6 +31,12 @@ def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=F
         if implementation in ['shared-sensor','shared-fast-build']:
             from .shared_sensor_api import SharedSensorPredictor,SharedFastBuildPredictor
             return SharedSensorPredictor if implementation=='shared-sensor'else SharedFastBuildPredictor
+        if implementation=='bilinear-context':
+            from .bilinear_context import BilinearPredictor
+            return BilinearPredictor
+        if implementation=='plane3mm':
+            from .shared_sensor_api import Plane3mmPredictor
+            return Plane3mmPredictor
         if implementation in ['tile8','tile8-fast-point']:
             from .tile8_api import Tile8Predictor,FastPointTile8Predictor
             return Tile8Predictor if implementation=='tile8'else FastPointTile8Predictor
@@ -79,4 +85,4 @@ def predictor_class(spatial=False,proxy=False,radix=False,ray=False,exact_fast=F
 
 
 def add_exact_options(parser):
-    parser.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns','full-history','fast-point','native-triangle','shared-sensor','shared-fast-build','tile8','tile8-fast-point','captured-pipeline','ray-residual','initial-visibility']);parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')
+    parser.add_argument('--implementation',choices=['optix-leaf','optix-triangle','gpu-candidates','fully-device','device-pipeline','fast-pipeline','fast-columns','full-history','fast-point','native-triangle','shared-sensor','shared-fast-build','bilinear-context','plane3mm','tile8','tile8-fast-point','captured-pipeline','ray-residual','initial-visibility']);parser.add_argument('--exact-fast',action='store_true');parser.add_argument('--device-canvas',action='store_true');parser.add_argument('--batched',action='store_true')

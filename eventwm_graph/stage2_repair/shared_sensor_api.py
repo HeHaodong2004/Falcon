@@ -43,7 +43,7 @@ class SharedSensorPredictor(NativeTrianglePredictor):
         super().__init__(*args,**kwargs);self.canvas=SharedSensorCanvas(self.edt)
 
     def _make_mesh(self,ranges,origins,rotations,timestamps,now,resolution,tracks):
-        buffers=SensorBuffers(ranges,origins,rotations,self.device);mesh=PlanarRangeMesh(ranges,origins,rotations,timestamps,now,resolution,self.device,tracks=tracks,bvh='native',input_buffers=buffers);mesh.input_buffers=buffers;self.range_kernel.module.backend.prepare(mesh);return mesh
+        buffers=SensorBuffers(ranges,origins,rotations,self.device);mesh=PlanarRangeMesh(ranges,origins,rotations,timestamps,now,resolution,self.device,tracks=tracks,bvh='native',input_buffers=buffers,epsilon=getattr(self,'plane_epsilon',.00005));mesh.input_buffers=buffers;self.range_kernel.module.backend.prepare(mesh);return mesh
 
     def _encoded_map(self,details):
         self.canvas.input_buffers=self.active_mesh.input_buffers
@@ -51,3 +51,11 @@ class SharedSensorPredictor(NativeTrianglePredictor):
 
 
 class SharedFastBuildPredictor(SharedSensorPredictor):primitive_mode='native-fast'
+
+
+class Plane3mmPredictor(SharedFastBuildPredictor):
+    plane_epsilon=.003
+    def predict_segments(self,**kwargs):
+        results=super().predict_segments(**kwargs)
+        for d in results:d['provenance']['range_mesh_approximation']='All original input pixels tested. Merge4x4measured patches only when allpoints lie within3mm of the cornerreferenceplane; depth holes and0.3m edge guard retained. Numerical approximation, not certificate target change.'
+        return results

@@ -20,5 +20,6 @@ class NativeTrianglePredictor(ColumnPreparedPipelinePredictor):
 
     def predict_segments(self,**kwargs):
         results=super().predict_segments(**kwargs)
+        self.last_batch_profile.update(mesh_triangles=self.active_mesh.triangles,mesh_prepare_seconds=self.active_mesh.prepare_seconds)
         for d in results:d['provenance']['measured_surface_intersection']='Native hardware triangles; all legal measured pixels/triangles, no redundant software BVH. Native edge tolerance differs from custom padded intersection.'
         return results
