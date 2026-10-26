@@ -17,9 +17,12 @@ OUTSIDE_RADII = (13., 25.)
 MAX_SPEED = 3.0
 
 
-def draw_mixture(p, worlds, generator, zero_first):
-    """p: params with leading [B,N]; returns knots [B,W,N,SEGMENTS,2] (knot 0 = segment-0 endpoint offset)."""
-    mu, sigma, L, logits = p['mu'], p['sigma'], p['L'], p['logits']
+def draw_mixture(p, worlds, generator, zero_first, temp=1., scale=1.):
+    """p: params with leading [B,N]; returns knots [B,W,N,SEGMENTS,2] (knot 0 = segment-0 endpoint offset).
+
+    ``temp``/``scale``: declared post-hoc sampling recalibration (mode-logit temperature and
+    within-mode spread scale for sigma and the shared offset); identity by default."""
+    mu, sigma, L, logits = p['mu'], p['sigma'] * scale, p['L'] * scale, p['logits'] / temp
     B, N, M = logits.shape;device = logits.device
     mode = torch.multinomial(F.softmax(logits, -1).reshape(-1, M), worlds, replacement=True, generator=generator)
     mode = mode.reshape(B, N, worlds).permute(0, 2, 1)                       # [B,W,N]
@@ -110,7 +113,7 @@ def draw_population_np(p_exist, key_mask, count_prob, minimum, worlds, rng):
 
 
 @torch.no_grad()
-def sample(net, b, worlds, generator, max_hidden=MAX_COUNT):
+def sample(net, b, worlds, generator, max_hidden=MAX_COUNT, calib=None):
     """Canonical worlds for a batch: dict(knots [B,W,N,13,2], present [B,W,N], n_keys, count_logp)."""
     from .data import rasters
     m, v = rasters(b, *net.raster_spec)
@@ -119,7 +122,8 @@ def sample(net, b, worlds, generator, max_hidden=MAX_COUNT):
     B, K = exist_logit.shape;device = exist_logit.device
     visible = b['key_age'] <= 1e-6
     p_exist = torch.where(visible, torch.ones_like(exist_logit), torch.sigmoid(exist_logit))
-    key_knots = draw_mixture(kp, worlds, generator, visible) + b['key_last'][:, None, :, None]
+    calib = calib or {}
+    key_knots = draw_mixture(kp, worlds, generator, visible, calib.get('key_temp', 1.), calib.get('key_scale', 1.)) + b['key_last'][:, None, :, None]
     log_count = net.log_count(enc)
     key_present, counts = draw_population(p_exist, b['key_mask'], log_count.exp(), b['min_count'], worlds, generator, max_hidden)
     H = int(counts.max()) if counts.numel() else 0
@@ -141,7 +145,7 @@ def sample(net, b, worlds, generator, max_hidden=MAX_COUNT):
         order = torch.argsort((~flat_present).to(torch.int8), dim=1)[:, :n_max]
         pos_c = torch.gather(pos, 1, order[..., None].expand(-1, -1, 2))
         hp = net.hidden_params(enc, pos_c)
-        hk_c = draw_mixture(hp, 1, generator, None)[:, 0]
+        hk_c = draw_mixture(hp, 1, generator, None, calib.get('hidden_temp', 1.), calib.get('hidden_scale', 1.))[:, 0]
         # hidden knot 0 is the sampled position itself (segment 0 has zero duration)
         hk_c = hk_c - hk_c[..., :1, :] + pos_c[..., None, :]
         hk = pos[..., None, :].expand(-1, -1, SEGMENTS, -1).clone()

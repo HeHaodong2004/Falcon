@@ -14,6 +14,8 @@ from the frames' own certificates, which define the same graph.
 """
 from dataclasses import dataclass, field
 import hashlib
+import json
+from pathlib import Path
 import math
 import time
 from typing import Tuple
@@ -232,3 +234,21 @@ class HumanWorldModel:
         self.last_profile = dict(state_ms=(synced - start) * 1000, sample_ms=(sampled - synced) * 1000,
                                  output_ms=(end - sampled) * 1000, complete_ms=(end - start) * 1000, batch=len(requests))
         return results
+
+
+SELECTED = Path(__file__).resolve().parents[2] / 'docs/stage1_hwm/SELECTED.json'
+
+
+def load_selected(config=SELECTED, device='cpu'):
+    """Construct the selected Stage 1 model from its configuration (checkpoint SHA-256 verified).
+
+    The configuration fixes worlds/times/horizon used for every reported result; callers pass
+    them to ``predict`` (defaults already equal 40 worlds, 64 times, 3 s).
+    """
+    cfg = json.loads(Path(config).read_text())
+    ck = Path(cfg['checkpoint'])
+    if hashlib.sha256(ck.read_bytes()).hexdigest() != cfg['checkpoint_sha256']:
+        raise ValueError('checkpoint differs from the selected configuration')
+    model = HumanWorldModel(ck, device)
+    model.configuration = cfg
+    return model

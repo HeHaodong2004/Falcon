@@ -92,16 +92,17 @@ def softplus(x):
     return np.logaddexp(0., x)
 
 
-def mixture(raw, modes, base_velocity, age):
+def mixture(raw, modes, base_velocity, age, temp=1., scale=1.):
     """NumPy TrajectoryHead post-processing; raw [N, M*(1+3S+3)] -> dict of [N,M,...] arrays."""
     N = raw.shape[0];raw = raw.reshape(N, modes, -1)
     delta = np.full((N, SEGMENTS), STEP);delta[:, 0] = age
     mu = (base_velocity[:, None, None, :] + raw[:, :, 1:1 + 2 * SEGMENTS].reshape(N, modes, SEGMENTS, 2) * 1.5) * delta[:, None, :, None]
-    sigma = (softplus(raw[:, :, 1 + 2 * SEGMENTS:1 + 3 * SEGMENTS] - 1.) + .01) * np.sqrt(delta[:, None, :] / STEP + 1e-4)
+    sigma = (softplus(raw[:, :, 1 + 2 * SEGMENTS:1 + 3 * SEGMENTS] - 1.) + .01) * np.sqrt(delta[:, None, :] / STEP + 1e-4) * scale
     lt = raw[:, :, 1 + 3 * SEGMENTS:]
     L = np.zeros((N, modes, 2, 2))
     L[..., 0, 0] = softplus(lt[..., 0]) * .5 + 1e-3;L[..., 1, 1] = softplus(lt[..., 1]) * .5 + 1e-3;L[..., 1, 0] = lt[..., 2] * .3
-    logits = raw[:, :, 0]
+    L *= scale
+    logits = raw[:, :, 0] / temp
     p = np.exp(logits - logits.max(-1, keepdims=True));p /= p.sum(-1, keepdims=True)
     return dict(prob=p, mu=mu, sigma=sigma, L=L, delta=delta)
 
@@ -126,8 +127,8 @@ def draw(p, worlds, rng, zero_first=None):
 class FastSampler:
     """Callable used by the API: tensors for one anchor -> canonical worlds (NumPy)."""
 
-    def __init__(self, net):
-        net = fold_batchnorm(net.eval())
+    def __init__(self, net, calib=None):
+        net = fold_batchnorm(net.eval());self.calib = dict(calib or {})
         self.modes = net.key_traj.modes;self.use_kernels = True
         # Non-profiling TorchScript executor for THIS engine only: the profiling executor
         # re-specialises on every new input shape (key/hidden counts), causing 0.1-4 s
@@ -155,14 +156,14 @@ class FastSampler:
         draw_paths(np.zeros((1, self.modes * (1 + 3 * SEGMENTS + 3))), self.modes, np.zeros((1, 2)), np.zeros(1), np.zeros(1, bool),
                    np.zeros((2, 1)), np.zeros((2, 1, 2)), np.zeros((2, 1, SEGMENTS, 2)), MAX_SPEED)
 
-    def _paths(self, raw, base_v, age, zero_first, worlds, rng):
+    def _paths(self, raw, base_v, age, zero_first, worlds, rng, temp=1., scale=1.):
         """Fused numba kernel; consumes the RNG exactly like mixture()+draw()."""
         N = raw.shape[0]
         if N == 0 or not self.use_kernels:
-            return draw(mixture(raw, self.modes, base_v, age), worlds, rng, zero_first)
+            return draw(mixture(raw, self.modes, base_v, age, temp, scale), worlds, rng, zero_first)
         u = rng.random((worlds, N));z = rng.standard_normal((worlds, N, 2));eps = rng.standard_normal((worlds, N, SEGMENTS, 2))
         zf = np.zeros(N, bool) if zero_first is None else zero_first
-        return draw_paths(raw, self.modes, base_v, age, zf, u, z, eps, MAX_SPEED)
+        return draw_paths(raw, self.modes, base_v, age, zf, u, z, eps, MAX_SPEED, float(temp), float(scale))
 
     @torch.no_grad()
     def __call__(self, b, worlds, rng, max_hidden=MAX_COUNT):
@@ -172,7 +173,9 @@ class FastSampler:
         key_mask = b['key_mask'][0].numpy();age = b['key_age'][0].numpy().astype(np.float64)
         visible = age <= 1e-6;K = len(key_mask)
         p_exist = np.where(visible, 1., 1. / (1. + np.exp(-exist_logit.numpy().astype(np.float64))))
-        key_knots = self._paths(key_raw.numpy().astype(np.float64), b['key_vel'][0].numpy().astype(np.float64), age, visible, worlds, rng) \
+        c = self.calib
+        key_knots = self._paths(key_raw.numpy().astype(np.float64), b['key_vel'][0].numpy().astype(np.float64), age, visible, worlds, rng,
+                                c.get('key_temp', 1.), c.get('key_scale', 1.)) \
             + b['key_last'][0].numpy().astype(np.float64)[None, :, None]
         count_p = np.exp(log_count.numpy().astype(np.float64));count_p /= count_p.sum()
         minimum = int(b['min_count'][0])
@@ -191,7 +194,7 @@ class FastSampler:
             ang = rng.random(total) * 2 * math.pi;rad = OUTSIDE_RADII[0] + rng.random(total) * (OUTSIDE_RADII[1] - OUTSIDE_RADII[0])
             pos = np.where(inside[:, None], pos, np.stack([rad * np.cos(ang), rad * np.sin(ang)], -1))
             raw = self.engine.hidden(f, gt, torch.from_numpy(pos.astype(np.float32))[None]).numpy().astype(np.float64)
-            hk = self._paths(raw, np.zeros((total, 2)), np.zeros(total), None, 1, rng)[0]
+            hk = self._paths(raw, np.zeros((total, 2)), np.zeros(total), None, 1, rng, c.get('hidden_temp', 1.), c.get('hidden_scale', 1.))[0]
             hk = hk - hk[:, :1] + pos[:, None]
             slots = np.zeros((worlds, H, SEGMENTS, 2))
             world_of = np.repeat(np.arange(worlds), counts);slot_of = np.arange(total) - np.repeat(np.cumsum(counts) - counts, counts)

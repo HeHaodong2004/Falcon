@@ -19,7 +19,7 @@ def _softplus(x):
 
 
 @njit(cache=True)
-def draw_paths(raw, modes, base_v, age, zero_first, u, z, eps, max_speed):
+def draw_paths(raw, modes, base_v, age, zero_first, u, z, eps, max_speed, temp=1., scale=1.):
     """raw [N, M*(1+3S+3)], base_v [N,2], age [N], zero_first [N] bool,
     u [W,N] uniforms, z [W,N,2], eps [W,N,S,2] standard normals -> knots [W,N,S,2]."""
     W = u.shape[0];N = raw.shape[0];F = raw.shape[1] // modes
@@ -28,10 +28,10 @@ def draw_paths(raw, modes, base_v, age, zero_first, u, z, eps, max_speed):
     for n in range(N):
         mx = -1e300
         for m in range(modes):
-            mx = max(mx, raw[n, m * F])
+            mx = max(mx, raw[n, m * F] / temp)
         tot = 0.
         for m in range(modes):
-            prob[m] = math.exp(raw[n, m * F] - mx);tot += prob[m]
+            prob[m] = math.exp(raw[n, m * F] / temp - mx);tot += prob[m]
         for w in range(W):
             # mode: number of cumulative probabilities strictly below u (same as infer.draw)
             c = 0.;mode = 0
@@ -40,16 +40,16 @@ def draw_paths(raw, modes, base_v, age, zero_first, u, z, eps, max_speed):
                 if u[w, n] > c:mode = m + 1
             if mode > modes - 1:mode = modes - 1
             o = mode * F
-            l00 = _softplus(raw[n, o + 1 + 3 * S]) * .5 + 1e-3
-            l11 = _softplus(raw[n, o + 2 + 3 * S]) * .5 + 1e-3
-            l10 = raw[n, o + 3 + 3 * S] * .3
+            l00 = (_softplus(raw[n, o + 1 + 3 * S]) * .5 + 1e-3) * scale
+            l11 = (_softplus(raw[n, o + 2 + 3 * S]) * .5 + 1e-3) * scale
+            l10 = raw[n, o + 3 + 3 * S] * .3 * scale
             ox = l00 * z[w, n, 0];oz = l10 * z[w, n, 0] + l11 * z[w, n, 1]
             px = 0.;pz = 0.
             for s in range(S):
                 d = age[n] if s == 0 else STEP
                 mux = (base_v[n, 0] + raw[n, o + 1 + 2 * s] * 1.5) * d
                 muz = (base_v[n, 1] + raw[n, o + 2 + 2 * s] * 1.5) * d
-                sig = (_softplus(raw[n, o + 1 + 2 * S + s] - 1.) + .01) * math.sqrt(d / STEP + 1e-4)
+                sig = (_softplus(raw[n, o + 1 + 2 * S + s] - 1.) + .01) * math.sqrt(d / STEP + 1e-4) * scale
                 dx = mux + d * ox + sig * eps[w, n, s, 0]
                 dz = muz + d * oz + sig * eps[w, n, s, 1]
                 if s == 0 and zero_first[n]:

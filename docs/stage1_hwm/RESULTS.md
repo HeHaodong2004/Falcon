@@ -27,7 +27,27 @@ over-dispersed (+0.031 per person, +0.040 joint).
 
 ## 3. Ablations (small matched protocol: fast arch, 30% of Roots, 2 epochs, CPU)
 
-ABLATION_SECTION
+Reference `abl_s0`: fast architecture, truncated law, first 30 training shards (220k anchors),
+2 epochs, CPU-trained. Each row changes one component; paired relative change vs the
+reference on development (negative = better), 95% scene-bootstrap interval.
+
+| Variant | path ES | gap ES | count NLL | 2 m occupancy Brier | joint set kernel | executed-path step risk Brier | validation NLL |
+|---|---|---|---|---|---|---|---|
+| no map / visibility rasters | **+8.1%** [+6.2, +10.2] | **+5.9%** [+2.5, +9.6] | +0.4% [−0.4, +1.1] | **+1.6%** [+1.0, +2.2] | **+2.5%** [+1.6, +3.4] | **+3.1%** [+1.6, +4.7] | −13.99 (ref −15.24) |
+| no visibility raster (map kept) | +0.9% [−0.3, +2.2] | +0.8% [−2.4, +3.8] | −0.1% [−0.5, +0.4] | +0.0% [−0.5, +0.5] | +0.3% [−0.5, +1.1] | −0.6% [−1.4, +0.4] | −15.06 |
+| heuristic hard labels instead of the latent assignment marginal | **+1.9%** [+0.7, +3.4] | +1.5% [−1.0, +4.2] | **+2.7%** [+1.7, +3.8] | **+1.2%** [+0.6, +1.9] | **+3.3%** [+2.1, +4.6] | **+2.8%** [+1.0, +5.0] | −14.36 |
+| single trajectory mode (M=1) | **−3.2%** [−5.9, −0.3] | −3.6% [−7.7, +0.2] | **−0.8%** [−1.4, −0.4] | **−0.6%** [−1.1, −0.1] | **−1.0%** [−1.6, −0.4] | **−3.0%** [−5.7, −0.5] | **−8.13** |
+
+* Map context is the largest single contributor to tracked-path and downstream accuracy.
+* The explicit visibility-age raster gives **no measurable gain** at this scale (negative result).
+* Marginalising unresolved tracker keys matters most for the population law: hard heuristic
+  labels worsen count NLL by 2.7% and count PIT KS from 0.013 to 0.048.
+* A single Gaussian mode scores slightly better on sample-based metrics at this small scale
+  but its likelihood is far worse (−8.1 vs −15.2 nats): it assigns near-zero density to real
+  multimodal futures (turns, start/stop), which matters for rare-event risk. Post-hoc
+  sharpening of the 6-mode sampler (temperature/spread grid on the validation split) did not
+  reduce key-path ES either (identity was best), so the M=1 advantage is not simple
+  over-dispersion; the final model keeps M=6. Full-scale M=1 was not trained.
 
 ## 4. Consistency guarantees
 
