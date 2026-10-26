@@ -36,6 +36,7 @@ class FastPointSpatial(SpatialEvidenceNet):
 
 class FastPointPredictor(ColumnPreparedPipelinePredictor):
     model_class=FastPointSpatial
+    point_precision='F32 prior/heights; FP16 time/range corrections and spatial encoder/head; F32 logit math; TF32off'
     def predict_segments(self,**kwargs):
         results=super().predict_segments(**kwargs)
         for d in results:d['provenance']['frozen_point_precision']='Original F32 prior/heights; FP16 point corrections; F32 logit arithmetic; no zero recency columns'
