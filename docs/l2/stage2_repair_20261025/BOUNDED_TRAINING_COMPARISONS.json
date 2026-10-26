@@ -1,0 +1,243 @@
+{
+  "role": "Actual fixed666-window pilot scores from bounded256-Root4-epoch diagnostic comparisons. Not full-development acceptance, not confirmation. All use same original cell/window evaluation universe and E2warmstart.",
+  "warm_pilot_label_iou": 0.4127557281695153,
+  "warm_checkpoint_sha256": "7ff203237eec551e28a8ba0eb62fc72759df5ccef15766f40279ce5c8162f605",
+  "interpretation": "No material accuracy gain established from cardinal rotations, learned-ray residual or initial visibility. TypedmicroDice E1smallgain only; later epochs/pendingfinalepoch do not establish0.50. Existing architecture large-snapshot fit continues.",
+  "comparisons": [
+    {
+      "name": "online_cardinal256_control",
+      "roots": 256,
+      "scenes": 208,
+      "windows": 6148,
+      "groups": 3980,
+      "ordered_root_ids_sha256": "f06f5e51a09e72960cb76208b3ea9aebf634ade7b0756d26f2ee83a530b05150",
+      "epochs_scored": [
+        {
+          "epoch": 1,
+          "rule": "argmax",
+          "label_iou": 0.4107987724862499,
+          "revelation_iou": 0.4697905517163879
+        },
+        {
+          "epoch": 2,
+          "rule": "argmax",
+          "label_iou": 0.40925899119750714,
+          "revelation_iou": 0.46640764071732593
+        },
+        {
+          "epoch": 3,
+          "rule": "argmax",
+          "label_iou": 0.3996843993401321,
+          "revelation_iou": 0.4635994745760079
+        },
+        {
+          "epoch": 4,
+          "rule": "threshold_0.70",
+          "label_iou": 0.40107491658362787,
+          "revelation_iou": 0.4579575434810122
+        }
+      ],
+      "best_epoch": 1,
+      "best_label_iou": 0.4107987724862499,
+      "best_revelation_iou": 0.4697905517163879,
+      "free": {
+        "precision": 0.5676118178076197,
+        "recall": 0.5718895007862954,
+        "f1": 0.5697426300953378
+      },
+      "blocked": {
+        "precision": 0.7001484654425477,
+        "recall": 0.506442407399006,
+        "f1": 0.5877466544072006
+      }
+    },
+    {
+      "name": "online_cardinal256_aug",
+      "roots": 256,
+      "scenes": 208,
+      "windows": 6148,
+      "groups": 3980,
+      "ordered_root_ids_sha256": "f06f5e51a09e72960cb76208b3ea9aebf634ade7b0756d26f2ee83a530b05150",
+      "epochs_scored": [
+        {
+          "epoch": 1,
+          "rule": "argmax",
+          "label_iou": 0.4068702617053693,
+          "revelation_iou": 0.47192806936023673
+        },
+        {
+          "epoch": 2,
+          "rule": "argmax",
+          "label_iou": 0.40518553035948834,
+          "revelation_iou": 0.4737527548919872
+        },
+        {
+          "epoch": 3,
+          "rule": "threshold_0.70",
+          "label_iou": 0.40176750285781193,
+          "revelation_iou": 0.46538222944690183
+        },
+        {
+          "epoch": 4,
+          "rule": "threshold_0.70",
+          "label_iou": 0.40017510559569175,
+          "revelation_iou": 0.4673896765954828
+        }
+      ],
+      "best_epoch": 1,
+      "best_label_iou": 0.4068702617053693,
+      "best_revelation_iou": 0.47192806936023673,
+      "free": {
+        "precision": 0.5142123762714191,
+        "recall": 0.630064482658194,
+        "f1": 0.5662737165461132
+      },
+      "blocked": {
+        "precision": 0.72956214553398,
+        "recall": 0.4873216046276811,
+        "f1": 0.5843309114613473
+      }
+    },
+    {
+      "name": "online_ray_residual256",
+      "roots": 256,
+      "scenes": 208,
+      "windows": 6148,
+      "groups": 3980,
+      "ordered_root_ids_sha256": "f06f5e51a09e72960cb76208b3ea9aebf634ade7b0756d26f2ee83a530b05150",
+      "epochs_scored": [
+        {
+          "epoch": 1,
+          "rule": "argmax",
+          "label_iou": 0.41207803803156084,
+          "revelation_iou": 0.47110871865045484
+        },
+        {
+          "epoch": 2,
+          "rule": "argmax",
+          "label_iou": 0.4120077796758359,
+          "revelation_iou": 0.4695152112178924
+        },
+        {
+          "epoch": 3,
+          "rule": "threshold_0.60",
+          "label_iou": 0.40272825520700695,
+          "revelation_iou": 0.4671759980482826
+        },
+        {
+          "epoch": 4,
+          "rule": "threshold_0.70",
+          "label_iou": 0.405331668998465,
+          "revelation_iou": 0.4646713004392955
+        }
+      ],
+      "best_epoch": 1,
+      "best_label_iou": 0.41207803803156084,
+      "best_revelation_iou": 0.47110871865045484,
+      "free": {
+        "precision": 0.5693829867567384,
+        "recall": 0.5759267743582019,
+        "f1": 0.5726361864200294
+      },
+      "blocked": {
+        "precision": 0.6951444040350104,
+        "recall": 0.5099630804230139,
+        "f1": 0.5883259148123924
+      }
+    },
+    {
+      "name": "online_initial_visibility256",
+      "roots": 256,
+      "scenes": 208,
+      "windows": 6148,
+      "groups": 3980,
+      "ordered_root_ids_sha256": "f06f5e51a09e72960cb76208b3ea9aebf634ade7b0756d26f2ee83a530b05150",
+      "epochs_scored": [
+        {
+          "epoch": 1,
+          "rule": "argmax",
+          "label_iou": 0.41208728610162854,
+          "revelation_iou": 0.47110752475509576
+        },
+        {
+          "epoch": 2,
+          "rule": "argmax",
+          "label_iou": 0.41205528835160904,
+          "revelation_iou": 0.4683786097182934
+        },
+        {
+          "epoch": 3,
+          "rule": "argmax",
+          "label_iou": 0.40114172515568997,
+          "revelation_iou": 0.46509312563508254
+        },
+        {
+          "epoch": 4,
+          "rule": "threshold_0.70",
+          "label_iou": 0.4026737082968475,
+          "revelation_iou": 0.4589011336419326
+        }
+      ],
+      "best_epoch": 1,
+      "best_label_iou": 0.41208728610162854,
+      "best_revelation_iou": 0.47110752475509576,
+      "free": {
+        "precision": 0.572163847968634,
+        "recall": 0.5757581677433782,
+        "f1": 0.5739553806729457
+      },
+      "blocked": {
+        "precision": 0.7006773735237986,
+        "recall": 0.5062370285905996,
+        "f1": 0.5877945129363568
+      }
+    },
+    {
+      "name": "online_micro_dice256",
+      "roots": 256,
+      "scenes": 208,
+      "windows": 6148,
+      "groups": 3980,
+      "ordered_root_ids_sha256": "f06f5e51a09e72960cb76208b3ea9aebf634ade7b0756d26f2ee83a530b05150",
+      "epochs_scored": [
+        {
+          "epoch": 1,
+          "rule": "argmax",
+          "label_iou": 0.4133511212695422,
+          "revelation_iou": 0.47171817560776436
+        },
+        {
+          "epoch": 2,
+          "rule": "argmax",
+          "label_iou": 0.412354249560349,
+          "revelation_iou": 0.4689959557222443
+        },
+        {
+          "epoch": 3,
+          "rule": "argmax",
+          "label_iou": 0.39763699399728325,
+          "revelation_iou": 0.4683544380268071
+        },
+        {
+          "epoch": 4,
+          "rule": "threshold_0.70",
+          "label_iou": 0.3988500806641358,
+          "revelation_iou": 0.45896780948729843
+        }
+      ],
+      "best_epoch": 1,
+      "best_label_iou": 0.4133511212695422,
+      "best_revelation_iou": 0.47171817560776436,
+      "free": {
+        "precision": 0.5662726859790902,
+        "recall": 0.5948910460929973,
+        "f1": 0.5802291980560734
+      },
+      "blocked": {
+        "precision": 0.6987276238040631,
+        "recall": 0.5060293006223696,
+        "f1": 0.5869676175008215
+      }
+    }
+  ]
+}

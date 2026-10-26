@@ -56,9 +56,10 @@ def make_batch(items,builder,device,ray_residual=False):
     return batch,ledger
 
 
-def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False,initial_visibility=False,typed_micro_dice=False):
+def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,workers=4,batch_size=4,wait=False,augment_cardinal=False,device_canvas=False,device_edt=False,resume=None,smoke_groups=0,ray_residual=False,stream_preparation=False,initial_visibility=False,typed_micro_dice=False,train_range_head=False):
     if stream_preparation and not wait:raise ValueError('streamed preparation requires explicit --wait')
     if ray_residual and initial_visibility:raise ValueError('bounded candidates are tested separately')
+    if train_range_head and(ray_residual or initial_visibility):raise ValueError('joint range-head fitting is tested on the unchanged spatial model separately')
     torch.set_num_threads(1);torch.manual_seed(5511);torch.backends.cuda.matmul.allow_tf32=False
     tick=time.perf_counter();dest=OUT/'training'/name
     if resume:
@@ -88,6 +89,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
         from .ray_residual_model import RayResidualEvidenceNet
         model=RayResidualEvidenceNet().to(device);model.initialize_spatial(saved['model'])
     else:model=SpatialEvidenceNet().to(device);model.load_state_dict(saved['model'])
+    model.set_range_head_training(train_range_head)
     builder=LegalFeatureBuilder(model,device,device_canvas=device_canvas,device_edt=device_edt,initial_visibility=initial_visibility)
     optim=torch.optim.AdamW([p for p in model.parameters()if p.requires_grad],lr=.0002,weight_decay=.0001);scaler=torch.cuda.amp.GradScaler()
     cfg=dict(schema='legal_range_spatial_1',name=name,epochs=epochs,roots=m['roots'],scenes=m['scenes'],windows=m['windows'],groups=m['groups'],base_checkpoint=saved['config']['base_checkpoint'],warm=str(warm),warm_sha256=sha(warm),snapshot_sha256=sha(dest/'snapshot.json'),source_manifest_sha256=m['source_manifest_sha256'],observed_obstacle_schema='capped_2m_complete',device=device,batch_size=batch_size,workers=workers,learning_rate=.0002,sampling='Fresh128positive/384nearUNKNOWN/128remainingUNKNOWN every pass over all original windows; exact inverse inclusion equalScene/Root/window weights. Full candidate construction before sampling, no hard windows dropped.',objective='Same primary pos8revelation BCE +8R conditional BCE +.1typedDice +.25auxiliary published-certificate-class UNION.',inputs='Only current legal graph, supplied trajectory, measured ancestor/current range arrays and legally observed track history/current camera. No private full scene or future truth inputs.',sources={n:sha(Path(__file__).with_name(n))for n in ['range_online_train.py','range_online_data.py','range_online_features.py','range_fast.py','range_gpu.py','range_spatial.py']})
@@ -100,6 +102,8 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
     cfg['ray_residual']=bool(ray_residual)
     cfg['initial_visibility']=bool(initial_visibility)
     cfg['typed_micro_dice']=bool(typed_micro_dice)
+    cfg['train_range_head']=bool(train_range_head)
+    cfg['trainable_parameters']=sum(p.numel()for p in model.parameters()if p.requires_grad)
     if typed_micro_dice:
         cfg['objective']='Original pos8 revelation BCE +8R conditional BCE +.1 twice typed MICRO Dice +.25 certificate-class auxiliary. Same weighted cells; no inference change.'
         cfg['sources']['increment_loss.py']=sha(Path(__file__).with_name('increment_loss.py'))
@@ -123,6 +127,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
         if bool(saved['config'].get('ray_residual'))!=bool(ray_residual):raise ValueError('resume model type changed')
         if bool(saved['config'].get('initial_visibility'))!=bool(initial_visibility):raise ValueError('resume feature type changed')
         if bool(saved['config'].get('typed_micro_dice'))!=bool(typed_micro_dice):raise ValueError('resume overlap objective changed')
+        if bool(saved['config'].get('train_range_head'))!=bool(train_range_head):raise ValueError('resume frozen parameter contract changed')
         optim.load_state_dict(saved['optimizer']);scaler.load_state_dict(saved['scaler']);updates=int(saved['updates']);first_epoch=int(saved['epoch'])+1
         logs=[r for r in read(dest/'learning.json')if r['epoch']<first_epoch];elapsed_base=float(logs[-1]['seconds'])if logs else 0.
         cfg.update(resume_checkpoint=str(warm.resolve()),resume_sha256=sha(warm),resume_epoch=int(saved['epoch']),original_warm=saved['config']['warm'],resume_note='Exact completed-epoch optimizer/scaler/update state. Same all-window snapshot and deterministic epoch sampling. CUDA code lifetime repair; original configs/checkpoints retained.')
@@ -152,7 +157,7 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
                 if d['root_id']not in seen_roots:seen_roots.add(d['root_id']);root_order.append(d['root_id'])
             totals+=[float(main),float(dice),float(aux)]
             if stream_preparation and batches%1000==0:save(dest/('root_order_epoch%02d.json'%epoch),dict(complete=False,roots=root_order,groups=seen_groups,ledger=ledger))
-            if batches%100==0:print(dict(epoch=epoch,batches=batches,groups=seen_groups,roots=len(seen_roots),loss=float(loss),gradient=float(gradient),encoder_gradient=encoder_gradient,seconds=time.perf_counter()-tick),flush=True)
+            if batches%100==0:print(dict(epoch=epoch,batches=batches,groups=seen_groups,roots=len(seen_roots),loss=float(loss),gradient=float(gradient),encoder_gradient=encoder_gradient,range_head_gradient=float(model.point.head[0].weight.grad.norm())if train_range_head else None,seconds=time.perf_counter()-tick),flush=True)
             if smoke_groups and seen_groups>=smoke_groups:
                 save(dest/'resume_smoke_complete.json',dict(role='Checkpoint optimizer/scaler restoration and real-data update smoke only; no epoch checkpoint written and not an accuracy result.',resume=str(resume),epoch=epoch,groups=seen_groups,ledger=ledger,loss=float(loss),gradient=float(gradient),encoder_gradient=encoder_gradient,updates=updates));return
         assert seen_groups==m['groups']and len(seen_roots)==m['roots']and ledger['windows']==m['windows']
@@ -162,4 +167,4 @@ def run(roots=4096,epochs=4,device='cuda:0',name='range_online4096',warm=None,wo
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');p.add_argument('--initial-visibility',action='store_true');p.add_argument('--typed-micro-dice',action='store_true');run(**vars(p.parse_args()))
+    p=argparse.ArgumentParser();p.add_argument('--roots',type=int,default=4096);p.add_argument('--epochs',type=int,default=4);p.add_argument('--device',default='cuda:0');p.add_argument('--name',default='range_online4096');p.add_argument('--warm');p.add_argument('--workers',type=int,default=4);p.add_argument('--batch-size',type=int,default=4);p.add_argument('--wait',action='store_true');p.add_argument('--augment-cardinal',action='store_true');p.add_argument('--device-canvas',action='store_true');p.add_argument('--device-edt',action='store_true');p.add_argument('--resume');p.add_argument('--smoke-groups',type=int,default=0);p.add_argument('--ray-residual',action='store_true');p.add_argument('--stream-preparation',action='store_true');p.add_argument('--initial-visibility',action='store_true');p.add_argument('--typed-micro-dice',action='store_true');p.add_argument('--train-range-head',action='store_true');run(**vars(p.parse_args()))
