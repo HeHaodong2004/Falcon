@@ -25,12 +25,18 @@ contact (declared spawn-escape rule).
 | v7b K=10 (previous best) | 15/24 (62.5%) | 15/28 | 9 | | | | |
 | **v9 C1 ORCA x native K=10** | **21/24 (87.5%)** | 21/28 | 3t8DB4Uzvkt, Nfvxx8J5NCo, YRUkbU5xsYj | 0.866 | 0.281 m | 339 / 2548 | 203 / 1466 |
 | **v9 C1 ORCA x native K=6** | **21/24 (87.5%)** | 21/28 | LT9Jq6dN3Ea, Nfvxx8J5NCo, YRUkbU5xsYj | 0.855 | 0.286 m | 217 / 3024 | 207 / 1579 |
-| v9 C2 DWA x inertia K=10 | 18/24 (75.0%) | 18/28 | 3t8DB4Uzvkt, LEFTm3JecaC, Nfvxx8J5NCo, SByzJLxpRGn, TEEsavR23oF, YRUkbU5xsYj | 0.871 | 0.268 m | 433 / 3153 | 335 / 2278 |
+| v9 C2 DWA x inertia K=10 | 18/24 as run; **16/24 (66.7%) physically consistent** (see note) | 16/28 | 3t8DB4Uzvkt, LEFTm3JecaC, Nfvxx8J5NCo, SByzJLxpRGn, TEEsavR23oF, YRUkbU5xsYj (+ AWUFxHEyV3T, XNeHsjL6nBB) | 0.871 | 0.268 m | 433 / 3153 | 335 / 2278 |
 
-C2 note: in 8 C2 solutions (DEV and unseen) the Oracle's goal test issued STOP while the robot still
-had speed (levels 2-6 of 12), an instantaneous halt the inertia model does not allow.  All 8 still pass
-when re-verified with braking to rest at the brake limit before STOP (`tests/querygen/rebrake_check.py`),
-so the numbers stand; v10 enforces braking in the executor.
+**C2 physics audit (post-freeze).**  The strict replay checked contacts, not the inertia model itself.
+A dynamics checker (`dynamics.dynamics_violations`: speed-level change beyond accel/brake, turning while
+moving, STOP while moving) finds violations in 10 C2 solutions: 9 issued STOP while still moving (the
+Oracle's goal test) and 3 contain an *instantaneous stop* from the DWA's "blocked" fallback (zero velocity
+commanded while the speed level only dropped by the brake limit).  Replaying the recorded query sequences
+under the corrected rules (brake to rest before STOP; a blocked DWA brakes) with
+`tests/querygen/rebrake_check.py`: the 7 STOP-only cases still pass; the 3 instantaneous-stop cases fail
+(AWUFxHEyV3T and XNeHsjL6nBB on DEV, 77mMEyxhs44 unseen).  The physically consistent v9 C2 results
+are therefore DEV 16/24.  v10 fixes both defects and the strict verdict now requires zero dynamics
+violations.
 
 Union of K=10 and K=6: 22/24; 3t8DB4Uzvkt (K=6 only) and LT9Jq6dN3Ea (K=10 only) sit near the edge of the
 6000-edge budget and flip with small search changes.  Generator latency P50 36-42 ms per decision.
