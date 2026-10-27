@@ -7,6 +7,50 @@ read from the frozen evaluation and benchmark receipts. Running: v16_a (line A, 
 v16_b (soft-IoU weight 1.0); ~1,000 new TRAIN Roots per hour are being generated. A later candidate is
 evaluated on development only if it beats the current best on TRAIN validation, and is then reported here.
 
+## 0. Executive summary
+
+**Outcome.** Best verified model `final/v15.pt`: original full-development label-aware increment IoU
+**0.4784** (bootstrap 95 % [0.4655, 0.4910]; requirement > 0.50 **not met**; previous model A 0.4171,
+graph-only baseline 0.2177) and complete dense K=6 cold P50 / P95 **27.2 / 32.0 ms** (requirement < 50 ms met;
+preferred 20-30 ms reached at P50, P95 just above under a load average of ~30-35 from another session), from
+the same implementation, legal inputs only, original evaluator and original benchmark workloads.
+
+**Method.** Legal tri-state voxel map from the measured past/current range frames -> exact simulation of the
+original FREE-probe and BLOCKED wall-ray certificate geometry along the supplied trajectory -> masked
+full-resolution BEV U-Net (revelation and BLOCKED-given-revelation per original candidate cell) -> frozen
+class-specific operating point. Interface, candidate universe, outputs and materialized hypothetical graphs are
+those of the previous range API (section 5, `eventwm_graph/stage2_claude/README.md`).
+
+**What improved accuracy** (TRAIN validation, 160 Roots, unless noted):
+
+| step | effect |
+| --- | --- |
+| legal voxel simulation + masked U-Net (v7) instead of previous model A | full dev 0.4171 -> 0.4563 |
+| 1-epoch warm restart + soft label-aware IoU loss (v7r) | +0.0115 |
+| three legal channels + zero-initialized coarse capacity + EMA + 2.9k more TRAIN Roots (v11) | +0.0060 |
+| self-distillation restarts v12, v13, v14, v15 | +0.0047, +0.0034, +0.0014, +0.0018 |
+| 256 px instead of 128 px legal sensing at inference | +0.002-0.003 |
+| net, full development | v7 0.4563 -> v11 0.4688 -> v12 0.4716 -> v15 0.4784 |
+
+**What did not help** (sections 3, 8, 9): extra decoder capacity (`v15_cap` identical to v15 at every
+validation), ensembles / weight averages within the lineage, duration-dependent thresholds, auxiliary geometry
+heads, cascade refinement, measured-surface splatting, dihedral test-time augmentation, the constant-velocity
+human sweep channel, and selecting the operating point at 256 px. Two information diagnostics: per-pose (moving)
+human occluders would only touch cells holding 5.5 % of the targets (at average accuracy), and pocket-aware
+unknown lengths along future rays add no information (AUC 0.8396 vs 0.8395 for the existing channel).
+
+**Why 0.50 was not reached.** 56 % of the targets are cells whose future visibility crosses never-observed
+space; there the model already ranks cells well (within-stratum AUC 0.92) but reaches only ~0.36 IoU, while
+every simulation-determined stratum is at 0.72-0.91. Windows start after ~0.6 s of history and 44 % of them
+rotate into never-seen directions (development IoU 0.41). The model fits its own TRAIN Roots no better than
+unseen ones (0.4613 vs 0.4778), and more capacity changes nothing, so the remaining gap is dominated by what the
+legal inputs do not reveal rather than by fitting; further gains so far come only in small steps (more
+optimization, more TRAIN Roots).
+
+**Latency engineering** (exact, outputs bit-identical): frame-culled carving, F32-prefiltered exact domain,
+range identity hashed on a helper thread when no cached map can match, sliced pinned upload, merged
+hypothetical-graph materialization; per-query batch-1 CUDA graphs on 3 lanes; BatchNorm-folded F16 network.
+
 ## 1. Results
 
 ### 1.0 Current best: frozen model `final/v15.pt` (checkpoint `training/v15_chain/final.pt` + frozen operating point), 256 px sensing
