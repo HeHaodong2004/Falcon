@@ -54,6 +54,8 @@ class OracleConfig:
     witness_heading: bool = True      # near a witness pose also charge the heading mismatch (turn steps)
     goal_test: bool = True            # v7b: try the generator's STOP at once on any new state inside the success radius
     goal_fine_m: float = 1.0          # v7b: fine de-duplication for states this close to the goal (geodesic)
+    heading_h: bool = False           # v9: add the in-place turn steps needed to face the true geodesic path
+                                      # (0.6 m look-ahead) to h -- a turn-in-place robot must turn before it moves
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
     st_heuristic: bool = True         # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
     st_fallback: float = 300.         # extra steps when the space-time model finds no arrival
@@ -214,6 +216,10 @@ class Oracle:
         hw = self._witness_h(st)
         if hw is not None:
             h = max(h, hw)
+        hs = 0.
+        if cfg.heading_h and st.geodesic == st.geodesic and st.geodesic > 0.3:
+            hs = self._heading_steps(st.legal.pose)
+            h += hs
         if cfg.st_heuristic:
             if self._st is None:
                 t = time.perf_counter()
@@ -223,10 +229,29 @@ class Oracle:
             v = self._st.value(float(p[0]), float(p[2]), st.index)
             # time-to-go in steps: the space-time arrival (it already includes the
             # forced waits); never below the geodesic estimate
-            h = max(h, v) if v is not None else h+cfg.st_fallback
+            h = max(h, v+hs) if v is not None else h+cfg.st_fallback
         elif cfg.block_weight:
             pen += cfg.block_weight*self._block_time(st)
         return st.index+cfg.weight*h+pen
+
+    def _heading_steps(self, pose):
+        """Privileged: in-place turn steps to face the true geodesic path (0.6 m look-ahead)."""
+        import habitat_sim
+        task = self.rt.task
+        sp = habitat_sim.ShortestPath()
+        sp.requested_start = np.asarray(pose[:3], dtype=np.float32)
+        sp.requested_end = np.asarray(task.goal, dtype=np.float32)
+        if not task.sim.pathfinder.find_path(sp) or len(sp.points) < 2:
+            return 0.
+        P = np.asarray(sp.points, dtype=float)
+        seg = np.hypot(np.diff(P[:, 0]), np.diff(P[:, 2]))
+        cum = np.concatenate([[0.], np.cumsum(seg)])
+        L = min(0.6, float(cum[-1]))
+        x = np.interp(L, cum, P[:, 0]); z = np.interp(L, cum, P[:, 2])
+        if math.hypot(x-pose[0], z-pose[2]) < 1e-6:
+            return 0.
+        want = math.atan2(-(z-pose[2]), x-pose[0])
+        return abs(math.atan2(math.sin(want-pose[3]), math.cos(want-pose[3])))/self.rt.dyn.turn_rad
 
     def _witness_h(self, st):
         """Privileged: remaining steps if the node joins a known feasible witness trajectory.
