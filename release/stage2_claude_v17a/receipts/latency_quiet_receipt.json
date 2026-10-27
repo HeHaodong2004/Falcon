@@ -1,0 +1,69 @@
+{
+ "paused": [
+  {
+   "pid": 3765887,
+   "start": "189792249",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  },
+  {
+   "pid": 3766001,
+   "start": "189794053",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  },
+  {
+   "pid": 3766037,
+   "start": "189794058",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  },
+  {
+   "pid": 3766073,
+   "start": "189794063",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  },
+  {
+   "pid": 3766109,
+   "start": "189794067",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  },
+  {
+   "pid": 3766145,
+   "start": "189794072",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  },
+  {
+   "pid": 3766183,
+   "start": "189794076",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  },
+  {
+   "pid": 3766219,
+   "start": "189794081",
+   "cmd": "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.train --name v17_wide --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 --warm output/claude_stage2/training/v16b_wide_init.pt --extend --near 0.5 --lr 4e-4 --warmu"
+  }
+ ],
+ "paused_utc": "2026-10-27T14:10:46Z",
+ "command": [
+  "/home/haodong/miniforge3/envs/eventwm-falcon/bin/python",
+  "scripts/stage2_segment_run.py",
+  "eventwm_graph.stage2_claude.benchmark",
+  "--checkpoint",
+  "output/claude_stage2/final/v17a.pt",
+  "--name",
+  "v17a_bench256",
+  "--repetitions",
+  "3",
+  "--device",
+  "cuda:0",
+  "--sensor-directory",
+  "range_benchmark_256",
+  "--lanes",
+  "3"
+ ],
+ "load_after_pause": [
+  28.5126953125,
+  28.0947265625,
+  27.1416015625
+ ],
+ "returncode": 0,
+ "resumed_utc": "2026-10-27T14:11:41Z"
+}

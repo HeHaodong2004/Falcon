@@ -1,0 +1,1043 @@
+{
+  "roots": 2110,
+  "scenes": 108,
+  "windows": 47128,
+  "rules": "Original equalScene/Root/window mean confusion -> rates; pooled is raw cell counts, no aggregation change.",
+  "hierarchical": {
+    "baseline": {
+      "unknown": {
+        "precision": 0.997185485499536,
+        "recall": 0.9960215913752343,
+        "f1": 0.9966031986208281
+      },
+      "free": {
+        "precision": 0.3665031588776001,
+        "recall": 0.4197072670805029,
+        "f1": 0.39130500972798377
+      },
+      "blocked": {
+        "precision": 0.3136962848188283,
+        "recall": 0.3868102385258714,
+        "f1": 0.34643770103977223
+      },
+      "label_aware_delta_iou": 0.21773279820403424,
+      "revelation_iou": 0.2869848058890478,
+      "missed_revelations": 101.9553895150058,
+      "incorrect_free_blocked": 19.640027829031844,
+      "false_revelations": 144.28569673179757,
+      "terminal_label_agreement_on_true_revelations": 0.3952465847077549,
+      "revelation_precision": 0.4071987674594035,
+      "revelation_recall": 0.4929260381400856,
+      "revelation_f1": 0.44598009949433554,
+      "false_revelation_rate": 0.0039784086247658616,
+      "wrong_free_blocked_rate": 0.09767945343233073,
+      "false_free_unknown_count": 29.87762746167028,
+      "false_free_blocked_count": 7.5291089282486485,
+      "false_free_unknown_fraction": 0.5059886117811897,
+      "false_free_blocked_fraction": 0.12750822934121023,
+      "false_free_on_actual_blocked_rate": 0.05036082151237353
+    },
+    "candidate": {
+      "unknown": {
+        "precision": 0.9981750609134873,
+        "recall": 0.9984152027682478,
+        "f1": 0.998295117399219
+      },
+      "free": {
+        "precision": 0.6235627218845684,
+        "recall": 0.6653522801676148,
+        "f1": 0.6437800447241975
+      },
+      "blocked": {
+        "precision": 0.6833554421877698,
+        "recall": 0.6276789760933125,
+        "f1": 0.6543349866017799
+      },
+      "label_aware_delta_iou": 0.4831024112073944,
+      "revelation_iou": 0.521635349434435,
+      "missed_revelations": 66.20133335103289,
+      "incorrect_free_blocked": 6.717265462474115,
+      "false_revelations": 57.47614041919692,
+      "terminal_label_agreement_on_true_revelations": 0.6373401840792668,
+      "revelation_precision": 0.7011756989207039,
+      "revelation_recall": 0.6707484269110027,
+      "revelation_f1": 0.6856246467043733,
+      "false_revelation_rate": 0.0015847972317521758,
+      "wrong_free_blocked_rate": 0.033408242831735754,
+      "false_free_unknown_count": 16.21259791265357,
+      "false_free_blocked_count": 4.498385874587361,
+      "false_free_unknown_fraction": 0.2946758247755969,
+      "false_free_blocked_fraction": 0.08176145333983463,
+      "false_free_on_actual_blocked_rate": 0.030088873767506047
+    }
+  },
+  "pooled": {
+    "baseline": {
+      "unknown": {
+        "precision": 0.9961078802511942,
+        "recall": 0.9939414317111559,
+        "f1": 0.9950234767392214
+      },
+      "free": {
+        "precision": 0.38507644272773983,
+        "recall": 0.4287485613065215,
+        "f1": 0.40574071819892366
+      },
+      "blocked": {
+        "precision": 0.305074453198316,
+        "recall": 0.40713482008283464,
+        "f1": 0.34879195560750303
+      },
+      "label_aware_delta_iou": 0.22394987900402624,
+      "revelation_iou": 0.3057858089067252,
+      "missed_revelations": 6632337.0,
+      "incorrect_free_blocked": 1635296.0,
+      "false_revelations": 10346560.0,
+      "terminal_label_agreement_on_true_revelations": 0.4141068194176227,
+      "revelation_precision": 0.4195603303693205,
+      "revelation_recall": 0.5299935278181576,
+      "revelation_f1": 0.4683552337925095,
+      "false_revelation_rate": 0.006058568288844145,
+      "wrong_free_blocked_rate": 0.11588670840053487,
+      "false_free_unknown_count": 2477215.0,
+      "false_free_blocked_count": 639284.0,
+      "false_free_unknown_fraction": 0.48878496669763155,
+      "false_free_blocked_fraction": 0.12613859057462865,
+      "false_free_on_actual_blocked_rate": 0.06687569199714456
+    },
+    "candidate": {
+      "unknown": {
+        "precision": 0.9971710157515861,
+        "recall": 0.9977385108667034,
+        "f1": 0.9974546825910215
+      },
+      "free": {
+        "precision": 0.626801214846756,
+        "recall": 0.6517121633226586,
+        "f1": 0.6390140027880423
+      },
+      "blocked": {
+        "precision": 0.6828411144246885,
+        "recall": 0.6004941999864425,
+        "f1": 0.6390257076537403
+      },
+      "label_aware_delta_iou": 0.4695311665396958,
+      "revelation_iou": 0.5161672629422173,
+      "missed_revelations": 4833966.0,
+      "incorrect_free_blocked": 570387.0,
+      "false_revelations": 3862073.0,
+      "terminal_label_agreement_on_true_revelations": 0.617015708346039,
+      "revelation_precision": 0.7060663501193521,
+      "revelation_recall": 0.6574366914246106,
+      "revelation_f1": 0.6808843266283992,
+      "false_revelation_rate": 0.0022614891332965906,
+      "wrong_free_blocked_rate": 0.040420983078571636,
+      "false_free_unknown_count": 1366412.0,
+      "false_free_blocked_count": 399855.0,
+      "false_free_unknown_fraction": 0.28871246443420756,
+      "false_free_blocked_fraction": 0.08448632071903647,
+      "false_free_on_actual_blocked_rate": 0.04182895211442526
+    }
+  },
+  "pooled_confusion": [
+    [
+      [
+        1697410043,
+        2477215,
+        7869345
+      ],
+      [
+        1604252,
+        1951609,
+        996012
+      ],
+      [
+        5028085,
+        639284,
+        3891919
+      ]
+    ],
+    [
+      [
+        1703894530,
+        1366412,
+        2495661
+      ],
+      [
+        1414830,
+        2966511,
+        170532
+      ],
+      [
+        3419136,
+        399855,
+        5740297
+      ]
+    ]
+  ],
+  "zero_new": {
+    "windows": 2561,
+    "candidate_exact_empty": 1768,
+    "baseline_exact_empty": 736
+  },
+  "out_of_domain_positives": 0,
+  "known_terminal_differences": 772362,
+  "height_mae_on_correct_predicted_new_cells": 0.006016027689513049,
+  "bootstrap_95": {
+    "baseline": [
+      0.2116870167779241,
+      0.22364667910410072
+    ],
+    "candidate": [
+      0.4700661460869097,
+      0.49605365297539544
+    ],
+    "paired_delta": [
+      0.25348422377020813,
+      0.27757937418683754
+    ]
+  },
+  "pooled_strata": {
+    "duration:0.5-1": {
+      "windows": 9894,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9947203126903804,
+          "recall": 0.9913379716384271,
+          "f1": 0.9930262620296458
+        },
+        "free": {
+          "precision": 0.3840977228014846,
+          "recall": 0.43091812569300897,
+          "f1": 0.4061630730207498
+        },
+        "blocked": {
+          "precision": 0.30473100303602907,
+          "recall": 0.4201662429741214,
+          "f1": 0.3532574619868015
+        },
+        "label_aware_delta_iou": 0.22554828902609006,
+        "revelation_iou": 0.30266336113896414,
+        "missed_revelations": 1902999.0,
+        "incorrect_free_blocked": 454394.0,
+        "false_revelations": 3132775.0,
+        "terminal_label_agreement_on_true_revelations": 0.4234319572359088,
+        "revelation_precision": 0.4109597927211739,
+        "revelation_recall": 0.5345670370566034,
+        "revelation_f1": 0.4646839239791545,
+        "false_revelation_rate": 0.00866202836157297,
+        "wrong_free_blocked_rate": 0.11113507982069448,
+        "false_free_unknown_count": 687976.0,
+        "false_free_blocked_count": 170128.0,
+        "false_free_unknown_fraction": 0.49379327570775317,
+        "false_free_blocked_fraction": 0.12210900149076223,
+        "false_free_on_actual_blocked_rate": 0.05976119828705735
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9961942379086752,
+          "recall": 0.9968189575091022,
+          "f1": 0.9965064997982025
+        },
+        "free": {
+          "precision": 0.6102078053570255,
+          "recall": 0.6425390158527443,
+          "f1": 0.6259562045284371
+        },
+        "blocked": {
+          "precision": 0.685615501406706,
+          "recall": 0.6151457234217965,
+          "f1": 0.6484717341687849
+        },
+        "label_aware_delta_iou": 0.4719428235112465,
+        "revelation_iou": 0.5175234733002185,
+        "missed_revelations": 1377284.0,
+        "incorrect_free_blocked": 162237.0,
+        "false_revelations": 1150480.0,
+        "terminal_label_agreement_on_true_revelations": 0.623466002586664,
+        "revelation_precision": 0.7020917381779764,
+        "revelation_recall": 0.6631457121446027,
+        "revelation_f1": 0.682063219983991,
+        "false_revelation_rate": 0.003181042490897837,
+        "wrong_free_blocked_rate": 0.03967970955793873,
+        "false_free_unknown_count": 394002.0,
+        "false_free_blocked_count": 115716.0,
+        "false_free_unknown_fraction": 0.3013017085402542,
+        "false_free_blocked_fraction": 0.08849048610272042,
+        "false_free_on_actual_blocked_rate": 0.04064778767154806
+      }
+    },
+    "duration:1-2": {
+      "windows": 5793,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9916128238412062,
+          "recall": 0.9837541944700423,
+          "f1": 0.9876678771097764
+        },
+        "free": {
+          "precision": 0.3977386861702514,
+          "recall": 0.4237980360099231,
+          "f1": 0.4103550565501123
+        },
+        "blocked": {
+          "precision": 0.30244273461408555,
+          "recall": 0.46520565090233323,
+          "f1": 0.3665690487245035
+        },
+        "label_aware_delta_iou": 0.2341026025923858,
+        "revelation_iou": 0.339043086920912,
+        "missed_revelations": 1829423.0,
+        "incorrect_free_blocked": 694890.0,
+        "false_revelations": 3571866.0,
+        "terminal_label_agreement_on_true_revelations": 0.4512431041615354,
+        "revelation_precision": 0.4368362633031139,
+        "revelation_recall": 0.6023042757948434,
+        "revelation_f1": 0.5063960827437316,
+        "false_revelation_rate": 0.01624580552995765,
+        "wrong_free_blocked_rate": 0.151061171633308,
+        "false_free_unknown_count": 735683.0,
+        "false_free_blocked_count": 259708.0,
+        "false_free_unknown_fraction": 0.4451249912267752,
+        "false_free_blocked_fraction": 0.15713632260297344,
+        "false_free_on_actual_blocked_rate": 0.08518007470820081
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9922396651903004,
+          "recall": 0.9947208793585887,
+          "f1": 0.9934787230681037
+        },
+        "free": {
+          "precision": 0.6126317387175615,
+          "recall": 0.6089033271270972,
+          "f1": 0.6107618429289037
+        },
+        "blocked": {
+          "precision": 0.6754078912592937,
+          "recall": 0.5557066104195932,
+          "f1": 0.6097379722040586
+        },
+        "label_aware_delta_iou": 0.43895663011074904,
+        "revelation_iou": 0.5015971024581022,
+        "missed_revelations": 1710484.0,
+        "incorrect_free_blocked": 250776.0,
+        "false_revelations": 1160688.0,
+        "terminal_label_agreement_on_true_revelations": 0.5736444135366149,
+        "revelation_precision": 0.7134288382896806,
+        "revelation_recall": 0.628160259753303,
+        "revelation_f1": 0.6680848033563621,
+        "false_revelation_rate": 0.005279120641411375,
+        "wrong_free_blocked_rate": 0.05451584621668819,
+        "false_free_unknown_count": 425696.0,
+        "false_free_blocked_count": 171505.0,
+        "false_free_unknown_fraction": 0.2761233141854902,
+        "false_free_blocked_fraction": 0.11124494709694828,
+        "false_free_on_actual_blocked_rate": 0.05625089990616377
+      }
+    },
+    "duration:<=0.5": {
+      "windows": 30397,
+      "baseline": {
+        "unknown": {
+          "precision": 0.997822410406594,
+          "recall": 0.9978230650495019,
+          "f1": 0.9978227377279406
+        },
+        "free": {
+          "precision": 0.4006797608089584,
+          "recall": 0.40581394179015884,
+          "f1": 0.4032305090675841
+        },
+        "blocked": {
+          "precision": 0.30482070405906714,
+          "recall": 0.30300535674858353,
+          "f1": 0.3039103195247843
+        },
+        "label_aware_delta_iou": 0.2009510178284489,
+        "revelation_iou": 0.24346150874176828,
+        "missed_revelations": 2359906.0,
+        "incorrect_free_blocked": 220800.0,
+        "false_revelations": 2359195.0,
+        "terminal_label_agreement_on_true_revelations": 0.3346224719025803,
+        "revelation_precision": 0.3916226216190011,
+        "revelation_recall": 0.39155083112052697,
+        "revelation_f1": 0.3915867230793846,
+        "false_revelation_rate": 0.0021769349504981226,
+        "wrong_free_blocked_rate": 0.056928359217946665,
+        "false_free_unknown_count": 638266.0,
+        "false_free_blocked_count": 85756.0,
+        "false_free_unknown_fraction": 0.5283344039097008,
+        "false_free_blocked_fraction": 0.07098583528134085,
+        "false_free_on_actual_blocked_rate": 0.03192975127067795
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.998903157383062,
+          "recall": 0.9989142200190205,
+          "f1": 0.9989086886704124
+        },
+        "free": {
+          "precision": 0.6630067794760413,
+          "recall": 0.723229945304614,
+          "f1": 0.6918102056961708
+        },
+        "blocked": {
+          "precision": 0.6835509451848896,
+          "recall": 0.6529216377717981,
+          "f1": 0.6678853099151717
+        },
+        "label_aware_delta_iou": 0.5101053684855381,
+        "revelation_iou": 0.5320953845155645,
+        "missed_revelations": 1188687.0,
+        "incorrect_free_blocked": 73614.0,
+        "false_revelations": 1176685.0,
+        "terminal_label_agreement_on_true_revelations": 0.6745438189801934,
+        "revelation_precision": 0.6956762825428411,
+        "revelation_recall": 0.6935235483075028,
+        "revelation_f1": 0.6945982474633046,
+        "false_revelation_rate": 0.0010857799809794795,
+        "wrong_free_blocked_rate": 0.018979729327309448,
+        "false_free_unknown_count": 385209.0,
+        "false_free_blocked_count": 53264.0,
+        "false_free_unknown_fraction": 0.29605659067904666,
+        "false_free_blocked_fraction": 0.04093662984491209,
+        "false_free_on_actual_blocked_rate": 0.019831921634420806
+      }
+    },
+    "duration:>2": {
+      "windows": 1044,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9870684892640795,
+          "recall": 0.9698195888920002,
+          "f1": 0.9783680192567309
+        },
+        "free": {
+          "precision": 0.33788679328725,
+          "recall": 0.48587857054531963,
+          "f1": 0.39858911126037316
+        },
+        "blocked": {
+          "precision": 0.3148313518674583,
+          "recall": 0.47413915652731514,
+          "f1": 0.37840165135323306
+        },
+        "label_aware_delta_iou": 0.23890805956497424,
+        "revelation_iou": 0.35515114421717925,
+        "missed_revelations": 540009.0,
+        "incorrect_free_blocked": 265212.0,
+        "false_revelations": 1282724.0,
+        "terminal_label_agreement_on_true_revelations": 0.47844361061506685,
+        "revelation_precision": 0.43902464624271187,
+        "revelation_recall": 0.6502262803933723,
+        "revelation_f1": 0.524149864364151,
+        "false_revelation_rate": 0.030180411107999877,
+        "wrong_free_blocked_rate": 0.17178266977830545,
+        "false_free_unknown_count": 415290.0,
+        "false_free_blocked_count": 123692.0,
+        "false_free_unknown_fraction": 0.5101635928764559,
+        "false_free_blocked_fraction": 0.1519496138362941,
+        "false_free_on_actual_blocked_rate": 0.12650147117328756
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9869389982898976,
+          "recall": 0.9911952115616175,
+          "f1": 0.9890625260272875
+        },
+        "free": {
+          "precision": 0.6206793510461264,
+          "recall": 0.6384426504619407,
+          "f1": 0.6294357012176273
+        },
+        "blocked": {
+          "precision": 0.6953548700435179,
+          "recall": 0.5534863789910114,
+          "f1": 0.616362487116264
+        },
+        "label_aware_delta_iou": 0.45088545108776285,
+        "revelation_iou": 0.5142429934607198,
+        "missed_revelations": 557511.0,
+        "incorrect_free_blocked": 83760.0,
+        "false_revelations": 374220.0,
+        "terminal_label_agreement_on_true_revelations": 0.5846370283720054,
+        "revelation_precision": 0.7249575551782682,
+        "revelation_recall": 0.6388899144428878,
+        "revelation_f1": 0.6792080210131208,
+        "false_revelation_rate": 0.008804788438382468,
+        "wrong_free_blocked_rate": 0.054252886070882404,
+        "false_free_unknown_count": 161505.0,
+        "false_free_blocked_count": 59370.0,
+        "false_free_unknown_fraction": 0.2773613193403298,
+        "false_free_blocked_fraction": 0.10195932961354374,
+        "false_free_on_actual_blocked_rate": 0.06071849710214146
+      }
+    },
+    "human:present": {
+      "windows": 40140,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9961218618224201,
+          "recall": 0.9939329654089128,
+          "f1": 0.9950262098127753
+        },
+        "free": {
+          "precision": 0.381192905554737,
+          "recall": 0.42904524748524314,
+          "f1": 0.40370600641236637
+        },
+        "blocked": {
+          "precision": 0.30231705749340326,
+          "recall": 0.4040345933658269,
+          "f1": 0.34585195417414905
+        },
+        "label_aware_delta_iou": 0.22205528801313748,
+        "revelation_iou": 0.30328143307128,
+        "missed_revelations": 5626029.0,
+        "incorrect_free_blocked": 1378230.0,
+        "false_revelations": 8820852.0,
+        "terminal_label_agreement_on_true_revelations": 0.4121356103647302,
+        "revelation_precision": 0.41620784064357597,
+        "revelation_recall": 0.5278098505273252,
+        "revelation_f1": 0.4654120366873864,
+        "false_revelation_rate": 0.006067034591087206,
+        "wrong_free_blocked_rate": 0.11567424016259506,
+        "false_free_unknown_count": 2146811.0,
+        "false_free_blocked_count": 541089.0,
+        "false_free_unknown_fraction": 0.49423783519964637,
+        "false_free_blocked_fraction": 0.12456925924561663,
+        "false_free_on_actual_blocked_rate": 0.06716985704111696
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9971694911060472,
+          "recall": 0.9977206468095072,
+          "f1": 0.9974449928200984
+        },
+        "free": {
+          "precision": 0.6245509664580593,
+          "recall": 0.6502588605987738,
+          "f1": 0.6371457000335394
+        },
+        "blocked": {
+          "precision": 0.6787748058671268,
+          "recall": 0.5976766528049727,
+          "f1": 0.6356494815729995
+        },
+        "label_aware_delta_iou": 0.4664491248812,
+        "revelation_iou": 0.5120072946471271,
+        "missed_revelations": 4117547.0,
+        "incorrect_free_blocked": 473110.0,
+        "false_revelations": 3313948.0,
+        "terminal_label_agreement_on_true_revelations": 0.614708168939801,
+        "revelation_precision": 0.7017458312610914,
+        "revelation_recall": 0.6544160839926769,
+        "revelation_f1": 0.6772550588343816,
+        "false_revelation_rate": 0.0022793531904927397,
+        "wrong_free_blocked_rate": 0.03970791505287604,
+        "false_free_unknown_count": 1182217.0,
+        "false_free_blocked_count": 326365.0,
+        "false_free_unknown_fraction": 0.2942247952626059,
+        "false_free_blocked_fraction": 0.08122423827933482,
+        "false_free_on_actual_blocked_rate": 0.04051438930235901
+      }
+    },
+    "human:zero": {
+      "windows": 6988,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9960278170435997,
+          "recall": 0.9939899199783135,
+          "f1": 0.9950078250467775
+        },
+        "free": {
+          "precision": 0.4083621836814701,
+          "recall": 0.42709552979630494,
+          "f1": 0.4175188291988955
+        },
+        "blocked": {
+          "precision": 0.3199816207855859,
+          "recall": 0.423742564447001,
+          "f1": 0.36462397017568704
+        },
+        "label_aware_delta_iou": 0.234478845149581,
+        "revelation_iou": 0.31973748265771407,
+        "missed_revelations": 1006308.0,
+        "incorrect_free_blocked": 257066.0,
+        "false_revelations": 1525708.0,
+        "terminal_label_agreement_on_true_revelations": 0.42479994609380406,
+        "revelation_precision": 0.43821212692502565,
+        "revelation_recall": 0.541839221128315,
+        "revelation_f1": 0.48454709646318483,
+        "false_revelation_rate": 0.006010080021686439,
+        "wrong_free_blocked_rate": 0.11703927503451089,
+        "false_free_unknown_count": 330404.0,
+        "false_free_blocked_count": 98195.0,
+        "false_free_unknown_fraction": 0.456089494056,
+        "false_free_blocked_fraction": 0.13554832226252989,
+        "false_free_on_actual_blocked_rate": 0.06529986600210806
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9971797467506517,
+          "recall": 0.9978408220236855,
+          "f1": 0.9975101748593463
+        },
+        "free": {
+          "precision": 0.6394521368286731,
+          "recall": 0.6598094572607063,
+          "f1": 0.6494713139594289
+        },
+        "blocked": {
+          "precision": 0.7048012425670582,
+          "recall": 0.6155876455938634,
+          "f1": 0.6571805343314999
+        },
+        "label_aware_delta_iou": 0.4865603259894222,
+        "revelation_iou": 0.5392498468774105,
+        "missed_revelations": 716419.0,
+        "incorrect_free_blocked": 97277.0,
+        "false_revelations": 548125.0,
+        "terminal_label_agreement_on_true_revelations": 0.629533310751008,
+        "revelation_precision": 0.7297365927161885,
+        "revelation_recall": 0.673822441003675,
+        "revelation_f1": 0.7006657794657005,
+        "false_revelation_rate": 0.0021591779763145236,
+        "wrong_free_blocked_rate": 0.044289130252667085,
+        "false_free_unknown_count": 184195.0,
+        "false_free_blocked_count": 73490.0,
+        "false_free_unknown_fraction": 0.2577220779511518,
+        "false_free_blocked_fraction": 0.10282578522017506,
+        "false_free_on_actual_blocked_rate": 0.048870992947654374
+      }
+    },
+    "motion:mixed": {
+      "windows": 23987,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9956742334538466,
+          "recall": 0.9926167640152909,
+          "f1": 0.9941431479420089
+        },
+        "free": {
+          "precision": 0.37717209798648765,
+          "recall": 0.4409320532887691,
+          "f1": 0.40656747028890117
+        },
+        "blocked": {
+          "precision": 0.31918048662020587,
+          "recall": 0.442999229580977,
+          "f1": 0.3710324656100133
+        },
+        "label_aware_delta_iou": 0.23571680709405107,
+        "revelation_iou": 0.31245252911744237,
+        "missed_revelations": 3865133.0,
+        "incorrect_free_blocked": 946760.0,
+        "false_revelations": 6617345.0,
+        "terminal_label_agreement_on_true_revelations": 0.4423478327279799,
+        "revelation_precision": 0.41856488699861305,
+        "revelation_recall": 0.552068220501868,
+        "revelation_f1": 0.4761353606100341,
+        "false_revelation_rate": 0.007383235984709137,
+        "wrong_free_blocked_rate": 0.10972038777388811,
+        "false_free_unknown_count": 1618628.0,
+        "false_free_blocked_count": 361170.0,
+        "false_free_unknown_fraction": 0.5092068389706058,
+        "false_free_blocked_fraction": 0.11362106304290652,
+        "false_free_on_actual_blocked_rate": 0.06111404316681645
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9969881520016481,
+          "recall": 0.9974747067868682,
+          "f1": 0.9972313700460588
+        },
+        "free": {
+          "precision": 0.6426020871460304,
+          "recall": 0.6766735121394358,
+          "f1": 0.6591978377417815
+        },
+        "blocked": {
+          "precision": 0.711940967714631,
+          "recall": 0.6418803706607245,
+          "f1": 0.6750978423690961
+        },
+        "label_aware_delta_iou": 0.5035569870589031,
+        "revelation_iou": 0.544253683698522,
+        "missed_revelations": 2700735.0,
+        "incorrect_free_blocked": 294818.0,
+        "false_revelations": 2263335.0,
+        "terminal_label_agreement_on_true_revelations": 0.6528441878013078,
+        "revelation_precision": 0.7236952024203794,
+        "revelation_recall": 0.6870107614659346,
+        "revelation_f1": 0.7048760050810076,
+        "false_revelation_rate": 0.0025252932131318005,
+        "wrong_free_blocked_rate": 0.03416657366462688,
+        "false_free_unknown_count": 817048.0,
+        "false_free_blocked_count": 206268.0,
+        "false_free_unknown_fraction": 0.2853578463558766,
+        "false_free_blocked_fraction": 0.07204006649809307,
+        "false_free_on_actual_blocked_rate": 0.034902875255234084
+      }
+    },
+    "motion:rotation": {
+      "windows": 20534,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9963498619430261,
+          "recall": 0.995047524177126,
+          "f1": 0.995698267207439
+        },
+        "free": {
+          "precision": 0.3978699992967188,
+          "recall": 0.41175145749913605,
+          "f1": 0.4046917253254372
+        },
+        "blocked": {
+          "precision": 0.2761050846573751,
+          "recall": 0.3459500185902303,
+          "f1": 0.3071064240817117
+        },
+        "label_aware_delta_iou": 0.20311838591895123,
+        "revelation_iou": 0.2964519535302455,
+        "missed_revelations": 2609935.0,
+        "incorrect_free_blocked": 678756.0,
+        "false_revelations": 3545772.0,
+        "terminal_label_agreement_on_true_revelations": 0.36801481701550826,
+        "revelation_precision": 0.4224735747568565,
+        "revelation_recall": 0.49845082783617267,
+        "revelation_f1": 0.4573280987745134,
+        "false_revelation_rate": 0.004952475822873981,
+        "wrong_free_blocked_rate": 0.13043601082066442,
+        "false_free_unknown_count": 811393.0,
+        "false_free_blocked_count": 275946.0,
+        "false_free_unknown_fraction": 0.44932083523228494,
+        "false_free_blocked_fraction": 0.1528091654709963,
+        "false_free_on_actual_blocked_rate": 0.07978071045326046
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9971301989193703,
+          "recall": 0.9978798534710924,
+          "f1": 0.9975048853483353
+        },
+        "free": {
+          "precision": 0.5989870614067239,
+          "recall": 0.608774737942429,
+          "f1": 0.6038412401109028
+        },
+        "blocked": {
+          "precision": 0.6260351739576339,
+          "recall": 0.523449421563395,
+          "f1": 0.5701646650391634
+        },
+        "label_aware_delta_iou": 0.4106067642105465,
+        "revelation_iou": 0.468266592637621,
+        "missed_revelations": 2056206.0,
+        "incorrect_free_blocked": 274755.0,
+        "false_revelations": 1517939.0,
+        "terminal_label_agreement_on_true_revelations": 0.5520610437056221,
+        "revelation_precision": 0.6746446239186537,
+        "revelation_recall": 0.6048604976375677,
+        "revelation_f1": 0.6378495499191578,
+        "false_revelation_rate": 0.002120146528907529,
+        "wrong_free_blocked_rate": 0.05279945393194558,
+        "false_free_unknown_count": 518130.0,
+        "false_free_blocked_count": 193048.0,
+        "false_free_unknown_fraction": 0.292158691457461,
+        "false_free_blocked_fraction": 0.1088542471358152,
+        "false_free_on_actual_blocked_rate": 0.055813480143147666
+      }
+    },
+    "motion:translation": {
+      "windows": 2607,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9983532857999823,
+          "recall": 0.9980797523465363,
+          "f1": 0.998216500334702
+        },
+        "free": {
+          "precision": 0.40928401325945696,
+          "recall": 0.3892670157068063,
+          "f1": 0.3990246349673031
+        },
+        "blocked": {
+          "precision": 0.34958088813737104,
+          "recall": 0.4054354494496909,
+          "f1": 0.37544216580519696
+        },
+        "label_aware_delta_iou": 0.23637858896043612,
+        "revelation_iou": 0.2625504854831239,
+        "missed_revelations": 157269.0,
+        "incorrect_free_blocked": 9780.0,
+        "false_revelations": 183443.0,
+        "terminal_label_agreement_on_true_revelations": 0.40033600051692386,
+        "revelation_precision": 0.3980442665179084,
+        "revelation_recall": 0.4354437468365336,
+        "revelation_f1": 0.4159049297464839,
+        "false_revelation_rate": 0.0019202476534636063,
+        "wrong_free_blocked_rate": 0.03510774631960972,
+        "false_free_unknown_count": 47194.0,
+        "false_free_blocked_count": 2168.0,
+        "false_free_unknown_fraction": 0.5647714897741823,
+        "false_free_blocked_fraction": 0.02594449696636071,
+        "false_free_on_actual_blocked_rate": 0.01136798611511659
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9991936845838344,
+          "recall": 0.9991542108984687,
+          "f1": 0.9991739473512865
+        },
+        "free": {
+          "precision": 0.6693205944798302,
+          "recall": 0.7319713180059185,
+          "f1": 0.6992454225198974
+        },
+        "blocked": {
+          "precision": 0.7324184880356059,
+          "recall": 0.715328428879299,
+          "f1": 0.7237725878845113
+        },
+        "label_aware_delta_iou": 0.557304044599427,
+        "revelation_iou": 0.560831455046331,
+        "missed_revelations": 77025.0,
+        "incorrect_free_blocked": 814.0,
+        "false_revelations": 80799.0,
+        "terminal_label_agreement_on_true_revelations": 0.7205775188372084,
+        "revelation_precision": 0.7138288264357435,
+        "revelation_recall": 0.7234995746147301,
+        "revelation_f1": 0.7186316667736345,
+        "false_revelation_rate": 0.0008457891015312981,
+        "wrong_free_blocked_rate": 0.002922055777521709,
+        "false_free_unknown_count": 31234.0,
+        "false_free_blocked_count": 539.0,
+        "false_free_unknown_fraction": 0.32506973065234585,
+        "false_free_blocked_fraction": 0.005609674867823987,
+        "false_free_on_actual_blocked_rate": 0.002826265920686274
+      }
+    },
+    "new_cells:0": {
+      "windows": 2561,
+      "baseline": {
+        "unknown": {
+          "precision": 1.0,
+          "recall": 0.999679623845348,
+          "f1": 0.9998397862583428
+        },
+        "free": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "blocked": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "label_aware_delta_iou": 0.0,
+        "revelation_iou": 0.0,
+        "missed_revelations": 0.0,
+        "incorrect_free_blocked": 0.0,
+        "false_revelations": 29375.0,
+        "terminal_label_agreement_on_true_revelations": 0.0,
+        "revelation_precision": 0.0,
+        "revelation_recall": 0.0,
+        "revelation_f1": 0.0,
+        "false_revelation_rate": 0.000320376154652021,
+        "wrong_free_blocked_rate": 0.0,
+        "false_free_unknown_count": 6676.0,
+        "false_free_blocked_count": 0.0,
+        "false_free_unknown_fraction": 1.0,
+        "false_free_blocked_fraction": 0.0,
+        "false_free_on_actual_blocked_rate": 0.0
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 1.0,
+          "recall": 0.9999507138776894,
+          "f1": 0.9999753563315493
+        },
+        "free": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "blocked": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "label_aware_delta_iou": 0.0,
+        "revelation_iou": 0.0,
+        "missed_revelations": 0.0,
+        "incorrect_free_blocked": 0.0,
+        "false_revelations": 4519.0,
+        "terminal_label_agreement_on_true_revelations": 0.0,
+        "revelation_precision": 0.0,
+        "revelation_recall": 0.0,
+        "revelation_f1": 0.0,
+        "false_revelation_rate": 4.928612231055261e-05,
+        "wrong_free_blocked_rate": 0.0,
+        "false_free_unknown_count": 591.0,
+        "false_free_blocked_count": 0.0,
+        "false_free_unknown_fraction": 1.0,
+        "false_free_blocked_fraction": 0.0,
+        "false_free_on_actual_blocked_rate": 0.0
+      }
+    },
+    "new_cells:1-99": {
+      "windows": 18807,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9993113502357353,
+          "recall": 0.998894095333941,
+          "f1": 0.9991026792203355
+        },
+        "free": {
+          "precision": 0.12981512184440203,
+          "recall": 0.24681504038445526,
+          "f1": 0.17014210625579126
+        },
+        "blocked": {
+          "precision": 0.23080862414988457,
+          "recall": 0.31143822475763594,
+          "f1": 0.26512879995085764
+        },
+        "label_aware_delta_iou": 0.1434419377092621,
+        "revelation_iou": 0.14727356030168465,
+        "missed_revelations": 464120.0,
+        "incorrect_free_blocked": 4754.0,
+        "false_revelations": 745643.0,
+        "terminal_label_agreement_on_true_revelations": 0.30336657965075764,
+        "revelation_precision": 0.21887845963669886,
+        "revelation_recall": 0.3104298744385691,
+        "revelation_f1": 0.2567366065037843,
+        "false_revelation_rate": 0.0011059046660590029,
+        "wrong_free_blocked_rate": 0.007063294787811434,
+        "false_free_unknown_count": 137188.0,
+        "false_free_blocked_count": 1898.0,
+        "false_free_unknown_fraction": 0.858310132323959,
+        "false_free_blocked_fraction": 0.011874745831638878,
+        "false_free_on_actual_blocked_rate": 0.0032224655766651387
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9996877359639277,
+          "recall": 0.9995723869304942,
+          "f1": 0.9996300581196301
+        },
+        "free": {
+          "precision": 0.4903242868607281,
+          "recall": 0.639573197568606,
+          "f1": 0.5550915482415614
+        },
+        "blocked": {
+          "precision": 0.6365818358759696,
+          "recall": 0.6930083702609552,
+          "f1": 0.6635977590417075
+        },
+        "label_aware_delta_iou": 0.4802046635598444,
+        "revelation_iou": 0.48112693343873847,
+        "missed_revelations": 210516.0,
+        "incorrect_free_blocked": 599.0,
+        "false_revelations": 288313.0,
+        "terminal_label_agreement_on_true_revelations": 0.6863341440620928,
+        "revelation_precision": 0.6160198920162908,
+        "revelation_recall": 0.687224113262324,
+        "revelation_f1": 0.6496768407576036,
+        "false_revelation_rate": 0.0004276130695057411,
+        "wrong_free_blocked_rate": 0.000889969200231184,
+        "false_free_unknown_count": 55424.0,
+        "false_free_blocked_count": 465.0,
+        "false_free_unknown_fraction": 0.5054351791055665,
+        "false_free_blocked_fraction": 0.004240534033705406,
+        "false_free_on_actual_blocked_rate": 0.0007894870880660113
+      }
+    },
+    "new_cells:>=100": {
+      "windows": 25760,
+      "baseline": {
+        "unknown": {
+          "precision": 0.9934270618040129,
+          "recall": 0.9898372875491975,
+          "f1": 0.9916289258713703
+        },
+        "free": {
+          "precision": 0.39392467393790226,
+          "recall": 0.43217185347797105,
+          "f1": 0.41216286672694086
+        },
+        "blocked": {
+          "precision": 0.31059775380424115,
+          "recall": 0.4134182610209828,
+          "f1": 0.35470702477698607
+        },
+        "label_aware_delta_iou": 0.2288677748724969,
+        "revelation_iou": 0.31594953698983463,
+        "missed_revelations": 6168217.0,
+        "incorrect_free_blocked": 1630542.0,
+        "false_revelations": 9571542.0,
+        "terminal_label_agreement_on_true_revelations": 0.41965332311760645,
+        "revelation_precision": 0.43166687339892595,
+        "revelation_recall": 0.5409905296163804,
+        "revelation_f1": 0.4801848826400328,
+        "false_revelation_rate": 0.01016271245080248,
+        "wrong_free_blocked_rate": 0.12133720649877393,
+        "false_free_unknown_count": 2333351.0,
+        "false_free_blocked_count": 637386.0,
+        "false_free_unknown_fraction": 0.4760389318012068,
+        "false_free_blocked_fraction": 0.1300363942608909,
+        "false_free_on_actual_blocked_rate": 0.07105516449955174
+      },
+      "candidate": {
+        "unknown": {
+          "precision": 0.9950964788741156,
+          "recall": 0.9962103107367011,
+          "f1": 0.9956530832960455
+        },
+        "free": {
+          "precision": 0.6301188677804432,
+          "recall": 0.651940572173456,
+          "f1": 0.6408440083134431
+        },
+        "blocked": {
+          "precision": 0.687008366055245,
+          "recall": 0.5944197171598982,
+          "f1": 0.6373690790550275
+        },
+        "label_aware_delta_iou": 0.4690677370422127,
+        "revelation_iou": 0.5182851291603716,
+        "missed_revelations": 4623450.0,
+        "incorrect_free_blocked": 569788.0,
+        "false_revelations": 3569241.0,
+        "terminal_label_agreement_on_true_revelations": 0.6135438451733964,
+        "revelation_precision": 0.7117836512664231,
+        "revelation_recall": 0.6559447672082311,
+        "revelation_f1": 0.6827243700226308,
+        "false_revelation_rate": 0.003789689263298922,
+        "wrong_free_blocked_rate": 0.04240092203483468,
+        "false_free_unknown_count": 1310397.0,
+        "false_free_blocked_count": 399390.0,
+        "false_free_unknown_fraction": 0.2834804136521745,
+        "false_free_blocked_fraction": 0.08640071856738224,
+        "false_free_on_actual_blocked_rate": 0.04452360445550416
+      }
+    }
+  },
+  "identity": {
+    "checkpoint": "output/claude_stage2/final/v17a.pt",
+    "checkpoint_sha256": "f0f8b4bc936c793edb9b5e8707c46fcb034735665670635e338a397fa496f596",
+    "source_manifest_sha256": "4187cf65a73c4eafdedbc7b862b01a9bc4820ece12b9e980e5305aa6559bc128",
+    "evaluator_sha256": "973774a1f7446d1eb2e14e91af2599941689c098ce415a8903b97d42526fb2dc",
+    "api_sha256": "a85f6551da79138cf160077af0e8a2b4e44a55fbd7e33714c3e01cdaebcc15f6",
+    "split": "full",
+    "sensor_directory": "full_range_branches_256",
+    "threshold": null,
+    "limit": 0,
+    "role": "LEGAL SENSOR EXTENSION; ORIGINAL development universe; original windows/domain/labels/summarize."
+  },
+  "seconds": 2885.3915295349434
+}

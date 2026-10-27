@@ -1,0 +1,13 @@
+{
+ "checkpoint": "output/claude_stage2/training/v17_a/final.pt",
+ "roots": 400,
+ "best": {
+  "rule": "class",
+  "tau_free": 0.4749999999999999,
+  "tau_blocked": 0.575,
+  "hier": 0.48875941951785856,
+  "pooled": 0.4713335356440738,
+  "rev": 0.5314883912632794
+ },
+ "role": "TRAIN-split scene-disjoint validation; operating point frozen before any development evaluation"
+}

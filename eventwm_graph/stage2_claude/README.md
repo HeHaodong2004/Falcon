@@ -88,7 +88,9 @@ results do not depend on cache state or on the number of lanes (`lanes=3` is che
 
 | checkpoint | full development (original evaluator) | dense K=6 cold P50 / P95 |
 | --- | --- | --- |
-| `output/claude_stage2/final/v15.pt` (current best; use 256 px packets, `lanes=3`) | label-aware IoU 0.4784 (256 px) | 24.1 / 27.4 ms (GPU0, 256 px, load ~13-15; 27.2 / 32.0 ms at load ~30-35) |
+| **`release/stage2_claude_v17a/stage2_claude_v17a.pt`** (final release = `output/claude_stage2/final/v17a.pt` without raw training weights; use 256 px packets, `lanes=3`; model card `release/stage2_claude_v17a/MODEL_CARD.md`) | **label-aware IoU 0.4831** (256 px) | 34.8 / 41.1 ms (GPU0, load ~27); same architecture as v15 |
+| `output/claude_stage2/final/v15.pt` | label-aware IoU 0.4784 (256 px) | 24.1 / 27.4 ms (GPU0, 256 px, load ~13-15; 27.2 / 32.0 ms at load ~30-35) |
+| `output/claude_stage2/final/v16b.pt` (decoder side branches) | 0.4809 (256 px) | 32.0 / 36.0 ms (GPU0, load ~27-31) |
 | `output/claude_stage2/final/v12.pt` | 0.4716 (256 px) | 25.1 / 34.6 ms (GPU0, 256 px, load ~10) |
 | `output/claude_stage2/final/v11.pt` | 0.4688 (256 px) | 24.9 / 34.2 ms (GPU0, 256 px) |
 | `output/claude_stage2/final/v7.pt` | 0.4563 (128 px) | 31.1 / 35.9 ms (GPU0, 128 px) |

@@ -1,0 +1,16 @@
+== start Tue 27 Oct 12:56:46 UTC 2026 v17a output/claude_stage2/training/v17_a/final.pt lanes 3
+validation Roots with both resolutions: 199 scenes 22
+expanded_train_range_branches frozen rule {"rule": "class", "free_threshold": 0.4749999999999999, "blocked_class_threshold": 0.575, "selected_on": "TRAIN-split scene-disjoint validation (select.py)"} hier 0.4755 pooled 0.4641
+expanded_train_range_branches_256 frozen rule {"rule": "class", "free_threshold": 0.4749999999999999, "blocked_class_threshold": 0.575, "selected_on": "TRAIN-split scene-disjoint validation (select.py)"} hier 0.4764 pooled 0.4656
+SENSOR 256 {"expanded_train_range_branches": {"hier": 0.4755307598061053, "pooled": 0.46407521982955857}, "expanded_train_range_branches_256": {"hier": 0.47636321691581784, "pooled": 0.4655785674668253}}
+sensor 256 -> full_range_branches_256 / range_benchmark_256 Tue 27 Oct 13:22:02 UTC 2026
+SUMMARY label-aware IoU 0.483102 revelation IoU 0.521635 | pooled 0.469531 | roots 2110 windows 47128
+PASS exact domain (CPU reference), zero-horizon, no input mutation
+batched vs single (CUDA graphs): max probability difference 0, differing hard states 0 of 2725522
+batched graphs vs eager (different canvas, numerics only): max probability difference 0.00157, differing hard states 0 of 2725522
+PASS edge cases: 14 queries incl. a 14.4 m path (frame 366 cells) and a zero-horizon query
+PASS lanes=3 vs lanes=1: bit-identical probabilities and states on 1361633 cells
+REPETITION 1
+REPETITION 2
+REPETITION 3
+== done Tue 27 Oct 14:11:41 UTC 2026

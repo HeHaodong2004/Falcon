@@ -1,0 +1,12 @@
+{
+  "checkpoint": "output/claude_stage2/final/v17a.pt",
+  "checkpoint_sha256": "f0f8b4bc936c793edb9b5e8707c46fcb034735665670635e338a397fa496f596",
+  "source_manifest_sha256": "4187cf65a73c4eafdedbc7b862b01a9bc4820ece12b9e980e5305aa6559bc128",
+  "evaluator_sha256": "973774a1f7446d1eb2e14e91af2599941689c098ce415a8903b97d42526fb2dc",
+  "api_sha256": "a85f6551da79138cf160077af0e8a2b4e44a55fbd7e33714c3e01cdaebcc15f6",
+  "split": "full",
+  "sensor_directory": "full_range_branches_256",
+  "threshold": null,
+  "limit": 0,
+  "role": "LEGAL SENSOR EXTENSION; ORIGINAL development universe; original windows/domain/labels/summarize."
+}

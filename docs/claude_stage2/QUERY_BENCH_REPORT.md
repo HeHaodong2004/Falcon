@@ -13,6 +13,13 @@ heuristics), `query_report.py` (metrics, scene bootstrap, tables). Outputs: `out
 ## 0. Answers (primary set: common 1.0 s horizon — 885 Roots, 93 scenes, 3,077 distinct outcomes, 3,658 decisive pairs)
 
 All numbers are from `output/claude_stage2/query_bench/report.json`; every table is in `QUERY_BENCH_TABLES.md`.
+**Final released model v17_a** (full-dev IoU 0.4831), evaluated with the same groups and labels: pairwise
+**92.9 % [91.2, 94.4]**, top-1 hit **81.8 % [79.0, 84.6]** and regret **17.2 cells [11.3, 23.3]**. With TRAIN-validation
+recalibration these become 93.7 %, 82.9 % and 15.2 cells. Gain MAE is 133.3 cells (bias +17 %), or 108.2 recalibrated
+(+5 %). Against the legal visibility heuristic it gains +12.7 points [10.2, 15.3] and −32.1 cells of regret, and
+it is indistinguishable from v16_b and v15 in ranking (paired differences include 0). The answers below cite v16_b,
+the latest verified checkpoint when the benchmark was run; the v17_a numbers differ by at most a few tenths of a
+point.
 Brackets are 95 % scene-bootstrap intervals. v16_b is the latest verified checkpoint (full-dev IoU 0.4809), v15 the
 previous one (0.4784).
 

@@ -1,0 +1,82 @@
+{
+ "dev_roots": 2110,
+ "scenes": 108,
+ "queries_total": 14546,
+ "queries_per_root": {
+  "3": 468,
+  "4": 280,
+  "5": 178,
+  "6": 233,
+  "7": 185,
+  "8": 166,
+  "9": 129,
+  "10": 110,
+  "11": 92,
+  "12": 70,
+  "13": 66,
+  "14": 44,
+  "15": 21,
+  "16": 19,
+  "17": 20,
+  "18": 13,
+  "19": 7,
+  "20": 2,
+  "21": 2,
+  "23": 4,
+  "24": 1
+ },
+ "terminations": {
+  "query_complete": 12157,
+  "human_collision": 2382,
+  "query_timeout": 7
+ },
+ "empty_paths": 0,
+ "all_queries_share_decision_time": true,
+ "history_seconds": {
+  "p10": 0.584,
+  "p50": 0.632,
+  "p90": 0.728
+ },
+ "duration_seconds": {
+  "p10": 0.144,
+  "p50": 0.728,
+  "p90": 1.848,
+  "max": 5.84
+ },
+ "h_full": {
+  "eligible_roots": 2089,
+  "eligible_scenes": 108,
+  "outcomes_in_eligible_roots": 13481,
+  "pairs": 49840,
+  "queries_with_outcome": 14546,
+  "queries_merged_as_shared_outcomes": 1044,
+  "roots_excluded_fewer_than_two_outcomes": 21
+ },
+ "h_0.5": {
+  "eligible_roots": 1380,
+  "eligible_scenes": 103,
+  "outcomes_in_eligible_roots": 4415,
+  "pairs": 6222,
+  "queries_with_outcome": 9267,
+  "queries_merged_as_shared_outcomes": 4404,
+  "roots_excluded_fewer_than_two_outcomes": 730
+ },
+ "h_1.0": {
+  "eligible_roots": 885,
+  "eligible_scenes": 93,
+  "outcomes_in_eligible_roots": 3077,
+  "pairs": 4931,
+  "queries_with_outcome": 4834,
+  "queries_merged_as_shared_outcomes": 1311,
+  "roots_excluded_fewer_than_two_outcomes": 1225
+ },
+ "h_2.0": {
+  "eligible_roots": 249,
+  "eligible_scenes": 56,
+  "outcomes_in_eligible_roots": 691,
+  "pairs": 761,
+  "queries_with_outcome": 1160,
+  "queries_merged_as_shared_outcomes": 153,
+  "roots_excluded_fewer_than_two_outcomes": 1861
+ }
+}

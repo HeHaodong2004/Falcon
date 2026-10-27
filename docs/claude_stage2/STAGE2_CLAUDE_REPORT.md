@@ -1,20 +1,25 @@
 # Stage 2 redesign — legal voxel simulation + masked BEV U-Net (Claude, 2026-10-26)
 
-Status (2026-10-27 10:15 UTC): best verified model `final/v15.pt` — original full-development
-label-aware increment IoU **0.4784** (target > 0.50 **not met**; v12 0.4716, previous model A 0.4171), complete
-dense K=6 cold P95 **27.4 ms** (< 50 ms, met; P50 24.1 ms; 32.0 ms under heavy external CPU load). All numbers
-below are read from the frozen evaluation and benchmark receipts. Since then (TRAIN validation, 160 Roots):
-v16_a 0.4753 (+14 % TRAIN Roots), v16_b 0.4772 (soft-IoU weight 1.0); the better of them on 400 Roots is being
-evaluated on development; v17_a (weight 1.0) and the next cycles are running. A later candidate is evaluated on
-development only if it beats the current best on TRAIN validation, and is then reported here.
+Status (2026-10-27 14:20 UTC, final): **released model `release/stage2_claude_v17a/stage2_claude_v17a.pt`**
+(= `final/v17a.pt`, selected on TRAIN validation: 400 Roots 0.4888, the best of all candidates). Original
+full-development label-aware increment IoU **0.4831** [0.4701, 0.4961] (target > 0.50 **not met**; v16_b 0.4809,
+v15 0.4784, previous model A 0.4171). Complete dense K=6 cold P95 **41.1 ms** at a load average of ~27 from another
+session (< 50 ms met). The identical v15 architecture/code measured 38.8 ms back-to-back in the same conditions
+and 27.4 ms at load ~13-15. Trajectory-wise query ranking (`QUERY_BENCH_REPORT.md`): 92.9 % pairwise accuracy,
+81.8 % top-1 hit, 17.2-cell regret at a common 1.0 s horizon. All numbers below are read from the frozen evaluation
+and benchmark receipts (copied into `release/stage2_claude_v17a/receipts/`).
 
 ## 0. Executive summary
 
-**Outcome.** Best verified model `final/v15.pt`: original full-development label-aware increment IoU
-**0.4784** (bootstrap 95 % [0.4655, 0.4910]; requirement > 0.50 **not met**; previous model A 0.4171,
-graph-only baseline 0.2177) and complete dense K=6 cold P50 / P95 **24.1 / 27.4 ms** (requirement < 50 ms met, preferred 20-30 ms band
-reached; 27.2 / 32.0 ms when another session loaded the CPU to a load average of ~30-35), from
-the same implementation, legal inputs only, original evaluator and original benchmark workloads.
+**Outcome.** Final released model v17_a (`release/stage2_claude_v17a/`): original full-development label-aware
+increment IoU **0.4831** (bootstrap 95 % [0.4701, 0.4961]; requirement > 0.50 **not met**; previous model A
+0.4171, graph-only baseline 0.2177). Complete dense K=6 cold P50 / P95 **34.8 / 41.1 ms** under a load average of
+~27 from another session's jobs (requirement < 50 ms met). Its architecture and code are identical to v15, which
+measured 24.1 / 27.4 ms when the machine was less loaded (the preferred 20-30 ms band). Same implementation, legal
+inputs only, original evaluator and benchmark workloads. Trajectory-wise query ranking (diagnostic, recorded Query
+Outcomes, common 1.0 s horizon): v17_a orders the information gain of alternative outcomes correctly for 92.9 %
+of decisive pairs, picks the best outcome 81.8 % of the time and loses 17.2 cells on average (best legal-map
+heuristic 80.2 % / 68.5 % / 49.3 cells).
 
 **Method.** Legal tri-state voxel map from the measured past/current range frames -> exact simulation of the
 original FREE-probe and BLOCKED wall-ray certificate geometry along the supplied trajectory -> masked
@@ -32,7 +37,8 @@ those of the previous range API (section 5, `eventwm_graph/stage2_claude/README.
 | self-distillation restarts v12, v13, v14, v15 | +0.0047, +0.0034, +0.0014, +0.0018 |
 | soft-IoU weight 1.0 instead of 0.5 (v16_b vs v16_a) | +0.0019 (160 Roots, single threshold), +0.0003 (400 Roots, class rule) |
 | 256 px instead of 128 px legal sensing at inference | +0.002-0.003 |
-| net, full development | v7 0.4563 -> v11 0.4688 -> v12 0.4716 -> v15 0.4784 |
+| more TRAIN Roots (+32 %) and soft-IoU weight 1.0 (v16_a, v16_b, v17_a) | 400-Root validation 0.4853 -> 0.4888 |
+| net, full development | v7 0.4563 -> v11 0.4688 -> v12 0.4716 -> v15 0.4784 -> v16_b 0.4809 -> **v17_a 0.4831** |
 
 **What did not help** (sections 3, 8, 9): extra decoder capacity (`v15_cap` identical to v15 at every
 validation), ensembles / weight averages within the lineage, duration-dependent thresholds, auxiliary geometry
@@ -77,9 +83,10 @@ evaluation (`evaluate.py`, `--sensor-directory full_range_branches_256`, origina
 | v11 (`final/v11.pt`) | 256 px | 0.4688 | 0.5026 | 0.4552 | [0.4557, 0.4815] |
 | v12 (`final/v12.pt`) | 256 px | 0.4716 | 0.5077 | 0.4579 | [0.4588, 0.4841] |
 | v15 (`final/v15.pt`, latency section below) | 256 px | 0.4784 | 0.5145 | 0.4648 | [0.4655, 0.4910] |
-| **v16_b (`final/v16b.pt`)** | 256 px | **0.4809** | **0.5171** | **0.4671** | [0.4680, 0.4936] |
+| v16_b (`final/v16b.pt`) | 256 px | 0.4809 | 0.5171 | 0.4671 | [0.4680, 0.4936] |
+| **v17_a (`final/v17a.pt`, released)** | 256 px | **0.4831** | **0.5216** | **0.4695** | [0.4701, 0.4961] |
 
-Every full-development evaluation run in this work is listed in this table (v7, v11, v12, v15, v16_b); each candidate
+Every full-development evaluation run in this work is listed in this table (v7, v11, v12, v15, v16_b, v17_a); each candidate
 was selected and frozen on TRAIN validation before its single development evaluation.
 
 v16_b (from `v15_cap` = v15 + decoder side branches, one more 1-epoch restart with +19 % TRAIN Roots and soft-IoU weight 1.0; 400-Root operating point class 0.55 / 0.575, validation 0.4869; 256 px chosen on the 199 validation Roots, 0.4754 vs 0.4740) is the most accurate verified model: full development **0.4809** (motion: rotation 0.4083, translation 0.5533, mixed 0.5010; duration <= 0.5 s 0.5071). Its decoder side branches cost network time: dense K=6 cold P50 32.0 / P95 36.0 ms (`benchmark/v16b_bench256.json`, load average ~27-31; network 15.9 ms median vs 11.2-11.6 ms for v15), still < 50 ms but outside the preferred band, so v15 remains the faster frozen alternative (24.1 / 27.4 ms at load ~13-15). All `test_api` contract tests pass for v16_b.

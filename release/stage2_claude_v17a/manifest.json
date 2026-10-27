@@ -1,0 +1,59 @@
+{
+ "name": "v17a",
+ "checkpoint": "stage2_claude_v17a.pt",
+ "checkpoint_sha256": "bef7f5fd73898903c309cfa9a8f18d0944352dc39e19e72db3cdbe32c3559a8d",
+ "source_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/final/v17a.pt",
+ "source_checkpoint_sha256": "f0f8b4bc936c793edb9b5e8707c46fcb034735665670635e338a397fa496f596",
+ "parameters": 10434072,
+ "config": {
+  "widths": [
+   32,
+   64,
+   96,
+   128,
+   192
+  ],
+  "blocks": [
+   1,
+   2,
+   2,
+   2,
+   2
+  ],
+  "side": {
+   "3": [
+    192,
+    3
+   ],
+   "4": [
+    256,
+    4
+   ]
+  },
+  "sub": 2,
+  "render": 192,
+  "near": 0.5,
+  "human_filter": true,
+  "human_occluders": true,
+  "iou_weight": 1.0,
+  "train_roots": 24258,
+  "warm": "output/claude_stage2/training/v16_a/final.pt",
+  "teacher": "output/claude_stage2/training/v16_a/final.pt"
+ },
+ "decision": {
+  "rule": "class",
+  "free_threshold": 0.4749999999999999,
+  "blocked_class_threshold": 0.575,
+  "selected_on": "TRAIN-split scene-disjoint validation (select.py)"
+ },
+ "receipts": {
+  "full_dev_summary.json": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/evaluation/full_v17a_256/summary.json",
+  "full_dev_identity.json": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/evaluation/full_v17a_256/identity.json",
+  "latency_benchmark.json": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/benchmark/v17a_bench256.json",
+  "latency_quiet_receipt.json": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/benchmark/quiet_v17a_256.json",
+  "selection_400_validation_roots.json": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/selection/v17a.json",
+  "final_pipeline_log.txt": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/logs/final_v17a.log",
+  "query_bench_report.json": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/query_bench/report.json",
+  "query_bench_audit.json": "/home/haodong/workspace/projects/eventwm-falcon-stage2-claude-handoff-20261026/output/claude_stage2/query_bench/audit.json"
+ }
+}
