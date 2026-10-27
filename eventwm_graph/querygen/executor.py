@@ -47,6 +47,8 @@ CLOSE_HARD_CLEARANCE = 0.27  # 'close' queries (declared body proxy: 0.25 m)
 # 0.5 s human horizon (~10 native steps; the native robot stops instantly and is ~4x faster than
 # the humans, so 1.5 s forbade approaching any human within ~6 m along the heading)
 CLOSE_ORCA = dict(robot_radius=0.30, human_radius=0.25, margin=0.05, time_horizon=0.5)
+CLOSE_SFM = dict(contact_radius=0.55)
+CLOSE_DWA = dict(safety=CLOSE_HARD_CLEARANCE, clearance_cap=0.8)
 # 'stgoal' queries (v9): legal space-time lattice plan (stplan.py) re-planned every ST_REPLAN steps
 ST_HORIZON = 40
 ST_MARGIN = 0.35            # rectangle to predicted human centre at t = 0 ...
@@ -147,13 +149,19 @@ class QueryExecution:
 
     def _make_close(self):
         """Close-pass variant: smaller human-avoidance proxies, rectangle hard check at 0.27 m."""
-        from .planners import ORCAPlanner
-        from .orca import ORCASolver, ORCAConfig
+        from .planners import ORCAPlanner, SFMPlanner, DWAPlanner
+        from .orca import ORCASolver
         from dataclasses import replace as _replace
         self.hard_clearance = CLOSE_HARD_CLEARANCE
         if isinstance(self.planner, ORCAPlanner):
             self.planner.solver = ORCASolver(_replace(self.planner.solver.cfg, **CLOSE_ORCA))
             self.planner.hard_clearance = CLOSE_HARD_CLEARANCE
+        elif isinstance(self.planner, SFMPlanner):
+            # contact radius sized to the body width (0.95 m disc -> 0.55 m), same hard check
+            self.planner.cfg = _replace(self.planner.cfg, **CLOSE_SFM)
+            self.planner.hard_clearance = CLOSE_HARD_CLEARANCE
+        elif isinstance(self.planner, DWAPlanner):
+            self.planner.cfg = _replace(self.planner.cfg, **CLOSE_DWA)
 
     def copy(self):
         return copy.deepcopy(self)

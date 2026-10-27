@@ -251,9 +251,12 @@ class SFMConfig:
 class SFMPlanner(Planner):
     name = 'sfm'
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, hard_clearance=0.30, turn_commit=True, nh_project=True):
         self.cfg = config or SFMConfig()
         self.v = None
+        self.hard_clearance = hard_clearance
+        self.turn_commit = turn_commit      # v9 (as ORCA): execute static-plan in-place turns under the hard check
+        self.nh_project = nh_project        # v9: keep the plan heading; social force only scales the speed
 
     def reset(self):
         self.v = None
@@ -303,7 +306,7 @@ class SFMPlanner(Planner):
         if n > ctx.vmax:
             v = v/n*ctx.vmax
         self.v = v
-        hard = one_step_hard_ok(ctx.humans, 0.30)
+        hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
         social = float(np.hypot(*(F-F_goal)))*STEP_SECONDS
         if not ctx.hold and ctx.plan_prims and ctx.dyn.discrete and social <= 0.05*ctx.vmax:
             prim = ctx.plan_prims[0]
@@ -312,6 +315,20 @@ class SFMPlanner(Planner):
                 self.mode = 'plan'
                 self.v = ctx.v_pref.copy()
                 return prim
+        if not ctx.hold and ctx.plan_prims and ctx.dyn.discrete:
+            prim = ctx.plan_prims[0]
+            if self.turn_commit and prim in ('left', 'right'):
+                P1, psi1 = adapter.predicted_pose(ctx.P, ctx.psi, prim)
+                if hard is None or (hard(ctx.P, ctx.psi) and hard(P1, psi1)):
+                    self.mode = 'plan_turn'
+                    return prim
+            if self.nh_project and prim == 'forward':
+                # non-holonomic projection (v9): the social force may only slow the robot along its
+                # heading (a turn-in-place robot cannot follow a lateral deflection without dithering)
+                u = heading_vec(ctx.psi)
+                s_ = max(0., min(float(np.dot(v, u)), float(np.hypot(*ctx.v_pref))))
+                self.mode = 'governed'
+                return self._emit(ctx, adapter, s_*u, hard)
         return self._emit(ctx, adapter, v, hard)
 
 
