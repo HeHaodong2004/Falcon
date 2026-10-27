@@ -105,7 +105,8 @@ def summarize_run(d, certs=None):
                          start_geo=r.get('start_geodesic'), final_geo=rep.get('final_geodesic', o.get('final_geodesic')),
                          decisions=len(r.get('decisions', [])), oracle_s=o.get('seconds'),
                          expansions=st.get('expansions'), spawn_contact=r.get('spawn_contact'),
-                         certified_infeasible=(cert is not None and cert.get('search_complete') and not cert.get('feasible_escape')),
+                         certified_infeasible=bool(cert and cert['infeasible']),
+                         certified_by=(cert or {}).get('by', []),
                          behaviour=b))
     n = len(rows)
     passed = [x for x in rows if x['verdict'] == 'PASS']
@@ -171,11 +172,31 @@ def markdown(summ):
 
 
 def load_certs(d):
+    """Per episode: {'infeasible': bool, 'by': [certificate kinds proving it], 'files': [...]}.
+
+    start escape (``feasible_escape``): complete search (no time-out, not depth-limited) without
+    escape; progress (``drop_m``): ``certified_infeasible``; goal region (``feasible_goal``): no
+    contact-free final pose."""
     out = {}
     if d:
-        for p in Path(d).glob('*.json'):
+        for p in sorted(Path(d).glob('*.json')):
             c = json.loads(p.read_text())
-            out[c['key']] = c
+            e = out.setdefault(c['key'], dict(infeasible=False, by=[], files=[]))
+            e['files'].append(p.name)
+            if 'feasible_escape' in c:
+                proven = (not c['feasible_escape']) and c.get('search_complete') and not c.get('depth_limited', False)
+                kind = 'start_escape'
+            elif 'drop_m' in c:
+                proven = bool(c.get('certified_infeasible'))
+                kind = 'progress'
+            elif 'feasible_goal' in c:
+                proven = not c['feasible_goal']
+                kind = 'goal_region'
+            else:
+                continue
+            if proven:
+                e['infeasible'] = True
+                e['by'].append(kind)
     return out
 
 

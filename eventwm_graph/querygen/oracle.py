@@ -44,6 +44,7 @@ class OracleConfig:
     predict_dups: bool = False        # sandbox-predict an edge's end signature (true human future) and
     dup_penalty: float = 25.          # defer predicted duplicates by this f penalty instead of simulating
     maneuver_prior: float = 10.       # extra f for exact manoeuvre edges (used when ordinary queries do not help)
+    maneuver_pad: bool = True         # also charge short manoeuvres up to a full decision interval
     fine_by_edge: bool = True         # fine de-duplication for states reached by manoeuvre edges (else: stuck nodes)
     tie_bucket: float = 0.            # >0: f is bucketed and ties prefer the later node (cross waiting plateaus forward in time)
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
@@ -167,14 +168,16 @@ class Oracle:
 
     @staticmethod
     def is_maneuver(q):
-        lab = q.label
-        return q.kind == 'creep' or (q.kind == 'rotate' and lab.rstrip('0123456789') in ('rot_left', 'rot_right')
-                                     and lab[-1].isdigit())
+        from .generator import is_maneuver
+        return is_maneuver(q)
 
     def _prior(self, q):
         lab = q.label
         if self.is_maneuver(q):
-            return self.cfg.maneuver_prior
+            # a manoeuvre is charged at least one full decision interval (short
+            # edges must not look cheaper than ordinary decisions) plus the prior
+            pad = max(0, self.cfg.horizon-int(q.duration)) if self.cfg.maneuver_pad else 0
+            return self.cfg.maneuver_prior+pad
         for k, v in self.PRIOR.items():
             if lab.startswith(k.rstrip('_')):
                 return v

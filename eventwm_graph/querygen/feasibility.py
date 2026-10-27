@@ -125,7 +125,8 @@ def certify_progress(spec, drop_m=1.5, max_depth=200, budget_s=1800., depth_weig
     the 2 cm position merge; a found witness is exact (every step simulated)."""
     import heapq
     from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, contact_links,
-                         escape_exempt)
+                         escape_exempt, MAX_EPISODE_STEPS)
+    max_depth = min(max_depth, MAX_EPISODE_STEPS)
     task = NativeTask(spec)
     sim = BranchSimulator(task, None)
     root = sim.root()
@@ -183,7 +184,9 @@ def certify_progress(spec, drop_m=1.5, max_depth=200, budget_s=1800., depth_weig
                 witness=seq, witness_len=len(seq), states=len(seen), simulated_steps=sims,
                 exhausted=not heap, exact_gait=exact_gait, max_depth=max_depth, max_depth_reached=max_reached,
                 depth_limited=depth_limited,
-                certified_infeasible=bool(found is None and not heap and exact_gait and not depth_limited),
+                # depth >= the 500-step episode limit covers every action sequence an episode allows
+                certified_infeasible=bool(found is None and not heap and exact_gait and
+                                          (not depth_limited or max_depth >= MAX_EPISODE_STEPS)),
                 seconds=time.perf_counter()-t0)
 
 

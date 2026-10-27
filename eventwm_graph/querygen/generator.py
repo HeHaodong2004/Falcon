@@ -19,8 +19,10 @@ de-duplicated ``Query`` objects plus diagnostics.  Categories:
               predicted route conflict) until the conflict is legally clear
   observe     rotate toward the goal direction / a recently lost human
   advance     short straight move to gain manoeuvring space
-  maneuver    (legal stuck test) exact 1/4/10-step rotations both ways and
-              1/3-step forward creeps, composable into multi-point turns
+  maneuver    exact 1/4/10-step rotations both ways and 1/3-step forward creeps,
+              composable into multi-point turns; offered in manoeuvre mode (entered
+              after a legal stall near the start or the goal, kept while the
+              previous decision was a manoeuvre)
 
 UNKNOWN is never treated as verified free: routes may cross it only
 optimistically (higher cost) and via-points must be on FREE cells.
@@ -54,10 +56,10 @@ class GeneratorConfig:
     maneuver_creeps: tuple = (1, 3)
     maneuver_start_m: float = 1.0    # exact manoeuvres only within this distance of the start pose
     maneuver_goal_m: float = 1.0     # ... or of the goal
-    maneuver_anywhere: bool = True   # scope: anywhere (the Oracle's manoeuvre prior keeps them a last resort)
-    stall_window: int = 24           # ... and only after this many steps without translation
+    stall_window: int = 16           # ... and only after this many steps without translation or turning
     stall_min: int = 6
-    stall_disp_m: float = 0.3
+    stall_disp_m: float = 0.15
+    stall_turn_rad: float = 0.35
     alt_routes: int = 2
     alt_penalty: float = 8.0
     alt_corridor_m: float = 0.8
@@ -75,6 +77,13 @@ class GeneratorConfig:
 
 
 _route_points = resample_route
+
+
+def is_maneuver(q):
+    """Exact manoeuvre queries (k-step rotations ``rot_left<k>``/``rot_right<k>``, creeps)."""
+    lab = q.label
+    return q.kind == 'creep' or (q.kind == 'rotate' and lab[-1:].isdigit() and
+                                 lab.rstrip('0123456789') in ('rot_left', 'rot_right'))
 
 
 class QueryGenerator:
@@ -261,9 +270,14 @@ class QueryGenerator:
         # The stall itself is the signal: obstacles that block the body may be
         # absent from the legal map (e.g. at arm height), so the legal lattice
         # cannot be required to agree.
-        scope = cfg.maneuver_anywhere or near_start or near_goal
-        stuck = scope and (self._stalled(legal) or self._stuck(view, gfield, legal, goal_xz))
+        # Manoeuvre mode: entered after a strict stall near the start or the goal;
+        # it persists while the previous decision was itself a manoeuvre (the
+        # generator knows its own last query) and ends with an ordinary query.
+        prev = execution.query if execution is not None else None
+        in_mode = prev is not None and is_maneuver(prev)
+        stuck = in_mode or ((near_start or near_goal) and self._stalled(legal))
         diag['stuck'] = stuck
+        diag['maneuver_mode'] = in_mode
         if stuck:
             # Exact primitive-count manoeuvres: in-place rotations of k turn
             # steps each way and k-step forward creeps.  Composed by the
@@ -310,15 +324,16 @@ class QueryGenerator:
 
     def _stalled(self, legal):
         """Legal history test: over the last ``stall_window`` steps (at least
-        ``stall_min`` available) the robot stayed within ``stall_disp_m`` of where
-        it was (turning in place does not count as progress, so a robot
-        manoeuvring in a confined spot stays in manoeuvre mode)."""
+        ``stall_min`` available) the robot neither translated (``stall_disp_m``)
+        nor turned (``stall_turn_rad`` net), i.e. its queries are not moving it."""
         cfg = self.cfg
         n = min(cfg.stall_window, len(legal.poses)-1)
         if n < cfg.stall_min:
             return False
         P = np.asarray(legal.poses[-1-n:], dtype=float)
-        return float(np.max(np.hypot(P[:, 0]-P[-1, 0], P[:, 2]-P[-1, 2]))) < cfg.stall_disp_m
+        moved = float(np.max(np.hypot(P[:, 0]-P[-1, 0], P[:, 2]-P[-1, 2])))
+        turned = abs(wrap(float(P[-1, 3])-float(P[0, 3])))
+        return moved < cfg.stall_disp_m and turned < cfg.stall_turn_rad
 
     def _boxed_in(self, legal):
         from .control import turn_ok, FORWARD_X

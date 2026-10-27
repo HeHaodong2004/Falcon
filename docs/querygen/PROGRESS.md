@@ -114,6 +114,25 @@ planner/dynamics regret; `sandbox.py`/`sandbox_study.py` nominal vs closed-loop 
     spawns facing away from the goal in a corridor too narrow to turn in; there is no reverse);
     an exact-gait rerun is running to make this a certificate.
 
+- Manoeuvre gating experiments (HMkoS756sz6 = normal start needing a 180 deg turn; vd3HHTEpmyA =
+  confined start): no manoeuvres 124 s / FAIL; lattice-gated near start/goal 174 s / FAIL; stall
+  (translation+turn) 471 s / FAIL; stall (translation) 735 s / FAIL; anywhere (lattice or stall) +
+  manoeuvre prior 10: slow / PASS 305 s. Edge-type fine de-dup (only states reached by a manoeuvre
+  edge) keeps ordinary exploration coarse. Remaining cost: a 1-step manoeuvre adds only 1 step of g,
+  so even with +10 it undercuts a 16-step ordinary decision -> `maneuver_pad` charges a full interval.
+- Sandbox duplicate predictor (true human future, kinematic): deferred ~4,700 edges per run for
+  94-133 s of prediction but did not solve AWUFxHEyV3T / TEEsavR23oF -> off.
+- Block-time term alone: AWUFxHEyV3T search reaches the corridor entrance within 300 s, then spends
+  1,500 s on an equal-f plateau of (position x time) states before the corridor (waiting keeps f
+  constant because block time drops as g grows) -> optional bucketed-f tie-breaking toward later
+  nodes (`tie_bucket`).
+- MP3D smoke test on a *train* episode (no suite scene): pipeline runs; the episode itself is
+  certified infeasible (49 reachable states, forward drives the arm wrist 7 cm into geometry at every
+  reachable heading) -> Falcon spawn validity for Spot is a benchmark-level issue (DEV: 3 start
+  certificates + 5cdEh9F2hJL progress search; MP3D train sample also infeasible).
+- The Oracle's wall-clock budget makes results load-dependent (the machine reached load 36/36);
+  final runs will bind on a deterministic edge budget (max_edges) with a generous wall-clock cap.
+
 ## Important failed hypotheses / lessons
 - Velocity-tracking alone cannot handle Spot's 1.23 m body in tight spaces -> body-aware lattice.
 - ORCA static horizon 0.4 s at native speed forbade all motion near walls (now 0.15 s).
