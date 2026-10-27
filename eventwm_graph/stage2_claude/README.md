@@ -82,7 +82,8 @@ results do not depend on cache state or on the number of lanes (`lanes=3` is che
 
 | checkpoint | full development (original evaluator) | dense K=6 cold P50 / P95 |
 | --- | --- | --- |
-| `output/claude_stage2/final/v11.pt` (current best; use 256 px packets, `lanes=3`) | label-aware IoU 0.4688 (256 px) | 24.9 / 34.2 ms (GPU0, 256 px) |
+| `output/claude_stage2/final/v12.pt` (current best; use 256 px packets, `lanes=3`) | label-aware IoU 0.4716 (256 px) | 25.1 / 34.6 ms (GPU0, 256 px) |
+| `output/claude_stage2/final/v11.pt` | 0.4688 (256 px) | 24.9 / 34.2 ms (GPU0, 256 px) |
 | `output/claude_stage2/final/v7.pt` | 0.4563 (128 px) | 31.1 / 35.9 ms (GPU0, 128 px) |
 
 See `docs/claude_stage2/STAGE2_CLAUDE_REPORT.md` for protocols, receipts and the full experiment log.
