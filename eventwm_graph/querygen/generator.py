@@ -87,6 +87,9 @@ class GeneratorConfig:
                                      # rectangle check only (ORCA soft avoidance suspended); 0 = off
     st_goal: bool = False            # v9: also offer 'st_goal' (legal space-time lattice plan to the goal,
                                      # stplan.py) as a fixed candidate (native-like discrete robots only)
+    kturns: tuple = ()               # v9: multi-point turns offered in manoeuvre mode: first in-place turn of
+                                     # k steps away from the final direction, one creep step, then turn to the
+                                     # route heading (e.g. (6, 12)); () = off
 
 
 _route_points = resample_route
@@ -95,8 +98,8 @@ _route_points = resample_route
 def is_maneuver(q):
     """Exact manoeuvre queries (k-step rotations ``rot_left<k>``/``rot_right<k>``, creeps)."""
     lab = q.label
-    return q.kind == 'creep' or (q.kind == 'rotate' and lab[-1:].isdigit() and
-                                 lab.rstrip('0123456789') in ('rot_left', 'rot_right'))
+    return q.kind in ('creep', 'kturn') or (q.kind == 'rotate' and lab[-1:].isdigit() and
+                                            lab.rstrip('0123456789') in ('rot_left', 'rot_right'))
 
 
 class QueryGenerator:
@@ -318,6 +321,15 @@ class QueryGenerator:
         # in-place turns) can collide, leaving no child from which manoeuvre mode
         # could be entered.
         if cfg.root_probes and len(legal.poses) <= 1 and not stuck:
+            if cfg.kturns and route_dir is not None and not self.dyn.stateful:
+                # v9: multi-point turns toward the route heading are also root probes
+                for k in cfg.kturns:
+                    for final in ('left', 'right'):
+                        away = 'right' if final == 'left' else 'left'
+                        cats['maneuver'].append(Query('kturn', heading=route_dir,
+                                                      duration=k+1+int(2*math.pi/self.dyn.turn_rad)+2,
+                                                      label=f'kturn_{final}{k}',
+                                                      meta=dict(first=(away, int(k)), creep=1, final=final)))
             cats['maneuver'] += [Query('creep', duration=1, label='creep1'),
                                  Query('rotate', heading=wrap(float(pose[3])+self.dyn.turn_rad), duration=2,
                                        label='rot_left1', meta=dict(direction='left')),
@@ -334,6 +346,18 @@ class QueryGenerator:
                                                   duration=k+1, label=f'rot_{side}{k}', meta=dict(direction=side)))
             for n in cfg.maneuver_creeps:
                 cats['maneuver'].append(Query('creep', duration=n, label=f'creep{n}'))
+            if cfg.kturns and route_dir is not None and not self.dyn.stateful:
+                # multi-point turns toward the route heading: turn away, step, turn back (both senses);
+                # listed first so the quota selector keeps them next to the finest probes
+                kt = []
+                for k in cfg.kturns:
+                    for final in ('left', 'right'):
+                        away = 'right' if final == 'left' else 'left'
+                        kt.append(Query('kturn', heading=route_dir, duration=k+1+int(2*math.pi/self.dyn.turn_rad)+2,
+                                        label=f'kturn_{final}{k}', meta=dict(first=(away, int(k)), creep=1, final=final)))
+                fine = cats['maneuver']
+                cats['maneuver'] = [q for q in fine if q.label in ('rot_left1', 'rot_right1', 'creep1')]+kt+\
+                    [q for q in fine if q.label not in ('rot_left1', 'rot_right1', 'creep1')]
 
         # ---- advance (manoeuvring space)
         h = heading_vec(pose[3])
@@ -569,6 +593,9 @@ class QueryGenerator:
             want = ('creep1', 'rot_left1', 'rot_right1', 'rot_left4', 'rot_right4', 'rot_left10', 'rot_right10',
                     'creep3')
             pool = {q.label: q for q in cats.get('maneuver', [])}
+            kt = [q for q in cats.get('maneuver', []) if q.kind == 'kturn']
+            for q in kt[:2]:
+                take(q)
             for lab in want:
                 take(pool.get(lab))
             return chosen[:K]

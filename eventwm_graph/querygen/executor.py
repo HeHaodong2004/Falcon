@@ -134,6 +134,7 @@ class QueryExecution:
         self.realizer = MotionRealizer(dyn)
         self.speed_debt = 0.
         self.clear_streak = 0
+        self.kt_i = 0               # kturn: primitives executed so far
         self.st = None              # stgoal: current space-time plan
         self.st_i = 0
         self.st_age = 0
@@ -263,6 +264,8 @@ class QueryExecution:
                 self.status, self.reason = 'done', ('clear' if clear else 'waited')
             ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=q.heading)
             return self.planner.act(ctx, self.adapter)
+        if q.kind == 'kturn':
+            return self._step_kturn(legal, dyn_state)
         if q.kind in ('wait', 'rotate'):
             face = q.heading
             if q.kind == 'rotate' and face is not None and abs(wrap(face-pose[3])) <= self.dyn.turn_rad*.55:
@@ -416,6 +419,37 @@ class QueryExecution:
                 self.st_i += 1
                 return prim
             self.st = None
+        return self.planner.act(ctx, self.adapter)
+
+    def _step_kturn(self, legal, dyn_state):
+        """Multi-point turn (manoeuvre): ``first`` = (direction, k) in-place turn steps, ``creep`` forward
+        steps, then turn in direction ``final`` until facing ``heading`` (the route heading when proposed).
+        Like explicit rotations/creeps it is not filtered by the legal wall band; every primitive keeps the
+        one-step rectangle clearance to tracked humans (otherwise the robot holds).
+        """
+        from .planners import one_step_hard_ok
+        q = self.query
+        m = q.meta
+        d1, k1 = m['first']
+        n = int(m['creep'])
+        i = self.kt_i
+        if i < k1:
+            prim = d1
+        elif i < k1+n:
+            prim = 'forward'
+        else:
+            err = wrap(float(q.heading)-float(legal.pose[3]))
+            if abs(err) <= self.dyn.turn_rad*.55 or i >= k1+n+int(2*math.pi/self.dyn.turn_rad)+2:
+                self.status, self.reason = 'done', 'heading_reached'
+                ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
+                return self.planner.act(ctx, self.adapter)
+            prim = m['final']
+        ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
+        hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
+        P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, prim)
+        if hard is None or hard(P1, psi1):
+            self.kt_i += 1
+            return prim
         return self.planner.act(ctx, self.adapter)
 
     def _st_progress(self, st, pose, min_m=0.2):

@@ -149,7 +149,7 @@ class SpaceTimeHeuristic:
 def horizon_for(query, cfg):
     if query.kind == 'stop':
         return 1
-    if query.kind in ('wait', 'wait_clear', 'creep'):
+    if query.kind in ('wait', 'wait_clear', 'creep', 'kturn'):
         return max(1, int(query.duration))
     return cfg.horizon          # movement and rotation: one decision interval, continuable
 
