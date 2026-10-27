@@ -5,78 +5,82 @@ evaluation and benchmark receipts (section 1).
 
 ## 1. Results
 
-### 1.0 Current best: frozen model `final/v11.pt` (checkpoint `training/v11_ext/final.pt` + frozen operating point), 256 px sensing
+### 1.0 Current best: frozen model `final/v12.pt` (checkpoint `training/v12_distill/final.pt` + frozen operating point), 256 px sensing
 
-Lineage: v7 (2 epochs) -> v7_restart_iou (1-epoch warm restart + soft IoU loss) -> v11_ext (1-epoch warm
-restart with three new legal input channels, zero-initialized coarse-level capacity, EMA, +2,914 TRAIN
-Roots). Operating point selected on 400 scene-disjoint TRAIN-validation Roots (`select.py`): class rule,
-FREE if r(1-b) > 0.475, BLOCKED if rb > 0.575 (validation 0.4750; v7r 0.4711; v7 0.4628). Sensor
-resolution selected on the 199 TRAIN-validation Roots (22 scenes) that have both packet resolutions
-(`sensor_select.py`): 256 px 0.4621 vs 128 px 0.4597. ONE original full-development evaluation
-(`evaluate.py`, `--sensor-directory full_range_branches_256`, original assertions, `summarize()`):
+Lineage (all TRAIN Roots only): v7 (2 epochs) -> v7_restart_iou (1-epoch warm restart + soft IoU loss) ->
+v11_ext (1-epoch warm restart with three new legal input channels, zero-initialized coarse-level capacity,
+EMA, +2,914 TRAIN Roots) -> v12_distill (1-epoch self-distillation restart from frozen v11_ext). Operating
+point selected on 400 scene-disjoint TRAIN-validation Roots (`select.py`): class rule, FREE if
+r(1-b) > 0.475, BLOCKED if rb > 0.55 (validation 0.4793; v11 0.4750; v7r 0.4711; v7 0.4628). Sensor
+resolution selected on the 199 TRAIN-validation Roots (22 scenes) with both packet resolutions
+(`sensor_select.py`): 256 px 0.4675 vs 128 px 0.4648. Original full-development evaluation (`evaluate.py`,
+`--sensor-directory full_range_branches_256`, original assertions, `summarize()`):
 
 | Model | sensing | full-dev label-aware IoU | revelation IoU | pooled IoU | bootstrap 95 % |
 | --- | --- | ---: | ---: | ---: | --- |
 | graph-only baseline (original receipts) | — | 0.2177 | 0.2870 | 0.2240 | |
 | previous best A (handoff) | 128 px | 0.4171 | 0.4667 | 0.3992 | |
 | v7 (section 1.1) | 128 px | 0.4563 | 0.4903 | 0.4423 | [0.4438, 0.4687] |
-| **v11 (this section)** | 256 px | **0.4688** | **0.5026** | **0.4552** | [0.4557, 0.4815] |
+| v11 (`final/v11.pt`) | 256 px | 0.4688 | 0.5026 | 0.4552 | [0.4557, 0.4815] |
+| **v12 (`final/v12.pt`, this section)** | 256 px | **0.4716** | **0.5077** | **0.4579** | [0.4588, 0.4841] |
 
-| metric | graph-only baseline | v11 |
+Every full-development evaluation run in this work is listed in this table (v7, v11, v12); each candidate
+was selected and frozen on TRAIN validation before its single development evaluation.
+
+| metric | graph-only baseline | v12 |
 | --- | ---: | ---: |
-| hierarchical label_aware_delta_iou | 0.217733 | 0.468801 |
-| hierarchical revelation_iou | 0.286985 | 0.502619 |
-| hierarchical revelation_precision | 0.407199 | 0.688567 |
-| hierarchical revelation_recall | 0.492926 | 0.650496 |
-| hierarchical free precision / recall | 0.3665 / 0.4197 | 0.6043 / 0.6546 |
-| hierarchical blocked precision / recall | 0.3137 / 0.3868 | 0.6790 / 0.6090 |
-| pooled label_aware_delta_iou | 0.223950 | 0.455169 |
+| hierarchical label_aware_delta_iou | 0.217733 | 0.471554 |
+| hierarchical revelation_iou | 0.286985 | 0.507719 |
+| hierarchical revelation_precision | 0.407199 | 0.681128 |
+| hierarchical revelation_recall | 0.492926 | 0.666027 |
+| hierarchical free precision / recall | 0.3665 / 0.4197 | 0.6048 / 0.6633 |
+| hierarchical blocked precision / recall | 0.3137 / 0.3868 | 0.6657 / 0.6236 |
+| pooled label_aware_delta_iou | 0.223950 | 0.457945 |
 
-Roots 2110, scenes 108, windows 47128; zero-new windows {"windows": 2561, "candidate_exact_empty": 1687, "baseline_exact_empty": 736}; out-of-domain positives 0; paired delta vs the graph-only baseline [0.239, 0.2631].
+Roots 2110, scenes 108, windows 47128; zero-new windows {"windows": 2561, "candidate_exact_empty": 1648, "baseline_exact_empty": 736}; out-of-domain positives 0; paired delta vs the graph-only baseline [0.2418, 0.2657].
 
-Pooled confusion (rows true U/F/B, cols predicted): [[1703774272, 1512853, 2469478], [1501076, 2918772, 132025], [3622569, 384696, 5552023]]
+Pooled confusion (rows true U/F/B, cols predicted): [[1703548547, 1522906, 2685150], [1441488, 2957708, 152677], [3470103, 403155, 5686030]]
 
-| stratum | windows | v7 (128 px) | v11 (256 px) |
-| --- | ---: | ---: | ---: |
-| duration:<=0.5 | 30397 | 0.4805 | 0.4917 |
-| duration:0.5-1 | 9894 | 0.4467 | 0.4586 |
-| duration:1-2 | 5793 | 0.4126 | 0.4259 |
-| duration:>2 | 1044 | 0.4192 | 0.4372 |
-| human:present | 40140 | 0.4390 | 0.4520 |
-| human:zero | 6988 | 0.4608 | 0.4726 |
-| motion:mixed | 23987 | 0.4742 | 0.4888 |
-| motion:rotation | 20534 | 0.3862 | 0.3967 |
-| motion:translation | 2607 | 0.5200 | 0.5396 |
-| new_cells:1-99 | 18807 | 0.4537 | 0.4539 |
-| new_cells:>=100 | 25760 | 0.4418 | 0.4554 |
+| stratum | windows | v7 (128 px) | v11 (256 px) | v12 (256 px) |
+| --- | ---: | ---: | ---: | ---: |
+| duration:<=0.5 | 30397 | 0.4805 | 0.4917 | 0.4949 |
+| duration:0.5-1 | 9894 | 0.4467 | 0.4586 | 0.4613 |
+| duration:1-2 | 5793 | 0.4126 | 0.4259 | 0.4289 |
+| duration:>2 | 1044 | 0.4192 | 0.4372 | 0.4395 |
+| human:present | 40140 | 0.4390 | 0.4520 | 0.4550 |
+| human:zero | 6988 | 0.4608 | 0.4726 | 0.4740 |
+| motion:mixed | 23987 | 0.4742 | 0.4888 | 0.4910 |
+| motion:rotation | 20534 | 0.3862 | 0.3967 | 0.4005 |
+| motion:translation | 2607 | 0.5200 | 0.5396 | 0.5416 |
+| new_cells:1-99 | 18807 | 0.4537 | 0.4539 | 0.4571 |
+| new_cells:>=100 | 25760 | 0.4418 | 0.4554 | 0.4582 |
 
-Per-Root comparison with v7 (same 2,110 Roots, per-Root mean confusion): label-aware IoU improved on
-69.9 % of Roots (worse on 28.8 %), mean +0.0140 / median +0.0128; per-scene mean improved in 94 of 108
-scenes (range -0.024 ... +0.066).
+Per-Root comparison v11 vs v7 (same 2,110 Roots): label-aware IoU improved on 69.9 % of Roots (worse on
+28.8 %), mean +0.0140 / median +0.0128; per-scene mean improved in 94 of 108 scenes.
 
-Complete latency of the same frozen `final/v11.pt` (original 32 workloads with 256 px packets
+Complete latency of the same frozen `final/v12.pt` (original 32 workloads with 256 px packets
 `range_benchmark_256`, K=1/4/6, 3 repetitions, `lanes=3`, BatchNorm folded; physical GPU0 with this
 session's own training paused by `quiet.py`; another session's Stage-1 jobs kept running on physical
-GPU1 and the CPU) — `benchmark/v11_bench256.json`, `benchmark/quiet_v11_256.json`:
+GPU1 and the CPU) — `benchmark/v12_bench256.json`, `benchmark/quiet_v12_256.json`:
 
 | cohort / cache | K=1 P50 / P95 | K=4 P50 / P95 | K=6 P50 / P95 |
 | --- | ---: | ---: | ---: |
-| dense, cold | 11.610 / 25.327 | 19.798 / 29.855 | **24.905 / 34.200** |
-| dense, map_warm_new_queries | 7.172 / 9.380 | 16.656 / 20.231 | 21.298 / 25.428 |
-| dense, warm | 7.150 / 9.244 | 16.692 / 19.654 | 21.459 / 25.235 |
-| representative, cold | 10.075 / 11.787 | 16.956 / 21.286 | 21.531 / 23.623 |
-| representative, map_warm_new_queries | 6.297 / 8.275 | 14.245 / 16.599 | 18.924 / 21.499 |
-| representative, warm | 6.280 / 7.947 | 14.388 / 19.128 | 18.903 / 21.978 |
+| dense, cold | 11.368 / 23.566 | 20.166 / 30.306 | **25.091 / 34.616** |
+| dense, map_warm_new_queries | 7.453 / 9.856 | 16.838 / 19.587 | 21.548 / 24.800 |
+| dense, warm | 7.333 / 9.570 | 16.803 / 19.822 | 21.673 / 24.911 |
+| representative, cold | 10.058 / 11.519 | 17.099 / 18.920 | 21.494 / 23.480 |
+| representative, map_warm_new_queries | 6.673 / 8.001 | 14.507 / 16.209 | 18.788 / 21.029 |
+| representative, warm | 6.713 / 8.124 | 14.635 / 16.242 | 18.959 / 21.060 |
 
-startup: constructor 6168 ms (CUDA kernel compilation + graph capture), first complete K=6 call 147 ms.
-Median dense-cold K=6 stage times: graph preparation 1.8 ms, legal map 2.9 ms (256 px), query
-features 4.9 ms, network 11.3 ms (10.4M parameters; v7 with 3.6M parameters: 12.3 ms without lanes/folding),
-decode + sparse increment + complete native hypothetical graphs 3.0 ms. Contract tests on `final/v11.pt`
-(`test_api.py`): exact domain, zero horizon, no mutation, batched == single bit-identical,
-lanes=3 == lanes=1 bit-identical — all pass.
+startup: constructor 6606 ms (CUDA kernel compilation + graph capture), first complete K=6 call 157 ms.
+Median dense-cold K=6 stage times: graph preparation 1.9 ms, legal map 3.3 ms (256 px), query features
+4.4 ms, network 11.0 ms (10.4M parameters), decode + sparse increment + complete native hypothetical
+graphs 3.4 ms. v11 measured the same way: dense K=6 cold P50 24.9 / P95 34.2 ms (`benchmark/v11_bench256.json`).
+Contract tests on `final/v12.pt` (`test_api.py`): exact domain, zero horizon, no mutation, batched == single
+bit-identical, lanes=3 == lanes=1 bit-identical — all pass.
 
-The required accuracy (> 0.50) is **not** reached; see sections 9-10. The latency requirement is met
-(dense K=6 cold P95 34.2 ms < 50 ms, inside the preferred 20-30 ms range at P50).
+The required accuracy (> 0.50) is **not** reached (best 0.4716); see sections 9-10. The latency
+requirement is met (dense K=6 cold P95 34.6 ms < 50 ms; P50 25.1 ms).
 
 ### 1.1 Frozen model `final/v7.pt` (checkpoint `training/past_v7/final.pt` + frozen operating point)
 
