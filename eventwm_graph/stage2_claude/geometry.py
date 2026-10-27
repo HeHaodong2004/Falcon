@@ -94,8 +94,12 @@ class VoxelMap:
                                                       ct.c_float(.04), ct.c_float(.02), ct.c_float(1.), hp, hs, ct.c_float(.4)], 128)
         else:
             m.launch('scatter_hits', frames*size*size, [ranges, cams, ct.c_int(frames), ct.c_int(size), self.vol, occ, keep], 256)
-        m.launch('carve', n, [ranges, cams, ct.c_int(frames), ct.c_int(size), self.vol, occ, self.state,
-                              ct.c_float(MARGIN if self.sub == 1 else .045)], 128)
+        # Projective carving over only the frames that can reach each 8x8-column block (exact culling).
+        nbx, nbz, words = -(-self.shape[0]//8), -(-self.shape[1]//8), max(1, -(-frames//32))
+        masks = torch.zeros(nbx*nbz*words, dtype=torch.int32, device=self.device)
+        m.launch('cull_frames', nbx*nbz*frames, [cams, ct.c_int(frames), self.vol, ct.c_int(nbx), ct.c_int(nbz), ct.c_int(words), masks], 128)
+        m.launch('carve_culled', n, [ranges, cams, ct.c_int(frames), ct.c_int(size), self.vol, occ, self.state,
+                                     ct.c_float(MARGIN if self.sub == 1 else .045), ct.c_int(nbz), ct.c_int(words), masks], 128)
         self.module = m
 
     def hit_sums(self, ranges, origins, rotations, humans=None):

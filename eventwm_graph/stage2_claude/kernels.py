@@ -123,6 +123,59 @@ extern "C" __global__ void carve(const float* ranges,const float* cams,int frame
   state[t]=s;
 }
 
+// Exact frame culling for carving: per block of CB x CB voxel columns (full height), a bitmask of
+// the frames that can carve some voxel center in it. A frame is dropped only if one of the
+// per-voxel rejection tests of `carve` holds for EVERY voxel center of the block with a 1 cm
+// margin (beyond 10 m; behind the camera; outside one frustum side plane), so `carve_culled`
+// returns exactly what `carve` returns.
+#define CB 8
+extern "C" __global__ void cull_frames(const float* cams,int frames,Vol v,int nbx,int nbz,int words,unsigned int* masks){
+  long long t=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(t>=(long long)nbx*nbz*frames)return;
+  int f=t%frames;int b=t/frames;int bx=b/nbz,bz=b%nbz;
+  int ix0=bx*CB,iz0=bz*CB,ix1=min(ix0+CB,v.nx)-1,iz1=min(iz0+CB,v.nz)-1;
+  float xa=v.x0+(ix0+.5f)*v.res,xb=v.x0+(ix1+.5f)*v.res,za=v.z0+(iz0+.5f)*v.res,zb=v.z0+(iz1+.5f)*v.res;
+  float ya=v.y0+.5f*v.dy,yb=v.y0+(v.ny-.5f)*v.dy;
+  const float* c=cams+f*12;
+  float qx=fminf(fmaxf(c[0],xa),xb),qy=fminf(fmaxf(c[1],ya),yb),qz=fminf(fmaxf(c[2],za),zb);
+  float ex=qx-c[0],ey=qy-c[1],ez=qz-c[2];
+  if(ex*ex+ey*ey+ez*ez>(MAXR+.01f)*(MAXR+.01f))return;
+  // Linear functions of the voxel center: fw=-lz, fw-lx, fw+lx, fw-ly, fw+ly; drop if the maximum
+  // over the 8 box corners is below -1 cm (fw) / -1 cm (sides: |u|>=1 or |w|>=1 everywhere).
+  float mfw=-1e30f,m1=-1e30f,m2=-1e30f,m3=-1e30f,m4=-1e30f;
+  for(int k=0;k<8;k++){
+    float dx=((k&1)?xb:xa)-c[0],dy=((k&2)?yb:ya)-c[1],dz=((k&4)?zb:za)-c[2];
+    float lx=c[3]*dx+c[6]*dy+c[9]*dz,ly=c[4]*dx+c[7]*dy+c[10]*dz,fw=-(c[5]*dx+c[8]*dy+c[11]*dz);
+    mfw=fmaxf(mfw,fw);m1=fmaxf(m1,fw-lx);m2=fmaxf(m2,fw+lx);m3=fmaxf(m3,fw-ly);m4=fmaxf(m4,fw+ly);
+  }
+  if(mfw<-.01f||m1<-.01f||m2<-.01f||m3<-.01f||m4<-.01f)return;
+  atomicOr(masks+(long long)b*words+f/32,1u<<(f%32));
+}
+
+extern "C" __global__ void carve_culled(const float* ranges,const float* cams,int frames,int size,
+    Vol v,const unsigned char* occ,unsigned char* state,float margin,int nbz,int words,const unsigned int* masks){
+  int t=blockIdx.x*blockDim.x+threadIdx.x;int total=v.nx*v.nz*v.ny;if(t>=total)return;
+  if(occ[t]){state[t]=2;return;}
+  int iy=t%v.ny;int iz=(t/v.ny)%v.nz;int ix=t/(v.ny*v.nz);
+  float x=v.x0+(ix+.5f)*v.res,y=v.y0+(iy+.5f)*v.dy,z=v.z0+(iz+.5f)*v.res;
+  const unsigned int* mk=masks+(long long)((ix/CB)*nbz+iz/CB)*words;
+  unsigned char s=0;
+  for(int wd=0;wd<words&&!s;wd++){
+    unsigned int bits=mk[wd];
+    while(bits&&!s){
+      int f=wd*32+__ffs(bits)-1;bits&=bits-1;
+      const float* c=cams+f*12;float dx=x-c[0],dy=y-c[1],dz=z-c[2];
+      float d=sqrtf(dx*dx+dy*dy+dz*dz);if(d>MAXR)continue;
+      float lx=c[3]*dx+c[6]*dy+c[9]*dz,ly=c[4]*dx+c[7]*dy+c[10]*dz,lz=c[5]*dx+c[8]*dy+c[11]*dz;
+      float fw=-lz;if(fw<=1e-6f)continue;float u=lx/fw,w=ly/fw;if(fabsf(u)>=1.f||fabsf(w)>=1.f)continue;
+      int j=(int)floorf((u+1.f)*.5f*size),i=(int)floorf((1.f-w)*.5f*size);
+      j=min(max(j,0),size-1);i=min(max(i,0),size-1);
+      float r=ranges[((long long)f*size+i)*size+j];if(!(r==r))r=MAXR+margin;
+      if(d<r-margin)s=1;
+    }
+  }
+  state[t]=s;
+}
+
 // Amanatides-Woo traversal. Returns distance to first OCCUPIED voxel (or
 // big), first UNKNOWN voxel (or big) and the total UNKNOWN length crossed
 // before termination; stops at tmax or the first occupied voxel.
@@ -309,6 +362,11 @@ extern "C" __global__ void domain_mask(const int* frames,int Q,int Hp,int Wp,Vol
       float x=__fmul_rn((float)(lox+gx)+.5f,res32),z=__fmul_rn((float)(loz+gz)+.5f,res32);
       for(int j=0;j<pos_count[q]&&!keep;j++){
         const float* p=positions+2*(pos_start[q]+j);
+        // F32 prefilter with a 1e-5 relative margin on the squared distance (F32 error < 3e-7):
+        // only borderline cells take the exact F64 path, so the result is unchanged.
+        float fx=x-p[0],fz=z-p[1],s2=fx*fx+fz*fz;
+        if(s2<120.9987f){keep=1;break;}
+        if(s2>121.0013f)continue;
         double dx=__dsub_rn((double)x,(double)p[0]),dz=__dsub_rn((double)z,(double)p[1]);
         if(__dsqrt_rn(__dadd_rn(__dmul_rn(dx,dx),__dmul_rn(dz,dz)))<=11.)keep=1;
       }
