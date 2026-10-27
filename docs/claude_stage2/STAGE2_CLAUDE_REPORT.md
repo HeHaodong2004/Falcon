@@ -314,7 +314,7 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 Operating points on 400 TRAIN-validation Roots (`select.py`, best rule, hierarchical label-aware IoU):
 v7 0.4628 (class 0.425/0.525) -> v7r 0.4711 (class 0.475/0.575) -> v11 0.4750 (class 0.475/0.575) ->
 v12 0.4793 (class 0.475/0.55).
-| v13-15_chain | chain of 1-epoch self-distillation restarts (each warm-starts from and distils from the previous model), stopped when a cycle gains < 0.001 | v13 (from v12): 0.4665 @6k, 0.4684 @12k, 0.4703 @18k, 0.4702 @24k, **final 0.4710**; v14 (from v13): 0.4675 @6k, 0.4710 @12k, 0.4714 @18k, 0.4720 @24k, **final 0.4724**; v15 running |
+| v13-15_chain | chain of 1-epoch self-distillation restarts (each warm-starts from and distils from the previous model), stopped when a cycle gains < 0.001 | v13 (from v12): 0.4665 @6k, 0.4684 @12k, 0.4703 @18k, 0.4702 @24k, **final 0.4710**; v14 (from v13): 0.4675 @6k, 0.4710 @12k, 0.4714 @18k, 0.4720 @24k, **final 0.4724**; v15 (from v14): 0.4710 @6k, 0.4720 @12k, 0.4720 @18k, **final 0.4742** (chain best; the chain is limited to three cycles) |
 | v15_cap | as the v15 cycle (from v14, teacher v14, seed 15, same data) plus zero-initialized decoder side branches (`--dside 1:96:2,2:128:2`, +0.96M parameters) on physical GPU1 | 0.4711 @6k (v15: 0.4710), 0.4720 @12k (v15: 0.4720) — no gain from decoder capacity so far; running |
 
 An equal-strength second member for an ensemble (v7 config, seed 1, +2,914 new TRAIN Roots) was
