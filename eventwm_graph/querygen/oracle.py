@@ -61,6 +61,8 @@ class OracleConfig:
     escape_h: bool = False            # v9: privileged spawn-escape heuristic (exact primitive BFS around the spawn;
                                       # steps-to-escape per 2 cm cell x turn index); only for tight spawns
     escape_h_sims: int = 20000        # simulated primitive steps for the escape A* (one-off, ~6 ms each)
+    escape_h_min_blocked: int = 4     # confinement = at least this many static contacts within 3 primitive layers
+                                      # (3t8DB4Uzvkt: 1 contact; the escape path then misdirected 58% of edges)
     prefix_cache: int = 0             # v9: exact prefix sharing among sibling edges (runtime keeps caches of this many
                                       # most recent parents; 0 = off).  Search results are identical with or without.
     heading_h: bool = False           # v9: add the in-place turn steps needed to face the true geodesic path
@@ -179,7 +181,7 @@ class EscapeMap:
 
     OFF_PATH = 25
 
-    def __init__(self, rt, escape_m=1.0, max_sims=20000, weight=2.0):
+    def __init__(self, rt, escape_m=1.0, max_sims=20000, weight=2.0, min_blocked=1):
         import heapq as _hq
         from .native import escape_exempt
         t0 = time.perf_counter()
@@ -214,7 +216,7 @@ class EscapeMap:
         self.path = {}
         self.known = set()
         self.first = None
-        if blocked_early:                          # 2. weighted A* toward displacement
+        if blocked_early >= min_blocked:           # 2. weighted A* toward displacement
             step = dyn.step_m
             heap = [(weight*escape_m/step, 0, 0, root.robot, 0, (float(p0[0]), float(p0[2])), bool(C0), 0., k0)]
             parent = {k0: None}
@@ -348,7 +350,7 @@ class Oracle:
             h = max(h, hw)
         if cfg.escape_h:
             if self._escmap is None:
-                self._escmap = EscapeMap(self.rt, max_sims=cfg.escape_h_sims)
+                self._escmap = EscapeMap(self.rt, max_sims=cfg.escape_h_sims, min_blocked=cfg.escape_h_min_blocked)
                 em = self._escmap
                 self.stats['escape_map'] = dict(active=em.active, first_escape=em.first, states=em.states,
                                                 blocked_early=em.blocked_early,
