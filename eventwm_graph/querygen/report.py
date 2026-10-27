@@ -192,7 +192,8 @@ def load_certs(d):
                 proven = bool(c.get('certified_infeasible'))
                 kind = 'progress'
             elif 'feasible_goal' in c:
-                proven = not c['feasible_goal']
+                # an empty test set (no navmesh point found in the success region) proves nothing
+                proven = c['feasible_goal'] is False and c.get('goal_points', 0) > 0
                 kind = 'goal_region'
             else:
                 continue

@@ -259,7 +259,8 @@ def certify_goal(spec, cell=0.04, heading_bins=75, gaits=(None, 0, 189, 378, 567
     best = [int(h) for h in np.argsort(-free_by_heading)[:5] if free_by_heading[h] > 0]
     return dict(key=spec.key, goal_points=len(points), checks=total, contact_free=free,
                 contact_free_fraction=free/max(1, total), free_by_gait=gait_free,
-                best_heading_bins=best, heading_bins=heading_bins, feasible_goal=free > 0,
+                best_heading_bins=best, heading_bins=heading_bins,
+                feasible_goal=(free > 0) if points else None,      # None: no test points -> undetermined
                 seconds=time.perf_counter()-t0)
 
 
