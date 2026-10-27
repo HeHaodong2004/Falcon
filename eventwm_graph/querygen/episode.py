@@ -90,7 +90,12 @@ class EpisodeRuntime:
         self.tape = self.sim.tape
         self._loaded = None
         self.setup_s = time.perf_counter()-t0
-        self.perf = dict(steps=0, sim_s=0., sensor_s=0., planner_s=0., legal_s=0., copy_s=0.)
+        self.perf = dict(steps=0, sim_s=0., sensor_s=0., planner_s=0., legal_s=0., copy_s=0., cached_steps=0)
+        # v9 exact prefix sharing: sibling executions from the same parent that issue the same command
+        # prefix reuse its simulated steps (robot state, step result, observation row, sensor state) instead
+        # of re-simulating them.  0 = off; otherwise the number of most recent parents whose caches are kept.
+        self.prefix_cache = 0
+        self._pc_parents = []
 
     def new_execution(self, query, planner_name=None, dyn=None):
         return QueryExecution(query, make_planner(planner_name or self.planner_name, **self.planner_kw),
@@ -126,17 +131,31 @@ class EpisodeRuntime:
         record = dict(query=ex.query, start=st.index, cont=bool(cont), horizon=int(horizon))
         sim, sensor = self.sim, self.sensor
         dyn = ex.dyn
+        cache = self._prefix_cache_of(parent)
+        prefix = ()
+        lag = None             # cached steps not yet installed in the simulator/sensor: list of entries
         for _ in range(horizon):
             t = time.perf_counter()
             prim, level = ex.step(st.legal, st.dyn_state)
             self.perf['planner_s'] += time.perf_counter()-t
             cmd = command_for(dyn, prim)
-            t = time.perf_counter()
-            res = sim.step(cmd, compute_geodesic=False)
-            self.perf['sim_s'] += time.perf_counter()-t
+            prefix = prefix+(cmd if isinstance(cmd, str) else tuple(map(float, cmd)),)
+            hit = cache.get(prefix) if cache is not None else None
+            if hit is not None:
+                res, robot_state, row = hit[0], hit[1], hit[2]
+                lag = (lag or [])+[hit]
+                self.perf['cached_steps'] += 1
+            else:
+                if lag:
+                    self._install(parent, lag)
+                    lag = None
+                t = time.perf_counter()
+                res = sim.step(cmd, compute_geodesic=False)
+                self.perf['sim_s'] += time.perf_counter()-t
+                row = None
             self.perf['steps'] += 1
             st.index = res.index
-            st.robot = sim.state
+            st.robot = hit[1] if hit is not None else sim.state
             st.actions.append(cmd if isinstance(cmd, str) else tuple(map(float, cmd)))
             prev = st.legal.pose
             st.path_length += float(math.hypot(res.pose[0]-prev[0], res.pose[2]-prev[2]))
@@ -166,13 +185,16 @@ class EpisodeRuntime:
             elif res.index >= MAX_EPISODE_STEPS:
                 st.outcome = 'timeout'
             if st.outcome is None:
-                t = time.perf_counter()
-                row = sensor.observe(res.time)
-                self.perf['sensor_s'] += time.perf_counter()-t
+                if hit is None:
+                    t = time.perf_counter()
+                    row = sensor.observe(res.time)
+                    self.perf['sensor_s'] += time.perf_counter()-t
                 t = time.perf_counter()
                 st.legal.observe(row, prim)
                 self.perf['legal_s'] += time.perf_counter()-t
                 st.dyn_state = level
+            if cache is not None and hit is None:
+                cache[prefix] = self._entry(res, sim.state, row)
             if self.trace is not None:
                 self.trace.append(dict(index=res.index, pose=res.pose.tolist(), prim=prim if isinstance(prim, str) else list(prim),
                                        static=bool(res.static_contact), overlap=res.body_overlap,
@@ -182,6 +204,8 @@ class EpisodeRuntime:
                                        target=list(ex.target) if ex.target is not None else None))
             if st.outcome is not None or ex.status != 'running':
                 break
+        if lag:
+            self._install(parent, lag)
         st.sensor = sensor.state()
         ex.decision_boundary()
         self._loaded = st
@@ -190,6 +214,44 @@ class EpisodeRuntime:
         record.update(end=st.index, status=ex.status, reason=ex.reason, outcome=st.outcome)
         st.decisions.append(record)
         return st
+
+    # ------------------------------------------------------------ prefix sharing
+    def _prefix_cache_of(self, parent):
+        if not self.prefix_cache:
+            return None
+        cache = getattr(parent, '_qg_pcache', None)
+        if cache is None:
+            cache = parent._qg_pcache = {}
+            self._pc_parents.append(parent)
+            if len(self._pc_parents) > self.prefix_cache:
+                old = self._pc_parents.pop(0)
+                old._qg_pcache = None
+        return cache
+
+    def _entry(self, res, robot_state, row):
+        """Cached step: step result, robot state, observation row, tracker copy and the seen-set delta."""
+        if row is None:
+            return (res, robot_state, None, None, (), ())
+        adds = tuple(tuple(u['cell']) for u in row['static_updates']
+                     if u['source'] == 'visible_native_cspace_square_and_clearance_halo')
+        drops = tuple(tuple(u['cell']) for u in row['static_updates']
+                      if u['source'] == 'observed_static_wall_inflated_025m')
+        return (res, robot_state, row, copy.deepcopy(self.sensor.observer.tracker), adds, drops)
+
+    def _install(self, parent, entries):
+        """Put the simulator and the sensor into the state after the cached ``entries`` (from ``parent``)."""
+        last = entries[-1]
+        self.sim.load(last[1], last[0].index)
+        if last[2] is None:
+            self._loaded = None
+            return
+        tracker, seen, _, _ = parent.sensor
+        seen = set(seen)
+        for e in entries:
+            seen.update((int(a), int(b)) for a, b in e[4])
+            seen.difference_update((int(a), int(b)) for a, b in e[5])
+        self.sensor.restore((last[3], seen, float(last[2]['timestamp']), last[2]))
+        self._loaded = None
 
     def close(self):
         self.task.close()

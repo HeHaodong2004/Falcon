@@ -58,6 +58,8 @@ class OracleConfig:
                                       # edges from nodes still inside it cost this much extra (the spawn manoeuvre space
                                       # otherwise absorbed 72-79% of the edge budget in YRUkbU5xsYj / 3t8DB4Uzvkt)
     escape_m: float = 1.5
+    prefix_cache: int = 0             # v9: exact prefix sharing among sibling edges (runtime keeps caches of this many
+                                      # most recent parents; 0 = off).  Search results are identical with or without.
     heading_h: bool = False           # v9: add the in-place turn steps needed to face the true geodesic path
                                       # (0.6 m look-ahead) to h -- a turn-in-place robot must turn before it moves
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
@@ -168,6 +170,7 @@ class Oracle:
         self._st = None
         self._witness = None
         self._escaped = False
+        runtime.prefix_cache = int(self.cfg.prefix_cache)
         p0 = runtime.root.legal.pose
         self._start_xz = (float(p0[0]), float(p0[2]))
         self.stats = dict(expansions=0, children=0, outcomes={}, by_label={}, gen_s=0., run_s=0.,
