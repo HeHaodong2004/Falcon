@@ -270,7 +270,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
         human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None, ema=0., extend=False, pool_factor=4,
-        overlap=False, side=None, teacher=None, distill=.5, dside=None):
+        overlap=False, side=None, teacher=None, distill=.5, dside=None, attn=0):
     cli_near = near
     GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
@@ -304,9 +304,14 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
             arch['side'] = {str(k): tuple(v) for k, v in wc['side'].items()}
         if wc.get('dside'):
             arch['dside'] = {str(k): tuple(v) for k, v in wc['dside'].items()}
+        if wc.get('attn'):
+            arch['attn'] = int(wc['attn'])
     if side:
         # Extra zero-initialized coarse-level capacity, e.g. "3:192:3,4:256:4" (level:width:blocks).
         arch['side'] = dict(arch.get('side') or {}, **{f.split(':')[0]: (int(f.split(':')[1]), int(f.split(':')[2])) for f in side.split(',')})
+    if attn:
+        # Zero-initialized masked self-attention blocks at the bottleneck.
+        arch['attn'] = int(attn)
     if dside:
         # The same after decoder stages, e.g. "1:96:2,2:128:2" (decoder output level:width:blocks).
         arch['dside'] = dict(arch.get('dside') or {}, **{f.split(':')[0]: (int(f.split(':')[1]), int(f.split(':')[2])) for f in dside.split(',')})
@@ -333,11 +338,11 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
             w1[:, full.index(n)] = w0[:, i]
         sd['stem.conv.weight'] = w1
         missing, unexpected = model.load_state_dict(sd, strict=False)
-        assert not unexpected and all(k.startswith(('side.', 'dside.')) for k in missing), (missing, unexpected)
+        assert not unexpected and all(k.startswith(('side.', 'dside.', 'attn.')) for k in missing), (missing, unexpected)
         print('extended channels', [n for n in full if n not in old_names], 'new side modules', len(missing), flush=True)
     elif warm:
         missing, unexpected = model.load_state_dict(warm_saved['model'], strict=False)
-        assert not unexpected and all(k.startswith(('side.', 'dside.')) for k in missing), (missing, unexpected)
+        assert not unexpected and all(k.startswith(('side.', 'dside.', 'attn.')) for k in missing), (missing, unexpected)
     if cascade_from:
         model.base.load_state_dict(base_saved['model'])
         model.base.eval()
@@ -539,6 +544,7 @@ if __name__ == '__main__':
     p.add_argument('--overlap', action='store_true', help='build legal features on a side stream/thread, overlapping training')
     p.add_argument('--side', help='zero-initialized extra capacity per encoder level, e.g. 3:192:3,4:256:4')
     p.add_argument('--dside', help='zero-initialized extra capacity after decoder stages, e.g. 1:96:2,2:128:2')
+    p.add_argument('--attn', type=int, default=0, help='zero-initialized masked self-attention blocks at the bottleneck')
     p.add_argument('--teacher', help='comma-separated frozen teacher checkpoints (logit average) for distillation')
     p.add_argument('--distill', type=float, default=.5, help='weight of the soft-target loss (hard loss weight 1-distill)')
     run(**vars(p.parse_args()))

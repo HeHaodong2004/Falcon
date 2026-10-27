@@ -110,6 +110,37 @@ class Side(nn.Module):
         return (x+self.out(z, m))*m
 
 
+class Attn(nn.Module):
+    """Masked global self-attention at the bottleneck (tokens = valid coarsest cells), computed in F32.
+    Output projections start at zero, so a warm-started network keeps its function at step 0;
+    invalid tokens are excluded as keys and their outputs are zeroed."""
+    def __init__(self, c, heads=4, blocks=1):
+        super().__init__()
+        self.heads = heads
+        self.norm1 = nn.ModuleList([nn.LayerNorm(c) for _ in range(blocks)])
+        self.qkv = nn.ModuleList([nn.Linear(c, 3*c) for _ in range(blocks)])
+        self.proj = nn.ModuleList([nn.Linear(c, c) for _ in range(blocks)])
+        self.norm2 = nn.ModuleList([nn.LayerNorm(c) for _ in range(blocks)])
+        self.mlp = nn.ModuleList([nn.Sequential(nn.Linear(c, 2*c), nn.SiLU(), nn.Linear(2*c, c)) for _ in range(blocks)])
+        for j in range(blocks):
+            for lin in (self.proj[j], self.mlp[j][2]):
+                nn.init.zeros_(lin.weight); nn.init.zeros_(lin.bias)
+
+    def forward(self, x, m):
+        b, c, h, w = x.shape
+        wd = self.qkv[0].weight.dtype                                  # F16 in the inference copy
+        t = x.to(wd).flatten(2).transpose(1, 2)                       # B, N, C
+        valid = m.flatten(2).transpose(1, 2).to(wd)                   # B, N, 1
+        bias = (m.flatten(2).float()-1.)*1e9                          # B, 1, N: -1e9 for invalid keys
+        hd = c//self.heads
+        for j in range(len(self.qkv)):
+            q, k, v = self.qkv[j](self.norm1[j](t)).view(b, -1, 3, self.heads, hd).permute(2, 0, 3, 1, 4)
+            att = torch.softmax((q @ k.transpose(-1, -2)).float()*(hd**-.5)+bias[:, None], -1).to(v.dtype)
+            t = t+self.proj[j]((att @ v).transpose(1, 2).reshape(b, -1, c))*valid
+            t = t+self.mlp[j](self.norm2[j](t))*valid
+        return (t.transpose(1, 2).reshape(b, c, h, w)*m.to(t.dtype)).to(x.dtype)
+
+
 class MaskedUNet(nn.Module):
     """U-Net whose valid-frame outputs are independent of canvas padding.
 
@@ -118,7 +149,7 @@ class MaskedUNet(nn.Module):
     prediction therefore does not depend on batch composition or padding.
     The validity mask is channel `valid_channel` of the input.
     """
-    def __init__(self, cin, widths=(32, 64, 96, 128, 192), blocks=(1, 2, 2, 2, 2), valid_channel=None, aux=0, side=None, dside=None):
+    def __init__(self, cin, widths=(32, 64, 96, 128, 192), blocks=(1, 2, 2, 2, 2), valid_channel=None, aux=0, side=None, dside=None, attn=0):
         super().__init__()
         self.widths = widths
         self.aux = aux
@@ -129,6 +160,8 @@ class MaskedUNet(nn.Module):
         # dside: {level (0-based decoder output level): (width, blocks)}, the same zero-initialized branches
         # applied after the decoder stage that produces that level (finer levels: boundary precision)
         self.dside = nn.ModuleDict({str(k): Side(widths[int(k)], int(w), int(n)) for k, (w, n) in (dside or {}).items()})
+        # attn: number of zero-initialized masked self-attention blocks at the bottleneck (0: none)
+        self.attn = Attn(widths[-1], blocks=int(attn)) if attn else None
         self.stem = MConvBN(cin, widths[0])
         self.stem_blocks = nn.ModuleList([MBlock(widths[0]) for _ in range(blocks[0])])
         self.down = nn.ModuleList()
@@ -161,6 +194,8 @@ class MaskedUNet(nn.Module):
                 y = self.side[str(level)](y, masks[level])
             skips.append(y)
         m = masks[-1]
+        if self.attn is not None:
+            y = self.attn(y, m)
         g = (y*m).sum((2, 3))/m.sum((2, 3)).clamp(min=1)
         y = (y+self.context(g)[:, :, None, None])*m
         for i, (fuse, blk) in enumerate(self.up):
@@ -228,7 +263,7 @@ def build_model(cin, config):
     arch = config.get('arch', 'unet')
     if arch == 'masked_unet':
         return MaskedUNet(cin, tuple(config['widths']), tuple(config.get('blocks', (1, 2, 2, 2, 2))), valid_channel=config['valid_channel'],
-                          aux=int(config.get('aux', 0)), side=config.get('side'), dside=config.get('dside'))
+                          aux=int(config.get('aux', 0)), side=config.get('side'), dside=config.get('dside'), attn=int(config.get('attn', 0)))
     return UNet(cin, tuple(config['widths']))
 
 
