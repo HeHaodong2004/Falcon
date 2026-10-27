@@ -28,8 +28,8 @@ import numpy as np
 from .query_bench import DEST
 
 SETS = ('1.0', '0.5', '2.0', 'full')
-MODELS = ('v7', 'v11', 'v12', 'v15', 'v16b')
-FULL_DEV_IOU = dict(v7=0.4563, v11=0.4688, v12=0.4716, v15=0.4784, v16b=0.4809)
+MODELS = ('v7', 'v11', 'v12', 'v15', 'v16b', 'v17a')
+FULL_DEV_IOU = dict(v7=0.4563, v11=0.4688, v12=0.4716, v15=0.4784, v16b=0.4809, v17a=None)
 TAU_ABS, TAU_REL = 3, .1
 B = 1000
 
@@ -385,7 +385,7 @@ def main(models=MODELS, out='report'):
                 res['gain'][m+':recal'] = gain_metrics(rc, scene_of)
         # paired scene bootstrap of differences against the reference methods
         for a in [m for m in preds]:
-            for b_ in ('random', 'distance', 'duration', 'legal_visible', 'frustum', 'known_visible', 'v7', 'v11', 'v12', 'v15'):
+            for b_ in ('random', 'distance', 'duration', 'legal_visible', 'frustum', 'known_visible', 'v7', 'v11', 'v12', 'v15', 'v16b'):
                 if b_ not in root_vals or b_ == a:
                     continue
                 diffs = {}
@@ -412,7 +412,7 @@ def main(models=MODELS, out='report'):
                                                          regret_mean=v['regret_mean'], decisive_pairs=v['decisive_pairs']) for m, v in sub.items()}
             GAIN_KIND[0] = 'total'
         if s == '1.0' or s == 'full':
-            focus = {k: v for k, v in methods.items() if k in ('v15', 'v16b', 'distance', 'duration', 'legal_visible', 'random')}
+            focus = {k: v for k, v in methods.items() if k in ('v15', 'v16b', 'v17a', 'distance', 'duration', 'legal_visible', 'random')}
             ref_m = 'v16b' if 'v16b' in preds else next(iter(preds))
             res['regimes'] = regimes([o for outs in methods[ref_m][0].values() for o in outs], g0,
                                      {k: v[1] for k, v in focus.items()}, scene_of)
@@ -440,7 +440,7 @@ def fmt_ci(d, pct=False, digits=3):
     return '%s [%s, %s]' % (f(d['mean']), f(d['ci95'][0]), f(d['ci95'][1]))
 
 
-def tables(report, order=('v16b', 'v16b:recal', 'v15', 'v15:recal', 'v12', 'v11', 'v7', 'legal_visible', 'frustum', 'known_visible', 'distance', 'duration',
+def tables(report, order=('v17a', 'v17a:recal', 'v16b', 'v16b:recal', 'v15', 'v15:recal', 'v12', 'v11', 'v7', 'legal_visible', 'frustum', 'known_visible', 'distance', 'duration',
                           'heading_change', 'random')):
     """Markdown tables of a report (narrative conclusions are written separately)."""
     lines = []
@@ -497,7 +497,7 @@ def tables(report, order=('v16b', 'v16b:recal', 'v15', 'v15:recal', 'v12', 'v11'
             lines.append('\n| paired difference (scene bootstrap) | pairwise acc. | regret (cells) | top-1 hit |')
             lines.append('| --- | ---: | ---: | ---: |')
             for k, d in pv.items():
-                if k.split('-')[0] in ('v16b', 'v15'):
+                if k.split('-')[0] in ('v17a', 'v16b', 'v15'):
                     lines.append(f"| {k} | {fmt_ci(d['pairwise'], pct=True)} | {fmt_ci(d['regret'], digits=1)} | {fmt_ci(d['top1_hit'], pct=True)} |")
         rg = res.get('regimes')
         if rg:
@@ -508,7 +508,7 @@ def tables(report, order=('v16b', 'v16b:recal', 'v15', 'v15:recal', 'v12', 'v11'
                     lines.append(f"| {k}={v} | {a['outcomes']} | {a['label_aware_iou_pooled']:.3f} | {a['gain_mae']:.1f} | {a['actual_gain_mean']:.1f} |")
             dec = rg['decision_pairwise_by_regime']
             keys = sorted({k for d in dec.values() for k in d})
-            meth = [m for m in ('v16b', 'v15', 'legal_visible', 'distance', 'duration') if m in dec]
+            meth = [m for m in ('v17a', 'v16b', 'v15', 'legal_visible', 'distance', 'duration') if m in dec]
             lines.append('\n| pair regime (both outcomes) | pairs | ' + ' | '.join(meth) + ' |')
             lines.append('| --- | ---: | ' + ' | '.join('---:' for _ in meth) + ' |')
             for k in keys:
