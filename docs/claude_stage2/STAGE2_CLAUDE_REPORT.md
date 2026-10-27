@@ -339,6 +339,7 @@ physical GPU1, which would have made the run take ~9 h and slowed the other job.
   Roots for v7r, v11 and v12); it is used for the final models.
 * The `human_future` sweep channel did not close the accuracy gap of windows with a human within 2 m of
   the path (v11: 0.437 vs 0.476 without humans within 8 m).
+* Operating points are selected on 128 px TRAIN-validation packets while the final models run on 256 px packets; on the 199 validation Roots with both resolutions (v15, `sensor_rule.py`) the best 256 px class rule (0.475 / 0.525) scores 0.4750 vs 0.4743 for the frozen 128 px-selected point — a difference within noise, so the protocol is kept.
 * Batch padding is not a training bottleneck (20 % padded cells for random batches vs 12 % for
   size-matched batches, mostly from rounding frames to multiples of 16).
 
