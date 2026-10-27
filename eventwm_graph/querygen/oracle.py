@@ -45,13 +45,100 @@ class OracleConfig:
     dup_penalty: float = 25.          # defer predicted duplicates by this f penalty instead of simulating
     maneuver_prior: float = 10.       # extra f for exact manoeuvre edges (used when ordinary queries do not help)
     maneuver_pad: bool = True         # also charge short manoeuvres up to a full decision interval
+    maneuver_gate: float = 0.         # >0: entering manoeuvre mode costs this much extra unless every ordinary
+                                      # movement query tried from the parent failed natively (privileged gate)
     fine_by_edge: bool = True         # fine de-duplication for states reached by manoeuvre edges (else: stuck nodes)
     tie_bucket: float = 0.            # >0: f is bucketed and ties prefer the later node (cross waiting plateaus forward in time)
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
+    st_heuristic: bool = False        # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
+    st_fallback: float = 300.         # extra steps when the space-time model finds no arrival
     block_dist: float = 0.5           # centre distance to the geodesic path that blocks it (> half-width + body proxy)
     block_horizon_m: float = 8.0      # path length checked ahead
     block_step: int = 4               # departure-delay resolution (steps)
     block_max: int = 240              # cap (steps) when no clear departure is found
+
+
+class SpaceTimeHeuristic:
+    """Privileged time-dependent cost-to-go for the Oracle (never used online).
+
+    Grid over the navmesh top-down view (``cell`` m); a cell is unsafe at step t
+    if a same-floor human centre (true tape) is within ``radius``.  Backward
+    dynamic programming over (cell, step) with unit-step moves to the 8
+    neighbours or waiting gives T[t, cell] = earliest arrival (steps from t) at
+    a goal cell.  The model ignores turning and Spot's body (optimistic, like
+    the geodesic), but it knows *when* passages are blocked, so waiting on the
+    optimal schedule lowers T one-for-one instead of looking like lost time.
+    """
+
+    def __init__(self, rt, cell=0.2, radius=0.6, horizon=None, goal_m=0.3):
+        from .native import MAX_EPISODE_STEPS
+        task = rt.task
+        pf = task.sim.pathfinder
+        y = float(task.robot.base_pos[1])
+        nav = np.asarray(pf.get_topdown_view(cell, y), dtype=bool)          # [z, x]
+        lb = pf.get_bounds()[0]
+        self.x0, self.z0, self.cell = float(lb[0]), float(lb[2]), cell
+        self.nav = nav
+        T_steps = min(len(rt.tape), (horizon or MAX_EPISODE_STEPS)+1)
+        nz, nx = nav.shape
+        zc = self.z0+(np.arange(nz)+.5)*cell
+        xc = self.x0+(np.arange(nx)+.5)*cell
+        g = task.goal
+        goal = nav & (np.hypot(xc[None, :]-g[0], zc[:, None]-g[2]) <= goal_m)
+        if not goal.any():
+            iz, ix = self._nearest_nav(int((g[2]-self.z0)/cell), int((g[0]-self.x0)/cell))
+            goal = np.zeros_like(nav); goal[iz, ix] = True
+        INF = np.float32(1e6)
+        H = rt.tape.positions[:T_steps]                                       # [T, N, 3]
+        T = np.full(nav.shape, INF, dtype=np.float32)
+        T[goal] = 0.
+        self.table = np.empty((T_steps,)+nav.shape, dtype=np.float32)
+        for t in range(T_steps-1, -1, -1):
+            if t < T_steps-1:
+                nxt = self.table[t+1]
+                best = nxt+1.                                                 # wait
+                for dz in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        if dz == 0 and dx == 0:
+                            continue
+                        sh = np.full(nav.shape, INF, dtype=np.float32)
+                        zs = slice(max(0, -dz), nz-max(0, dz)); zd = slice(max(0, dz), nz-max(0, -dz))
+                        xs = slice(max(0, -dx), nx-max(0, dx)); xd = slice(max(0, dx), nx-max(0, -dx))
+                        sh[zs, xs] = nxt[zd, xd]+1.
+                        best = np.minimum(best, sh)
+                T = best
+            else:
+                T = np.full(nav.shape, INF, dtype=np.float32)
+            T = np.where(nav, T, INF)
+            unsafe = np.zeros(nav.shape, dtype=bool)
+            for h in H[t]:
+                if abs(float(h[1])-y) > 0.5:
+                    continue
+                unsafe |= (np.hypot(xc[None, :]-h[0], zc[:, None]-h[2]) < radius)
+            T = np.where(unsafe, INF, T)
+            T = np.where(goal & ~unsafe, 0., T)
+            self.table[t] = T
+        self.INF = float(INF)
+
+    def _nearest_nav(self, iz, ix, r=3):
+        nz, nx = self.nav.shape
+        best = None
+        for a in range(iz-r, iz+r+1):
+            for b in range(ix-r, ix+r+1):
+                if 0 <= a < nz and 0 <= b < nx and self.nav[a, b]:
+                    d = (a-iz)**2+(b-ix)**2
+                    if best is None or d < best[0]:
+                        best = (d, a, b)
+        return (iz, ix) if best is None else (best[1], best[2])
+
+    def value(self, x, z, t):
+        """Steps to the goal from world (x, z) at step t (None if unreachable in the model)."""
+        iz, ix = int((z-self.z0)/self.cell), int((x-self.x0)/self.cell)
+        nz, nx = self.nav.shape
+        if not (0 <= iz < nz and 0 <= ix < nx) or not self.nav[iz, ix]:
+            iz, ix = self._nearest_nav(min(max(iz, 0), nz-1), min(max(ix, 0), nx-1))
+        v = float(self.table[min(t, len(self.table)-1), iz, ix])
+        return None if v >= self.INF/2 else v
 
 
 def horizon_for(query, cfg):
@@ -67,6 +154,7 @@ class Oracle:
         self.rt = runtime
         self.gen = generator
         self.cfg = config or OracleConfig()
+        self._st = None
         self.stats = dict(expansions=0, children=0, outcomes={}, by_label={}, gen_s=0., run_s=0.,
                           raw_candidates=0, kept_candidates=0, gen_ms=[], edge_ms=[], edge_steps=[])
 
@@ -117,7 +205,17 @@ class Oracle:
         h = st.geodesic/cfg.speed_est if st.geodesic == st.geodesic else 1e3
         pen = max(0., cfg.clearance_soft-st.min_rect_dist)*cfg.clearance_cost
         pen += max(0., cfg.danger_m-self._danger(st))*cfg.danger_cost
-        if cfg.block_weight:
+        if cfg.st_heuristic:
+            if self._st is None:
+                t = time.perf_counter()
+                self._st = SpaceTimeHeuristic(self.rt)
+                self.stats['st_build_s'] = time.perf_counter()-t
+            p = st.legal.pose
+            v = self._st.value(float(p[0]), float(p[2]), st.index)
+            # time-to-go in steps: the space-time arrival (it already includes the
+            # forced waits); never below the geodesic estimate
+            h = max(h, v) if v is not None else h+cfg.st_fallback
+        elif cfg.block_weight:
             pen += cfg.block_weight*self._block_time(st)
         return st.index+cfg.weight*h+pen
 
@@ -206,6 +304,21 @@ class Oracle:
             self.stats['gen_ms'].append(round(1000*dt, 2))
             return queries, diag
 
+        # Bookkeeping lives on the branch objects (no id() reuse) and never keeps a
+        # parent alive: parent._qg_ordinary = [tried, failed] (a small shared list),
+        # child._qg_origin = (that list, reached-by-manoeuvre flag).
+
+        def gate_open(node):
+            """Manoeuvres are justified at ``node`` if it was reached by a manoeuvre, or
+            every ordinary movement query tried from its parent failed natively."""
+            par = getattr(node, '_qg_origin', None)
+            if par is None:
+                return False
+            rec, by_maneuver = par
+            if by_maneuver:
+                return True
+            return rec[0] > 0 and rec[1] == rec[0]
+
         def push_children(node, queries, diag):
             nonlocal counter
             self.stats['raw_candidates'] += sum(diag.get('raw', {}).values())+diag.get('fixed', 0)
@@ -216,9 +329,11 @@ class Oracle:
                 (int(node.index), round(float(node.geodesic), 3), round(float(fn), 1), bool(diag.get('stuck')),
                  round(time.perf_counter()-t0, 1)))
             fine = bool(diag.get('stuck'))
+            gate = cfg.maneuver_gate if (cfg.maneuver_gate and not gate_open(node)) else 0.
             for q in queries:
                 counter += 1
-                heapq.heappush(heap, (self._key(fn+self._prior(q), node), counter, node, q, False, fine))
+                extra = gate if self.is_maneuver(q) else 0.
+                heapq.heappush(heap, (self._key(fn+self._prior(q)+extra, node), counter, node, q, False, fine))
         push_children(root, *propose(root))
         while heap and self.stats['children'] < cfg.max_edges and time.perf_counter()-t0 < cfg.max_seconds:
             prio, _, node, q, deferred, node_fine = heapq.heappop(heap)
@@ -240,6 +355,12 @@ class Oracle:
             self.stats['edge_ms'].append(round(1000*dt, 1))
             self.stats['edge_steps'].append(child.index-node.index)
             self.stats['children'] += 1
+            if not hasattr(node, '_qg_ordinary'):
+                node._qg_ordinary = [0, 0]
+            child._qg_origin = (node._qg_ordinary, self.is_maneuver(q))
+            if q.kind in ('goal', 'goto', 'rotate') and not self.is_maneuver(q):
+                node._qg_ordinary[0] += 1
+                node._qg_ordinary[1] += int(child.outcome is not None and child.outcome != 'success')
             lab = self.stats['by_label'].setdefault(q.label.rstrip('0123456789'), dict(n=0, fail=0))
             lab['n'] += 1
             if child.outcome is not None:
