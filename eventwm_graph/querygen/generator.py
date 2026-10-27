@@ -212,8 +212,16 @@ class QueryGenerator:
 
         # ---- goal approach alignment: final straight drive along a heading whose
         # goal pose keeps the long body off observed walls
-        # v9: the approach trigger uses the legal route length (a goal behind a wall is not 'near')
-        gd_route = path_length(route) if (cfg.v9_select and route is not None and len(route) >= 2) else gd
+        # v9: the approach trigger uses the legal route's cost-to-go (UNKNOWN cells cost 2.5x), so a goal
+        # behind walls or behind unobserved space is not 'near' (LEFTm3JecaC spawn: 1.6 m straight line
+        # through an unobserved wall, 3.3 m true route)
+        gd_route = gd
+        if cfg.v9_select:
+            ri, rj = view.to_local(*robot_xz)
+            if view.inside(ri, rj) and gfield[ri, rj] < INF/2:
+                gd_route = float(gfield[ri, rj])*view.res
+            elif route is None:
+                gd_route = float('inf')
         if gd_route < cfg.approach_range:
             for th, via in self._approaches(view, rfield, legal, goal_xz, robot_xz):
                 cats['approach'].append(Query('goal', via=(via,), label='approach',
