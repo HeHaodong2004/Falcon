@@ -75,8 +75,14 @@ results do not depend on cache state or on the number of lanes (`lanes=3` is che
    `reveal` (r > t, then b > t_b) or `class` (FREE if r(1-b) > t_F, BLOCKED if rb > t_B, larger margin wins).
 6. **Training extras** (`train.py`): warm restarts, soft label-aware IoU loss (`--iou-weight`), EMA
    (`--ema`), larger shuffle pool (`--pool-factor`), legal features on a side stream (`--overlap`),
-   channel extension (`--extend`), side branches (`--side`), distillation from frozen teachers
-   (`--teacher`, `--distill`).
+   channel extension (`--extend`), zero-initialized encoder / decoder side branches (`--side`, `--dside`)
+   and bottleneck self-attention (`--attn`), distillation from frozen teachers (`--teacher a[,b]`,
+   `--distill`), additional TRAIN packet directories (`--extra-sensor dir1[,dir2]`, each Root used once).
+7. **Latency engineering** (exact: outputs bit-identical, checked on all 32 benchmark workloads at both
+   sensor resolutions): carving loops only over the frames whose 10 m range and frustum can reach each
+   8x8-column block (conservative 1 cm culling tests), the exact F64 candidate-domain test runs only for
+   cells within 1e-5 (relative) of the 11 m boundary after an F32 prefilter, and hypothetical graphs are
+   materialized by a linear merge of the ordered predicted rows into the ordered known-cell table.
 
 ## Frozen deployable checkpoints
 
@@ -90,14 +96,14 @@ See `docs/claude_stage2/STAGE2_CLAUDE_REPORT.md` for protocols, receipts and the
 
 ## Files
 
-`api.py` predictor; `features.py`/`geometry.py`/`kernels.py` legal features; `model.py` network and CUDA
+`api.py` predictor (`materialize.py`: hypothetical graphs); `features.py`/`geometry.py`/`kernels.py` legal features; `model.py` network and CUDA
 graph runner; `train.py`/`data.py` training on TRAIN roots; `select.py` operating-point selection on
 scene-disjoint TRAIN validation; `evaluate.py` original development evaluation (identical assertions and
 `summarize()` to `stage2_repair/range_full_evaluate.py`); `benchmark.py` original 32-workload complete
 latency; `test_api.py` contract tests. Diagnostics: `sim_eval.py`, `sim_check*.py`, `cam_check.py`,
 `blocked_debug.py`, `ray_debug.py`, `entry_debug.py`, `fp_debug.py`, `strata.py`, `aux_eval.py`,
 `fitcheck.py`, `check_past.py`, `fidelity_debug.py`, `near_ab.py`, `compare_pilot.py`, `viz*.py`,
-`human_diag.py`, `bucket_select.py`, `valcheck.py`, `prof_step.py`, `lanes_bench.py`. Tools:
+`human_diag.py`, `human_shadow.py`, `bucket_select.py`, `valcheck.py`, `prof_step.py`, `lanes_bench.py`. Tools:
 `sensor_select.py` (128 vs 256 px on TRAIN validation), `val256_expand.py` (256 px packets for validation
 Roots, unchanged environment replay), `make_ensemble.py`, `soup.py`.
 `quiet.py` runs a benchmark with this session's own background jobs paused (run as a module).
