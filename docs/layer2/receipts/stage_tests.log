@@ -1,0 +1,35 @@
+# Stage 1 / Stage 2 own test suites on branch research/l2-integration-20261027 (release checkpoints), 2026-10-27
+=== stage1 test_selected
+selected hwm_lite_e12 (53d44d85e7b1) loads and predicts a valid bank PASS
+exit 0
+=== stage1 test_batch_api
+batched API: 40 streams, features equal single-stream, banks valid PASS
+exit 0
+=== stage1 test_sandbox_candidates
+shared-bank candidate evaluation: 40 Roots, median 1.153 ms per K-candidate reduction PASS
+exit 0
+=== stage1 test_population_sampler
+conditional population sampler matches rejection sampling and the exact count law PASS
+exit 0
+=== stage1 test_likelihood_reference
+likelihood: 32 anchors (24 with unresolved keys), max |vectorised - enumeration| = 6.14e-06; dense-Gaussian check max 2.32e-06
+exit 0
+=== stage1 test_online_equivalence
+online/offline feature equivalence: 79 anchors over 25 Roots PASS
+exit 0
+=== stage1 test_legacy_context_input
+legacy OnlineContext input == raw frame input on 12 Roots PASS
+exit 0
+=== stage2 test_api
+PASS exact domain (CPU reference), zero-horizon, no input mutation
+batched vs single (CUDA graphs): max probability difference 0, differing hard states 0 of 2725522
+batched graphs vs eager (different canvas, numerics only): max probability difference 0.00157, differing hard states 0 of 2725522
+PASS edge cases: 14 queries incl. a 14.4 m path (frame 366 cells) and a zero-horizon query
+PASS lanes=3 vs lanes=1: bit-identical probabilities and states on 1361633 cells
+exit 0
+=== stage2 test_cache
+(test_cache.py hard-codes output/claude_stage2/final/v15.pt, which exists only in the Stage 2 worktree; it was run
+ unmodified except for that path, pointed at release/stage2_claude_v17a/stage2_claude_v17a.pt; it tests the
+ legal-map cache contract, not the weights)
+=== stage2 test_cache via layer2 runner (checkpoint path -> release v17a)
+PASS provenance identity, warm hit, quick-key collision miss on 6 workloads

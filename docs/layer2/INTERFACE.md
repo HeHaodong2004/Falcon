@@ -47,7 +47,7 @@ from eventwm_graph.layer2.model import Layer2WorldModel
 from eventwm_graph.layer2.state import DecisionState, CandidateTrajectory, trajectory_from_poses
 
 l2 = Layer2WorldModel.from_release(map_device='cuda:0')   # verifies both SHA-256s; sets torch threads = 1
-                                                          # (~10-15 s: Stage 2 NVRTC kernels + CUDA graphs)
+                                                          # (~20 s: Stage 2 NVRTC kernels + CUDA graphs)
 
 # once per decision (real time t of the episode / environment `env_id`)
 state = DecisionState(frames=arrived_frames,              # list of legal observation dicts, oldest first; [-1] is now
@@ -114,7 +114,10 @@ worker thread.
 
 ## 3. Cost model (details and numbers in RESULTS.md)
 
-* Construction: ~10–15 s (Stage 2 kernel compilation and CUDA-graph capture), ~1.3 GB of GPU memory per process.
+* Construction: ~20 s (Stage 2 kernel compilation and CUDA-graph capture), 1.2–1.5 GB of GPU memory per process.
+* Steady per-decision latency (one new frame, new state), K=6: 37 ms P50 / 45 ms P95. One RTX 3090 sustains
+  65 K=6 decisions/s with 6 processes (RESULTS.md §4–5).
+* A CUDA error poisons the process's CUDA context: treat it as fatal and restart the worker (RESULTS.md §3).
 * Per decision: one Stage 1 call (CPU, overlapped with Stage 2) + one Stage 2 call for all K candidates + reductions.
   Further `predict` calls with the **same `DecisionState` object** reuse the human bank and the Stage 2 legal map,
   so only the new candidates are paid for.
@@ -122,8 +125,10 @@ worker thread.
 
 ## 4. Guarantees (tested)
 
-* Bit-identical to the standalone stages: banks equal standalone `HumanWorldModel.predict`; increments equal
-  standalone v17_a, including on all recorded full Query executions of the 2,110 development Roots (RESULTS.md).
+* Bit-identical to the standalone stages. Banks equal standalone `HumanWorldModel.predict`. Each increment equals a
+  cold single-candidate v17_a `predict_segments` call, whatever the batch or cache. In-extent candidates are batched;
+  each candidate whose crop leaves Stage 2's default ±19 m legal map runs alone (RESULTS.md §3.1). Checked on all
+  recorded Query executions of the 2,110 development Roots.
 * Shared decision state: batched K equals K single calls (maps and banks bit-identical; reductions agree up to
   ~1e-17 summation order). Overlapped equals sequential. A rebuilt state object gives an identical bank.
   An incremental stream gives the same bank as a fresh stream.

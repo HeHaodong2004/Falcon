@@ -1,0 +1,70 @@
+[
+ {
+  "name": "fulldev_final",
+  "shard": 0,
+  "shards": 4,
+  "roots": 528,
+  "seconds": 1494.1822440624237,
+  "device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "max_reserved_gb": 1.60546875,
+  "stage1_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
+  "stage2_sha256": "bef7f5fd73898903c309cfa9a8f18d0944352dc39e19e72db3cdbe32c3559a8d",
+  "load_average": [
+   22.14892578125,
+   24.0283203125,
+   25.5517578125
+  ]
+ },
+ {
+  "name": "fulldev_final",
+  "shard": 1,
+  "shards": 4,
+  "roots": 528,
+  "seconds": 1409.7183368206024,
+  "device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "max_reserved_gb": 2.541015625,
+  "stage1_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
+  "stage2_sha256": "bef7f5fd73898903c309cfa9a8f18d0944352dc39e19e72db3cdbe32c3559a8d",
+  "load_average": [
+   23.5908203125,
+   24.78564453125,
+   25.92041015625
+  ]
+ },
+ {
+  "name": "fulldev_final",
+  "shard": 2,
+  "shards": 4,
+  "roots": 527,
+  "seconds": 1554.9993517398834,
+  "device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "max_reserved_gb": 1.94140625,
+  "stage1_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
+  "stage2_sha256": "bef7f5fd73898903c309cfa9a8f18d0944352dc39e19e72db3cdbe32c3559a8d",
+  "load_average": [
+   20.9814453125,
+   23.3505859375,
+   25.22265625
+  ]
+ },
+ {
+  "name": "fulldev_final",
+  "shard": 3,
+  "shards": 4,
+  "roots": 527,
+  "seconds": 1549.2624711990356,
+  "device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "max_reserved_gb": 2.0390625,
+  "stage1_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
+  "stage2_sha256": "bef7f5fd73898903c309cfa9a8f18d0944352dc39e19e72db3cdbe32c3559a8d",
+  "load_average": [
+   20.8056640625,
+   23.35693359375,
+   25.23486328125
+  ]
+ }
+]

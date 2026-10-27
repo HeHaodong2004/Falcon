@@ -1,0 +1,3123 @@
+{
+ "name": "final_v1",
+ "device": "cuda:0",
+ "gpu": "NVIDIA GeForce RTX 3090",
+ "cpu_threads": 1,
+ "stage1_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
+ "stage2_sha256": "bef7f5fd73898903c309cfa9a8f18d0944352dc39e19e72db3cdbe32c3559a8d",
+ "lanes": 3,
+ "worlds": 40,
+ "horizon": 3.0,
+ "startup": {
+  "construct_ms": 20048.18066000007,
+  "first_complete_K6_ms": 114.12723595276475
+ },
+ "workloads": 32,
+ "repetitions": 3,
+ "load_average_before": [
+  22.0380859375,
+  23.08935546875,
+  24.9892578125
+ ],
+ "load_average_after": [
+  24.32177734375,
+  20.810546875,
+  22.6767578125
+ ],
+ "concurrent_processes": [
+  "    PID STAT     ELAPSED %CPU %MEM COMMAND",
+  "3908616 Sl         00:45  100  1.8 python scripts/layer2_run.py eventwm_graph.layer2.benchmark latency final_v1 --repetitions 3",
+  "3906804 RN         04:53  100  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/querygen_run.py eventwm_graph.querygen.witness hm3d/val/SByzJLxpRGn/13 --suite dev --out output/runs/witness_m30 --budget 2700 --margin 0.30 --max-sims 1500000",
+  "3844684 RN      01:31:41 99.9  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/querygen_run.py eventwm_graph.querygen.witness hm3d/val/3t8DB4Uzvkt/9 --suite dev --out output/runs/witness_3t8_w3 --budget 10800 --weight 3 --max-sims 3000000",
+  "3844686 RN      01:31:41 99.9  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/querygen_run.py eventwm_graph.querygen.witness hm3d/val/3t8DB4Uzvkt/9 --suite dev --out output/runs/witness_3t8_w6 --budget 10800 --weight 6 --max-sims 3000000",
+  "3864201 RN         50:40 99.9  1.3 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/TEEsavR23oF/12 1697355146 --out output/runs/dev_v9_k10 --planner orca --dynamics native --oracle {\"heading_h\": true} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3866845 RN         46:45 99.9  1.3 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/LT9Jq6dN3Ea/23 1081689443 --out output/runs/cfg_orca_inertia --planner orca --dynamics inertia --oracle {\"heading_h\": true} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3873320 RN         37:22 99.9  0.8 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/SByzJLxpRGn/13 1674310075 --out output/runs/dev_v9_k10 --planner orca --dynamics native --oracle {\"heading_h\": true} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3875402 RN         34:45 99.9  1.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/LEFTm3JecaC/13 821365955 --out output/runs/dev_v9b_hard --planner orca --dynamics native --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"prefix_cache\": 48} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3888393 RN         22:17 99.9  1.3 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/LT9Jq6dN3Ea/23 1081689443 --out output/runs/cfg_orca_inertia_b --planner orca --dynamics inertia --oracle {\"heading_h\": true, \"prefix_cache\": 48, \"escape_penalty\": 80} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3890045 RN         20:36 99.9  0.9 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/LT9Jq6dN3Ea/23 1081689443 --out output/runs/cfg_dwa_inertia_b --planner dwa --dynamics inertia --oracle {\"heading_h\": true, \"prefix_cache\": 48, \"escape_penalty\": 80} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3891714 RN         19:12 99.9  0.9 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/YRUkbU5xsYj/10 95819214 --out output/runs/dev_v9eh --planner orca --dynamics native --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3893896 RN         16:52 99.9  0.5 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/5cdEh9F2hJL/6 878205022 --out output/runs/dev_v9_k10 --planner orca --dynamics native --oracle {\"heading_h\": true} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3894433 RN         16:30 99.9  0.7 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/3t8DB4Uzvkt/9 1292640211 --out output/runs/dev_v9_k10 --planner orca --dynamics native --oracle {\"heading_h\": true} --gen {\"tight\": 1, \"close\": 1, \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3906805 RN         04:53 99.9  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/querygen_run.py eventwm_graph.querygen.witness hm3d/val/SByzJLxpRGn/13 --suite dev --out output/runs/witness_m35 --budget 2700 --margin 0.35 --max-sims 1500000",
+  "3907841 RN         01:03 99.0  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/Nfvxx8J5NCo/18 174611739 --out output/runs/dev_v9mix_hard --planner orca --dynamics native --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3907842 RN         01:03 99.0  0.3 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/TEEsavR23oF/12 1697355146 --out output/runs/dev_v9mix_hard --planner orca --dynamics native --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3907843 RN         01:03 99.0  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/Qpor2mEya8F/22 1520031807 --out output/runs/dev_v9mix_hard --planner orca --dynamics native --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3907844 RN         01:03 99.0  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/LEFTm3JecaC/13 821365955 --out output/runs/dev_v9mix_hard --planner orca --dynamics native --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3909211 RN         00:19 97.6  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/auFeVz9Go4m/16 883132265 --out output/runs/dev_dwa_inertia --planner dwa --dynamics inertia --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3909209 RN         00:19 97.3  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/Nfvxx8J5NCo/18 174611739 --out output/runs/dev_dwa_inertia --planner dwa --dynamics inertia --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3909210 RN         00:19 97.2  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/TEEsavR23oF/12 1697355146 --out output/runs/dev_dwa_inertia --planner dwa --dynamics inertia --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3909212 RN         00:19 97.2  0.2 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python /home/haodong/workspace/projects/eventwm-falcon-querygen-claude-20261026/scripts/querygen_run.py eventwm_graph.querygen.evaluate one hm3d/val/HMkoS756sz6/10 1664035017 --out output/runs/dev_dwa_inertia --planner dwa --dynamics inertia --oracle {\"heading_h\": true, \"escape_penalty\": 80, \"escape_h\": true, \"prefix_cache\": 48} --gen {\"tc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false}",
+  "3895639 Rl         15:31 87.1  1.9 /home/haodong/miniforge3/envs/eventwm-falcon/bin/python scripts/stage2_segment_run.py eventwm_graph.stage2_claude.select --checkpoint output/claude_stage2/training/v17_wide/final.pt --device cuda:1 --roots 400 --out v17wide --freeze-to output/claude_stage2/final/v17wide.pt",
+  "3909385 R          00:01 20.0  0.0 ps -eo pid,stat,etime,pcpu,pmem,args --sort=-pcpu",
+  "3097657 Sl    4-01:55:26 13.1  0.6 /snap/firefox/9036/usr/lib/firefox/firefox",
+  "3319670 Sl+   1-04:20:15  5.6  0.1 claude --model opus --dangerously-skip-permissions",
+  "   2395 Ssl  22-03:38:18  5.5  0.1 /usr/bin/gnome-shell",
+  "3405217 Sl+     17:53:09  5.5  0.1 claude --model opus --effort max --name querygen-oracle-20261026 --dangerously-skip-permissions",
+  "3852466 Sl+     01:13:07  5.2  0.1 claude --model opus --effort max --name l2-integration-20261027 --dangerously-skip-permissions"
+ ],
+ "max_reserved_gb": 1.5078125,
+ "measured": [
+  {
+   "root_id": "d16b03468886e0ab00be6f81573854d975b02143c35531c89f0aad66503a2eec",
+   "known_cells": 1711,
+   "frames": 12,
+   "path_seconds": [
+    0.4880000000000003,
+    0.9280000000000007,
+    0.4880000000000003,
+    1.024000000000001,
+    0.15200000000000014,
+    0.7360000000000005
+   ]
+  },
+  {
+   "root_id": "65895a585b0fdd7cc312cf758135fd0bcf12279c28e9037e2a092c8045f0345c",
+   "known_cells": 1098,
+   "frames": 13,
+   "path_seconds": [
+    1.2640000000000011,
+    0.7280000000000005,
+    0.4800000000000003,
+    0.14400000000000013,
+    0.28800000000000026,
+    0.14400000000000013
+   ]
+  },
+  {
+   "root_id": "6133fb5c3d82609ea3b2be448dc4704541ab7fa212f7d4507678e9263681c5f8",
+   "known_cells": 1293,
+   "frames": 12,
+   "path_seconds": [
+    0.3440000000000003,
+    0.15200000000000014,
+    0.5360000000000004,
+    0.15200000000000014,
+    0.29600000000000026,
+    0.4880000000000003
+   ]
+  },
+  {
+   "root_id": "9d1475f8ac65676b4618f423e573e3211026c884413b4a3571d2767f44b2247b",
+   "known_cells": 1545,
+   "frames": 82,
+   "path_seconds": [
+    1.3680000000000008,
+    1.0720000000000005,
+    0.488,
+    0.7360000000000002,
+    0.43999999999999995,
+    0.9280000000000004
+   ]
+  },
+  {
+   "root_id": "2136d57bc5bddfb736b0dc904bcec51f122d2d7cddaa166d4c424e84688ed7d9",
+   "known_cells": 1601,
+   "frames": 14,
+   "path_seconds": [
+    0.4800000000000003,
+    1.016000000000001,
+    1.016000000000001,
+    0.14400000000000013,
+    0.14400000000000013,
+    1.016000000000001
+   ]
+  },
+  {
+   "root_id": "ab012e3d1494cc097da0565a93bbd5b94165a2f5933847a96360ccc0231a150c",
+   "known_cells": 966,
+   "frames": 15,
+   "path_seconds": [
+    1.120000000000001,
+    0.4880000000000003,
+    0.14400000000000013,
+    0.28800000000000026,
+    0.7280000000000005,
+    0.28800000000000026
+   ]
+  },
+  {
+   "root_id": "1a5113fe7733d73c82bb984a5c0618e335193b1d9a69c4019c8be344cbb25412",
+   "known_cells": 1414,
+   "frames": 14,
+   "path_seconds": [
+    0.4800000000000003,
+    0.9200000000000007,
+    0.9200000000000007,
+    0.7280000000000005,
+    1.016000000000001,
+    0.9680000000000007
+   ]
+  },
+  {
+   "root_id": "e43f4a6f59265f70a6fe63f6526cbf0c98b951459a6be10de9a38e3aacc0263f",
+   "known_cells": 1703,
+   "frames": 14,
+   "path_seconds": [
+    0.14400000000000013,
+    2.968000000000002,
+    0.28800000000000026,
+    0.14400000000000013,
+    0.7280000000000005,
+    1.9920000000000013
+   ]
+  },
+  {
+   "root_id": "789de6aa0805ae51b89535fcfc1f616256d7770fd37cb16e40399c7a44fbd788",
+   "known_cells": 1176,
+   "frames": 14,
+   "path_seconds": [
+    2.1840000000000015,
+    0.14400000000000013,
+    0.28800000000000026,
+    0.7280000000000005,
+    0.14400000000000013,
+    0.3360000000000003
+   ]
+  },
+  {
+   "root_id": "c7fe67e62f766ed0157b8565f85262c820c705f4d5428a35ac5a622a2b6b708c",
+   "known_cells": 1242,
+   "frames": 12,
+   "path_seconds": [
+    0.3440000000000003,
+    0.9760000000000008,
+    0.29600000000000026,
+    0.15200000000000014,
+    0.4880000000000003,
+    0.15200000000000014
+   ]
+  },
+  {
+   "root_id": "46f0f2e4a2eced143e689f42e748338a846e7cbcd3a0cb5bc31659d3cd18ebd5",
+   "known_cells": 2601,
+   "frames": 14,
+   "path_seconds": [
+    1.9920000000000013,
+    0.14400000000000013,
+    1.016000000000001,
+    0.7280000000000005,
+    1.4560000000000008,
+    0.28800000000000026
+   ]
+  },
+  {
+   "root_id": "3378fd1ca04c4bc224e7bd257205a4d4230d5f4c114e929fb689a9a55108c704",
+   "known_cells": 871,
+   "frames": 14,
+   "path_seconds": [
+    0.3360000000000003,
+    0.14400000000000013,
+    0.14400000000000013,
+    0.7280000000000005,
+    0.4800000000000003,
+    0.28800000000000026
+   ]
+  },
+  {
+   "root_id": "85c7f3668b116ae3e887db72467ad53c9d75e702d7376bc6f36cd6cef42c28ae",
+   "known_cells": 1161,
+   "frames": 14,
+   "path_seconds": [
+    0.28800000000000026,
+    0.38400000000000023,
+    0.14400000000000013,
+    0.8240000000000006,
+    0.28800000000000026,
+    0.14400000000000013
+   ]
+  },
+  {
+   "root_id": "aa01526a23d424feab23b0facb938810e620cd82ee966888aaa15c6ca1bf370f",
+   "known_cells": 974,
+   "frames": 14,
+   "path_seconds": [
+    1.120000000000001,
+    0.4800000000000003,
+    0.14400000000000013,
+    0.14400000000000013,
+    1.016000000000001,
+    1.2640000000000011
+   ]
+  },
+  {
+   "root_id": "d9dba244e6f28aee92c3ed4e8163d5d4c3324be165db366b78ef50d94ed730ef",
+   "known_cells": 1344,
+   "frames": 14,
+   "path_seconds": [
+    0.28800000000000026,
+    0.14400000000000013,
+    0.4800000000000003,
+    0.9200000000000007,
+    0.4800000000000003,
+    0.28800000000000026
+   ]
+  },
+  {
+   "root_id": "9ad4ca9ba1f24a440ec26a2213a3336bbff7fb717bf138b1cd5006cdc85da668",
+   "known_cells": 1259,
+   "frames": 14,
+   "path_seconds": [
+    0.9680000000000007,
+    1.8480000000000012,
+    0.5840000000000004,
+    0.4800000000000003,
+    1.120000000000001,
+    1.016000000000001
+   ]
+  },
+  {
+   "root_id": "73db38cf842d479f50b0ededfda1344eaf4fa8a2893b558e3a2d711af5495e67",
+   "known_cells": 1844,
+   "frames": 82,
+   "path_seconds": [
+    0.1519999999999997,
+    2.4880000000000018,
+    0.488,
+    0.1519999999999997,
+    1.8480000000000012,
+    0.7360000000000002
+   ]
+  },
+  {
+   "root_id": "040ce7630b4a10309f1027060aa0000d4cb17a81ffda6414928c9768ff0048d8",
+   "known_cells": 858,
+   "frames": 15,
+   "path_seconds": [
+    1.3600000000000008,
+    0.8240000000000006,
+    1.504000000000001,
+    0.9200000000000007,
+    0.6800000000000005,
+    0.9200000000000007
+   ]
+  },
+  {
+   "root_id": "28f87079276a162f8153558f29b3e605193e8b36992e05a47dda388cd2c83e61",
+   "known_cells": 2211,
+   "frames": 14,
+   "path_seconds": [
+    0.7280000000000005,
+    0.4800000000000003,
+    1.016000000000001,
+    3.7440000000000024,
+    0.14400000000000013,
+    0.6800000000000005
+   ]
+  },
+  {
+   "root_id": "327383572b9342923ff1f07fc8a148f694d7276c38aa34c1d825b4e9c2d1f795",
+   "known_cells": 1395,
+   "frames": 15,
+   "path_seconds": [
+    1.072000000000001,
+    2.824000000000002,
+    0.14400000000000013,
+    0.4880000000000003,
+    0.28800000000000026,
+    0.9680000000000007
+   ]
+  },
+  {
+   "root_id": "81c303fe952d8772f0e81691e2aa10d1f5934bbe612d56dcd33cb78e024c8d00",
+   "known_cells": 2246,
+   "frames": 82,
+   "path_seconds": [
+    1.0240000000000005,
+    0.488,
+    0.3919999999999999,
+    0.2959999999999998,
+    0.9280000000000004,
+    0.7360000000000002
+   ]
+  },
+  {
+   "root_id": "70813fbce5624199ad8583172116d2782fd537766470f07ae06a87512bd43634",
+   "known_cells": 1506,
+   "frames": 14,
+   "path_seconds": [
+    0.14400000000000013,
+    0.9200000000000007,
+    1.600000000000001,
+    0.14400000000000013,
+    1.8480000000000012,
+    0.7280000000000005
+   ]
+  },
+  {
+   "root_id": "5e370bef0663d526f59deb80731c6ee945dc2a495d85bea56965abc5a57c7646",
+   "known_cells": 1373,
+   "frames": 12,
+   "path_seconds": [
+    0.4880000000000003,
+    0.4880000000000003,
+    0.4880000000000003,
+    0.29600000000000026,
+    0.15200000000000014,
+    0.15200000000000014
+   ]
+  },
+  {
+   "root_id": "5523ff8d14b6cdabccbf1fa7b7f3b7c1156e469f30b2a23e8f094e456e2fc5dc",
+   "known_cells": 1206,
+   "frames": 12,
+   "path_seconds": [
+    0.7360000000000005,
+    0.9280000000000007,
+    0.4880000000000003,
+    0.7360000000000005,
+    0.4880000000000003,
+    0.4880000000000003
+   ]
+  },
+  {
+   "root_id": "6b115d8dcc916681bdbe44548def9bf7306b8445d1fbf3990e8abbc8f9112ed2",
+   "known_cells": 1383,
+   "frames": 15,
+   "path_seconds": [
+    1.072000000000001,
+    1.3120000000000012,
+    1.016000000000001,
+    1.016000000000001,
+    0.9200000000000007,
+    0.14400000000000013
+   ]
+  },
+  {
+   "root_id": "f4afd86fc2cb599ff49a6bea96f492c7bca822ec10ad93fd9495eeec4c41db5c",
+   "known_cells": 2169,
+   "frames": 14,
+   "path_seconds": [
+    1.9920000000000013,
+    2.0400000000000014,
+    0.4800000000000003,
+    0.4800000000000003,
+    0.9200000000000007,
+    1.016000000000001
+   ]
+  },
+  {
+   "root_id": "d6948a4e158f322c5a757676a4340e01fbacefc0ec5dce2e716c21d51ddaa52a",
+   "known_cells": 1140,
+   "frames": 14,
+   "path_seconds": [
+    0.4800000000000003,
+    0.14400000000000013,
+    0.28800000000000026,
+    0.9200000000000007,
+    0.28800000000000026,
+    0.7280000000000005
+   ]
+  },
+  {
+   "root_id": "53b6d273d16b303015f24dc8607be764c98344706491c597ff9c100e80ea0b47",
+   "known_cells": 3569,
+   "frames": 14,
+   "path_seconds": [
+    0.7280000000000005,
+    0.14400000000000013,
+    0.28800000000000026,
+    1.016000000000001,
+    0.38400000000000023,
+    0.14400000000000013
+   ]
+  },
+  {
+   "root_id": "dd6c7db004131253b6b654d102ee31cceb43cab01ac7925696b904c93b7af7d4",
+   "known_cells": 1283,
+   "frames": 12,
+   "path_seconds": [
+    1.608000000000001,
+    1.4160000000000013,
+    0.7360000000000005,
+    1.120000000000001,
+    0.7360000000000005,
+    1.4160000000000013
+   ]
+  },
+  {
+   "root_id": "6f09de49e438564abfad6324d4079d78dde0f307ed1ca9f244a5ee6d66527b0c",
+   "known_cells": 1302,
+   "frames": 13,
+   "path_seconds": [
+    0.28800000000000026,
+    0.4800000000000003,
+    0.14400000000000013,
+    0.28800000000000026,
+    0.4800000000000003,
+    0.5840000000000004
+   ]
+  },
+  {
+   "root_id": "827b101023a4be632471a604648c6e5c66e51a0a25962ecd90a884fd39b727bd",
+   "known_cells": 2294,
+   "frames": 15,
+   "path_seconds": [
+    0.4880000000000003,
+    1.4560000000000008,
+    1.9920000000000013,
+    0.7280000000000005,
+    1.9920000000000013,
+    1.016000000000001
+   ]
+  },
+  {
+   "root_id": "8a96c53175509b49ebd67ef8c64be6945e3a0c57f30de8ae700b51c9613503e1",
+   "known_cells": 1540,
+   "frames": 15,
+   "path_seconds": [
+    0.8240000000000006,
+    0.28800000000000026,
+    1.216000000000001,
+    0.8240000000000006,
+    0.4880000000000003,
+    0.7280000000000005
+   ]
+  }
+ ],
+ "summary": [
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 1,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 36.57841356471181,
+    "p95": 40.54370147641748,
+    "max": 42.96331503428519,
+    "mean": 36.280799919040874
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 32.759856432676315,
+    "p95": 36.30950786173344,
+    "max": 37.63104300014675,
+    "mean": 31.915790891313616
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 35.393129917792976,
+    "p95": 39.39826700370759,
+    "max": 42.160982033237815,
+    "mean": 34.94280753754234
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.121712033636868,
+    "p95": 1.8696547136642039,
+    "max": 3.009593114256859,
+    "mean": 1.1427233160551016
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 1,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 40.864632464945316,
+    "p95": 130.85868600755924,
+    "max": 156.52833506464958,
+    "mean": 53.78647934412584
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 33.80500804632902,
+    "p95": 122.37608488649124,
+    "max": 151.18403104133904,
+    "mean": 45.44964166901385
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 40.067100897431374,
+    "p95": 130.02460896968836,
+    "max": 155.72499693371356,
+    "mean": 52.92338704748545
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.2021828442811966,
+    "p95": 2.7622025343589476,
+    "max": 5.30679221265018,
+    "mean": 1.3436296382375683
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 1,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 38.029478513635695,
+    "p95": 101.82741773314774,
+    "max": 156.52833506464958,
+    "mean": 45.033639631583355
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 32.89694350678474,
+    "p95": 90.92384175164625,
+    "max": 151.18403104133904,
+    "mean": 38.68271628016373
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 36.77977807819843,
+    "p95": 101.15526133449748,
+    "max": 155.72499693371356,
+    "mean": 43.9330972925139
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.1405315017327666,
+    "p95": 2.2857546573504806,
+    "max": 5.30679221265018,
+    "mean": 1.243176477146335
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 4,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 47.6532670436427,
+    "p95": 51.0645090136677,
+    "max": 52.9296868480742,
+    "mean": 47.06649978470523
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 33.27045647893101,
+    "p95": 37.583660148084164,
+    "max": 39.31533498689532,
+    "mean": 33.04057377681602
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 46.31300992332399,
+    "p95": 49.56299514742568,
+    "max": 51.4351068995893,
+    "mean": 45.562775630969554
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.0430084550753236,
+    "p95": 4.091305274050683,
+    "max": 5.539114121347666,
+    "mean": 2.3733747754401215
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 4,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 53.661120939068496,
+    "p95": 139.46994574507693,
+    "max": 168.56135288253427,
+    "mean": 63.846113980010465
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 35.969662480056286,
+    "p95": 117.95197819592426,
+    "max": 149.92659096606076,
+    "mean": 46.99643885154122
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 52.22729151137173,
+    "p95": 138.04210183443496,
+    "max": 166.69903183355927,
+    "mean": 62.575931379493944
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.309447037987411,
+    "p95": 5.302848434075713,
+    "max": 6.766873179003596,
+    "mean": 2.746379866342371
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 4,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 48.48315101116896,
+    "p95": 110.94565637176856,
+    "max": 168.56135288253427,
+    "mean": 55.45630688235784
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 34.47303094435483,
+    "p95": 92.056097346358,
+    "max": 149.92659096606076,
+    "mean": 40.018506314178616
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 47.02309356071055,
+    "p95": 109.5674141542986,
+    "max": 166.69903183355927,
+    "mean": 54.06935350523175
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 2.2259866818785667,
+    "p95": 5.003013706300408,
+    "max": 6.766873179003596,
+    "mean": 2.559877320891246
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 6,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 54.63319446425885,
+    "p95": 60.03008312545717,
+    "max": 61.92771717905998,
+    "mean": 53.77278091327753
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 34.335318487137556,
+    "p95": 38.700366218108684,
+    "max": 40.78785213641822,
+    "mean": 33.90016630388951
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 52.7168984990567,
+    "p95": 58.117534837219864,
+    "max": 59.838949935510755,
+    "mean": 51.902231614803895
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.5403534527868032,
+    "p95": 4.233869956806301,
+    "max": 4.804722964763641,
+    "mean": 2.6870298315770924
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 6,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 58.83605463895947,
+    "p95": 156.71883005416018,
+    "max": 176.1128199286759,
+    "mean": 71.45692881507178
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 35.55859450716525,
+    "p95": 131.6249458468519,
+    "max": 150.55138617753983,
+    "mean": 47.45398305143075
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 57.49805155210197,
+    "p95": 154.95096208760512,
+    "max": 174.2640130687505,
+    "mean": 69.87276346868991
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.9713979456573725,
+    "p95": 4.289367096498608,
+    "max": 5.044360877946019,
+    "mean": 2.861494130532568
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 6,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 55.54053850937635,
+    "p95": 117.84472345607355,
+    "max": 176.1128199286759,
+    "mean": 62.61485486417465
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 35.06580658722669,
+    "p95": 89.89779854891822,
+    "max": 150.55138617753983,
+    "mean": 40.67707467766013
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 53.439300623722374,
+    "p95": 116.38441396644339,
+    "max": 174.2640130687505,
+    "mean": 60.8874975417469
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 2.850771532393992,
+    "p95": 4.388999775983393,
+    "max": 5.044360877946019,
+    "mean": 2.77426198105483
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 8,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 63.00513260066509,
+    "p95": 67.66874067252502,
+    "max": 68.8675360288471,
+    "mean": 62.19523586332798
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 33.539685071446,
+    "p95": 37.80990631785244,
+    "max": 39.10642699338496,
+    "mean": 33.201668275675424
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 60.59541099239141,
+    "p95": 64.95083257323131,
+    "max": 66.50992995128036,
+    "mean": 59.8965750541538
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 3.657751134596765,
+    "p95": 5.024072958622128,
+    "max": 5.578581942245364,
+    "mean": 3.5400699513653913
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 8,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 66.72562996391207,
+    "p95": 160.90702123474327,
+    "max": 186.78080197423697,
+    "mean": 79.7345214523375
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 36.37010441161692,
+    "p95": 128.87526734266424,
+    "max": 155.70046403445303,
+    "mean": 48.79617158439942
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 64.52029943466187,
+    "p95": 158.78617214038965,
+    "max": 184.20796399004757,
+    "mean": 77.85306853475049
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 3.578069037757814,
+    "p95": 5.050174717325717,
+    "max": 5.7337600737810135,
+    "mean": 3.470524611960476
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": true,
+   "k": 8,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 63.63003596197814,
+    "p95": 130.03457250306383,
+    "max": 186.78080197423697,
+    "mean": 70.96487865783274
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 34.286659909412265,
+    "p95": 97.7549921371974,
+    "max": 155.70046403445303,
+    "mean": 40.998919930037424
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 61.67757953517139,
+    "p95": 128.4843264729716,
+    "max": 184.20796399004757,
+    "mean": 68.87482179445215
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 3.6293930606916547,
+    "p95": 5.075617926195264,
+    "max": 5.7337600737810135,
+    "mean": 3.5052972816629335
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 1,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 45.030624023638666,
+    "p95": 47.877167793922126,
+    "max": 49.56822795793414,
+    "mean": 43.1197650420169
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 28.283199528232217,
+    "p95": 31.33707658853382,
+    "max": 33.51574810221791,
+    "mean": 27.273014954213675
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 14.287548023276031,
+    "p95": 16.92686197347939,
+    "max": 17.251388169825077,
+    "mean": 14.063468028325588
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 0.8838855428621173,
+    "p95": 1.332496234681457,
+    "max": 1.5990820247679949,
+    "mean": 0.9176009431636581
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 1,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 36.20437136851251,
+    "p95": 131.55134033877394,
+    "max": 170.40541511960328,
+    "mean": 51.351124677845895
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 21.203619427978992,
+    "p95": 111.07759987935415,
+    "max": 145.79506102018058,
+    "mean": 35.700116258036964
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 13.743115006946027,
+    "p95": 21.82483864016831,
+    "max": 25.848859921097755,
+    "mean": 14.190606418803023
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 0.6721335230395198,
+    "p95": 1.0518537485040724,
+    "max": 1.3282550498843193,
+    "mean": 0.7000432281832522
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 1,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 44.04539742972702,
+    "p95": 89.30036361562088,
+    "max": 170.40541511960328,
+    "mean": 47.2354448599314
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 27.552571962587535,
+    "p95": 72.29068473679945,
+    "max": 145.79506102018058,
+    "mean": 31.48656560612532
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 14.153656549751759,
+    "p95": 19.45929176872596,
+    "max": 25.848859921097755,
+    "mean": 14.127037223564306
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 0.7624910213053226,
+    "p95": 1.216317294165492,
+    "max": 1.5990820247679949,
+    "mean": 0.8088220856734551
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 4,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 56.43340840470046,
+    "p95": 60.19488610327244,
+    "max": 64.72297618165612,
+    "mean": 54.37485108753511
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 28.66169554181397,
+    "p95": 31.872719898819923,
+    "max": 33.689480973407626,
+    "mean": 27.470460239176948
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 23.954852484166622,
+    "p95": 27.84997596172616,
+    "max": 29.06314702704549,
+    "mean": 24.08040391067819
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.315267407335341,
+    "p95": 2.0504445885308087,
+    "max": 2.1958351135253906,
+    "mean": 1.354621674787874
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 4,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 47.01186949387193,
+    "p95": 140.62313629547126,
+    "max": 183.9856319129467,
+    "mean": 62.325180285066985
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 21.349367452785373,
+    "p95": 109.67795955948523,
+    "max": 148.5135981347412,
+    "mean": 35.73840958900595
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 22.852389491163194,
+    "p95": 31.91212670644745,
+    "max": 35.01143190078437,
+    "mean": 24.110618057117488
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.1481121182441711,
+    "p95": 2.1275262115523215,
+    "max": 2.4153408594429493,
+    "mean": 1.2499079942548026
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 4,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 56.19740393012762,
+    "p95": 97.18314668862149,
+    "max": 183.9856319129467,
+    "mean": 58.35001568630105
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 27.979671489447355,
+    "p95": 71.02213246980682,
+    "max": 148.5135981347412,
+    "mean": 31.604434914091446
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 23.768304381519556,
+    "p95": 30.075318762101233,
+    "max": 35.01143190078437,
+    "mean": 24.09551098389784
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.2829455081373453,
+    "p95": 2.067132038064301,
+    "max": 2.4153408594429493,
+    "mean": 1.3022648345213383
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 6,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 63.0681385518983,
+    "p95": 67.48063839040697,
+    "max": 69.10740910097957,
+    "mean": 60.37080690051274
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 28.17576692905277,
+    "p95": 32.312661164905876,
+    "max": 32.91080612689257,
+    "mean": 26.868329470744357
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 30.547032016329467,
+    "p95": 34.24830646254122,
+    "max": 37.4297471717,
+    "mean": 30.128144770666648
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.5347129665315151,
+    "p95": 2.3599870735779405,
+    "max": 2.5077720638364553,
+    "mean": 1.5365333383670077
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 6,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 50.77124200761318,
+    "p95": 147.81914945924646,
+    "max": 181.56066699884832,
+    "mean": 67.67371917764346
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 20.428636576980352,
+    "p95": 110.82459992030627,
+    "max": 139.4916430581361,
+    "mean": 35.36891438125167
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 27.608988457359374,
+    "p95": 37.89777383208275,
+    "max": 40.4827781021595,
+    "mean": 29.334932541435894
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.3033070135861635,
+    "p95": 2.519612992182373,
+    "max": 3.1100360210984945,
+    "mean": 1.4413115956510107
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 6,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 62.080682488158345,
+    "p95": 103.01774420076981,
+    "max": 181.56066699884832,
+    "mean": 64.0222630390781
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 27.52886200323701,
+    "p95": 73.27787834219635,
+    "max": 139.4916430581361,
+    "mean": 31.118621925998013
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 30.074240523390472,
+    "p95": 37.25580172613263,
+    "max": 40.4827781021595,
+    "mean": 29.73153865605127
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.4694425044581294,
+    "p95": 2.385545347351581,
+    "max": 3.1100360210984945,
+    "mean": 1.488922467009009
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 8,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 69.86497552134097,
+    "p95": 74.09259417327121,
+    "max": 76.35844801552594,
+    "mean": 67.67582181782927
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 28.440216439776123,
+    "p95": 31.316650891676545,
+    "max": 33.13408512622118,
+    "mean": 27.11594958479206
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 36.91325196996331,
+    "p95": 40.688079432584345,
+    "max": 41.0566630307585,
+    "mean": 36.42250759003218
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.7727450467646122,
+    "p95": 2.7287361794151366,
+    "max": 3.030393971130252,
+    "mean": 1.8152657333606232
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 8,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 58.19731159135699,
+    "p95": 157.20750190084792,
+    "max": 196.80682104080915,
+    "mean": 75.54956516347981
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 21.022058092057705,
+    "p95": 111.46249148296184,
+    "max": 147.62047608383,
+    "mean": 35.65990606633326
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 34.04883749317378,
+    "p95": 46.832231781445444,
+    "max": 48.45437011681497,
+    "mean": 36.294015687114246
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.5729529550299048,
+    "p95": 2.740013506263494,
+    "max": 3.491532988846302,
+    "mean": 1.713107936666347
+   }
+  },
+  {
+   "mode": "cold",
+   "overlap": false,
+   "k": 8,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 69.51152451802045,
+    "p95": 110.26775045320392,
+    "max": 196.80682104080915,
+    "mean": 71.61269349065454
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 27.991862152703106,
+    "p95": 71.65157602867112,
+    "max": 147.62047608383,
+    "mean": 31.387927825562656
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 36.40602098312229,
+    "p95": 44.954438286367804,
+    "max": 48.45437011681497,
+    "mean": 36.35826163857322
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.7119705444201827,
+    "p95": 2.755495021119714,
+    "max": 3.491532988846302,
+    "mean": 1.7641868350134853
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 1,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 20.124547416344285,
+    "p95": 22.56938007194549,
+    "max": 23.245936958119273,
+    "mean": 20.07435263658408
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 15.25154197588563,
+    "p95": 18.036244029644877,
+    "max": 20.114829996600747,
+    "mean": 15.471368494521206
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 19.14674846921116,
+    "p95": 21.75777741940692,
+    "max": 22.436063969507813,
+    "mean": 19.04080524885406
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.1206845520064235,
+    "p95": 2.714642300270496,
+    "max": 4.205080913379788,
+    "mean": 1.3103273619587223
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 1,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 21.428069099783897,
+    "p95": 28.109642141498625,
+    "max": 33.61757006496191,
+    "mean": 22.02831102476921
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 16.292201471515,
+    "p95": 19.528798782266676,
+    "max": 20.601519849151373,
+    "mean": 16.236322330466162
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 20.253419410437346,
+    "p95": 27.319725672714412,
+    "max": 32.848729053512216,
+    "mean": 20.389426868253697
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.0823254706338048,
+    "p95": 3.0495367245748626,
+    "max": 5.376716842874885,
+    "mean": 1.360415670205839
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 1,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 20.490536466240883,
+    "p95": 27.88415690883994,
+    "max": 33.61757006496191,
+    "mean": 21.051331830676645
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 15.737538575194776,
+    "p95": 19.31483717635274,
+    "max": 20.601519849151373,
+    "mean": 15.853845412493683
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 19.298317492939532,
+    "p95": 27.044712798669934,
+    "max": 32.848729053512216,
+    "mean": 19.71511605855388
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.1035590432584286,
+    "p95": 3.219089237973094,
+    "max": 5.376716842874885,
+    "mean": 1.3353715160822806
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 4,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 30.723458039574325,
+    "p95": 34.06416334910318,
+    "max": 34.33966590091586,
+    "mean": 30.647239148189936
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 16.170388436876237,
+    "p95": 18.47922345623374,
+    "max": 21.75785694271326,
+    "mean": 16.325344501334865
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 29.209433123469353,
+    "p95": 32.51241105608642,
+    "max": 32.826191978529096,
+    "mean": 29.16990853069971
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.9905334813520312,
+    "p95": 4.047630645800382,
+    "max": 4.265031078830361,
+    "mean": 2.725357344994942
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 4,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 30.637665418908,
+    "p95": 39.485589787364006,
+    "max": 42.16703004203737,
+    "mean": 30.86740006498682
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 17.112403525970876,
+    "p95": 20.907448267098516,
+    "max": 21.737224888056517,
+    "mean": 16.7735899061275
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 29.62045301683247,
+    "p95": 37.99223166424781,
+    "max": 40.63716810196638,
+    "mean": 29.65872268153665
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.1668565459549427,
+    "p95": 5.264295719098298,
+    "max": 7.093876134604216,
+    "mean": 2.597604150651023
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 4,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 30.723458039574325,
+    "p95": 38.18805608898401,
+    "max": 42.16703004203737,
+    "mean": 30.75731960658838
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 16.495917458087206,
+    "p95": 20.82159830024466,
+    "max": 21.75785694271326,
+    "mean": 16.549467203731183
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 29.3038651579991,
+    "p95": 36.69317398453131,
+    "max": 40.63716810196638,
+    "mean": 29.41431560611818
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 2.530408091843128,
+    "p95": 4.3147088144905865,
+    "max": 7.093876134604216,
+    "mean": 2.6614807478229827
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 6,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 37.52748598344624,
+    "p95": 43.05604352848604,
+    "max": 44.977545039728284,
+    "mean": 37.30049391742796
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 17.157943453639746,
+    "p95": 18.722661561332643,
+    "max": 18.944338895380497,
+    "mean": 16.814261606972043
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 35.65232700202614,
+    "p95": 40.88300340808928,
+    "max": 42.896832106634974,
+    "mean": 35.43394091927136
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.8838395373895764,
+    "p95": 4.132488172035664,
+    "max": 4.5246880035847425,
+    "mean": 2.819531194594068
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 6,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 33.74925395473838,
+    "p95": 46.38791708275676,
+    "max": 48.564155818894506,
+    "mean": 36.39375477602395
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 16.78856834769249,
+    "p95": 20.288674056064337,
+    "max": 21.80199697613716,
+    "mean": 16.99221011949703
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 32.45232347398996,
+    "p95": 44.204473902937025,
+    "max": 46.21009808033705,
+    "mean": 34.87015619854598
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 2.975443028844893,
+    "p95": 4.431909520644695,
+    "max": 4.829687997698784,
+    "mean": 2.8590968334659315
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 6,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 37.3954699607566,
+    "p95": 45.03974079852924,
+    "max": 48.564155818894506,
+    "mean": 36.847124346725955
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 17.087292508222163,
+    "p95": 19.776456814724952,
+    "max": 21.80199697613716,
+    "mean": 16.90323586323454
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 35.57577705942094,
+    "p95": 43.09949796879664,
+    "max": 46.21009808033705,
+    "mean": 35.15204855890867
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 2.956927055492997,
+    "p95": 4.33831597911194,
+    "max": 4.829687997698784,
+    "mean": 2.8393140140299997
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 8,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 45.74844101443887,
+    "p95": 51.0521451709792,
+    "max": 52.67823999747634,
+    "mean": 45.462165275239386
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 17.4229679396376,
+    "p95": 19.729654281400144,
+    "max": 21.55215502716601,
+    "mean": 17.436011403333396
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 43.3427874231711,
+    "p95": 48.55363455135375,
+    "max": 50.43782200664282,
+    "mean": 43.18475818824178
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 3.592712921090424,
+    "p95": 4.983712814282626,
+    "max": 6.3759509939700365,
+    "mean": 3.452597142313607
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 8,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 43.76481706276536,
+    "p95": 54.32410112116486,
+    "max": 58.03421908058226,
+    "mean": 44.47277662984561
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 17.925918917171657,
+    "p95": 20.76646004570648,
+    "max": 22.907217033207417,
+    "mean": 17.527176547446288
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 42.1578420791775,
+    "p95": 52.1800352493301,
+    "max": 55.45588186942041,
+    "mean": 42.64559090370312
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 3.4543968504294753,
+    "p95": 5.148514918982983,
+    "max": 7.302495883777738,
+    "mean": 3.4462324159297473
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": true,
+   "k": 8,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 45.424923999235034,
+    "p95": 52.93509527109563,
+    "max": 58.03421908058226,
+    "mean": 44.9674709525425
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 17.535960534587502,
+    "p95": 20.592606451828033,
+    "max": 22.907217033207417,
+    "mean": 17.481593975389842
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 43.09123894199729,
+    "p95": 50.62699952395633,
+    "max": 55.45588186942041,
+    "mean": 42.915174545972455
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 3.531732363626361,
+    "p95": 5.074268381576985,
+    "max": 7.302495883777738,
+    "mean": 3.449414779121677
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 1,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 28.238007915206254,
+    "p95": 31.322887225542217,
+    "max": 32.21787395887077,
+    "mean": 27.650349962641485
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 12.342912959866226,
+    "p95": 13.190528261475265,
+    "max": 14.01009107939899,
+    "mean": 11.957436601126878
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 14.002594514749944,
+    "p95": 16.67639691149816,
+    "max": 16.967427916824818,
+    "mean": 13.981539537780918
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 0.8410550653934479,
+    "p95": 1.5073098009452222,
+    "max": 1.6688890755176544,
+    "mean": 0.9319627182170128
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 1,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 23.090481525287032,
+    "p95": 36.32241999730468,
+    "max": 39.8567421361804,
+    "mean": 25.503570742633503
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 8.610175573267043,
+    "p95": 13.223447010386735,
+    "max": 13.642974896356463,
+    "mean": 9.691044469946064
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 13.601807993836701,
+    "p95": 22.280393098481,
+    "max": 24.536651093512774,
+    "mean": 14.423843953409232
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 0.6577543681487441,
+    "p95": 1.060974388383329,
+    "max": 1.4188499189913273,
+    "mean": 0.69779562666857
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 1,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 27.390126953832805,
+    "p95": 35.380897228606045,
+    "max": 39.8567421361804,
+    "mean": 26.576960352637496
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 11.919270968064666,
+    "p95": 13.231434975750744,
+    "max": 14.01009107939899,
+    "mean": 10.82424053553647
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 13.914655428379774,
+    "p95": 21.188162500038743,
+    "max": 24.536651093512774,
+    "mean": 14.202691745595075
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 0.7637734524905682,
+    "p95": 1.2695738696493208,
+    "max": 1.6688890755176544,
+    "mean": 0.8148791724427914
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 4,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 39.24993041437119,
+    "p95": 43.69718263624236,
+    "max": 45.10689084418118,
+    "mean": 38.617654014766835
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 12.278507463634014,
+    "p95": 13.198953203391284,
+    "max": 14.147055801004171,
+    "mean": 11.867929283956377
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 24.117572815157473,
+    "p95": 27.47380753280595,
+    "max": 29.46870098821819,
+    "mean": 23.943505560358364
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.3212459161877632,
+    "p95": 2.0972133614122868,
+    "max": 2.2698231041431427,
+    "mean": 1.3271795372323443
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 4,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 32.863084925338626,
+    "p95": 48.643470590468496,
+    "max": 49.616907024756074,
+    "mean": 36.35222736920696
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 8.452152367681265,
+    "p95": 13.395012286491692,
+    "max": 13.576199067756534,
+    "mean": 9.553469373107268
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 22.8955295169726,
+    "p95": 32.05873089609668,
+    "max": 33.32814294844866,
+    "mean": 24.298956166603602
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.13191909622401,
+    "p95": 2.2893440444022413,
+    "max": 2.4204389192163944,
+    "mean": 1.2607331251880776
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 4,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 38.83572295308113,
+    "p95": 46.541298914235085,
+    "max": 49.616907024756074,
+    "mean": 37.4849406919869
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 11.884292121976614,
+    "p95": 13.362723519094288,
+    "max": 14.147055801004171,
+    "mean": 10.710699328531822
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 23.920821957290173,
+    "p95": 31.331172154750675,
+    "max": 33.32814294844866,
+    "mean": 24.121230863480985
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.2631973950192332,
+    "p95": 2.182242402341217,
+    "max": 2.4204389192163944,
+    "mean": 1.293956331210211
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 6,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 45.98960804287344,
+    "p95": 49.55861112102866,
+    "max": 51.20220500975847,
+    "mean": 44.576768937986344
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 12.177920900285244,
+    "p95": 13.248322729486972,
+    "max": 13.811023905873299,
+    "mean": 11.749490765699496
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 30.071661458350718,
+    "p95": 32.34937526285648,
+    "max": 34.79010798037052,
+    "mean": 29.42744185565971
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.5044363681226969,
+    "p95": 2.2709431243129075,
+    "max": 2.5744650047272444,
+    "mean": 1.5264235359306138
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 6,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 39.1959740081802,
+    "p95": 53.89043182367459,
+    "max": 56.812264025211334,
+    "mean": 41.83464733068831
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 8.482373552396894,
+    "p95": 13.046564103569835,
+    "max": 13.33795697428286,
+    "mean": 9.486554486405415
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 28.26963656116277,
+    "p95": 37.196588900405914,
+    "max": 40.619557024911046,
+    "mean": 29.382768295666512
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.3172330800443888,
+    "p95": 2.3596596904098983,
+    "max": 3.044337034225464,
+    "mean": 1.4289241953520104
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 6,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 44.68373802956194,
+    "p95": 53.404684527777135,
+    "max": 56.812264025211334,
+    "mean": 43.20570813433733
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 11.534049990586936,
+    "p95": 13.207228039391339,
+    "max": 13.811023905873299,
+    "mean": 10.618022626052456
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 29.341975576244295,
+    "p95": 36.332174378912896,
+    "max": 40.619557024911046,
+    "mean": 29.405105075663112
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.4727795496582985,
+    "p95": 2.329175651539117,
+    "max": 3.044337034225464,
+    "mean": 1.477673865641312
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 8,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 54.1118539404124,
+    "p95": 58.21416119579226,
+    "max": 60.5375578161329,
+    "mean": 52.48274503295155
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 12.262551463209093,
+    "p95": 13.611121126450598,
+    "max": 14.222980942577124,
+    "mean": 11.87146368708151
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 37.11785899940878,
+    "p95": 41.377189476042986,
+    "max": 42.31043206527829,
+    "mean": 36.5231613444242
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.7217249842360616,
+    "p95": 2.780077373608947,
+    "max": 3.109905868768692,
+    "mean": 1.8134463801591967
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 8,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 45.60145002324134,
+    "p95": 64.09619074547663,
+    "max": 67.48289195820689,
+    "mean": 49.57766343917077
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 8.45234899315983,
+    "p95": 12.906182499136776,
+    "max": 13.520454987883568,
+    "mean": 9.434487166193625
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 34.24919245298952,
+    "p95": 45.70313359145075,
+    "max": 50.4784588702023,
+    "mean": 36.62818007190557
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.5723960241302848,
+    "p95": 2.711170387919992,
+    "max": 3.3827160950750113,
+    "mean": 1.6943909771119554
+   }
+  },
+  {
+   "mode": "online",
+   "overlap": false,
+   "k": 8,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 52.190416026860476,
+    "p95": 61.52801861753687,
+    "max": 67.48289195820689,
+    "mean": 51.03020423606116
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 11.64889452047646,
+    "p95": 13.234415324404836,
+    "max": 14.222980942577124,
+    "mean": 10.652975426637568
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 36.56485304236412,
+    "p95": 45.39665178162977,
+    "max": 50.4784588702023,
+    "mean": 36.575670708164886
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.6899524489417672,
+    "p95": 2.752272179350257,
+    "max": 3.3827160950750113,
+    "mean": 1.753918678635576
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 1,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 11.596358031965792,
+    "p95": 13.088943250477314,
+    "max": 14.24367306753993,
+    "mean": 11.540426251788935
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004613073542714119,
+    "p95": 0.006399955600500107,
+    "max": 0.006535090506076813,
+    "mean": 0.004751942469738424
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 10.830601444467902,
+    "p95": 12.354681233409792,
+    "max": 13.556658988818526,
+    "mean": 10.837160526231552
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.4695875579491258,
+    "p95": 2.9319001827388997,
+    "max": 3.5308159422129393,
+    "mean": 1.6714228695491329
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 1,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 11.98475540149957,
+    "p95": 16.631174960639328,
+    "max": 17.38947187550366,
+    "mean": 12.556836561998352
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004786532372236252,
+    "p95": 0.006431329529732466,
+    "max": 0.008151168003678322,
+    "mean": 0.004824115118632714
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 11.239760555326939,
+    "p95": 15.94483352964744,
+    "max": 16.485567903146148,
+    "mean": 11.853090438914174
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.389431650750339,
+    "p95": 4.055873246397823,
+    "max": 4.2859818786382675,
+    "mean": 1.794731991443162
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 1,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 11.703398544341326,
+    "p95": 16.06054970761761,
+    "max": 17.38947187550366,
+    "mean": 12.048631406893643
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.0046674394980072975,
+    "p95": 0.006486778147518635,
+    "max": 0.008151168003678322,
+    "mean": 0.004788028794185569
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 11.023543076589704,
+    "p95": 15.213254489935935,
+    "max": 16.485567903146148,
+    "mean": 11.345125482572863
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.4442384708672762,
+    "p95": 3.4938283497467637,
+    "max": 4.2859818786382675,
+    "mean": 1.7330774304961476
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 4,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 23.41053308919072,
+    "p95": 26.132978417444974,
+    "max": 26.974747888743877,
+    "mean": 23.24822931162392
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004705623723566532,
+    "p95": 0.006725697312504053,
+    "max": 0.010163988918066025,
+    "mean": 0.0048755609896034
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 21.912562660872936,
+    "p95": 24.613054713699967,
+    "max": 25.155740091577172,
+    "mean": 21.83018547172348
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 3.315513953566551,
+    "p95": 5.115345190279185,
+    "max": 5.799242062494159,
+    "mean": 3.298140363767743
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 4,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 23.92325096298009,
+    "p95": 29.273511399514973,
+    "max": 30.95406899228692,
+    "mean": 23.8883110966223
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004179077222943306,
+    "p95": 0.005605979822576045,
+    "max": 0.006676884368062019,
+    "mean": 0.004305227776058018
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 22.441857494413853,
+    "p95": 27.90140229044482,
+    "max": 29.51250714249909,
+    "mean": 22.530298524846632
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 4.042584449052811,
+    "p95": 6.436494109220803,
+    "max": 7.8446820843964815,
+    "mean": 4.061499722107935
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 4,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 23.532824940048158,
+    "p95": 28.2546243397519,
+    "max": 30.95406899228692,
+    "mean": 23.56827020412311
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.004467903636395931,
+    "p95": 0.0063515035435557365,
+    "max": 0.010163988918066025,
+    "mean": 0.004590394382830709
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 22.127007017843425,
+    "p95": 26.724288589321077,
+    "max": 29.51250714249909,
+    "mean": 22.180241998285055
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 3.557102521881461,
+    "p95": 6.200889125466347,
+    "max": 7.8446820843964815,
+    "mean": 3.679820042937839
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 6,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 29.73739302251488,
+    "p95": 33.72610951773822,
+    "max": 37.109344033524394,
+    "mean": 29.639099511162687
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004415516741573811,
+    "p95": 0.006110966205596923,
+    "max": 0.013525132089853287,
+    "mean": 0.004756060661748052
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 27.882631518878043,
+    "p95": 31.81986544514075,
+    "max": 35.00249097123742,
+    "mean": 27.807015760724124
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 4.617724451236427,
+    "p95": 5.885947612114251,
+    "max": 6.303580012172461,
+    "mean": 4.3088015566657605
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 6,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 29.806616017594934,
+    "p95": 36.61192653235048,
+    "max": 40.41270702145994,
+    "mean": 30.134076165268198
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.0045228516682982445,
+    "p95": 0.005993153899908065,
+    "max": 0.006631016731262207,
+    "mean": 0.004487306190033753
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 28.0171389458701,
+    "p95": 34.429847938008606,
+    "max": 38.42306509613991,
+    "mean": 28.356743612675928
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 4.323618486523628,
+    "p95": 7.391024089884012,
+    "max": 8.297709980979562,
+    "mean": 4.571372119244188
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 6,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 29.73739302251488,
+    "p95": 36.12624225206673,
+    "max": 40.41270702145994,
+    "mean": 29.886587838215444
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.004421453922986984,
+    "p95": 0.006255344487726688,
+    "max": 0.013525132089853287,
+    "mean": 0.004621683425890903
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 27.886268449947238,
+    "p95": 34.16692290920764,
+    "max": 38.42306509613991,
+    "mean": 28.081879686700024
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 4.527053912170231,
+    "p95": 6.772276130504906,
+    "max": 8.297709980979562,
+    "mean": 4.440086837954975
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 8,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 36.99080238584429,
+    "p95": 41.02200894849375,
+    "max": 42.508461978286505,
+    "mean": 36.924642811451726
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004744972102344036,
+    "p95": 0.0057620694860816,
+    "max": 0.0063998159021139145,
+    "mean": 0.004711541502426068
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 34.6627039834857,
+    "p95": 38.32597518339753,
+    "max": 40.20916600711644,
+    "mean": 34.65630464294615
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 5.648907506838441,
+    "p95": 6.835024803876877,
+    "max": 7.339881965890527,
+    "mean": 5.401925067417324
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 8,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 36.98847256600857,
+    "p95": 44.80421078624204,
+    "max": 47.33251919969916,
+    "mean": 37.635138927726075
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004548928700387478,
+    "p95": 0.007180019747465847,
+    "max": 0.02017104998230934,
+    "mean": 0.005009419207150738
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 34.32805696502328,
+    "p95": 42.49315942870453,
+    "max": 45.09070888161659,
+    "mean": 35.46545084585281
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 5.999869550578296,
+    "p95": 8.712578006088734,
+    "max": 9.6858951728791,
+    "mean": 5.759208734768133
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": true,
+   "k": 8,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 36.99080238584429,
+    "p95": 43.35027403431013,
+    "max": 47.33251919969916,
+    "mean": 37.279890869588904
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.004625413566827774,
+    "p95": 0.006421876605600119,
+    "max": 0.02017104998230934,
+    "mean": 0.004860480354788403
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 34.63934501633048,
+    "p95": 40.907098969910294,
+    "max": 45.09070888161659,
+    "mean": 35.06087774439948
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 5.723170470446348,
+    "p95": 8.0080222687684,
+    "max": 9.6858951728791,
+    "mean": 5.580566901092728
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 1,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 12.155404430814087,
+    "p95": 14.261177612934262,
+    "max": 15.017591184005141,
+    "mean": 12.082768759379784
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004493049345910549,
+    "p95": 0.005968916229903698,
+    "max": 0.013869022950530052,
+    "mean": 0.004741693070779244
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 10.561442468315363,
+    "p95": 12.129494058899581,
+    "max": 13.153183041140437,
+    "mean": 10.465413734588461
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 0.9073944529518485,
+    "p95": 1.4018583809956906,
+    "max": 1.5977008733898401,
+    "mean": 0.9607328393030912
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 1,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 11.171013116836548,
+    "p95": 16.59424917306751,
+    "max": 17.496536020189524,
+    "mean": 11.419154732720926
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.0037280842661857605,
+    "p95": 0.005336350295692682,
+    "max": 0.0055730342864990234,
+    "mean": 0.0038667106612895927
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 10.046060546301305,
+    "p95": 15.004153014160693,
+    "max": 15.281421830877662,
+    "mean": 10.115602000344856
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 0.6698829820379615,
+    "p95": 1.1256526922807097,
+    "max": 1.4382828958332539,
+    "mean": 0.7388425729004666
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 1,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 12.026759563013911,
+    "p95": 15.723668271675706,
+    "max": 17.496536020189524,
+    "mean": 11.750961746050356
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.004097935743629932,
+    "p95": 0.005608482751995325,
+    "max": 0.013869022950530052,
+    "mean": 0.004304201866034418
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 10.44833892956376,
+    "p95": 14.081496221479028,
+    "max": 15.281421830877662,
+    "mean": 10.290507867466658
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 0.8066985756158829,
+    "p95": 1.3173692277632654,
+    "max": 1.5977008733898401,
+    "mean": 0.8497877061017789
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 4,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 23.55589298531413,
+    "p95": 26.088974601589143,
+    "max": 26.72417019493878,
+    "mean": 23.097225590997066
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004680128768086433,
+    "p95": 0.005818007048219442,
+    "max": 0.01096213236451149,
+    "mean": 0.004850623857540389
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 20.796443452127278,
+    "p95": 22.937338601332158,
+    "max": 23.276617983356118,
+    "mean": 20.374087907839566
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.3580836821347475,
+    "p95": 2.085152198560536,
+    "max": 2.243972150608897,
+    "mean": 1.37591028760653
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 4,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 21.310928976163268,
+    "p95": 30.144843470770866,
+    "max": 30.366807943210006,
+    "mean": 22.742721824518714
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.003834604285657406,
+    "p95": 0.0049280584789812565,
+    "max": 0.010397052392363548,
+    "mean": 0.004051486030220985
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 19.24055744893849,
+    "p95": 26.755194400902838,
+    "max": 27.354185935109854,
+    "mean": 20.348755351733416
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.207055989652872,
+    "p95": 2.087183366529643,
+    "max": 2.4386970326304436,
+    "mean": 1.2895603528401505
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 4,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 23.058132966980338,
+    "p95": 29.509384592529386,
+    "max": 30.366807943210006,
+    "mean": 22.91997370775789
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.0042174942791461945,
+    "p95": 0.005757436156272888,
+    "max": 0.01096213236451149,
+    "mean": 0.0044510549438806874
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 20.30452503822744,
+    "p95": 26.088435668498278,
+    "max": 27.354185935109854,
+    "mean": 20.36142162978649
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.3360970187932253,
+    "p95": 2.1119925659149885,
+    "max": 2.4386970326304436,
+    "mean": 1.33273532022334
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 6,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 29.878190020099282,
+    "p95": 33.835029415786266,
+    "max": 38.258078042417765,
+    "mean": 29.483511005916323
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004773028194904327,
+    "p95": 0.006026914343237876,
+    "max": 0.00775814987719059,
+    "mean": 0.004781157864878575
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 26.651384425349534,
+    "p95": 29.557426285464317,
+    "max": 34.41848000511527,
+    "mean": 26.17797012499068
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.5905420295894146,
+    "p95": 2.371680736541748,
+    "max": 2.653175964951515,
+    "mean": 1.5912575812156622
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 6,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 26.33538155350834,
+    "p95": 37.34817988006398,
+    "max": 40.655466029420495,
+    "mean": 28.51148568637048
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.003814930096268654,
+    "p95": 0.0052345567382872105,
+    "max": 0.005692010745406151,
+    "mean": 0.003984479311232765
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 23.714008973911405,
+    "p95": 32.95298530720174,
+    "max": 36.93226398900151,
+    "mean": 25.621558209725965
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.3326300540938973,
+    "p95": 2.499856345821171,
+    "max": 2.8378749266266823,
+    "mean": 1.4712140012610082
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 6,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 29.220822965726256,
+    "p95": 36.80182941025123,
+    "max": 40.655466029420495,
+    "mean": 28.997498346143402
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.0042389146983623505,
+    "p95": 0.00570324482396245,
+    "max": 0.00775814987719059,
+    "mean": 0.00438281858805567
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 25.993713876232505,
+    "p95": 32.686967053450644,
+    "max": 36.93226398900151,
+    "mean": 25.899764167358324
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.5006439061835408,
+    "p95": 2.4485859903506935,
+    "max": 2.8378749266266823,
+    "mean": 1.5312357912383352
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 8,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 37.59833064395934,
+    "p95": 42.314879095647484,
+    "max": 43.07288699783385,
+    "mean": 36.98973831584832
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.004551024176180363,
+    "p95": 0.005628447979688644,
+    "max": 0.005868030712008476,
+    "mean": 0.004688297243167956
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 33.38992246426642,
+    "p95": 37.506930774543434,
+    "max": 38.55658392421901,
+    "mean": 32.89849582264045
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.7954146023839712,
+    "p95": 2.8810250689275563,
+    "max": 3.0954740941524506,
+    "mean": 1.8879788743409638
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 8,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 33.04109862074256,
+    "p95": 45.91947396984324,
+    "max": 50.28249812312424,
+    "mean": 35.87721781029055
+   },
+   "stage1": {
+    "n": 48,
+    "p50": 0.003976048901677132,
+    "p95": 0.005180248990654945,
+    "max": 0.00575394369661808,
+    "mean": 0.004176608247992893
+   },
+   "stage2": {
+    "n": 48,
+    "p50": 30.074351001530886,
+    "p95": 41.559863777365535,
+    "max": 45.151312137022614,
+    "mean": 32.415017412859015
+   },
+   "interaction": {
+    "n": 48,
+    "p50": 1.6312419902533293,
+    "p95": 2.948612975887954,
+    "max": 3.616783069446683,
+    "mean": 1.7609410230458404
+   }
+  },
+  {
+   "mode": "same_state_new_candidates",
+   "overlap": false,
+   "k": 8,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 36.88898484688252,
+    "p95": 44.88207248505205,
+    "max": 50.28249812312424,
+    "mean": 36.43347806306944
+   },
+   "stage1": {
+    "n": 96,
+    "p50": 0.004408997483551502,
+    "p95": 0.0055837444961071014,
+    "max": 0.005868030712008476,
+    "mean": 0.004432452745580425
+   },
+   "stage2": {
+    "n": 96,
+    "p50": 32.87213249132037,
+    "p95": 39.94960669660941,
+    "max": 45.151312137022614,
+    "mean": 32.65675661774973
+   },
+   "interaction": {
+    "n": 96,
+    "p50": 1.7546245362609625,
+    "p95": 2.9513139743357897,
+    "max": 3.616783069446683,
+    "mean": 1.8244599486934021
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 1,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 13.787999632768333,
+    "p95": 16.652646765578538,
+    "max": 17.5679090898484,
+    "mean": 13.814103178447112
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 1,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 14.668946387246251,
+    "p95": 21.61110194865614,
+    "max": 24.9585029669106,
+    "mean": 14.539026315712059
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 1,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 13.880556565709412,
+    "p95": 21.0593361989595,
+    "max": 24.9585029669106,
+    "mean": 14.176564747079587
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 4,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 24.144561495631933,
+    "p95": 27.01237826840952,
+    "max": 28.007138054817915,
+    "mean": 23.891907422997367
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 4,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 23.413367453031242,
+    "p95": 31.205096456687897,
+    "max": 32.67718805000186,
+    "mean": 23.984307020630997
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 4,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 24.024010519497097,
+    "p95": 30.03073640866205,
+    "max": 32.67718805000186,
+    "mean": 23.93810722181418
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 6,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 29.893584083765745,
+    "p95": 33.27104232739657,
+    "max": 34.62725295685232,
+    "mean": 29.453016749660794
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 6,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 28.054586960934103,
+    "p95": 37.75327326729894,
+    "max": 38.47591090016067,
+    "mean": 29.201865346597817
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 6,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 29.52870086301118,
+    "p95": 37.29754639789462,
+    "max": 38.47591090016067,
+    "mean": 29.327441048129305
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 8,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 36.955380463041365,
+    "p95": 41.3370794034563,
+    "max": 43.721484020352364,
+    "mean": 36.65600922734787
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 8,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 33.583888434804976,
+    "p95": 47.52015745034441,
+    "max": 50.06404314190149,
+    "mean": 36.21598964673467
+   }
+  },
+  {
+   "mode": "stage2_only_cold",
+   "overlap": false,
+   "k": 8,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 36.595529527403414,
+    "p95": 45.12766929110512,
+    "max": 50.06404314190149,
+    "mean": 36.43599943704127
+   }
+  },
+  {
+   "mode": "stage1_only_online",
+   "overlap": false,
+   "k": 0,
+   "cohort": "representative",
+   "total": {
+    "n": 48,
+    "p50": 12.350500910542905,
+    "p95": 13.857267168350518,
+    "max": 15.231980942189693,
+    "mean": 12.160887529413836
+   }
+  },
+  {
+   "mode": "stage1_only_online",
+   "overlap": false,
+   "k": 0,
+   "cohort": "dense",
+   "total": {
+    "n": 48,
+    "p50": 8.452306501567364,
+    "p95": 12.70685262279585,
+    "max": 13.455800944939256,
+    "mean": 9.506969722375894
+   }
+  },
+  {
+   "mode": "stage1_only_online",
+   "overlap": false,
+   "k": 0,
+   "cohort": "all",
+   "total": {
+    "n": 96,
+    "p50": 11.844550492241979,
+    "p95": 13.568263209890574,
+    "max": 15.231980942189693,
+    "mean": 10.833928625894865
+   }
+  }
+ ]
+}

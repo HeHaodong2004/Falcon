@@ -1,0 +1,105 @@
+{
+ "name": "fulldev_final",
+ "roots": 2110,
+ "errors": 0,
+ "error_examples": [],
+ "cuda_faults": {
+  "count": 0,
+  "roots": [],
+  "retried_ok": 0
+ },
+ "scenes": 108,
+ "stage2": {
+  "outcomes": 13502,
+  "compared": 13502,
+  "states_equal": 13495,
+  "cm_equal": 13495,
+  "exp_equal": 13435,
+  "roots_all_candidates_inside_default_map_extent": {
+   "roots": 2081,
+   "compared": 13216,
+   "states_equal": 13216,
+   "cm_equal": 13216,
+   "exp_equal": 13216
+  },
+  "roots_with_candidates_outside_default_map_extent": {
+   "roots": 29,
+   "candidates_outside": 66,
+   "candidates": 286,
+   "equal_to_cold_single_call": 286,
+   "compared": 286,
+   "states_equal": 279,
+   "cm_equal": 279,
+   "exp_equal": 219
+  },
+  "pooled_iou_full_executions": {
+   "free": 0.452518872076579,
+   "blocked": 0.4727532555688537,
+   "label_aware": 0.4626360638227164
+  },
+  "equal_weight_iou_full_executions": {
+   "label_aware_delta_iou": 0.4821057715475108,
+   "revelation_iou": 0.5256382042693561
+  },
+  "pairwise_ranking_full_executions": [
+   0.9418372736675511,
+   2073
+  ]
+ },
+ "stage1": {
+  "identical_to_standalone": 2110,
+  "of": 2110,
+  "visible_track_t0_error_m": {
+   "n": 1209,
+   "max": 6.936317098514902e-07,
+   "p99": 2.820285909149085e-07
+  },
+  "visible_humans_in_known_blocked_cells": {
+   "hits": 2165,
+   "positions": 79960
+  },
+  "minimum_count_respected": "asserted inside HumanWorlds construction (every world)"
+ },
+ "alignment": {
+  "robot_pose_error_max": 8.215650382226158e-15,
+  "predicted_cell_distance_max_m": 10.77035465761656,
+  "bank_clock_error_max": 0.0,
+  "map_clock_error_max": 0.0
+ },
+ "legality": {
+  "graph_unmutated": 2110,
+  "future_graph_flagged": 2110,
+  "future_graph_rejected": 2110,
+  "roots_with_future_graph": 2110
+ },
+ "consistency": {
+  "roots": 211,
+  "bank_identical": 211,
+  "maps_identical": 211,
+  "candidates": 1336
+ },
+ "branch": {
+  "decisions": 2016,
+  "bank_equals_fresh_stream": 2016,
+  "candidates": 2897,
+  "pooled_iou": {
+   "free": 0.4567031777933917,
+   "blocked": 0.4050808928065167,
+   "label_aware": 0.43089203529995423
+  },
+  "visible_track_t0_error_max": 4.991325341397435e-07,
+  "incremental_total_ms": {
+   "p50": 52.88656591437757,
+   "p95": 87.26612234022468
+  },
+  "incremental_stage1_ms": {
+   "p50": 42.33245551586151,
+   "p95": 74.04919649707153
+  }
+ },
+ "validation_run_profile_note": "validation calls run beside other validation shards; latency numbers come from benchmark.py",
+ "root_decision_total_ms": {
+  "p50": 62.828071997500956,
+  "p95": 137.34338929643854
+ }
+}

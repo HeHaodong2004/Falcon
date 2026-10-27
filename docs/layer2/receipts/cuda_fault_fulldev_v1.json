@@ -1,0 +1,12 @@
+{
+ "run": "fulldev_v1 (earlier code: reference reduction, Stage 2 batch-composition unfixed)",
+ "shard": "2 of 4",
+ "roots_completed_before_fault": 211,
+ "first_fault": {
+  "root_id": "ee60ad4aa5f43891abd60719fe641de4b6c45960c8d2c94d816f58ba7bec8d82",
+  "index": 846,
+  "error": "RuntimeError('CUDA error: an illegal memory access was encountered\\nCUDA kernel errors might be asynchronously reported at some other API call,so the stacktrace below might be incorrect.\\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1.')"
+ },
+ "subsequent_roots_failed_poisoned_context": 315,
+ "reproduction": "root alone in fresh processes: 4/4 OK (incl. CUDA_LAUNCH_BLOCKING=1, overlapped and sequential); final run fulldev_final: 0 faults on all 2,110 Roots"
+}

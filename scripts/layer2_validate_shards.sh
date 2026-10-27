@@ -5,7 +5,8 @@
 cd "$(dirname "$0")/.."
 NAME=$1; N=${2:-4}
 mkdir -p output/layer2/logs
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+# the conda env exports CUDA_VISIBLE_DEVICES=1 (physical GPU1 is used by other sessions): pin explicitly
+export CUDA_VISIBLE_DEVICES=${LAYER2_VISIBLE_DEVICES:-0,1}
 for ((i=0; i<N; i++)); do
   (
     while true; do
