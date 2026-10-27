@@ -1,10 +1,14 @@
 # Stage 2 redesign — legal voxel simulation + masked BEV U-Net (Claude, 2026-10-26)
 
-Status (2026-10-27 01:00 UTC): best verified model `final/v12.pt` — original full-development
+Status (2026-10-27 04:45 UTC): best verified model `final/v12.pt` — original full-development
 label-aware increment IoU **0.4716** (target > 0.50 **not met**), complete dense K=6 cold P95 **34.6 ms**
-(< 50 ms, met). All numbers below are read from the frozen evaluation and benchmark receipts. An
-overnight continuation (section 8, `v13-15_chain`) may add a later candidate; it is evaluated on
-development only if it beats v12 on TRAIN validation, and is then reported here as well.
+(< 50 ms, met). All numbers below are read from the frozen evaluation and benchmark receipts. Since then:
+the self-distillation chain reached 0.4724 (v14) on the 160-Root TRAIN validation (v12: 0.4676) and v15 is
+training; a decoder-capacity variant (`v15_cap`) trains in parallel; ~800 new TRAIN Roots per hour are being
+generated; three exact latency optimizations (bit-identical outputs, section 4 item 7) are committed and will be
+measured by the next quiet benchmark; two diagnostics ruled out per-pose human occluders and pocket-aware
+unknown lengths as accuracy levers (section 3). A later candidate is evaluated on development only if it
+beats v12 on TRAIN validation, and is then reported here as well.
 
 ## 1. Results
 
@@ -239,6 +243,15 @@ matches recorded future cameras to 0.0000 m / 0.0000 (`cam_check.py`).
    hypothetical graph materialization. BatchNorm is folded into the convolutions of the F16
    inference copy, and with `lanes>1` the per-query graphs of one call are replayed on separate
    streams (independent graph copies; results bit-identical to one lane, tested).
+   Exact latency engineering (2026-10-27; outputs bit-identical on all 32 benchmark workloads at
+   128 and 256 px, 14.35M cells, and `test_api` unchanged): carving loops only over the frames whose
+   10 m range and frustum can reach each 8x8-column voxel block (conservative 1 cm culling tests;
+   82-frame history: 9.2 -> 1.6 ms with training on the same GPU), the exact F64 candidate-domain
+   distance test runs only for cells within 1e-5 (relative, squared distance) of the 11 m boundary after
+   an F32 prefilter (2.3 -> 0.5 ms per call), and hypothetical graphs are materialized by a linear merge
+   of the ordered predicted rows into the ordered known-cell table (0.49 -> 0.37 ms per query).
+   Capacity options added the same way (function-preserving at step 0): decoder side branches
+   (`--dside`) and masked bottleneck self-attention (`--attn`).
 
 ## 5. Interface
 
