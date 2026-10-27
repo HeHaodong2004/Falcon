@@ -362,6 +362,8 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | v12_distill | warm start from v11_ext, 1 epoch (peak 4e-4), self-distillation from frozen v11_ext (soft targets 50 %), seed 2, otherwise as v11_ext | 0.4645 @4k, 0.4609 @8k, 0.4644 @12k, 0.4676 @16k, 0.4680 @20k, **final 0.4676** |
 | soup_v11_v12 | weight average of v11_ext and v12_distill | 0.4657 (< v12; not used) |
 
+| v16_a | 1-epoch self-distillation restart from v15 (teacher v15, seed 16) with 20,969 TRAIN Roots (+14 %: new 128 px packets from the unchanged environment replay) | 0.4719 @6k, 0.4720 @12k, 0.4746 @18k, 0.4744 @24k, **final 0.4753** (v15 0.4742) |
+| v16_b | 1-epoch restart from `v15_cap` (teacher v15, seed 17), 21,974 TRAIN Roots, soft-IoU weight 1.0 (instead of 0.5) | running |
 Operating points on 400 TRAIN-validation Roots (`select.py`, best rule, hierarchical label-aware IoU):
 v7 0.4628 (class 0.425/0.525) -> v7r 0.4711 (class 0.475/0.575) -> v11 0.4750 (class 0.475/0.575) ->
 v12 0.4793 (class 0.475/0.55) -> v15 0.4853 (class 0.50/0.575; `v15_cap` 0.4853 as well, not preferred under the
