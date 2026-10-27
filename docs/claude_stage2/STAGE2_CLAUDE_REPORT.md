@@ -460,8 +460,9 @@ $R eventwm_graph.stage2_claude.train --name v16_b --device cuda:1 --epochs 1 --w
    --ema 0.999 --extra-sensor claude_train_range_128,claude_train_range_256 --pool-factor 16 --overlap \
    --side 3:192:3,4:256:4 --seed 17 --teacher output/claude_stage2/training/v15_chain/final.pt --distill 0.5
 #     (v15_cap = the v15 cycle from v14 plus --dside 1:96:2,2:128:2; v16_a = from v15, teacher v15, --iou-weight 0.5, seed 16.
-#      The TRAIN Root set of a cycle is whatever packets exist when it starts; the exact count is printed and stored in
-#      the checkpoint config as train_roots.)
+#      A cycle trains on the packets that exist when it starts; each run directory holds that exact set as train_roots.json
+#      (v16_a, v16_b, v17_a reconstructed from packet creation order with `reconstruct_roots.py`, counts equal to the logs);
+#      `--train-roots output/claude_stage2/training/<run>/train_roots.json` re-runs a cycle on exactly that set.)
 # optional refinement stage on a frozen trained base
 $R eventwm_graph.stage2_claude.train --name cascade --device cuda:0 --epochs 1 --workers 7 \
    --cascade-from output/claude_stage2/training/past_v7/final.pt --widths 24,48,64,96,128 --blocks 1,1,2,2,2 --lr 1e-3
