@@ -243,9 +243,10 @@ class Oracle:
             f = _Path(cfg.witness_dir)/f"{self.rt.spec.key.replace('/', '_')}.json"
             if f.exists():
                 w = _json.loads(f.read_text())
-                if w.get('found') and w.get('verified', {}).get('ok'):
+                if w.get('found') and w.get('verified', {}).get('ok') and \
+                        w.get('dynamics', 'native') == self.rt.dyn.name:
                     from .witness import load_witness_poses
-                    P = load_witness_poses(self.rt.spec, w['actions'])
+                    P = load_witness_poses(self.rt.spec, w['actions'], w.get('dynamics', 'native'))
                     self._witness = P[:, [0, 2]]
                     self.stats['witness_steps'] = len(P)-1
         if self._witness is False:

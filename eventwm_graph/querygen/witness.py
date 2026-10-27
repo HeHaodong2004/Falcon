@@ -27,12 +27,39 @@ import numpy as np
 ACTIONS = ('forward', 'left', 'right')
 
 
-def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, t_bucket=4):
+def _moves(dyn, level):
+    """Admissible (primitive, next level) pairs for a dynamics family at a speed level."""
+    if dyn.native_actions or not dyn.stateful:
+        return [('forward', len(dyn.levels)-1), ('left', 0), ('right', 0)]
+    out = []
+    for l2 in dyn.next_levels(level):
+        out.append((('forward', l2), l2) if l2 > 0 else ('idle', 0))
+    if level == 0 or not dyn.turn_needs_stop:
+        out += [('left', 0), ('right', 0)]
+    return out
+
+
+def _encode(cmd):
+    """Native action -> 'f'/'l'/'r'/'s'; velocity command -> [lin, ang]."""
+    if isinstance(cmd, str):
+        return cmd[0]
+    return [float(cmd[0]), float(cmd[1])]
+
+
+def _decode(item):
+    names = {'f': 'forward', 'l': 'left', 'r': 'right', 's': 'stop'}
+    return names[item] if isinstance(item, str) else (float(item[0]), float(item[1]))
+
+
+def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, t_bucket=4, dynamics='native'):
     from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, contact_links,
                          escape_exempt, MAX_EPISODE_STEPS, SUCCESS_DISTANCE)
     from .oracle import SpaceTimeHeuristic
+    from .dynamics import FAMILIES
+    from .executor import command_for
+    dyn = FAMILIES[dynamics]
     t0 = time.perf_counter()
-    task = NativeTask(spec)
+    task = NativeTask(spec, velocity_action=not dyn.native_actions)
     sim = BranchSimulator(task, None)
     root = sim.root()
     p0 = task.robot_pose()
@@ -63,7 +90,7 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
             return 0.
         want = math.atan2(-(z-pose[2]), x-pose[0])
         err = abs(math.atan2(math.sin(want-pose[3]), math.cos(want-pose[3])))
-        return err/NATIVE_TURN_RAD
+        return err/dyn.turn_rad
 
     def h(pose, t, geo):
         v = st.value(float(pose[0]), float(pose[2]), t)
@@ -72,16 +99,18 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
         return (max(base, v) if v is not None else base+300.)+hs
 
     counter = 0
-    k0 = (round(p0[0]/cell), round(p0[2]/cell), 0, 0, bool(C0))
-    heap = [(weight*h(p0, 0, g0), counter, 0, root, 0, p0, bool(C0), 0., k0)]
+    n_turn = int(round(2*math.pi/dyn.turn_rad))
+    k0 = (round(p0[0]/cell), round(p0[2]/cell), 0, 0, bool(C0), 0)
+    heap = [(weight*h(p0, 0, g0), counter, 0, root, 0, p0, bool(C0), 0., k0, 0)]
     parent = {k0: None}
     seen = {k0}
     sims, best_geo, found = 0, g0, None
     while heap and time.perf_counter()-t0 < budget_s and sims < max_sims:
-        _, _, t, state, ti, pose, esc, trav, key = heapq.heappop(heap)
+        _, _, t, state, ti, pose, esc, trav, key, level = heapq.heappop(heap)
         if t >= MAX_EPISODE_STEPS-1:
             continue
-        for a in ACTIONS:
+        for prim, l2 in _moves(dyn, level):
+            a = command_for(dyn, prim)
             sim.load(state, t)
             r = sim.step(a, compute_geodesic=True)
             sims += 1
@@ -91,14 +120,14 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
             if r.static_contact and not escape_exempt(r.static_links, C0, t+1, trav2):
                 continue
             esc2 = esc and bool(r.static_contact)
-            ti2 = ti+(1 if a == 'left' else -1 if a == 'right' else 0)
-            k2 = (round(r.pose[0]/cell), round(r.pose[2]/cell), ti2 % 75, (t+1)//t_bucket, esc2)
+            ti2 = ti+(1 if prim == 'left' else -1 if prim == 'right' else 0)
+            k2 = (round(r.pose[0]/cell), round(r.pose[2]/cell), ti2 % n_turn, (t+1)//t_bucket, esc2, l2)
             if k2 in seen:
                 continue
             seen.add(k2)
             parent[k2] = (key, a)
             best_geo = min(best_geo, r.geodesic)
-            if r.geodesic < SUCCESS_DISTANCE:
+            if r.geodesic < SUCCESS_DISTANCE and l2 == 0:
                 # STOP here (one more step): success by the official definition
                 st2 = sim.state
                 sim.load(st2, t+1)
@@ -109,7 +138,7 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
                     break
             counter += 1
             heapq.heappush(heap, ((t+1)+weight*h(r.pose, t+1, r.geodesic), counter, t+1, sim.state, ti2, r.pose,
-                                  esc2, trav2, k2))
+                                  esc2, trav2, k2, l2))
         if found is not None:
             break
     seq = []
@@ -119,22 +148,27 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
         seq.append(a)
     seq.reverse()
     task.close()
-    rec = dict(key=spec.key, found=found is not None, actions=''.join(a[0] for a in seq)+('s' if found else ''),
+    if dyn.native_actions:
+        acts = ''.join(a[0] for a in seq)+('s' if found else '')
+    else:
+        acts = [_encode(a) for a in seq]+(['s'] if found else [])
+    rec = dict(key=spec.key, dynamics=dynamics, found=found is not None, actions=acts,
                steps=len(seq)+(1 if found else 0), start_geodesic=g0, best_geodesic=best_geo, sims=sims,
                states=len(seen), exhausted=not heap, seconds=time.perf_counter()-t0)
     if found:
-        rec['verified'] = verify_witness(spec, rec['actions'])
+        rec['verified'] = verify_witness(spec, rec['actions'], dynamics)
     return rec
 
 
-def verify_witness(spec, actions):
+def verify_witness(spec, actions, dynamics='native'):
     """Re-execute the witness from reset with the authoritative Env.step and a lockstep shadow
     branch simulator (canonical contacts); check every declared rule."""
     from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, contact_links,
                          escape_exempt, MAX_EPISODE_STEPS)
-    names = {'f': 'forward', 'l': 'left', 'r': 'right', 's': 'stop'}
-    task = NativeTask(spec)
-    shadow = NativeTask(spec)
+    from .dynamics import FAMILIES
+    vel = not FAMILIES[dynamics].native_actions
+    task = NativeTask(spec, velocity_action=vel)
+    shadow = NativeTask(spec, velocity_action=vel)
     try:
         ssim = BranchSimulator(shadow, None)
         sroot = ssim.root()
@@ -145,7 +179,7 @@ def verify_witness(spec, actions):
         statics = overlaps = mismatch = 0
         trav = 0.
         for ch in actions:
-            a = names[ch]
+            a = _decode(ch)
             prev = task.robot_pose()
             task.step(a)
             res = ssim.step(a)
@@ -166,11 +200,11 @@ def verify_witness(spec, actions):
         shadow.close()
 
 
-def load_witness_poses(spec, actions):
+def load_witness_poses(spec, actions, dynamics='native'):
     """Exact pose trajectory [T+1, 4] of a witness (branch simulator from reset)."""
     from .native import NativeTask, HumanTape, BranchSimulator, MAX_EPISODE_STEPS
-    names = {'f': 'forward', 'l': 'left', 'r': 'right', 's': 'stop'}
-    task = NativeTask(spec)
+    from .dynamics import FAMILIES
+    task = NativeTask(spec, velocity_action=not FAMILIES[dynamics].native_actions)
     try:
         sim = BranchSimulator(task, None)
         root = sim.root()
@@ -180,7 +214,7 @@ def load_witness_poses(spec, actions):
         for ch in actions:
             if ch == 's':
                 break
-            r = sim.step(names[ch])
+            r = sim.step(_decode(ch))
             poses.append(r.pose)
         return np.asarray(poses)
     finally:
@@ -194,10 +228,11 @@ def main():
     ap.add_argument('--out', required=True)
     ap.add_argument('--budget', type=float, default=1800.)
     ap.add_argument('--weight', type=float, default=3.0)
+    ap.add_argument('--dynamics', default='native')
     a = ap.parse_args()
     from .suites import load
     spec = [s for s in load(a.suite) if s.key == a.key][0]
-    rec = find_witness(spec, budget_s=a.budget, weight=a.weight)
+    rec = find_witness(spec, budget_s=a.budget, weight=a.weight, dynamics=a.dynamics)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     (out/f"{spec.key.replace('/', '_')}.json").write_text(json.dumps(rec, indent=1, default=float))
     print(json.dumps({k: v for k, v in rec.items() if k != 'actions'}, default=float))
