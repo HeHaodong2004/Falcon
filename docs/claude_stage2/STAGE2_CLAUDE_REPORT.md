@@ -74,10 +74,13 @@ evaluation (`evaluate.py`, `--sensor-directory full_range_branches_256`, origina
 | v7 (section 1.1) | 128 px | 0.4563 | 0.4903 | 0.4423 | [0.4438, 0.4687] |
 | v11 (`final/v11.pt`) | 256 px | 0.4688 | 0.5026 | 0.4552 | [0.4557, 0.4815] |
 | v12 (`final/v12.pt`) | 256 px | 0.4716 | 0.5077 | 0.4579 | [0.4588, 0.4841] |
-| **v15 (`final/v15.pt`, this section)** | 256 px | **0.4784** | **0.5145** | **0.4648** | [0.4655, 0.4910] |
+| v15 (`final/v15.pt`, latency section below) | 256 px | 0.4784 | 0.5145 | 0.4648 | [0.4655, 0.4910] |
+| **v16_b (`final/v16b.pt`)** | 256 px | **0.4809** | **0.5171** | **0.4671** | [0.4680, 0.4936] |
 
-Every full-development evaluation run in this work is listed in this table (v7, v11, v12, v15); each candidate
+Every full-development evaluation run in this work is listed in this table (v7, v11, v12, v15, v16_b); each candidate
 was selected and frozen on TRAIN validation before its single development evaluation.
+
+v16_b (from `v15_cap` = v15 + decoder side branches, one more 1-epoch restart with +19 % TRAIN Roots and soft-IoU weight 1.0; 400-Root operating point class 0.55 / 0.575, validation 0.4869; 256 px chosen on the 199 validation Roots, 0.4754 vs 0.4740) is the most accurate verified model: full development **0.4809** (motion: rotation 0.4083, translation 0.5533, mixed 0.5010; duration <= 0.5 s 0.5071). Its decoder side branches cost network time: dense K=6 cold P50 32.0 / P95 36.0 ms (`benchmark/v16b_bench256.json`, load average ~27-31; network 15.9 ms median vs 11.2-11.6 ms for v15), still < 50 ms but outside the preferred band, so v15 remains the faster frozen alternative (24.1 / 27.4 ms at load ~13-15). All `test_api` contract tests pass for v16_b.
 
 | metric | graph-only baseline | v12 | v15 |
 | --- | ---: | ---: | ---: |
