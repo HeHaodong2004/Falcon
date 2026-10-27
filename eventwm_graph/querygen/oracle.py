@@ -548,11 +548,13 @@ class Oracle:
                  round(time.perf_counter()-t0, 1)))
             fine = bool(diag.get('stuck'))
             gate = cfg.maneuver_gate if (cfg.maneuver_gate and not gate_open(node)) else 0.
-            if cfg.escape_penalty and self._escaped and self._in_spawn(node):
-                gate += cfg.escape_penalty
+            # once some branch has left the spawn region, every edge from a spawn node waits behind the
+            # escaped frontier (finite: the search returns if the escaped branches dead-end) -- ordinary
+            # queries from the many fine-deduplicated spawn states failed by the thousand (YRUkbU5xsYj)
+            spawn_pen = cfg.escape_penalty if (cfg.escape_penalty and self._escaped and self._in_spawn(node)) else 0.
             for q in queries:
                 counter += 1
-                extra = gate if self.is_maneuver(q) else 0.
+                extra = (gate if self.is_maneuver(q) else 0.)+spawn_pen
                 heapq.heappush(heap, (self._key(fn+self._prior(q)+extra, node), counter, node, q, False, fine))
         push_children(root, *propose(root))
         while heap and self.stats['children'] < cfg.max_edges and time.perf_counter()-t0 < cfg.max_seconds:
