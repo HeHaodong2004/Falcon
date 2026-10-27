@@ -367,6 +367,7 @@ class DWAPlanner(Planner):
         self.cfg = config or DWAConfig()
         self._hold = 1.
         self._committed = None
+        self._memo = {}
 
     def reset(self):
         self._committed = None
@@ -406,6 +407,16 @@ class DWAPlanner(Planner):
                                      max(1, int(round(top*cap)))))
         return seqs
 
+    def _body_ok(self, gmap, P, psi, budget0, x_range=None):
+        """body_ok memoised within one act() call (exact: keyed on the exact float pose)."""
+        key = (float(P[0]), float(P[1]), float(psi), x_range is not None)
+        memo = self._memo
+        r = memo.get(key)
+        if r is None:
+            r = body_ok(gmap, P, psi, True, budget0, x_range) if x_range is not None else body_ok(gmap, P, psi, True, budget0)
+            memo[key] = r
+        return r
+
     def _rollout(self, ctx, intents, cap, budget0=0):
         """Exact dynamics rollout -> list of (P, psi, level, command) per step.
 
@@ -425,8 +436,8 @@ class DWAPlanner(Planner):
                 lvl = min(cap, level+dyn.accel) if level < cap else max(cap, level-dyn.brake)
                 Pn = P+dyn.levels[lvl]*heading_vec(psi)
                 stop = Pn+dyn.stop_distance(lvl)*heading_vec(psi)
-                if not (body_ok(ctx.gmap, Pn, psi, True, budget0, FORWARD_X) and
-                        body_ok(ctx.gmap, stop, psi, True, budget0, FORWARD_X)):
+                if not (self._body_ok(ctx.gmap, Pn, psi, budget0, FORWARD_X) and
+                        self._body_ok(ctx.gmap, stop, psi, budget0, FORWARD_X)):
                     blocked = True
                     it = 'hold'
             if it in ('left', 'right'):
@@ -464,12 +475,20 @@ class DWAPlanner(Planner):
         return out, tail
 
     def act(self, ctx, adapter):
+        try:
+            return self._act(ctx, adapter)
+        finally:
+            self._memo = {}          # per-call memo only (never carried into branch copies)
+
+    def _act(self, ctx, adapter):
         cfg = self.cfg
         dyn = ctx.dyn
         H = ctx.humans
         best = fallback = None
         start_cost = ctx.progress_fn(ctx.P) if (ctx.progress_fn and not ctx.hold) else 0.
         budget0 = body_cost(ctx.gmap, ctx.P, ctx.psi) if ctx.gmap is not None else 0
+        self._memo = {}
+        dmemo = {}
         seqs = self._sequences(ctx)
         if self._committed and not ctx.hold:
             seqs.append(('commit', self._committed[0]+['hold']*(cfg.horizon-len(self._committed[0])), self._committed[1]))
@@ -478,14 +497,20 @@ class DWAPlanner(Planner):
             traj = steps+tail
             ok = True
             for k, (P, psi, _, _) in enumerate(traj):
-                if ctx.gmap is not None and k % 2 == 0 and not body_ok(ctx.gmap, P, psi, True, budget0):
+                if ctx.gmap is not None and k % 2 == 0 and not self._body_ok(ctx.gmap, P, psi, budget0):
                     ok = False
                     break
             if not ok:
                 continue
             if H:
-                dmin = min(float(min(self._rect_dist(P, psi, h.at((k+1)*STEP_SECONDS)) for h in H))
-                           for k, (P, psi, _, _) in enumerate(traj))
+                ds = []
+                for k, (P, psi, _, _) in enumerate(traj):
+                    key = (float(P[0]), float(P[1]), float(psi), k)
+                    d = dmemo.get(key)
+                    if d is None:
+                        d = dmemo[key] = float(min(self._rect_dist(P, psi, h.at((k+1)*STEP_SECONDS)) for h in H))
+                    ds.append(d)
+                dmin = min(ds)
             else:
                 dmin = cfg.clearance_cap+cfg.safety
             Pend, psi_end = steps[-1][0], steps[-1][1]
