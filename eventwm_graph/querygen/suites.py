@@ -82,24 +82,54 @@ def build_unseen(n_hm3d=30, n_mp3d=10):
     return dict(salt=UNSEEN_SALT, rule=build_unseen.__doc__.strip(), unseen=rows, dataset_file_sha256=files)
 
 
+UNSEEN2_SALT = 'querygen-unseen2-train-scenes-20261027'
+UNSEEN2_PATH = 'docs/querygen/suites_unseen2.json'
+
+
+def build_unseen2(n_hm3d=45, n_mp3d=15):
+    """Second frozen *unseen-scene* suite (declared after the v9 evaluation of the first unseen suite and
+    before any later development looks at it): the build_unseen rule with a new salt, excluding every scene
+    of the first unseen suite and the smoke-test scene; only the chosen scene files are opened."""
+    def h(*parts):
+        return hashlib.sha256('|'.join([UNSEEN2_SALT, *map(str, parts)]).encode()).hexdigest()
+    used = {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN_PATH).read_text())['unseen']}
+    rows, files = [], {}
+    for dataset, n in (('hm3d', n_hm3d), ('mp3d', n_mp3d)):
+        root = DATA/f'social-{dataset}'/'train'/'content'
+        scenes = sorted((f.name.split('.')[0] for f in root.glob('*.json.gz')), key=lambda sc: h('scene', dataset, sc))
+        scenes = [sc for sc in scenes if (dataset, sc) not in UNSEEN_EXCLUDE | used][:n]
+        for sc in scenes:
+            f = root/f'{sc}.json.gz'
+            eps = json.load(gzip.open(f))['episodes']
+            e = min(eps, key=lambda e: h('episode', dataset, sc, e['episode_id']))
+            seed = int(h('seed', dataset, sc, e['episode_id'])[:8], 16) % (2**31-1)
+            rows.append(dict(dataset=dataset, split='train', scene=sc, episode_id=str(e['episode_id']), seed=seed,
+                             human_num=int(e['info']['human_num']), geodesic=round(float(e['info']['geodesic_distance']), 3)))
+            files[str(f)] = _file_sha(f)
+    return dict(salt=UNSEEN2_SALT, rule=build_unseen2.__doc__.strip(), unseen2=rows, dataset_file_sha256=files)
+
+
 def load(name, path='docs/querygen/suites.json'):
     from .native import EpisodeSpec
-    data = json.loads(Path(path).read_text())
-    if name not in data and Path(UNSEEN_PATH).exists():
-        data = json.loads(Path(UNSEEN_PATH).read_text())
+    for p in (path, UNSEEN_PATH, UNSEEN2_PATH):
+        if Path(p).exists():
+            data = json.loads(Path(p).read_text())
+            if name in data:
+                break
     return [EpisodeSpec(r['dataset'], r['split'], r['scene'], r['episode_id'], r['seed']) for r in data[name]]
 
 
 if __name__ == '__main__':
     import sys
-    if len(sys.argv) > 1 and sys.argv[1] == 'unseen':
-        out = Path(UNSEEN_PATH)
+    if len(sys.argv) > 1 and sys.argv[1] in ('unseen', 'unseen2'):
+        name = sys.argv[1]
+        out = Path(UNSEEN_PATH if name == 'unseen' else UNSEEN2_PATH)
         if out.exists():
             raise SystemExit(f'{out} exists: suite is frozen')
-        s = build_unseen()
+        s = build_unseen() if name == 'unseen' else build_unseen2()
         out.write_text(json.dumps(s, indent=1))
-        rows = s['unseen']
-        print('unseen', len(rows), 'humans', {n: sum(r['human_num'] == n for r in rows) for n in (2, 3, 4, 5, 6)},
+        rows = s[name]
+        print(name, len(rows), 'humans', {n: sum(r['human_num'] == n for r in rows) for n in (2, 3, 4, 5, 6)},
               'geo mean %.2f min %.2f max %.2f' % (sum(r['geodesic'] for r in rows)/len(rows),
                                                    min(r['geodesic'] for r in rows), max(r['geodesic'] for r in rows)))
         raise SystemExit(0)
