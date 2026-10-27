@@ -60,7 +60,7 @@ class OracleConfig:
     escape_m: float = 1.5
     escape_h: bool = False            # v9: privileged spawn-escape heuristic (exact primitive BFS around the spawn;
                                       # steps-to-escape per 2 cm cell x turn index); only for tight spawns
-    escape_h_sims: int = 12000        # simulated primitive steps for that BFS (one-off, ~6 ms each)
+    escape_h_sims: int = 20000        # simulated primitive steps for the escape A* (one-off, ~6 ms each)
     prefix_cache: int = 0             # v9: exact prefix sharing among sibling edges (runtime keeps caches of this many
                                       # most recent parents; 0 = off).  Search results are identical with or without.
     heading_h: bool = False           # v9: add the in-place turn steps needed to face the true geodesic path
@@ -166,18 +166,22 @@ def horizon_for(query, cfg):
 
 
 class EscapeMap:
-    """Privileged (Oracle-only) exact steps-to-escape around the spawn.
+    """Privileged (Oracle-only) exact escape path out of a confined spawn.
 
-    Breadth-first search over the native primitives from the reset with the branch simulator (true
-    static contacts, the declared spawn-escape rule; humans ignored -- this is a static ranking aid),
-    keyed on 2 cm cells x exact turn index x escape-window flag.  Escape states are >= ``escape_m``
-    from the start.  A reverse BFS gives every recorded state's primitive steps to the nearest escape.
-    Built only when the first escape needs more than ``open_depth`` primitives (a tight spawn).
+    1. Confinement test: breadth-first over the native primitives to depth 3 (true static contacts,
+       declared spawn-escape rule); the spawn counts as confined if any primitive within that depth
+       touches static geometry.
+    2. Weighted A* over the primitives (2 cm cells x exact turn index x escape-window flag; humans
+       ignored -- a static ranking aid) toward the first state ``escape_m`` from the start.
+    3. Every state on the found path gets its remaining primitive steps to the escape; explored spawn
+       states off the path get ``OFF_PATH`` extra steps (they need a detour back to the path).
     """
 
-    def __init__(self, rt, escape_m=1.0, extra_depth=8, open_depth=4, max_sims=12000):
-        from collections import deque
-        from .native import classify_contacts, contact_links, escape_exempt
+    OFF_PATH = 25
+
+    def __init__(self, rt, escape_m=1.0, max_sims=20000, weight=2.0):
+        import heapq as _hq
+        from .native import escape_exempt
         t0 = time.perf_counter()
         task, sim = rt.task, rt.sim
         dyn = rt.dyn
@@ -187,82 +191,94 @@ class EscapeMap:
         p0 = root.legal.pose
         self.p0 = (float(p0[0]), float(p0[2]), float(p0[3]))
         C0 = rt.spawn_links
-        k0 = self._key(p0[0], p0[2], 0, bool(C0))
-        depth = {k0: 0}
-        preds = {k0: set()}
-        q = deque([(root.robot, 0, 0, (float(p0[0]), float(p0[2])), bool(C0), 0., k0)])
-        escapes = set()
-        first = None
-        sims = 0
-        blocked_early = 0          # static contacts among depth <= 2 expansions: a confined spawn
         acts = ('forward', 'left', 'right')
-        while q and sims < max_sims:
-            st, d, ti, xz, esc, trav, kp = q.popleft()
-            if first is not None and d >= first+extra_depth:
-                break
-            if d >= 3 and blocked_early == 0:
-                break               # nothing touched geometry near the spawn: an open spawn, no map needed
-            for a in acts:
-                sim.load(st, d)
-                r = sim.step(a, compute_geodesic=False)
-                sims += 1
-                trav2 = trav+math.hypot(r.pose[0]-xz[0], r.pose[2]-xz[1])
-                if r.static_contact and not escape_exempt(r.static_links, C0, d+1, trav2):
-                    if d <= 2:
+        k0 = self._key(p0[0], p0[2], 0, bool(C0))
+        sims = 0
+        blocked_early = 0
+        layer = [(root.robot, 0, (float(p0[0]), float(p0[2])), bool(C0), 0.)]
+        for d in range(3):                         # 1. confinement test
+            nxt = []
+            for st, ti, xz, esc, trav in layer:
+                for a in acts:
+                    sim.load(st, d)
+                    r = sim.step(a, compute_geodesic=False)
+                    sims += 1
+                    trav2 = trav+math.hypot(r.pose[0]-xz[0], r.pose[2]-xz[1])
+                    if r.static_contact and not escape_exempt(r.static_links, C0, d+1, trav2):
                         blocked_early += 1
-                    continue
-                esc2 = esc and bool(r.static_contact)
-                ti2 = ti+(1 if a == 'left' else -1 if a == 'right' else 0)
-                k = self._key(r.pose[0], r.pose[2], ti2, esc2)
-                preds.setdefault(k, set()).add(kp)
-                if k in depth:
-                    continue
-                depth[k] = d+1
-                if not esc2 and math.hypot(r.pose[0]-p0[0], r.pose[2]-p0[2]) >= escape_m:
-                    escapes.add(k)
-                    if first is None:
-                        first = d+1
-                    continue
-                q.append((sim.state, d+1, ti2, (float(r.pose[0]), float(r.pose[2])), esc2, trav2, k))
-            if first is not None and first <= open_depth:
-                break
-        rt._loaded = None
-        self.first = first
-        self.sims = sims
-        self.states = len(depth)
+                        continue
+                    ti2 = ti+(1 if a == 'left' else -1 if a == 'right' else 0)
+                    nxt.append((sim.state, ti2, (float(r.pose[0]), float(r.pose[2])), esc and bool(r.static_contact), trav2))
+            layer = nxt[:60]
         self.blocked_early = blocked_early
-        self.active = first is not None and first > open_depth and blocked_early > 0
-        self.steps = {}
-        self.known = set(depth) if first is not None else set()
-        if self.active:
-            dq = deque()
-            for k in escapes:
-                self.steps[k] = 0
-                dq.append(k)
-            while dq:
-                k = dq.popleft()
-                for kp in preds.get(k, ()):
-                    if kp not in self.steps:
-                        self.steps[kp] = self.steps[k]+1
-                        dq.append(kp)
+        self.path = {}
+        self.known = set()
+        self.first = None
+        if blocked_early:                          # 2. weighted A* toward displacement
+            step = dyn.step_m
+            heap = [(weight*escape_m/step, 0, 0, root.robot, 0, (float(p0[0]), float(p0[2])), bool(C0), 0., k0)]
+            parent = {k0: None}
+            g_of = {k0: 0}
+            counter = 0
+            goal = None
+            while heap and sims < max_sims:
+                _, _, g, st, ti, xz, esc, trav, k = _hq.heappop(heap)
+                if g_of.get(k, 1e9) < g:
+                    continue
+                for a in acts:
+                    sim.load(st, g)
+                    r = sim.step(a, compute_geodesic=False)
+                    sims += 1
+                    trav2 = trav+math.hypot(r.pose[0]-xz[0], r.pose[2]-xz[1])
+                    if r.static_contact and not escape_exempt(r.static_links, C0, g+1, trav2):
+                        continue
+                    esc2 = esc and bool(r.static_contact)
+                    ti2 = ti+(1 if a == 'left' else -1 if a == 'right' else 0)
+                    k2 = self._key(r.pose[0], r.pose[2], ti2, esc2)
+                    if g_of.get(k2, 1e9) <= g+1:
+                        continue
+                    g_of[k2] = g+1
+                    parent[k2] = k
+                    disp = math.hypot(r.pose[0]-p0[0], r.pose[2]-p0[2])
+                    if not esc2 and disp >= escape_m:
+                        goal = k2
+                        break
+                    counter += 1
+                    _hq.heappush(heap, ((g+1)+weight*max(0., escape_m-disp)/step, counter, g+1, sim.state, ti2,
+                                        (float(r.pose[0]), float(r.pose[2])), esc2, trav2, k2))
+                if goal is not None:
+                    break
+            self.known = set(g_of)
+            if goal is not None:                   # 3. label the path
+                chain = []
+                k = goal
+                while k is not None:
+                    chain.append(k)
+                    k = parent[k]
+                chain.reverse()
+                self.first = len(chain)-1
+                for i, k in enumerate(chain):
+                    self.path[k] = len(chain)-1-i
+        rt._loaded = None
+        self.sims = sims
+        self.states = len(self.known)
+        self.active = bool(self.path)
         self.seconds = time.perf_counter()-t0
 
     def _key(self, x, z, ti, esc):
         return (round(float(x)/0.02), round(float(z)/0.02), int(ti) % self.n_turn, bool(esc))
 
-    DEAD = 120          # recorded spawn state from which no escape was found within the BFS
-
     def lookup(self, pose, escape_open):
-        """Steps to escape for a node pose (DEAD for recorded dead ends, None: not a recorded spawn state)."""
+        """Remaining steps along the escape path; OFF_PATH extra for other explored spawn states."""
         dyaw = math.atan2(math.sin(float(pose[3])-self.p0[2]), math.cos(float(pose[3])-self.p0[2]))
         ti = int(round(dyaw/self.turn))
-        dead = False
+        known = False
         for esc in (bool(escape_open), not escape_open):
             k = self._key(pose[0], pose[2], ti, esc)
-            if k in self.steps:
-                return self.steps[k]
-            dead = dead or k in self.known
-        return self.DEAD if dead else None
+            if k in self.path:
+                return self.path[k]
+            known = known or k in self.known
+        return (self.first or 0)+self.OFF_PATH if known else None
 
 
 class Oracle:
