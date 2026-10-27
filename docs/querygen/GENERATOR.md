@@ -1,4 +1,4 @@
-# Query Generator (deterministic, non-learning, legal inputs only)
+# Query Generator v6 (frozen as `querygen-freeze-v1`; deterministic, non-learning, legal inputs only)
 
 Code: `eventwm_graph/querygen/generator.py` (`QueryGenerator.propose(legal, execution)`), query
 semantics: `executor.py`. Parameters: `GeneratorConfig` (recorded in every result file).
@@ -26,7 +26,7 @@ category, kept count, conflicts, stuck flag).
 | wait | always; `wait_clear` on conflict | `wait_clear` (hold until the legal route conflict clears, <= 48 steps), `wait_short` (6), `wait_long` (16), `goal_slow` (following a same-direction human ahead) |
 | approach | legal goal distance < 3 m | goal via a pre-goal point 0.9 m before the goal on headings whose body pose is clear of observed walls |
 | turn | route heading differs > 30 deg | rotate toward the route heading, both directions (sweep side matters for a 1.23 m body) |
-| maneuver | stall (no translation > 0.3 m over the last <= 24 steps) or the body-aware lattice finds no progressing plan | exact rotations of 1/4/10 turn steps each way, 1/3-step forward creeps |
+| maneuver | manoeuvre mode: entered after a legal stall within 1 m of the start pose or the goal (over the last 6-16 steps no translation > 0.15 m and no net turn > 0.35 rad); kept while the previous decision was itself a manoeuvre | exact rotations of 1/4/10 turn steps each way, 1/3-step forward creeps (8 candidates) |
 | retreat / advance | always (if available) | back 1.6 m along the own legal trajectory / 0.7 m straight ahead |
 | alt / frontier | alternative homotopy with a diverging first 2.5 m / frontier clusters | via-point routes |
 | observe | goal or a recently lost track out of view | rotate toward it |
