@@ -1,11 +1,12 @@
 # Stage 2 redesign — legal voxel simulation + masked BEV U-Net (Claude, 2026-10-26)
 
-Status (2026-10-27 07:30 UTC): best verified model `final/v15.pt` — original full-development
+Status (2026-10-27 10:15 UTC): best verified model `final/v15.pt` — original full-development
 label-aware increment IoU **0.4784** (target > 0.50 **not met**; v12 0.4716, previous model A 0.4171), complete
-dense K=6 cold P95 **27.4 ms** (< 50 ms, met; P50 24.1 ms; 32.0 ms under heavy external CPU load). All numbers below are
-read from the frozen evaluation and benchmark receipts. Running: v16_a (line A, +14 % TRAIN Roots) and, next,
-v16_b (soft-IoU weight 1.0); ~1,000 new TRAIN Roots per hour are being generated. A later candidate is
-evaluated on development only if it beats the current best on TRAIN validation, and is then reported here.
+dense K=6 cold P95 **27.4 ms** (< 50 ms, met; P50 24.1 ms; 32.0 ms under heavy external CPU load). All numbers
+below are read from the frozen evaluation and benchmark receipts. Since then (TRAIN validation, 160 Roots):
+v16_a 0.4753 (+14 % TRAIN Roots), v16_b 0.4772 (soft-IoU weight 1.0); the better of them on 400 Roots is being
+evaluated on development; v17_a (weight 1.0) and the next cycles are running. A later candidate is evaluated on
+development only if it beats the current best on TRAIN validation, and is then reported here.
 
 ## 0. Executive summary
 
