@@ -548,13 +548,15 @@ class Oracle:
                  round(time.perf_counter()-t0, 1)))
             fine = bool(diag.get('stuck'))
             gate = cfg.maneuver_gate if (cfg.maneuver_gate and not gate_open(node)) else 0.
-            # once some branch has left the spawn region, every edge from a spawn node waits behind the
-            # escaped frontier (finite: the search returns if the escaped branches dead-end) -- ordinary
-            # queries from the many fine-deduplicated spawn states failed by the thousand (YRUkbU5xsYj)
-            spawn_pen = cfg.escape_penalty if (cfg.escape_penalty and self._escaped and self._in_spawn(node)) else 0.
+            # once some branch has left the spawn region, manoeuvre edges from spawn nodes wait behind the
+            # escaped frontier (finite).  Ordinary edges are not penalised: waiting near the start can be the
+            # right strategy (3t8DB4Uzvkt's solution holds there for the corridor to clear; penalising every
+            # spawn edge lost it, and did not help YRUkbU5xsYj).
+            if cfg.escape_penalty and self._escaped and self._in_spawn(node):
+                gate += cfg.escape_penalty
             for q in queries:
                 counter += 1
-                extra = (gate if self.is_maneuver(q) else 0.)+spawn_pen
+                extra = gate if self.is_maneuver(q) else 0.
                 heapq.heappush(heap, (self._key(fn+self._prior(q)+extra, node), counter, node, q, False, fine))
         push_children(root, *propose(root))
         while heap and self.stats['children'] < cfg.max_edges and time.perf_counter()-t0 < cfg.max_seconds:
