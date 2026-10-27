@@ -446,6 +446,22 @@ $R eventwm_graph.stage2_claude.train --name v12_distill --device cuda:0 --epochs
    --val-roots 160 --warm output/claude_stage2/training/v11_ext/final.pt --extend --near 0.5 --lr 4e-4 --warmup 200 \
    --iou-weight 0.5 --ema 0.999 --extra-sensor claude_train_range_128 --pool-factor 16 --overlap --side 3:192:3,4:256:4 \
    --seed 2 --teacher output/claude_stage2/training/v11_ext/final.pt --distill 0.5
+# 1e. further self-distillation restarts v13, v14, v15 (seed = cycle number; each from and distilled from the previous):
+for i in 13 14 15; do PREV=$( [ $i = 13 ] && echo v12_distill || echo v$((i-1))_chain )
+  $R eventwm_graph.stage2_claude.train --name v${i}_chain --device cuda:0 --epochs 1 --workers 7 --val-every 6000 \
+     --val-roots 160 --warm output/claude_stage2/training/$PREV/final.pt --extend --near 0.5 --lr 4e-4 --warmup 200 \
+     --iou-weight 0.5 --ema 0.999 --extra-sensor claude_train_range_128 --pool-factor 16 --overlap --side 3:192:3,4:256:4 \
+     --seed $i --teacher output/claude_stage2/training/$PREV/final.pt --distill 0.5; done
+# 1f. more TRAIN Roots (unchanged environment replay; 128 px; rows by offset) and the v16 cycles
+$R eventwm_graph.stage2_repair.range_train_expand --roots 2048 --offset <row> --split train --sensor-size 128 \
+   --destination claude_train_range_128
+$R eventwm_graph.stage2_claude.train --name v16_b --device cuda:1 --epochs 1 --workers 7 --val-every 6000 --val-roots 160 \
+   --warm output/claude_stage2/training/v15_cap/final.pt --extend --near 0.5 --lr 4e-4 --warmup 200 --iou-weight 1.0 \
+   --ema 0.999 --extra-sensor claude_train_range_128,claude_train_range_256 --pool-factor 16 --overlap \
+   --side 3:192:3,4:256:4 --seed 17 --teacher output/claude_stage2/training/v15_chain/final.pt --distill 0.5
+#     (v15_cap = the v15 cycle from v14 plus --dside 1:96:2,2:128:2; v16_a = from v15, teacher v15, --iou-weight 0.5, seed 16.
+#      The TRAIN Root set of a cycle is whatever packets exist when it starts; the exact count is printed and stored in
+#      the checkpoint config as train_roots.)
 # optional refinement stage on a frozen trained base
 $R eventwm_graph.stage2_claude.train --name cascade --device cuda:0 --epochs 1 --workers 7 \
    --cascade-from output/claude_stage2/training/past_v7/final.pt --widths 24,48,64,96,128 --blocks 1,1,2,2,2 --lr 1e-3
@@ -458,11 +474,12 @@ $R eventwm_graph.stage2_claude.sensor_select output/claude_stage2/final/<name>.p
 # 3. original full development evaluation (2,110 Roots / 47,128 windows); 256 px: --sensor-directory full_range_branches_256
 $R eventwm_graph.stage2_claude.evaluate --checkpoint output/claude_stage2/final/<name>.pt \
    --name full_<name> --split full --workers 6 --device cuda:0 [--sensor-directory full_range_branches_256]
-# 4. contract tests (exact domain, zero horizon, no mutation, single == batched)
+# 4. contract tests (exact domain, zero horizon, no mutation, single == batched, lanes) and the legal-map cache contract
 $R eventwm_graph.stage2_claude.test_api output/claude_stage2/final/<name>.pt cuda:1
+$R eventwm_graph.stage2_claude.test_cache
 # 5. complete K=1/4/6 latency on the original 32 workloads, own background jobs paused
 $PY -m eventwm_graph.stage2_claude.quiet --receipt output/claude_stage2/benchmark/quiet_<name>.json \
-   --pattern "stage2_claude.train" -- $R eventwm_graph.stage2_claude.benchmark \
+   --pattern "stage2_claude.train" --pattern "range_train_expand" -- $R eventwm_graph.stage2_claude.benchmark \
    --checkpoint output/claude_stage2/final/<name>.pt --name <name>_bench128 --repetitions 3 --device cuda:1 \
    [--sensor-directory range_benchmark_256] [--lanes 3]
 ```
