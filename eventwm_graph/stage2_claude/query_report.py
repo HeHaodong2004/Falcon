@@ -93,8 +93,12 @@ def scores(r, method, heur):
     raise KeyError(method)
 
 
+GAIN_KIND = ['total']
+
+
 def gain(r):
-    return r['actual_free']+r['actual_blocked']
+    k = GAIN_KIND[0]
+    return r['actual_free'] if k == 'free' else r['actual_blocked'] if k == 'blocked' else r['actual_free']+r['actual_blocked']
 
 
 def nested_pairs(root_id, end_nodes):
@@ -232,7 +236,14 @@ def gain_metrics(records_in_set, scene_of):
         s = spearman([o['exp_free']+o['exp_blocked'] for o in outs], [gain(o) for o in outs])
         if s is not None:
             within.append(s)
-    return dict(outcomes=len(rows), actual_gain_mean=float(G.mean()), expected_gain_mean=float(P.mean()),
+    ious = np.array([rates(r['cm']) for r in records_in_set if gain(r) > 0 or (r['hard_free']+r['hard_blocked']) > 0])
+    cm = sum(np.asarray(r['cm'], np.float64) for r in records_in_set); cmu = sum(np.asarray(r['cm_never_observed'], np.float64) for r in records_in_set)
+    return dict(per_outcome_iou=dict(outcomes=int(len(ious)), mean=float(ious.mean()), median=float(np.median(ious)),
+                                     p25=float(np.percentile(ious, 25)), p75=float(np.percentile(ious, 75)),
+                                     share_below_0_3=float((ious < .3).mean()), share_above_0_6=float((ious > .6).mean())),
+                region_iou=dict(pooled_all=float(rates(cm)), never_observed_cells=float(rates(cmu)), observed_cells=float(rates(cm-cmu)),
+                                targets_in_never_observed=float(cmu[1:].sum()/max(cm[1:].sum(), 1))),
+                outcomes=len(rows), actual_gain_mean=float(G.mean()), expected_gain_mean=float(P.mean()),
                 mae_expected=float(np.abs(P-G).mean()), mae_expected_root_macro=boot(by_scene),
                 bias_expected=float((P-G).mean()), relative_bias_expected=float((P-G).sum()/max(G.sum(), 1)),
                 mae_free=float(np.abs(a[:, 4]-a[:, 3]).mean()), mae_blocked=float(np.abs(a[:, 6]-a[:, 5]).mean()),
@@ -374,7 +385,7 @@ def main(models=MODELS, out='report'):
                 res['gain'][m+':recal'] = gain_metrics(rc, scene_of)
         # paired scene bootstrap of differences against the reference methods
         for a in [m for m in preds]:
-            for b_ in ('random', 'distance', 'duration', 'legal_visible', 'frustum', 'v7'):
+            for b_ in ('random', 'distance', 'duration', 'legal_visible', 'frustum', 'known_visible', 'v7', 'v11', 'v12', 'v15'):
                 if b_ not in root_vals or b_ == a:
                     continue
                 diffs = {}
@@ -385,6 +396,21 @@ def main(models=MODELS, out='report'):
                         d[scene_of[r]].append(None if va is None or vb is None else va-vb)
                     diffs[label] = boot(d)
                 res['paired_vs'][f'{a}-{b_}'] = diffs
+        if s == '1.0':
+            # ranking by FREE gain and by BLOCKED gain separately (models scored with the matching class sums)
+            res['ranking_by_class'] = {}
+            for kind, key in (('free', 'exp_free'), ('blocked', 'exp_blocked')):
+                GAIN_KIND[0] = kind
+                sub = {}
+                for m in preds:
+                    g = methods[m][0]
+                    sub[m], _ = method_set_metrics(g, {root: [o[key] for o in outs] for root, outs in g.items()}, scene_of)
+                for h in ('random', 'distance', 'legal_visible', 'frustum'):
+                    if h in methods:
+                        sub[h], _ = method_set_metrics(*methods[h], scene_of)
+                res['ranking_by_class'][kind] = {m: dict(pairwise_root_macro=v['pairwise_root_macro'], top1_hit=v['top1_hit'],
+                                                         regret_mean=v['regret_mean'], decisive_pairs=v['decisive_pairs']) for m, v in sub.items()}
+            GAIN_KIND[0] = 'total'
         if s == '1.0' or s == 'full':
             focus = {k: v for k, v in methods.items() if k in ('v15', 'v16b', 'distance', 'duration', 'legal_visible', 'random')}
             ref_m = 'v16b' if 'v16b' in preds else next(iter(preds))
@@ -407,14 +433,6 @@ def main(models=MODELS, out='report'):
     (DEST/(out+'_per_root.json')).write_text(json.dumps(per_root_out, default=float))
     print('wrote', DEST/(out+'.json'))
     return report
-
-
-if __name__ == '__main__':
-    pa = argparse.ArgumentParser()
-    pa.add_argument('--models', nargs='*', default=list(MODELS))
-    pa.add_argument('--out', default='report')
-    a = pa.parse_args()
-    main(tuple(a.models), a.out)
 
 
 def fmt_ci(d, pct=False, digits=3):
@@ -454,18 +472,32 @@ def tables(report, order=('v16b', 'v16b:recal', 'v15', 'v15:recal', 'v12', 'v11'
                 lines.append(f"| {n} | {g['actual_gain_mean']:.1f} | {g['expected_gain_mean']:.1f} | {g['mae_expected']:.1f} | {fmt_ci(g['mae_expected_root_macro'], digits=1)} | "
                              f"{g['bias_expected']:+.1f} | {g['mae_free']:.1f} / {g['bias_free']:+.1f} | {g['mae_blocked']:.1f} / {g['bias_blocked']:+.1f} | "
                              f"{g['mae_hard']:.1f} / {g['bias_hard']:+.1f} | {g['pearson']:.3f} / {g['spearman']:.3f} | {g['within_root_spearman_mean']:.3f} |")
+            lines.append('\n| model | per-outcome IoU mean / median [IQR] | outcomes < 0.3 / > 0.6 | pooled IoU: all / previously observed cells / never-observed cells | targets in never-observed cells |')
+            lines.append('| --- | ---: | ---: | ---: | ---: |')
+            for n in [m for m in order if m in res['gain'] and ':' not in m]:
+                g = res['gain'][n]; pi = g['per_outcome_iou']; ri = g['region_iou']
+                lines.append(f"| {n} | {pi['mean']:.3f} / {pi['median']:.3f} [{pi['p25']:.3f}, {pi['p75']:.3f}] | {100*pi['share_below_0_3']:.0f}% / {100*pi['share_above_0_6']:.0f}% | "
+                             f"{ri['pooled_all']:.3f} / {ri['observed_cells']:.3f} / {ri['never_observed_cells']:.3f} | {100*ri['targets_in_never_observed']:.0f}% |")
             lines.append('\n| model | FREE precision | FREE recall | predicted FREE | -> observed BLOCKED (rate) | -> still UNKNOWN (rate) | never-observed cells: FREE precision / ->UNKNOWN rate |')
             lines.append('| --- | ---: | ---: | ---: | ---: | ---: | ---: |')
-            for n in [m for m in order if m in res['false_free']]:
+            for n in [m for m in order if m in res['false_free'] and ':' not in m]:
                 f, u = res['false_free'][n]['all_cells'], res['false_free'][n]['never_observed_cells']
                 lines.append(f"| {n} | {f['free_precision']:.3f} | {f['free_recall']:.3f} | {f['predicted_free']} | {f['free_but_blocked']} ({100*f['rate_free_but_blocked']:.1f}%) | "
                              f"{f['free_but_unknown']} ({100*f['rate_free_but_unknown']:.1f}%) | {u['free_precision']:.3f} / {100*u['rate_free_but_unknown']:.1f}% |")
+        rbc = res.get('ranking_by_class')
+        if rbc:
+            lines.append('\n| method | FREE-gain ranking: pairwise / top-1 hit (decisive pairs) | BLOCKED-gain ranking: pairwise / top-1 hit (decisive pairs) |')
+            lines.append('| --- | ---: | ---: |')
+            for n in [m for m in order if m in rbc['free']]:
+                f, b = rbc['free'][n], rbc['blocked'][n]
+                lines.append(f"| {n} | {fmt_ci(f['pairwise_root_macro'], pct=True)} / {100*f['top1_hit']['mean']:.1f}% ({f['decisive_pairs']}) | "
+                             f"{fmt_ci(b['pairwise_root_macro'], pct=True)} / {100*b['top1_hit']['mean']:.1f}% ({b['decisive_pairs']}) |")
         pv = res.get('paired_vs', {})
         if pv:
             lines.append('\n| paired difference (scene bootstrap) | pairwise acc. | regret (cells) | top-1 hit |')
             lines.append('| --- | ---: | ---: | ---: |')
             for k, d in pv.items():
-                if k.split('-')[0] in ('v16b', 'v15') or k.endswith('-v7'):
+                if k.split('-')[0] in ('v16b', 'v15'):
                     lines.append(f"| {k} | {fmt_ci(d['pairwise'], pct=True)} | {fmt_ci(d['regret'], digits=1)} | {fmt_ci(d['top1_hit'], pct=True)} |")
         rg = res.get('regimes')
         if rg:
@@ -498,3 +530,17 @@ def tables(report, order=('v16b', 'v16b:recal', 'v15', 'v15:recal', 'v12', 'v11'
         for b in cal[ref]['revelation']['reliability']:
             lines.append(f"| {b['bin']} | {b['cells']} | {b['observed']} |")
     return '\n'.join(lines)
+
+
+if __name__ == '__main__':
+    pa = argparse.ArgumentParser()
+    pa.add_argument('--models', nargs='*', default=list(MODELS))
+    pa.add_argument('--out', default='report')
+    pa.add_argument('--tables-md', help='also write the Markdown tables to this path')
+    a = pa.parse_args()
+    rep = main(tuple(a.models), a.out)
+    if a.tables_md:
+        Path(a.tables_md).write_text('# Query-ranking benchmark — generated tables (`query_report.py`)\n\n'
+                                     'Primary set `1.0`; 95 % CIs from 1,000 scene bootstrap resamples. See QUERY_BENCH_REPORT.md for '
+                                     'definitions and conclusions.\n' + tables(json.loads(json.dumps(rep, default=float))) + '\n')
+        print('wrote', a.tables_md)

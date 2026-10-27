@@ -135,6 +135,13 @@ def never_observed(ctx, keys):
 
 
 def predict_root(args):
+    try:
+        return _predict_root(args)
+    except Exception as e:
+        raise RuntimeError('Root %s: %s' % (args[0]['root_id'], e)) from e
+
+
+def _predict_root(args):
     row, sensor_directory, chunk = args
     cache = load_cache(row['root_id'])
     packet, tracks = packet_for(row, sensor_directory)
