@@ -225,6 +225,16 @@ then budget scaling of representative DEV failures.
 - **Unseen-scene suite frozen** (`docs/querygen/suites_unseen.json`, 30 HM3D + 10 MP3D train-split
   scenes, sha256 a5704e8b..., commit 5c60e909) for generalization; not used for development.
 
+- Guided Oracle (witness_dir) interim (v7b generator): K=10 7/7 feasible solved so far; K=6 compact 7/9
+  - failures LEFTm3JecaC, Nfvxx8J5NCo exhausted 6000 edges with 62-90% of nodes in manoeuvre mode
+  (goal + 5 manoeuvres per node, fine de-dup). All manoeuvres in any solution (DEV final, v7b,
+  HOLDOUT, guided) occur in the first 40 steps at the spawn -> v8: manoeuvre mode only before the
+  robot first leaves the 1 m spawn region; witness heuristic also charges heading mismatch near
+  witness poses (commit after 9f2aedc3).
+- DEV witness coverage: 24/28 verified witnesses; 4 certified infeasible (yr17PDCnDDW, 7Ukhou1GxYi,
+  Dd4bFSTQ8gi, 5cdEh9F2hJL); 3t8DB4Uzvkt unresolved (4 humans share the needed corridor; 30-min
+  witness search reached 4.0 m of 11.1 m, not exhausted).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
