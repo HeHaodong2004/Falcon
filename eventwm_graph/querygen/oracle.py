@@ -54,6 +54,10 @@ class OracleConfig:
     witness_heading: bool = True      # near a witness pose also charge the heading mismatch (turn steps)
     goal_test: bool = True            # v7b: try the generator's STOP at once on any new state inside the success radius
     goal_fine_m: float = 1.0          # v7b: fine de-duplication for states this close to the goal (geodesic)
+    escape_penalty: float = 0.        # v9: once any branch has left the spawn region (escape_m from the start), manoeuvre
+                                      # edges from nodes still inside it cost this much extra (the spawn manoeuvre space
+                                      # otherwise absorbed 72-79% of the edge budget in YRUkbU5xsYj / 3t8DB4Uzvkt)
+    escape_m: float = 1.5
     heading_h: bool = False           # v9: add the in-place turn steps needed to face the true geodesic path
                                       # (0.6 m look-ahead) to h -- a turn-in-place robot must turn before it moves
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
@@ -163,6 +167,9 @@ class Oracle:
         self.cfg = config or OracleConfig()
         self._st = None
         self._witness = None
+        self._escaped = False
+        p0 = runtime.root.legal.pose
+        self._start_xz = (float(p0[0]), float(p0[2]))
         self.stats = dict(expansions=0, children=0, outcomes={}, by_label={}, gen_s=0., run_s=0.,
                           raw_candidates=0, kept_candidates=0, gen_ms=[], edge_ms=[], edge_steps=[])
 
@@ -233,6 +240,10 @@ class Oracle:
         elif cfg.block_weight:
             pen += cfg.block_weight*self._block_time(st)
         return st.index+cfg.weight*h+pen
+
+    def _in_spawn(self, node, radius=1.0):
+        p = node.legal.pose
+        return math.hypot(float(p[0])-self._start_xz[0], float(p[2])-self._start_xz[1]) < radius
 
     def _heading_steps(self, pose):
         """Privileged: in-place turn steps to face the true geodesic path (0.6 m look-ahead)."""
@@ -402,6 +413,8 @@ class Oracle:
                  round(time.perf_counter()-t0, 1)))
             fine = bool(diag.get('stuck'))
             gate = cfg.maneuver_gate if (cfg.maneuver_gate and not gate_open(node)) else 0.
+            if cfg.escape_penalty and self._escaped and self._in_spawn(node):
+                gate += cfg.escape_penalty
             for q in queries:
                 counter += 1
                 extra = gate if self.is_maneuver(q) else 0.
@@ -443,6 +456,9 @@ class Oracle:
                 continue
             if child.geodesic < best.geodesic:
                 best = child
+            if cfg.escape_penalty and not self._escaped and not self._in_spawn(child, cfg.escape_m):
+                self._escaped = True
+                self.stats['escaped_at_edge'] = self.stats['children']
             queries, diag = propose(child)
             if cfg.goal_test and child.geodesic < SUCCESS_DISTANCE:
                 # privileged goal test on generation: a state inside the success
