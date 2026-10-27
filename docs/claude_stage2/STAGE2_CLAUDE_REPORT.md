@@ -1,7 +1,10 @@
 # Stage 2 redesign — legal voxel simulation + masked BEV U-Net (Claude, 2026-10-26)
 
-Status: DRAFT — final accuracy/latency tables are filled in from the frozen
-evaluation and benchmark receipts (section 1).
+Status (2026-10-27 01:00 UTC): best verified model `final/v12.pt` — original full-development
+label-aware increment IoU **0.4716** (target > 0.50 **not met**), complete dense K=6 cold P95 **34.6 ms**
+(< 50 ms, met). All numbers below are read from the frozen evaluation and benchmark receipts. An
+overnight continuation (section 8, `v13-15_chain`) may add a later candidate; it is evaluated on
+development only if it beats v12 on TRAIN validation, and is then reported here as well.
 
 ## 1. Results
 
@@ -307,7 +310,13 @@ physical GPU1, which would have made the run take ~9 h and slowed the other job.
 * Auxiliary geometry supervision (walls/floor from all Root frames) did not improve the main metric;
   unseen-wall completion stayed poor (precision 0.55 / recall 0.08 at 4k steps).
 * 2× model width: +0.003 at equal steps.
-* Measured-surface splatting, 256 px sensing, sub-voxel hit refinement: no material gain.
+* Measured-surface splatting and sub-voxel hit refinement: no material gain. 256 px sensing gives only a
+  small (but consistent) gain for models trained on 128 px packets (+0.002-0.003 on 199 validation
+  Roots for v7r, v11 and v12); it is used for the final models.
+* The `human_future` sweep channel did not close the accuracy gap of windows with a human within 2 m of
+  the path (v11: 0.437 vs 0.476 without humans within 8 m).
+* Batch padding is not a training bottleneck (20 % padded cells for random batches vs 12 % for
+  size-matched batches, mostly from rounding frames to multiples of 16).
 
 * Cascade refinement helps an under-trained base but not the converged one.
 * Window-duration-dependent class thresholds (4 duration buckets, coordinate ascent; `bucket_select.py`):
@@ -401,6 +410,15 @@ $PY -m eventwm_graph.stage2_claude.quiet --receipt output/claude_stage2/benchmar
   previous model (window-level receipts) and as a regression check of the public API; these
   diagnostics informed feature design (e.g. past-pose visibility). The full development set was
   evaluated only for frozen candidates (section 1 lists every full-development evaluation run).
-* Latency was measured on the RTX 3090 used by the previous benchmarks (physical GPU1) with this
-  session's own background jobs paused by `quiet.py` (receipts list the paused PIDs/command lines and
-  load averages); no external process was paused.
+* Latency: v7 was measured on physical GPU1 (the previous benchmarks' RTX 3090) before 17:21 UTC and
+  on physical GPU0; from 17:21 UTC another session's Stage-1 training jobs occupied physical GPU1 and
+  part of the CPU for the rest of this work, so v11/v12 were measured on physical GPU0 (with the
+  desktop session). In every run this session's own background jobs were paused by `quiet.py`
+  (receipts list the paused PIDs/command lines and load averages); no external process was paused,
+  stopped or otherwise touched.
+* 256 px packets for 161 additional TRAIN-validation Roots were produced with the unchanged environment
+  replay (`val256_expand.py`, same source identity as the existing 256 px TRAIN packets) so that the
+  sensor-resolution choice uses 199 validation Roots instead of 38.
+* To avoid GPU-memory exhaustion while v12's development evaluation shared GPU0 with this session's own
+  overnight training (`v13_chain`), that training was paused (SIGSTOP) for ~9 minutes and resumed
+  automatically afterwards (logged in `logs/chain.log`).
