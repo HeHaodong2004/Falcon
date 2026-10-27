@@ -207,6 +207,31 @@ def soft_iou_loss(logits, y, w):
     return 1-tp/(act+pred-tp+1e-6)
 
 
+class GlobalIoU:
+    """Gradient of the DATASET-level label-aware IoU at a running operating point.
+
+    Keeps exponential running sums of the window-weighted soft TP / predicted / actual counts and
+    returns a loss that is linear in this batch's probabilities whose gradient equals that of
+    TP/(A+P-TP) evaluated with the running sums (the batch soft IoU instead uses one batch's sums)."""
+    def __init__(self, decay=.99):
+        self.decay = decay; self.sums = None
+
+    def __call__(self, logits, y, w):
+        valid = (y >= 0).float()
+        r = torch.sigmoid(logits[:, 0].float()); b = torch.sigmoid(logits[:, 1].float())
+        pf, pb = r*(1-b), r*b
+        ww = w[:, None, None]*valid
+        hit = ww*(pf*(y == 1).float()+pb*(y == 2).float())
+        pred = ww*(pf+pb)
+        batch = torch.stack([hit.sum(), pred.sum(), (ww*(y > 0).float()).sum()]).detach()
+        self.sums = batch if self.sums is None else self.decay*self.sums+(1-self.decay)*batch
+        tp, pr, ac = self.sums
+        u = (ac+pr-tp).clamp(min=1e-6)
+        c1, c2 = (ac+pr)/u**2, tp/u**2
+        # d IoU = c1 d TP - c2 d P (with decay 0 this is exactly the gradient of the batch soft IoU loss).
+        return -(c1*hit.sum()-c2*pred.sum())
+
+
 def loss_fn(logits, y, w, pos_weight, blocked_weight, norm, aux=None, aux_weight=0.):
     valid = (y >= 0).float()
     rev = (y > 0).float()
@@ -270,7 +295,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
         human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None, ema=0., extend=False, pool_factor=4,
-        overlap=False, side=None, teacher=None, distill=.5, dside=None, attn=0):
+        overlap=False, side=None, teacher=None, distill=.5, dside=None, attn=0, iou_mode='batch'):
     cli_near = near
     GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
@@ -381,12 +406,13 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
             p_.requires_grad_(False)
     config = dict(name=name, map_channels=map_channels, query_channels=query_channels, **arch, batch=batch, size=size, human_filter=human_filter,
                   extra_sensor=extra_sensor, aux_weight=aux_weight, splat=bool(splat), sub=int(sub), render=int(render),
-                  human_occluders=bool(human_occluders), near=float(near), iou_weight=float(iou_weight),
+                  human_occluders=bool(human_occluders), near=float(near), iou_weight=float(iou_weight), iou_mode=iou_mode,
                   lr=lr, pos_weight=pos_weight, blocked_weight=blocked_weight, epochs=epochs, train_roots=len(train_rows),
                   val_roots=len(val_rows), seed=seed, warm=warm, cascade_from=cascade_from, ema=float(ema), pool_factor=int(pool_factor), overlap=bool(overlap),
                   teacher=teacher, distill=float(distill) if teacher else 0.)
     (dest/'config.json').write_text(json.dumps(config, indent=1))
     print('train roots', len(train_rows), 'val roots', len(val_rows), 'params', sum(p.numel() for p in model.parameters()), flush=True)
+    global_iou = GlobalIoU() if iou_mode == 'global' else None
     opt = torch.optim.AdamW([p_ for p_ in model.parameters() if p_.requires_grad], lr=lr, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler()
     est_steps = int(epochs*len(train_rows)*23.5/batch) if not max_steps else max_steps
@@ -474,7 +500,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                         tl = sum(net(x.index_select(1, idx))[:, :2].float() for net, idx in teachers)/len(teachers)
                     loss = (1-distill)*loss+distill*distill_loss(logits, tl, y, w, 2000.)
                 if iou_weight > 0:
-                    loss = loss+iou_weight*soft_iou_loss(logits, y, w)
+                    loss = loss+iou_weight*(global_iou(logits, y, w) if global_iou is not None else soft_iou_loss(logits, y, w))
                 opt.zero_grad(set_to_none=True)
                 scaler.scale(loss).backward()
                 scaler.unscale_(opt)
@@ -536,6 +562,7 @@ if __name__ == '__main__':
     p.add_argument('--human-occluders', action='store_true')
     p.add_argument('--near', type=float, default=0.)
     p.add_argument('--iou-weight', type=float, default=0.)
+    p.add_argument('--iou-mode', default='batch', choices=('batch', 'global'), help='soft IoU of each batch, or the gradient of the dataset-level IoU at running sums')
     p.add_argument('--warmup', type=int, default=500)
     p.add_argument('--cascade-from')
     p.add_argument('--ema', type=float, default=0.)
