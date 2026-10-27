@@ -337,6 +337,35 @@ then budget scaling of representative DEV failures.
   `scripts/querygen_final_v9.sh` (C1-K10, C1-K6, C2-K10) and unseen certificates
   (`scripts/querygen_unseen_certificates.sh`) -> `output/runs/final_v9/`.
 
+- **v9 results (frozen runs, `output/runs/final_v9/`)**: DEV feasible SR C1-K10 21/24, C1-K6 21/24,
+  C2-K10 (DWA x inertia) 18/24; unseen suite C1-K10 28/30, C1-K6 25/30 (7 certified infeasible, 3
+  unresolved; C2 still running) -- details in `REPORT_V9.md`.
+
+## Post-freeze (v10 development, 2026-10-27 night)
+- **Second unseen suite frozen** (`docs/querygen/suites_unseen2.json`, 45 HM3D + 15 MP3D train scenes, new
+  salt, disjoint from DEV/HOLDOUT/unseen; sha256 3bfb1472..., commit d9f23c01) before any post-v9 work.
+  The first unseen suite is consumed by the v9 evaluation and is now part of the development set
+  (DEV 24 + unseen 33 non-certified episodes; `scripts/querygen_dev_v10.sh`).  unseen2 is never run
+  before the v10 freeze.
+- **Defect: in-place rotations ended one step late.**  The executor noticed "heading reached" at the
+  start of the next step and spent that step on a native hold, which is itself an in-place turn that
+  always starts right: `rot_left1` = left+right (a no-op), `rot_left<k>` turned k-1 steps, `rot_right<k>`
+  k+1.  At pUneSGJDrvY's wall-side spawn no left turn was expressible, so every branch hit the wall and
+  the tree was exhausted after 587 edges.  Fix (`rot_exact`): the decision ends on the primitive that
+  reaches the target heading.  pUneSGJDrvY: PASS in 39 s.
+- **K=6 reset-state coverage (`root_cover`)**: at TQSiMZJawkS's spawn only a left turn is free; all six
+  K=6 root candidates started with 'r' (goal, st_goal, goal_tc, wait = native hold starting right,
+  turn_right) or 'f' (creep1).  Nothing behind the robot is observed at reset, so no legal test can tell
+  the sides apart; K=6 now offers both route turns instead of the goal_tc copy at the reset state.
+  TQSiMZJawkS K=6: PASS (1,368 edges).
+- **Momentum STOP**: v9's Oracle goal test issued STOP at any speed level -- an instantaneous halt the
+  inertia model forbids.  8 v9 DWA x inertia solutions stopped while moving (levels 2-6 of 12); all 8
+  still pass when re-verified with braking to rest first (`tests/querygen/rebrake_check.py`), so the v9
+  numbers stand.  v10: STOP of a stateful robot brakes at the brake limit and declares at rest.
+- Budget use: 50-75% of all edges end in already-seen (coarse-key) states; long equal-f plateaus at
+  human timing points (SByzJLxpRGn: 800 expansions at t=100-150 before the breakthrough edge).  The
+  sandbox duplicate predictor (off since the wall-clock era) is being re-tested under the edge budget.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
