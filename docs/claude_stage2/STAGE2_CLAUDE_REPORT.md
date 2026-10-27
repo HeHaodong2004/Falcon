@@ -1,13 +1,15 @@
 # Stage 2 redesign — legal voxel simulation + masked BEV U-Net (Claude, 2026-10-26)
 
-Status (2026-10-27 14:20 UTC, final): **released model `release/stage2_claude_v17a/stage2_claude_v17a.pt`**
+Status (2026-10-27 16:00 UTC, final): **released model `release/stage2_claude_v17a/stage2_claude_v17a.pt`**
 (= `final/v17a.pt`, selected on TRAIN validation: 400 Roots 0.4888, the best of all candidates). Original
 full-development label-aware increment IoU **0.4831** [0.4701, 0.4961] (target > 0.50 **not met**; v16_b 0.4809,
 v15 0.4784, previous model A 0.4171). Complete dense K=6 cold P95 **41.1 ms** at a load average of ~27 from another
 session (< 50 ms met). The identical v15 architecture/code measured 38.8 ms back-to-back in the same conditions
 and 27.4 ms at load ~13-15. Trajectory-wise query ranking (`QUERY_BENCH_REPORT.md`): 92.9 % pairwise accuracy,
-81.8 % top-1 hit, 17.2-cell regret at a common 1.0 s horizon. All numbers below are read from the frozen evaluation
-and benchmark receipts (copied into `release/stage2_claude_v17a/receipts/`).
+81.8 % top-1 hit, 17.2-cell regret at a common 1.0 s horizon. A post-release capacity test (`v17_wide`, 1.5x wider
+network) reached 0.4894 on the 400 validation Roots (+0.0006) at P95 53.0 ms and was not adopted (section 8). All
+numbers below are read from the frozen evaluation and benchmark receipts (copied into
+`release/stage2_claude_v17a/receipts/`).
 
 ## 0. Executive summary
 
@@ -41,7 +43,8 @@ those of the previous range API (section 5, `eventwm_graph/stage2_claude/README.
 | net, full development | v7 0.4563 -> v11 0.4688 -> v12 0.4716 -> v15 0.4784 -> v16_b 0.4809 -> **v17_a 0.4831** |
 
 **What did not help** (sections 3, 8, 9): extra decoder capacity (`v15_cap` identical to v15 at every
-validation), ensembles / weight averages within the lineage, duration-dependent thresholds, auxiliary geometry
+validation), a 1.5x wider network (`v17_wide`: 400-Root validation 0.4894 vs 0.4888, at +11 ms of network time),
+ensembles / weight averages within the lineage, duration-dependent thresholds, auxiliary geometry
 heads, cascade refinement, measured-surface splatting, dihedral test-time augmentation, the constant-velocity
 human sweep channel, and selecting the operating point at 256 px. Two information diagnostics: per-pose (moving)
 human occluders would only touch cells holding 5.5 % of the targets (at average accuracy), and pocket-aware
@@ -51,7 +54,8 @@ unknown lengths along future rays add no information (AUC 0.8396 vs 0.8395 for t
 space; there the model already ranks cells well (within-stratum AUC 0.92) but reaches only ~0.36 IoU, while
 every simulation-determined stratum is at 0.72-0.91. Windows start after ~0.6 s of history and 44 % of them
 rotate into never-seen directions (development IoU 0.41). The model fits its own TRAIN Roots no better than
-unseen ones (0.4613 vs 0.4778), and more capacity changes nothing, so the remaining gap is dominated by what the
+unseen ones (0.4613 vs 0.4778), and more capacity changes little (decoder branches: nothing; 1.5x width: +0.0006
+on the 400 validation Roots), so the remaining gap is dominated by what the
 legal inputs do not reveal rather than by fitting; further gains so far come only in small steps (more
 optimization, more TRAIN Roots).
 
@@ -59,21 +63,24 @@ optimization, more TRAIN Roots).
 range identity hashed on a helper thread when no cached map can match, sliced pinned upload, merged
 hypothetical-graph materialization; per-query batch-1 CUDA graphs on 3 lanes; BatchNorm-folded F16 network.
 
-**Query-ranking benchmark** (`QUERY_BENCH_REPORT.md`, diagnostic): on recorded alternative Query Outcomes of the same Root at a common 1.0 s horizon (885 development Roots, 93 scenes), v16_b orders information gain correctly for 92.8 % [91.0, 94.3] of decisive pairs, picks the best outcome 81.2 % of the time and loses 17.9 cells on average, against 80.2 % / 68.5 % / 49.3 cells for the best legal-map heuristic. Ranking does not change measurably from v7 to v16_b, while the gain magnitude error halves.
+**Query-ranking benchmark** (`QUERY_BENCH_REPORT.md`, diagnostic): on recorded alternative Query Outcomes of the same Root at a common 1.0 s horizon (885 development Roots, 93 scenes), v17_a orders information gain correctly for 92.9 % [91.2, 94.4] of decisive pairs, picks the best outcome 81.8 % of the time and loses 17.2 cells on average, against 80.2 % / 68.5 % / 49.3 cells for the best legal-map heuristic. Ranking does not change measurably from v7 (92.6 %) to v16_b / v17_a (92.8 / 92.9 %), while the gain magnitude error halves (expected-gain MAE v7 272 cells, v16_b 141, v17_a 133).
 
 ## 1. Results
 
-### 1.0 Current best: frozen model `final/v15.pt` (checkpoint `training/v15_chain/final.pt` + frozen operating point), 256 px sensing
+### 1.0 Released model `final/v17a.pt` (= `release/stage2_claude_v17a/`) and all full-development results, 256 px sensing
 
 Lineage (all TRAIN Roots only): v7 (2 epochs) -> v7_restart_iou (1-epoch warm restart + soft IoU loss) ->
 v11_ext (1-epoch warm restart with three new legal input channels, zero-initialized coarse-level capacity,
 EMA, +2,914 TRAIN Roots) -> v12_distill (1-epoch self-distillation restart from frozen v11_ext) -> v13, v14,
-v15 (three more 1-epoch self-distillation restarts, each from and distilled from the previous model; section 8).
-Operating point selected on 400 scene-disjoint TRAIN-validation Roots (`select.py`): class rule, FREE if
-r(1-b) > 0.50, BLOCKED if rb > 0.575 (validation 0.4853; v12 0.4793; v11 0.4750; v7r 0.4711; v7 0.4628).
-Sensor resolution selected on the 199 TRAIN-validation Roots (22 scenes) with both packet resolutions
-(`sensor_select.py`): 256 px 0.4743 vs 128 px 0.4722 (v12: 0.4675 vs 0.4648). Original full-development
-evaluation (`evaluate.py`, `--sensor-directory full_range_branches_256`, original assertions, `summarize()`):
+v15 (three more 1-epoch self-distillation restarts, each from and distilled from the previous model) -> v16_a
+(+14 % TRAIN Roots) -> v17_a (24,258 TRAIN Roots, teacher v16_a, soft-IoU weight 1.0; section 8). v17_a has
+v15's architecture (no decoder side branches, 10.4M parameters) and runs the same code.
+Operating points selected on 400 scene-disjoint TRAIN-validation Roots (`select.py`): v17_a class rule, FREE if
+r(1-b) > 0.475, BLOCKED if rb > 0.575 (validation 0.4888); v15 class rule 0.50 / 0.575 (validation 0.4853; v12
+0.4793; v11 0.4750; v7r 0.4711; v7 0.4628). Sensor resolution selected on the 199 TRAIN-validation Roots (22
+scenes) with both packet resolutions (`sensor_select.py`): v17_a 256 px 0.4764 vs 128 px 0.4755; v15 0.4743 vs
+0.4722 (v12: 0.4675 vs 0.4648). Original full-development evaluation (`evaluate.py`, `--sensor-directory
+full_range_branches_256`, original assertions, `summarize()`):
 
 | Model | sensing | full-dev label-aware IoU | revelation IoU | pooled IoU | bootstrap 95 % |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -89,40 +96,53 @@ evaluation (`evaluate.py`, `--sensor-directory full_range_branches_256`, origina
 Every full-development evaluation run in this work is listed in this table (v7, v11, v12, v15, v16_b, v17_a); each candidate
 was selected and frozen on TRAIN validation before its single development evaluation.
 
-v16_b (from `v15_cap` = v15 + decoder side branches, one more 1-epoch restart with +19 % TRAIN Roots and soft-IoU weight 1.0; 400-Root operating point class 0.55 / 0.575, validation 0.4869; 256 px chosen on the 199 validation Roots, 0.4754 vs 0.4740) is the most accurate verified model: full development **0.4809** (motion: rotation 0.4083, translation 0.5533, mixed 0.5010; duration <= 0.5 s 0.5071). Its decoder side branches cost network time: dense K=6 cold P50 32.0 / P95 36.0 ms (`benchmark/v16b_bench256.json`, load average ~27-31; network 15.9 ms median vs 11.2-11.6 ms for v15), still < 50 ms but outside the preferred band, so v15 remains the faster frozen alternative (24.1 / 27.4 ms at load ~13-15). All `test_api` contract tests pass for v16_b.
+v16_b (from `v15_cap` = v15 + decoder side branches, one more 1-epoch restart with +19 % TRAIN Roots and soft-IoU weight 1.0; 400-Root operating point class 0.55 / 0.575, validation 0.4869; 256 px chosen on the 199 validation Roots, 0.4754 vs 0.4740) reached full development **0.4809** (motion: rotation 0.4083, translation 0.5533, mixed 0.5010; duration <= 0.5 s 0.5071). Its decoder side branches cost network time: dense K=6 cold P50 32.0 / P95 36.0 ms (`benchmark/v16b_bench256.json`, load average ~27-31; network 15.9 ms median vs 11.2-11.6 ms for v15), still < 50 ms but outside the preferred band, so v15's architecture (also v17_a's) remains the faster one (v15: 24.1 / 27.4 ms at load ~13-15). All `test_api` contract tests pass for v16_b.
 
-| metric | graph-only baseline | v12 | v15 |
+v17_a (released; from v16_a, one more 1-epoch restart with 24,258 TRAIN Roots, teacher v16_a, soft-IoU weight 1.0) reached full development **0.4831** [0.4701, 0.4961] (revelation 0.5216, pooled 0.4695; FREE precision / recall 0.6236 / 0.6654, BLOCKED 0.6834 / 0.6277; motion: rotation 0.4106, translation 0.5573, mixed 0.5036; duration <= 0.5 s 0.5101; paired delta vs the graph-only baseline [0.2535, 0.2776]; out-of-domain positives 0; `release/stage2_claude_v17a/receipts/full_dev_summary.json`). All `test_api` contract tests pass for v17_a (`receipts/final_pipeline_log.txt`). Complete latency of `final/v17a.pt` (same protocol as v15 below; physical GPU0, this session's own jobs paused by `quiet.py`, load average ~27 from another session's jobs) — `benchmark/v17a_bench256.json` = `receipts/latency_benchmark.json`:
+
+| cohort / cache | K=1 P50 / P95 | K=4 P50 / P95 | K=6 P50 / P95 |
 | --- | ---: | ---: | ---: |
-| hierarchical label_aware_delta_iou | 0.217733 | 0.471554 | 0.478382 |
-| hierarchical revelation_iou | 0.286985 | 0.507719 | 0.514511 |
-| hierarchical revelation_precision | 0.407199 | 0.681128 | 0.695057 |
-| hierarchical revelation_recall | 0.492926 | 0.666027 | 0.664513 |
-| hierarchical free precision / recall | 0.3665 / 0.4197 | 0.6048 / 0.6633 | 0.6201 / 0.6605 |
-| hierarchical blocked precision / recall | 0.3137 / 0.3868 | 0.6657 / 0.6236 | 0.6788 / 0.6234 |
-| pooled label_aware_delta_iou | 0.223950 | 0.457945 | 0.464777 |
+| dense, cold | 17.908 / 24.277 | 29.297 / 33.504 | **34.844 / 41.112** |
+| dense, map_warm_new_queries | 12.526 / 16.046 | 24.952 / 29.017 | 30.981 / 34.888 |
+| dense, warm | 12.118 / 15.788 | 24.821 / 28.415 | 31.546 / 36.329 |
+| representative, cold | 14.886 / 16.953 | 25.177 / 27.957 | 30.965 / 34.973 |
+| representative, map_warm_new_queries | 10.891 / 12.106 | 21.411 / 24.428 | 27.680 / 29.918 |
+| representative, warm | 10.903 / 12.985 | 21.585 / 23.931 | 27.564 / 30.985 |
 
-Roots 2110, scenes 108, windows 47128; zero-new windows {"windows": 2561, "candidate_exact_empty": 1724 (v12: 1648), "baseline_exact_empty": 736}; out-of-domain positives 0; v15 paired delta vs the graph-only baseline [0.2486, 0.2727].
+startup: constructor 11334 ms, first complete K=6 call 322 ms; dense K=6 cold maximum 43.2 ms. Median / P95 dense-cold K=6 stage times: graph preparation 3.9 / 6.8 ms, legal map 5.1 / 10.7 ms, query features 5.8 / 8.9 ms, network 13.5 / 16.1 ms, decode + sparse increment + complete hypothetical graphs 5.0 / 6.4 ms. Every CPU-side stage is ~1.5-2x slower than in the low-load v15 run below (network 1.2x), so the difference to v15's 27.4 ms is machine load, not the model: back-to-back in the same conditions, v17_a measured 36.2 / 40.6 ms (`benchmark/v17a_bench256_r2.json`) and 35.0 / 40.0 ms (`benchmark/v17a_bench256_r3.json`), v15 34.7 / 38.8 ms (`benchmark/v15_bench256_r4.json`).
+
+| metric | graph-only baseline | v12 | v15 | v17_a |
+| --- | ---: | ---: | ---: | ---: |
+| hierarchical label_aware_delta_iou | 0.217733 | 0.471554 | 0.478382 | 0.483102 |
+| hierarchical revelation_iou | 0.286985 | 0.507719 | 0.514511 | 0.521635 |
+| hierarchical revelation_precision | 0.407199 | 0.681128 | 0.695057 | 0.701176 |
+| hierarchical revelation_recall | 0.492926 | 0.666027 | 0.664513 | 0.670748 |
+| hierarchical free precision / recall | 0.3665 / 0.4197 | 0.6048 / 0.6633 | 0.6201 / 0.6605 | 0.6236 / 0.6654 |
+| hierarchical blocked precision / recall | 0.3137 / 0.3868 | 0.6657 / 0.6236 | 0.6788 / 0.6234 | 0.6834 / 0.6277 |
+| pooled label_aware_delta_iou | 0.223950 | 0.457945 | 0.464777 | 0.469531 |
+
+Roots 2110, scenes 108, windows 47128; zero-new windows {"windows": 2561, "candidate_exact_empty": 1724 (v12: 1648; v17_a: 1768), "baseline_exact_empty": 736}; out-of-domain positives 0; v15 paired delta vs the graph-only baseline [0.2486, 0.2727].
 
 Pooled confusion of v15 (rows true U/F/B, cols predicted): [[1703829845, 1407032, 2519726], [1448066, 2948441, 155366], [3480605, 390023, 5688660]]
 
-| stratum | windows | v7 (128 px) | v11 (256 px) | v12 (256 px) | v15 (256 px) |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| duration:<=0.5 | 30397 | 0.4805 | 0.4917 | 0.4949 | 0.5038 |
-| duration:0.5-1 | 9894 | 0.4467 | 0.4586 | 0.4613 | 0.4680 |
-| duration:1-2 | 5793 | 0.4126 | 0.4259 | 0.4289 | 0.4345 |
-| duration:>2 | 1044 | 0.4192 | 0.4372 | 0.4395 | 0.4460 |
-| human:present | 40140 | 0.4390 | 0.4520 | 0.4550 | 0.4617 |
-| human:zero | 6988 | 0.4608 | 0.4726 | 0.4740 | 0.4815 |
-| motion:mixed | 23987 | 0.4742 | 0.4888 | 0.4910 | 0.4982 |
-| motion:rotation | 20534 | 0.3862 | 0.3967 | 0.4005 | 0.4065 |
-| motion:translation | 2607 | 0.5200 | 0.5396 | 0.5416 | 0.5505 |
-| new_cells:1-99 | 18807 | 0.4537 | 0.4539 | 0.4571 | 0.4687 |
-| new_cells:>=100 | 25760 | 0.4418 | 0.4554 | 0.4582 | 0.4647 |
+| stratum | windows | v7 (128 px) | v11 (256 px) | v12 (256 px) | v15 (256 px) | v17_a (256 px) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| duration:<=0.5 | 30397 | 0.4805 | 0.4917 | 0.4949 | 0.5038 | 0.5101 |
+| duration:0.5-1 | 9894 | 0.4467 | 0.4586 | 0.4613 | 0.4680 | 0.4719 |
+| duration:1-2 | 5793 | 0.4126 | 0.4259 | 0.4289 | 0.4345 | 0.4390 |
+| duration:>2 | 1044 | 0.4192 | 0.4372 | 0.4395 | 0.4460 | 0.4509 |
+| human:present | 40140 | 0.4390 | 0.4520 | 0.4550 | 0.4617 | 0.4664 |
+| human:zero | 6988 | 0.4608 | 0.4726 | 0.4740 | 0.4815 | 0.4866 |
+| motion:mixed | 23987 | 0.4742 | 0.4888 | 0.4910 | 0.4982 | 0.5036 |
+| motion:rotation | 20534 | 0.3862 | 0.3967 | 0.4005 | 0.4065 | 0.4106 |
+| motion:translation | 2607 | 0.5200 | 0.5396 | 0.5416 | 0.5505 | 0.5573 |
+| new_cells:1-99 | 18807 | 0.4537 | 0.4539 | 0.4571 | 0.4687 | 0.4802 |
+| new_cells:>=100 | 25760 | 0.4418 | 0.4554 | 0.4582 | 0.4647 | 0.4691 |
 
 Per-Root comparison v11 vs v7 (same 2,110 Roots): label-aware IoU improved on 69.9 % of Roots (worse on
 28.8 %), mean +0.0140 / median +0.0128; per-scene mean improved in 94 of 108 scenes.
 
-Complete latency of the same frozen `final/v15.pt` (original 32 workloads with 256 px packets
+Complete latency of the frozen `final/v15.pt` at low machine load (original 32 workloads with 256 px packets
 `range_benchmark_256`, K=1/4/6, 3 repetitions, `lanes=3`, BatchNorm folded; physical GPU0 with this
 session's own training and packet generation paused by `quiet.py`; load average 15.5 before / 12.8 after the
 run, close to the ~10 of the v12 run) — `benchmark/v15_bench256_r3.json`, `benchmark/quiet_v15_256_r3.json`:
@@ -149,8 +169,9 @@ ordinary workloads. For reference, v12 with the code before the exact latency en
 Contract tests on `final/v15.pt` (`test_api.py`): exact domain, zero horizon, no mutation, batched == single
 bit-identical, lanes=3 == lanes=1 bit-identical — all pass; cache contract (`test_cache.py`) passes.
 
-The required accuracy (> 0.50) is **not** reached (best 0.4784); see sections 9-10. The latency requirement is
-met with the preferred 20-30 ms band reached: dense K=6 cold P50 24.1 / P95 27.4 ms.
+The required accuracy (> 0.50) is **not** reached (v15 0.4784; released v17_a 0.4831); see sections 9-10. The
+latency requirement is met; the preferred 20-30 ms band is reached at low machine load (v15, same architecture and
+code as v17_a: dense K=6 cold P50 24.1 / P95 27.4 ms).
 
 ### 1.1 Frozen model `final/v7.pt` (checkpoint `training/past_v7/final.pt` + frozen operating point)
 
@@ -374,17 +395,18 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | ens_v7r_v11 | logit ensemble of v7_restart_iou + v11_ext (teacher candidate) | 0.4608 (< v11_ext alone; not used) |
 | v12_distill | warm start from v11_ext, 1 epoch (peak 4e-4), self-distillation from frozen v11_ext (soft targets 50 %), seed 2, otherwise as v11_ext | 0.4645 @4k, 0.4609 @8k, 0.4644 @12k, 0.4676 @16k, 0.4680 @20k, **final 0.4676** |
 | soup_v11_v12 | weight average of v11_ext and v12_distill | 0.4657 (< v12; not used) |
-
+| v13-15_chain | chain of 1-epoch self-distillation restarts (each warm-starts from and distils from the previous model), stopped when a cycle gains < 0.001 | v13 (from v12): 0.4665 @6k, 0.4684 @12k, 0.4703 @18k, 0.4702 @24k, **final 0.4710**; v14 (from v13): 0.4675 @6k, 0.4710 @12k, 0.4714 @18k, 0.4720 @24k, **final 0.4724**; v15 (from v14): 0.4710 @6k, 0.4720 @12k, 0.4720 @18k, **final 0.4742** (chain best; the chain is limited to three cycles) |
+| v15_cap | as the v15 cycle (from v14, teacher v14, seed 15, same data) plus zero-initialized decoder side branches (`--dside 1:96:2,2:128:2`, +0.96M parameters) on physical GPU1 | 0.4711 @6k (v15: 0.4710), 0.4720 @12k, 0.4720 @18k, **final 0.4742** — identical to v15 at every threshold of every validation: decoder capacity is not what limits accuracy. Pre-registered tie-break (before its 400-Root result): it is preferred over v15 only with >= 0.001 more on the 400 Roots, since it costs ~1.5 ms of network time |
 | v16_a | 1-epoch self-distillation restart from v15 (teacher v15, seed 16) with 20,969 TRAIN Roots (+14 %: new 128 px packets from the unchanged environment replay) | 0.4719 @6k, 0.4720 @12k, 0.4746 @18k, 0.4744 @24k, **final 0.4753** (v15 0.4742) |
 | v16_b | 1-epoch restart from `v15_cap` (teacher v15, seed 17), 21,974 TRAIN Roots, soft-IoU weight 1.0 (instead of 0.5) | 0.4715 @6k, 0.4734 @12k, 0.4764 @18k, 0.4751 @24k, 0.4772 @30k, **final 0.4772** (v16_a: 0.4719 / 0.4720 / 0.4746 / 0.4744 / 0.4753 / 0.4753; higher at every threshold >= 0.4 and much higher at low thresholds, e.g. 0.4559 vs 0.4433 at 0.3). On the 400-Root selection set with optimized class thresholds the advantage shrinks to +0.0003 (0.4869 vs 0.4866), i.e. most of the 160-Root lead came from thresholds the final rule does not use; v17 cycles use weight 1.0 nonetheless (it is not worse) |
 | v17_a | 1-epoch restart from v16_a (teacher v16_a, seed 18), 24,258 TRAIN Roots, soft-IoU weight 1.0 | 0.4768 @6k, 0.4762 @12k, 0.4766 @18k, 0.4771 @24k, 0.4775 @30k, **final 0.4772** (v16_a 0.4753; v16_b 0.4772) |
-| v17_wide | capacity test: v16_b widened 1.5x at every level by a function-preserving Net2Wider transform (`widen.py`: duplicated producer filters, random consumer splits summing to one; strict-F32 logit difference 4.4e-5; 11.4M -> 15.9M parameters, ~1.57x per-query network time), then the same 1-epoch recipe as v17_a (teacher v16_b, soft-IoU 1.0, seed 19). Motivation: `v15_cap`'s zero-initialized decoder branches barely grew in one epoch (output scale ~0.002), so it did not test whether the network is capacity-limited | running: 0.4741 @6k (from v16_b 0.4772) |
+| v17_wide | capacity test: v16_b widened 1.5x at every level by a function-preserving Net2Wider transform (`widen.py`: duplicated producer filters, random consumer splits summing to one; strict-F32 logit difference 4.4e-5; 11.4M -> 15.9M parameters, ~1.57x per-query network time), then the same 1-epoch recipe as v17_a (teacher v16_b, soft-IoU 1.0, seed 19). Motivation: `v15_cap`'s zero-initialized decoder branches barely grew in one epoch (output scale ~0.002), so it did not test whether the network is capacity-limited | 26,975 TRAIN Roots (v17_a's 24,258 + 2,717 newer packets): 0.4741 @6k, 0.4780 @12k, 0.4765 @18k, 0.4775 @24k, 0.4778 @30k, 0.4793 @36k, **final 0.4791** (v17_a 0.4772). 400-Root selection (`selection/v17wide.json`): class 0.525 / 0.575, **0.4894** vs v17_a 0.4888 (+0.0006). Dense K=6 cold P50 / P95 46.3 / 53.0 ms vs 35.0 / 40.0 ms for v17_a measured back-to-back (`benchmark/v17wide_probe_bench256.json` with v17_a's operating point, `benchmark/v17a_bench256_r3.json`; network median 24.7 vs 13.6 ms). Pre-registered replacement rule (>= 0.4908 on the 400 Roots and P95 < 50 ms) failed on both counts: not adopted and not evaluated on the development split. With `v15_cap`, this answers the capacity question: +53 % parameters over v17_a and +11 % data buy +0.0006 |
+
 Operating points on 400 TRAIN-validation Roots (`select.py`, best rule, hierarchical label-aware IoU):
 v7 0.4628 (class 0.425/0.525) -> v7r 0.4711 (class 0.475/0.575) -> v11 0.4750 (class 0.475/0.575) ->
-v12 0.4793 (class 0.475/0.55) -> v15 0.4853 (class 0.50/0.575) -> v16_a 0.4866 (class 0.50/0.575), v16_b 0.4869 (class 0.55/0.575) -> v17_a 0.4888 (class 0.475/0.575; no decoder side branches, so v15's network cost) (v15: `v15_cap` 0.4853 as well, not preferred under the
-pre-registered tie-break). The logit ensemble of v15 + `v15_cap` scores 0.4742 on the 160 Roots, the same as each member; the logit ensemble of v16_a + v16_b (different starts, seeds and IoU weights) scores 0.4872 on the 400 Roots, +0.0003 over v16_b alone — not worth twice the network time.
-| v13-15_chain | chain of 1-epoch self-distillation restarts (each warm-starts from and distils from the previous model), stopped when a cycle gains < 0.001 | v13 (from v12): 0.4665 @6k, 0.4684 @12k, 0.4703 @18k, 0.4702 @24k, **final 0.4710**; v14 (from v13): 0.4675 @6k, 0.4710 @12k, 0.4714 @18k, 0.4720 @24k, **final 0.4724**; v15 (from v14): 0.4710 @6k, 0.4720 @12k, 0.4720 @18k, **final 0.4742** (chain best; the chain is limited to three cycles) |
-| v15_cap | as the v15 cycle (from v14, teacher v14, seed 15, same data) plus zero-initialized decoder side branches (`--dside 1:96:2,2:128:2`, +0.96M parameters) on physical GPU1 | 0.4711 @6k (v15: 0.4710), 0.4720 @12k, 0.4720 @18k, **final 0.4742** — identical to v15 at every threshold of every validation: decoder capacity is not what limits accuracy. Pre-registered tie-break (before its 400-Root result): it is preferred over v15 only with >= 0.001 more on the 400 Roots, since it costs ~1.5 ms of network time |
+v12 0.4793 (class 0.475/0.55) -> v15 0.4853 (class 0.50/0.575; `v15_cap` 0.4853 as well, not preferred under the pre-registered tie-break) ->
+v16_a 0.4866 (class 0.50/0.575), v16_b 0.4869 (class 0.55/0.575) -> v17_a 0.4888 (class 0.475/0.575; no decoder
+side branches, so v15's network cost); `v17_wide` 0.4894 (class 0.525/0.575; not adopted, see above). The logit ensemble of v15 + `v15_cap` scores 0.4742 on the 160 Roots, the same as each member; the logit ensemble of v16_a + v16_b (different starts, seeds and IoU weights) scores 0.4872 on the 400 Roots, +0.0003 over v16_b alone — not worth twice the network time.
 
 An equal-strength second member for an ensemble (v7 config, seed 1, +2,914 new TRAIN Roots) was
 started but stopped: from 17:21 UTC an external Stage-1 training job (another session) occupies
@@ -395,6 +417,8 @@ physical GPU1, which would have made the run take ~9 h and slowed the other job.
 * Auxiliary geometry supervision (walls/floor from all Root frames) did not improve the main metric;
   unseen-wall completion stayed poor (precision 0.55 / recall 0.08 at 4k steps).
 * 2× model width: +0.003 at equal steps.
+* 1.5× width of the final lineage (`v17_wide`, function-preserving widening of v16_b + the v17_a recipe on 11 %
+  more TRAIN Roots): 400-Root validation 0.4894 vs 0.4888 for v17_a, at P95 53.0 ms vs 40.0 ms (fails the gate).
 * Measured-surface splatting and sub-voxel hit refinement: no material gain. 256 px sensing gives only a
   small (but consistent) gain for models trained on 128 px packets (+0.002-0.003 on 199 validation
   Roots for v7r, v11 and v12); it is used for the final models.
@@ -477,6 +501,10 @@ $R eventwm_graph.stage2_claude.train --name v16_b --device cuda:1 --epochs 1 --w
 #      A cycle trains on the packets that exist when it starts; each run directory holds that exact set as train_roots.json
 #      (v16_a, v16_b, v17_a reconstructed from packet creation order with `reconstruct_roots.py`, counts equal to the logs);
 #      `--train-roots output/claude_stage2/training/<run>/train_roots.json` re-runs a cycle on exactly that set.)
+# 1g. capacity test v17_wide (not adopted): function-preserving 1.5x widening of v16_b, then the v16_b command with
+#     --warm output/claude_stage2/training/v16b_wide_init.pt --teacher output/claude_stage2/training/v16_b/final.pt --seed 19
+#     (exact settings: training/v17_wide/config.json and train_roots.json)
+$R eventwm_graph.stage2_claude.widen output/claude_stage2/training/v16_b/final.pt output/claude_stage2/training/v16b_wide_init.pt 1.5 0
 # optional refinement stage on a frozen trained base
 $R eventwm_graph.stage2_claude.train --name cascade --device cuda:0 --epochs 1 --workers 7 \
    --cascade-from output/claude_stage2/training/past_v7/final.pt --widths 24,48,64,96,128 --blocks 1,1,2,2,2 --lr 1e-3

@@ -157,7 +157,7 @@ PY=/home/haodong/miniforge3/envs/eventwm-falcon/bin/python; R="$PY scripts/stage
 export CUDA_VISIBLE_DEVICES=0,1
 $R eventwm_graph.stage2_claude.query_audit --workers 6                   # step 1 -> audit.json
 $R eventwm_graph.stage2_claude.query_bench prepare --workers 6           # labels per comparable outcome (cache/)
-for m in v7:full_range_branches v11 v12 v15 v16b; do n=${m%%:*}; s=${m#*:}; [ "$s" = "$m" ] && s=full_range_branches_256
+for m in v7:full_range_branches v11 v12 v15 v16b v17a; do n=${m%%:*}; s=${m#*:}; [ "$s" = "$m" ] && s=full_range_branches_256
   $R eventwm_graph.stage2_claude.query_bench predict --checkpoint output/claude_stage2/final/$n.pt --name $n \
      --device cuda:0 --workers 2 --sensor-directory $s; done
 $R eventwm_graph.stage2_claude.query_bench heuristic --checkpoint output/claude_stage2/final/v15.pt --device cuda:0
