@@ -291,6 +291,25 @@ then budget scaling of representative DEV failures.
   ORCA x inertia 2/3 so far (tQ5s4ShP627 fails: close mode with momentum -> 2,873 overlap edges; fixed by
   restricting close to stateless dynamics).
 
+- **Mixed mode (v9, `tc_variants`)**: conservative queries plus explicit tight+close copies of the
+  progress queries (`goal_tc`, `st_goal_tc`) instead of tight/close everywhere (all-tight planning cut
+  the corner at Nfvxx8J5NCo's passage top).  With the Oracle options heading_h + escape_penalty +
+  escape_h + prefix_cache it solves **LEFTm3JecaC** (86 steps, 1,289 edges), **TEEsavR23oF** (216 steps;
+  also solved by the all-tight/close config with escape_penalty, min clearance 0.275 m) and
+  Qpor2mEya8F (634 edges, min clearance 0.405 m).  Note: no witness with a 0.30/0.35 m human margin was
+  found for TEEsavR23oF in 2,700 s, yet the Oracle found a 0.275 m solution -- margin searches are
+  incomplete evidence.
+- **3t8DB4Uzvkt is feasible**: 3-hour witness searches found verified 400/409-step solutions (two long
+  waits of ~80 and ~130 steps).  All 24 non-certified DEV episodes now have verified witnesses.
+- Full v9 (tight+close everywhere) K=10 DEV: all 15 previously passing + Qpor2mEya8F, bzCsHPLDztK,
+  bCPU9suPUw9 pass; YRUkbU5xsYj, Nfvxx8J5NCo, TEEsavR23oF, LEFTm3JecaC fail (3t8DB4Uzvkt, SByzJLxpRGn
+  pending at the time of writing).
+- Escape map v2 (Oracle `escape_h`): confinement test (static contact within 3 primitive layers) then a
+  weighted A* escape path (BFS never reached YRUkbU5xsYj's 49-primitive escape within 12k sims).
+- Second configuration: DWA x inertia passes 4/4 easy DEV episodes; ORCA x inertia fails 2/4 (one-step
+  safety check cannot protect a robot that brakes over 6 steps) -> ORCA kept for instant-stop dynamics.
+  Full-DEV DWA x inertia run started.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
