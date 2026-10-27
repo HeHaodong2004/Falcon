@@ -25,13 +25,33 @@ contact (declared spawn-escape rule).
 | v7b K=10 (previous best) | 15/24 (62.5%) | 15/28 | 9 | | | | |
 | **v9 C1 ORCA x native K=10** | **21/24 (87.5%)** | 21/28 | 3t8DB4Uzvkt, Nfvxx8J5NCo, YRUkbU5xsYj | 0.866 | 0.281 m | 339 / 2548 | 203 / 1466 |
 | **v9 C1 ORCA x native K=6** | **21/24 (87.5%)** | 21/28 | LT9Jq6dN3Ea, Nfvxx8J5NCo, YRUkbU5xsYj | 0.855 | 0.286 m | 217 / 3024 | 207 / 1579 |
-| v9 C2 DWA x inertia K=10 | (running) | | | | | | |
+| v9 C2 DWA x inertia K=10 | 18/24 (75.0%) | 18/28 | 3t8DB4Uzvkt, LEFTm3JecaC, Nfvxx8J5NCo, SByzJLxpRGn, TEEsavR23oF, YRUkbU5xsYj | 0.871 | 0.268 m | 433 / 3153 | 335 / 2278 |
+
+C2 note: in 8 C2 solutions (DEV and unseen) the Oracle's goal test issued STOP while the robot still
+had speed (levels 2-6 of 12), an instantaneous halt the inertia model does not allow.  All 8 still pass
+when re-verified with braking to rest at the brake limit before STOP (`tests/querygen/rebrake_check.py`),
+so the numbers stand; v10 enforces braking in the executor.
 
 Union of K=10 and K=6: 22/24; 3t8DB4Uzvkt (K=6 only) and LT9Jq6dN3Ea (K=10 only) sit near the edge of the
 6000-edge budget and flip with small search changes.  Generator latency P50 36-42 ms per decision.
 
 ## 3. Unseen-scene suite (40 episodes, never used for development)
-(filled in when the runs and certificates complete)
+Feasibility (privileged, computed after the freeze): 25 verified witnesses (1,800 s searches) plus 5
+episodes proven feasible by a replay-verified Oracle solution of some configuration (iePHCSf119p,
+iigzG1rtanx, mJXqzFtmKg4, Pm6F8kyY3z2, PuKPg4mmafe) = **30 feasible**; **7 certified infeasible**
+(sT4fr6TAbpF: goal region unreachable for Spot's body; D8bT1ambLFc, FgswoxWb3uN, s19Uyn7AWwv, JeFG25nYj2p,
+VLzqgDo317F: no escape from the spawn; gDDiZeyaVc2: exact-gait progress search exhausted); **3
+unresolved** (W16Bm4ysK8v, kdFEfVoT1WE, nMeXfQU4PMS: every certificate passes, 1,800 s witness searches
+time out; 9,000 s searches running).
+
+| config | feasible SR | strict SR | feasible failures | SPL | steps P50 | min human clearance (min / P50) | Oracle edges P50/P95 | Oracle s P50/P95 | generator ms P50/P95 |
+|---|---|---|---|---|---|---|---|---|---|
+| **C1 ORCA x native K=10** | **28/30 (93.3%)** | 28/40 | pUneSGJDrvY, zUG6FL9TYeR | 0.841 | 115 | 0.275 / 0.439 m | 102 / 5475 | 96 / 4993 | 38 / 74 |
+| **C1 ORCA x native K=6** | **25/30 (83.3%)** | 25/40 | TQSiMZJawkS, iePHCSf119p, p4ZPcGtk6Ex, pUneSGJDrvY, zUG6FL9TYeR | 0.819 | 103 | 0.251 / 0.425 m | 47 / 2703 | 86 / 2414 | 41 / 81 |
+| C2 DWA x inertia K=10 | (running) | | | | | | | | |
+
+No unresolved episode was solved by any configuration (all FAIL_SEARCH at 6,000 edges); if the long
+witness searches prove them feasible they count as feasible failures.  The union of K=10 and K=6 is 28/30.
 
 ## 4. Remaining DEV failures
 * **Nfvxx8J5NCo**: the narrow passage opening lies at the end of the inflated wall band and is unobserved while
