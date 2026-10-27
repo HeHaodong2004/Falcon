@@ -103,10 +103,13 @@ class Query:
     label: str = ''
     meta: dict = field(default_factory=dict)
 
+    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost')    # meta flags that change the execution
+
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
         h = None if self.heading is None else round(float(self.heading), 2)
-        return (self.kind, v, h, int(self.duration), round(float(self.speed), 2))
+        m = tuple((k, (self.meta or {})[k]) for k in self.EXEC_META if (self.meta or {}).get(k))
+        return (self.kind, v, h, int(self.duration), round(float(self.speed), 2))+((m,) if m else ())
 
     def describe(self):
         return dict(kind=self.kind, via=[[float(x), float(z)] for x, z in self.via], heading=self.heading,
