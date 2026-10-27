@@ -28,7 +28,7 @@ Each `delta` (one per trajectory, same order) contains:
 | key | meaning |
 | --- | --- |
 | `candidate_cells` (n,2) int32 | ORIGINAL universe: initially UNKNOWN cells whose f32 centers lie within 11 m of a supplied f32 position, original row-major order (bit-identical to `stage2_quality.features.candidate_mask`) |
-| `probabilities` (n,3) f32 | [UNKNOWN, FREE, BLOCKED] = [1-r, r(1-b), rb] |
+| `probabilities` (n,3) f32 | [UNKNOWN, FREE, BLOCKED] = [1-r, r(1-b), rb]; scores trained with positive weighting and a soft IoU term, **not calibrated posteriors** (the frozen operating point turns them into `states`; recalibrate on TRAIN validation before using them as probabilities downstream) |
 | `states` (n,) uint8 | hard decision (frozen operating point stored in the checkpoint) |
 | `heights` (n,) f32 | start base height (FREE/BLOCKED certificates carry base/navmesh height) |
 | `static_updates` | concrete `SparseIncrement` of the predicted FREE/BLOCKED cells, timestamp = path end |
