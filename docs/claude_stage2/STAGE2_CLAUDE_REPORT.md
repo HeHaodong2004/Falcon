@@ -363,7 +363,7 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | soup_v11_v12 | weight average of v11_ext and v12_distill | 0.4657 (< v12; not used) |
 
 | v16_a | 1-epoch self-distillation restart from v15 (teacher v15, seed 16) with 20,969 TRAIN Roots (+14 %: new 128 px packets from the unchanged environment replay) | 0.4719 @6k, 0.4720 @12k, 0.4746 @18k, 0.4744 @24k, **final 0.4753** (v15 0.4742) |
-| v16_b | 1-epoch restart from `v15_cap` (teacher v15, seed 17), 21,974 TRAIN Roots, soft-IoU weight 1.0 (instead of 0.5) | 0.4715 @6k, 0.4734 @12k, 0.4764 @18k (v16_a: 0.4719 / 0.4720 / 0.4746; higher at every threshold >= 0.4, and much higher at low thresholds: 0.4578 vs 0.4415 at 0.3); running. On this evidence line A's next cycle (v17_a) also uses weight 1.0 |
+| v16_b | 1-epoch restart from `v15_cap` (teacher v15, seed 17), 21,974 TRAIN Roots, soft-IoU weight 1.0 (instead of 0.5) | 0.4715 @6k, 0.4734 @12k, 0.4764 @18k, 0.4751 @24k, 0.4772 @30k, **final 0.4772** (v16_a: 0.4719 / 0.4720 / 0.4746 / 0.4744 / 0.4753 / 0.4753; higher at every threshold >= 0.4 and much higher at low thresholds, e.g. 0.4559 vs 0.4433 at 0.3). Soft-IoU weight 1.0 adds ~+0.002 on top of a cycle; from v17 on both lines use it |
 Operating points on 400 TRAIN-validation Roots (`select.py`, best rule, hierarchical label-aware IoU):
 v7 0.4628 (class 0.425/0.525) -> v7r 0.4711 (class 0.475/0.575) -> v11 0.4750 (class 0.475/0.575) ->
 v12 0.4793 (class 0.475/0.55) -> v15 0.4853 (class 0.50/0.575) -> v16_a 0.4866 (class 0.50/0.575) (v15: `v15_cap` 0.4853 as well, not preferred under the
