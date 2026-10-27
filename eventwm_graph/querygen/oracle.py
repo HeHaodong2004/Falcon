@@ -17,7 +17,7 @@ import math
 import time
 import numpy as np
 
-from .native import MAX_EPISODE_STEPS
+from .native import MAX_EPISODE_STEPS, SUCCESS_DISTANCE
 
 
 @dataclass
@@ -49,6 +49,8 @@ class OracleConfig:
                                       # movement query tried from the parent failed natively (privileged gate)
     fine_by_edge: bool = True         # fine de-duplication for states reached by manoeuvre edges (else: stuck nodes)
     tie_bucket: float = 0.            # >0: f is bucketed and ties prefer the later node (cross waiting plateaus forward in time)
+    goal_test: bool = True            # v7b: try the generator's STOP at once on any new state inside the success radius
+    goal_fine_m: float = 1.0          # v7b: fine de-duplication for states this close to the goal (geodesic)
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
     st_heuristic: bool = True         # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
     st_fallback: float = 300.         # extra steps when the space-time model finds no arrival
@@ -372,9 +374,25 @@ class Oracle:
             if child.geodesic < best.geodesic:
                 best = child
             queries, diag = propose(child)
+            if cfg.goal_test and child.geodesic < SUCCESS_DISTANCE:
+                # privileged goal test on generation: a state inside the success
+                # radius tries the generator's STOP immediately (before any
+                # de-duplication could merge it with a farther state)
+                stop_q = next((x for x in queries if x.kind == 'stop'), None)
+                if stop_q is not None:
+                    t = time.perf_counter()
+                    done = self.rt.run(child, stop_q, horizon=1)
+                    self.stats['run_s'] += time.perf_counter()-t
+                    self.stats['children'] += 1
+                    self.stats['goal_tests'] = self.stats.get('goal_tests', 0)+1
+                    if done.outcome == 'success':
+                        self.stats['outcomes']['success'] = self.stats['outcomes'].get('success', 0)+1
+                        return self._result(done, t0, True)
             # cm/turn-step resolution only for states reached by an exact manoeuvre
-            # (multi-point turns); ordinary exploration keeps the coarse key
-            sig = self._sig(child, fine=self.is_maneuver(q) if cfg.fine_by_edge else bool(diag.get('stuck')))
+            # (multi-point turns) or close to the goal; ordinary exploration keeps the coarse key
+            fine = (self.is_maneuver(q) if cfg.fine_by_edge else bool(diag.get('stuck'))) or \
+                (cfg.goal_fine_m > 0 and child.geodesic < cfg.goal_fine_m)
+            sig = self._sig(child, fine=fine)
             if sig in seen:
                 self.stats['duplicates'] = self.stats.get('duplicates', 0)+1
                 continue
