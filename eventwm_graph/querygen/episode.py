@@ -219,6 +219,8 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
         spawn_contact, spawn_links, escape_contacts = bool(c0['static']), contact_links(c0), 0
         dyn_state = 0
         actions, statics, per_decision = [], 0, []
+        p0 = task.robot_pose()
+        trajectory = [(float(p0[0]), float(p0[2]), float(p0[3]), float(task.geodesic_to_goal()), math.inf)]
         overlaps, min_rect = 0, math.inf
         travelled = 0.
         pose_mismatch, official_vs_canonical = 0, 0
@@ -250,6 +252,8 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
                 travelled += float(math.hypot(real_pose[0]-prev[0], real_pose[2]-prev[2]))
                 overlaps += int(res.body_overlap)
                 min_rect = min(min_rect, res.min_rect_distance)
+                trajectory.append((float(real_pose[0]), float(real_pose[2]), float(real_pose[3]),
+                                   float(task.geodesic_to_goal()), float(res.min_rect_distance)))
                 if res.static_contact:
                     if escape_exempt(res.static_links, spawn_links, task.steps, travelled):
                         escape_contacts += 1
@@ -272,6 +276,7 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
                     official_vs_canonical_human_mismatch_steps=official_vs_canonical,
                     canonical_human_collision=canonical_human,
                     per_decision_steps=per_decision, episode_over=task.episode_over, steps=task.steps,
+                    trajectory=trajectory,
                     final_geodesic=task.geodesic_to_goal())
     finally:
         task.close()

@@ -147,6 +147,32 @@ def score(traj, F):
     return out
 
 
+def score_vec(traj, F):
+    """Vectorised ``score``: one trajectory [T, 4] against M futures [M, T', N, 3] at once."""
+    from .native import ROBOT_BOUNDS
+    M = F.shape[0]
+    T = min(len(traj), F.shape[1])
+    out = np.zeros((M, 3))
+    if F.shape[2] == 0:
+        out[:, 0] = np.inf
+        return out
+    P = np.asarray(traj[:T], dtype=float)
+    c, s = np.cos(P[:, 3])[None, :, None], np.sin(P[:, 3])[None, :, None]
+    dx_ = F[:, :T, :, 0]-P[None, :, None, 0]
+    dz_ = F[:, :T, :, 2]-P[None, :, None, 2]
+    lx = dx_*c-dz_*s
+    lz = dx_*s+dz_*c
+    xmin, xmax, zmin, zmax = ROBOT_BOUNDS
+    dx = np.maximum(np.maximum(xmin-lx, 0.), lx-xmax)
+    dz = np.maximum(np.maximum(zmin-lz, 0.), lz-zmax)
+    dmin = np.hypot(dx, dz).min(axis=(1, 2))
+    psc = (np.hypot(dx_, dz_) < 1.0).any(axis=2).sum(axis=1)
+    out[:, 0] = dmin
+    out[:, 1] = (dmin < BODY_PROXY).astype(float)
+    out[:, 2] = psc
+    return out
+
+
 @dataclass
 class Comparison:
     query: str
@@ -169,13 +195,13 @@ def compare(legal, queries, planner_name, dyn, F, steps):
             continue
         t = time.perf_counter()
         nom = rollout(legal, q, planner_name, dyn, F[0], steps)
-        S = score(nom, F)
+        S = score_vec(nom, F)
         t_open = time.perf_counter()-t
         t = time.perf_counter()
         ends, cl = [], []
         for m in range(F.shape[0]):
             tr = rollout(legal, q, planner_name, dyn, F[m], steps)
-            cl.append(score(tr, F[m:m+1])[0]); ends.append(tr[-1])
+            cl.append(score_vec(tr, F[m:m+1])[0]); ends.append(tr[-1])
         t_closed = time.perf_counter()-t
         cl = np.asarray(cl); ends = np.asarray(ends)
         dev = float(np.mean(np.hypot(ends[:, 0]-nom[-1][0], ends[:, 2]-nom[-1][2])))

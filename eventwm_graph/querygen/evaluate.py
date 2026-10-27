@@ -51,6 +51,14 @@ def _decisions_json(decisions):
     return out
 
 
+def compact_trace(rep):
+    """Per-step replay trace for behaviour metrics: actions + (x, z, yaw, geodesic, min rect)."""
+    acts = ''.join(a[0] if isinstance(a, str) else 'v' for a in rep['actions'])
+    vel = [list(a) for a in rep['actions'] if not isinstance(a, str)]
+    traj = [[round(v, 4) if v != float('inf') else None for v in row] for row in rep['trajectory']]
+    return dict(actions=acts, velocity_commands=vel, trajectory=traj, per_decision_steps=rep['per_decision_steps'])
+
+
 def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, gen_kw=None, plot=True):
     from .episode import EpisodeRuntime, replay
     from .generator import QueryGenerator, GeneratorConfig
@@ -101,7 +109,8 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
                                 min_rect_distance=rep['min_rect_distance'],
                                 shadow_pose_mismatch_steps=rep['shadow_pose_mismatch_steps'],
                                 official_vs_canonical_human_mismatch_steps=rep['official_vs_canonical_human_mismatch_steps'],
-                                final_geodesic=rep['final_geodesic'], seconds=time.perf_counter()-t)
+                                final_geodesic=rep['final_geodesic'], seconds=time.perf_counter()-t,
+                                trace=compact_trace(rep))
     record['verdict'] = verdict
     record['wall_seconds'] = time.perf_counter()-t0
     (out_dir/f'{key}.json').write_text(json.dumps(record, indent=1, default=float))
@@ -135,7 +144,10 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
     m = rep['metrics']
     record['replay'] = dict(metrics=m, actions_identical=rep['actions'] == st.actions, steps=rep['steps'],
                             static_contact_steps=rep['static_contact_steps'], body_overlap_steps=rep['body_overlap_steps'],
-                            min_rect_distance=rep['min_rect_distance'], final_geodesic=rep['final_geodesic'])
+                            min_rect_distance=rep['min_rect_distance'], final_geodesic=rep['final_geodesic'],
+                            escape_contact_steps=rep['escape_contact_steps'],
+                            canonical_human_collision=rep['canonical_human_collision'], trace=compact_trace(rep))
+    record['decisions'] = _decisions_json(st.decisions)
     strict_ok = (m.get('success') == 1.0 and m.get('human_collision') == 0.0 and rep['static_contact_steps'] == 0
                  and rep['body_overlap_steps'] == 0)
     record['verdict'] = 'PASS' if strict_ok else ('NATIVE_SUCCESS_ONLY' if m.get('success') == 1.0 else 'FAIL')

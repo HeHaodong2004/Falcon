@@ -105,45 +105,75 @@ def run(result_json, out_dir, horizon=48):
     return rec
 
 
-def summarize(out_dir):
+def summarize(out_dir, material_m=0.25):
+    """Regret of executing another configuration's preferred query.
+
+    For configurations a, b and a matched state: q*_a, q*_b = argmax V_a, V_b.
+    Reported per ordered pair (and pooled over planner-only / dynamics-only
+    pairs): ``p_fail`` = q*_b fails under a although a has a feasible choice;
+    ``mean_m`` = mean V_a(q*_a) - V_a(q*_b) in metres over non-failing cases;
+    ``p_material`` = share of states where the regret is a failure or
+    >= ``material_m`` metres; ``top_disagreement`` = q*_a != q*_b (rank flip).
+    """
     recs = [json.loads(p.read_text()) for p in sorted(Path(out_dir).glob('*.json')) if p.name != 'summary.json']
     configs = [f'{p}/{d}' for p, d in itertools.product(PLANNERS, DYNAMICS)]
     n_states = 0
     feas = {c: [] for c in configs}
-    top = {c: [] for c in configs}
     vals = []
     for rec in recs:
         for st in rec['states']:
             V = {}
             for c in configs:
-                row = st['results'][c]
+                row = st['results'].get(c)
+                if row is None:
+                    break
                 V[c] = np.asarray([FAIL_VALUE if x is None else x['value'] for x in row])
-                feas[c].append(float(np.mean([x is not None and x['value'] > FAIL_VALUE for x in row])))
+            if len(V) < len(configs):
+                continue
+            for c in configs:
+                feas[c].append(float(np.mean(V[c] > FAIL_VALUE)))
             if all(np.max(V[c]) <= FAIL_VALUE for c in configs):
                 continue
             n_states += 1
             vals.append(V)
-            for c in configs:
-                top[c].append(int(np.argmax(V[c])))
-    regret = {}
-    disagree = {}
-    for a in configs:
-        for b in configs:
-            if a == b:
+
+    def pair_stats(a, b):
+        fails, metres, material, dis = [], [], [], []
+        for V in vals:
+            qa, qb = int(np.argmax(V[a])), int(np.argmax(V[b]))
+            if V[a][qa] <= FAIL_VALUE:
                 continue
-            rg = []; dg = []
-            for V in vals:
-                qa, qb = int(np.argmax(V[a])), int(np.argmax(V[b]))
-                if V[a][qa] <= FAIL_VALUE:
-                    continue
-                dg.append(qa != qb)
-                rg.append(min(V[a][qa]-V[a][qb], -FAIL_VALUE))   # metres (or FAIL)
-            regret[f'{a}<-{b}'] = dict(mean=float(np.mean(rg)) if rg else None,
-                                       p_fail=float(np.mean([x >= -FAIL_VALUE-1e-9 for x in rg])) if rg else None,
-                                       n=len(rg))
-            disagree[f'{a}|{b}'] = float(np.mean(dg)) if dg else None
-    summ = dict(n_states=n_states, feasibility={c: float(np.mean(v)) for c, v in feas.items()},
-                regret=regret, top_disagreement=disagree)
+            dis.append(qa != qb)
+            f = V[a][qb] <= FAIL_VALUE
+            fails.append(f)
+            r = 0. if f else float(V[a][qa]-V[a][qb])
+            if not f:
+                metres.append(r)
+            material.append(f or r >= material_m)
+        return dict(n=len(fails), p_fail=float(np.mean(fails)) if fails else None,
+                    mean_m=float(np.mean(metres)) if metres else None,
+                    p_material=float(np.mean(material)) if material else None,
+                    top_disagreement=float(np.mean(dis)) if dis else None)
+
+    pairs = {f'{a}<-{b}': pair_stats(a, b) for a in configs for b in configs if a != b}
+
+    def pool(sel):
+        ks = [k for k in pairs if sel(*[x.split('/') for x in k.split('<-')])]
+        P = [pairs[k] for k in ks if pairs[k]['n']]
+        w = np.array([x['n'] for x in P], dtype=float)
+        if not len(P):
+            return None
+        agg = lambda f: float(np.average([x[f] for x in P if x[f] is not None],
+                                         weights=[x['n'] for x in P if x[f] is not None])) if any(x[f] is not None for x in P) else None
+        return dict(pairs=len(P), n=int(w.sum()), p_fail=agg('p_fail'), mean_m=agg('mean_m'),
+                    p_material=agg('p_material'), top_disagreement=agg('top_disagreement'))
+
+    summ = dict(n_states=n_states, material_m=material_m,
+                feasibility={c: float(np.mean(v)) if v else None for c, v in feas.items()},
+                planner_only=pool(lambda a, b: a[1] == b[1] and a[0] != b[0]),
+                dynamics_only=pool(lambda a, b: a[0] == b[0] and a[1] != b[1]),
+                both=pool(lambda a, b: a[0] != b[0] and a[1] != b[1]),
+                regret=pairs)
     (Path(out_dir)/'summary.json').write_text(json.dumps(summ, indent=1))
     return summ
 

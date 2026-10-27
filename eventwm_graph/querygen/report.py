@@ -1,0 +1,201 @@
+"""Aggregate evaluation records into the declared metrics (Markdown + JSON).
+
+  python scripts/querygen_run.py eventwm_graph.querygen.report RUN_DIR [RUN_DIR ...] [--cert DIR]
+
+Behaviour metrics are computed from the replayed trace (records written by
+``evaluate`` since the trace field was added; older records report them as
+unavailable).  Definitions (declared, applied identically to every run):
+
+* ``time_s``           replay steps x 0.048 s world time.
+* ``wait_steps``       steps executed under ``wait`` queries.
+* ``turn_steps``       in-place rotation steps (native ``left``/``right``).
+* ``oscillations``     turn-direction reversals (l->r / r->l between consecutive
+                       turn actions with no forward step in between) outside
+                       ``wait`` queries, per 100 steps.
+* ``retreat_m``        summed geodesic-distance increase over the episode.
+* ``deadlock``         some 120-step (5.76 s) window farther than 1 m from the
+                       goal with less than 0.25 m geodesic progress.
+* runtime              generator ms per call, Oracle edge ms, Oracle seconds per
+                       episode, replay seconds; P50/P95 over all samples.
+"""
+import argparse
+import json
+import math
+from collections import Counter
+from pathlib import Path
+import numpy as np
+
+STEP_S = 0.048
+DEADLOCK_WINDOW = 120
+DEADLOCK_PROGRESS_M = 0.25
+
+
+def pct(xs, q):
+    xs = [x for x in xs if x is not None and np.isfinite(x)]
+    return float(np.percentile(xs, q)) if xs else None
+
+
+def behaviour(rec):
+    rep = rec.get('replay') or {}
+    tr = rep.get('trace')
+    if not tr:
+        return None
+    acts = tr['actions']
+    traj = np.array([[np.nan if v is None else v for v in row] for row in tr['trajectory']], dtype=float)
+    labels = []
+    for d, n in zip(rec.get('decisions', []), tr['per_decision_steps']):
+        labels += [d.get('kind', '')]*n
+    labels += ['']*(len(acts)-len(labels))
+    wait = sum(1 for k in labels if k == 'wait')
+    turns = sum(1 for a in acts if a in 'lr')
+    osc, last = 0, None
+    for a, k in zip(acts, labels):
+        if a == 'f':
+            last = None
+        elif a in 'lr':
+            if k != 'wait' and last is not None and a != last:
+                osc += 1
+            last = a if k != 'wait' else None
+    geo = traj[:, 3]
+    dg = np.diff(geo)
+    retreat = float(dg[dg > 0].sum()) if len(dg) else 0.
+    dead = False
+    for i in range(0, max(0, len(geo)-DEADLOCK_WINDOW)):
+        if geo[i] > 1.0 and geo[i]-geo[i:i+DEADLOCK_WINDOW+1].min() < DEADLOCK_PROGRESS_M:
+            dead = True
+            break
+    steps = len(acts)
+    return dict(steps=steps, time_s=steps*STEP_S, wait_steps=wait, turn_steps=turns,
+                forward_steps=sum(1 for a in acts if a in 'fv'),
+                oscillations_per_100=100.*osc/max(1, steps), retreat_m=retreat, deadlock=dead,
+                min_clearance=float(np.nanmin(traj[:, 4])) if np.isfinite(traj[:, 4]).any() else None)
+
+
+def load_run(d):
+    d = Path(d)
+    recs = [json.loads(p.read_text()) for p in sorted(d.glob('*.json')) if p.name not in ('summary.json', 'run.json', 'report.json')]
+    return [r for r in recs if 'verdict' in r]
+
+
+def summarize_run(d, certs=None):
+    recs = load_run(d)
+    rows = []
+    gen_ms, edge_ms, oracle_s, replay_s, raw, kept = [], [], [], [], [], []
+    labels = Counter()
+    for r in recs:
+        o = r.get('oracle') or r.get('branch') or {}
+        st = o.get('stats', {})
+        gen_ms += st.get('gen_ms', []); edge_ms += st.get('edge_ms', [])
+        if 'seconds' in o:
+            oracle_s.append(o['seconds'])
+        rep = r.get('replay') or {}
+        if 'seconds' in rep:
+            replay_s.append(rep['seconds'])
+        if st.get('expansions'):
+            raw.append(st.get('raw_candidates', 0)/st['expansions']); kept.append(st.get('kept_candidates', 0)/st['expansions'])
+        for dec in r.get('decisions', []):
+            labels[dec.get('label', dec.get('kind'))] += 1
+        m = rep.get('metrics', {})
+        b = behaviour(r)
+        cert = (certs or {}).get(r['key'])
+        rows.append(dict(key=r['key'], verdict=r['verdict'], success=m.get('success'), spl=m.get('spl'),
+                         psc=m.get('psc'), steps=rep.get('steps'), human_collision=m.get('human_collision'),
+                         static_steps=rep.get('static_contact_steps'), escape_steps=rep.get('escape_contact_steps'),
+                         overlap_steps=rep.get('body_overlap_steps'), min_rect=rep.get('min_rect_distance'),
+                         start_geo=r.get('start_geodesic'), final_geo=rep.get('final_geodesic', o.get('final_geodesic')),
+                         decisions=len(r.get('decisions', [])), oracle_s=o.get('seconds'),
+                         expansions=st.get('expansions'), spawn_contact=r.get('spawn_contact'),
+                         certified_infeasible=(cert is not None and cert.get('search_complete') and not cert.get('feasible_escape')),
+                         behaviour=b))
+    n = len(rows)
+    passed = [x for x in rows if x['verdict'] == 'PASS']
+    infeasible = [x for x in rows if x['certified_infeasible']]
+    feas = [x for x in rows if not x['certified_infeasible']]
+    B = [x['behaviour'] for x in rows if x['behaviour'] and x['verdict'] == 'PASS']
+    summ = dict(
+        run=str(d), n=n, passed=len(passed), pass_rate=len(passed)/max(1, n),
+        certified_infeasible=[x['key'] for x in infeasible],
+        feasible_n=len(feas), feasible_passed=sum(x['verdict'] == 'PASS' for x in feas),
+        verdicts=dict(Counter(x['verdict'] for x in rows)),
+        official_success=sum(1 for x in rows if x['success'] == 1.0),
+        human_collision_eps=sum(1 for x in rows if x['human_collision']),
+        mean_spl_all=float(np.mean([x['spl'] or 0. for x in rows])) if rows else None,
+        mean_spl_pass=float(np.mean([x['spl'] for x in passed])) if passed else None,
+        mean_psc_pass=float(np.mean([x['psc'] for x in passed if x['psc'] is not None])) if passed else None,
+        mean_time_s_pass=float(np.mean([x['steps']*STEP_S for x in passed])) if passed else None,
+        min_clearance_pass=min((x['min_rect'] for x in passed if x['min_rect'] is not None), default=None),
+        behaviour_pass=(dict(
+            wait_steps_mean=float(np.mean([b['wait_steps'] for b in B])),
+            turn_steps_mean=float(np.mean([b['turn_steps'] for b in B])),
+            oscillations_per_100_mean=float(np.mean([b['oscillations_per_100'] for b in B])),
+            retreat_m_mean=float(np.mean([b['retreat_m'] for b in B])),
+            deadlock_eps=sum(b['deadlock'] for b in B), n=len(B)) if B else None),
+        queries=dict(raw_per_node_mean=float(np.mean(raw)) if raw else None,
+                     kept_per_node_mean=float(np.mean(kept)) if kept else None,
+                     selected_label_counts=dict(labels.most_common())),
+        runtime=dict(gen_ms_p50=pct(gen_ms, 50), gen_ms_p95=pct(gen_ms, 95),
+                     edge_ms_p50=pct(edge_ms, 50), edge_ms_p95=pct(edge_ms, 95),
+                     oracle_s_p50=pct(oracle_s, 50), oracle_s_p95=pct(oracle_s, 95),
+                     replay_s_p50=pct(replay_s, 50), replay_s_p95=pct(replay_s, 95),
+                     n_gen_calls=len(gen_ms), n_edges=len(edge_ms)),
+        episodes=rows)
+    return summ
+
+
+def markdown(summ):
+    L = [f"### {summ['run']}", '',
+         f"PASS {summ['passed']}/{summ['n']}  (certified-infeasible: {len(summ['certified_infeasible'])}; "
+         f"PASS on feasible {summ['feasible_passed']}/{summ['feasible_n']}); official success {summ['official_success']}; "
+         f"human-collision episodes {summ['human_collision_eps']}", '',
+         '| episode | verdict | steps | SPL | PSC | min clr | static | esc | overlap | decisions | oracle s | wait | osc/100 | retreat m | deadlock |',
+         '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
+    f = lambda v, k=2: '-' if v is None else (f'{v:.{k}f}' if isinstance(v, float) else str(v))
+    for x in summ['episodes']:
+        b = x['behaviour'] or {}
+        L.append(f"| {x['key']} | {x['verdict']}{' (cert. infeasible)' if x['certified_infeasible'] else ''} | {f(x['steps'])} | "
+                 f"{f(x['spl'])} | {f(x['psc'])} | {f(x['min_rect'])} | {f(x['static_steps'])} | {f(x['escape_steps'])} | "
+                 f"{f(x['overlap_steps'])} | {x['decisions']} | {f(x['oracle_s'], 0)} | {f(b.get('wait_steps'))} | "
+                 f"{f(b.get('oscillations_per_100'), 1)} | {f(b.get('retreat_m'))} | {f(b.get('deadlock'))} |")
+    rt = summ['runtime']
+    L += ['', f"runtime: generator {f(rt['gen_ms_p50'], 1)}/{f(rt['gen_ms_p95'], 1)} ms (P50/P95, {rt['n_gen_calls']} calls); "
+          f"oracle edge {f(rt['edge_ms_p50'], 1)}/{f(rt['edge_ms_p95'], 1)} ms ({rt['n_edges']} edges); "
+          f"oracle per episode {f(rt['oracle_s_p50'], 0)}/{f(rt['oracle_s_p95'], 0)} s; replay {f(rt['replay_s_p50'], 0)}/{f(rt['replay_s_p95'], 0)} s",
+          f"queries: raw/node {f(summ['queries']['raw_per_node_mean'], 1)}, kept/node {f(summ['queries']['kept_per_node_mean'], 1)}",
+          f"selected labels: {summ['queries']['selected_label_counts']}"]
+    if summ['behaviour_pass']:
+        b = summ['behaviour_pass']
+        L.append(f"behaviour (PASS episodes with trace, n={b['n']}): wait {b['wait_steps_mean']:.1f} steps, "
+                 f"turns {b['turn_steps_mean']:.1f}, osc/100 {b['oscillations_per_100_mean']:.2f}, "
+                 f"retreat {b['retreat_m_mean']:.2f} m, deadlock episodes {b['deadlock_eps']}")
+    return '\n'.join(L)
+
+
+def load_certs(d):
+    out = {}
+    if d:
+        for p in Path(d).glob('*.json'):
+            c = json.loads(p.read_text())
+            out[c['key']] = c
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('runs', nargs='+')
+    ap.add_argument('--cert', default=None, help='feasibility certificate directory')
+    ap.add_argument('--md', default=None)
+    a = ap.parse_args()
+    certs = load_certs(a.cert)
+    parts = []
+    for d in a.runs:
+        s = summarize_run(d, certs)
+        (Path(d)/'report.json').write_text(json.dumps(s, indent=1, default=float))
+        parts.append(markdown(s))
+    text = '\n\n'.join(parts)
+    if a.md:
+        Path(a.md).write_text(text+'\n')
+    print(text)
+
+
+if __name__ == '__main__':
+    main()
