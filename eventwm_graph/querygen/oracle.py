@@ -49,6 +49,8 @@ class OracleConfig:
                                       # movement query tried from the parent failed natively (privileged gate)
     fine_by_edge: bool = True         # fine de-duplication for states reached by manoeuvre edges (else: stuck nodes)
     tie_bucket: float = 0.            # >0: f is bucketed and ties prefer the later node (cross waiting plateaus forward in time)
+    witness_dir: str = ''             # privileged witness guidance: directory with witness.py results (by episode)
+    witness_late_cost: float = 0.5    # steps of penalty per step of arriving later than the witness at a join point
     goal_test: bool = True            # v7b: try the generator's STOP at once on any new state inside the success radius
     goal_fine_m: float = 1.0          # v7b: fine de-duplication for states this close to the goal (geodesic)
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
@@ -157,6 +159,7 @@ class Oracle:
         self.gen = generator
         self.cfg = config or OracleConfig()
         self._st = None
+        self._witness = None
         self.stats = dict(expansions=0, children=0, outcomes={}, by_label={}, gen_s=0., run_s=0.,
                           raw_candidates=0, kept_candidates=0, gen_ms=[], edge_ms=[], edge_steps=[])
 
@@ -207,6 +210,9 @@ class Oracle:
         h = st.geodesic/cfg.speed_est if st.geodesic == st.geodesic else 1e3
         pen = max(0., cfg.clearance_soft-st.min_rect_dist)*cfg.clearance_cost
         pen += max(0., cfg.danger_m-self._danger(st))*cfg.danger_cost
+        hw = self._witness_h(st)
+        if hw is not None:
+            h = max(h, hw)
         if cfg.st_heuristic:
             if self._st is None:
                 t = time.perf_counter()
@@ -220,6 +226,38 @@ class Oracle:
         elif cfg.block_weight:
             pen += cfg.block_weight*self._block_time(st)
         return st.index+cfg.weight*h+pen
+
+    def _witness_h(self, st):
+        """Privileged: remaining steps if the node joins a known feasible witness trajectory.
+
+        Joining at index k needs d/v steps (v = native step 0.208 m); early arrivals wait, late
+        arrivals pay ``witness_late_cost`` per step (the witness's human timing no longer holds).
+        """
+        cfg = self.cfg
+        if not cfg.witness_dir:
+            return None
+        if self._witness is None:
+            self._witness = False
+            import json as _json
+            from pathlib import Path as _Path
+            f = _Path(cfg.witness_dir)/f"{self.rt.spec.key.replace('/', '_')}.json"
+            if f.exists():
+                w = _json.loads(f.read_text())
+                if w.get('found') and w.get('verified', {}).get('ok'):
+                    from .witness import load_witness_poses
+                    P = load_witness_poses(self.rt.spec, w['actions'])
+                    self._witness = P[:, [0, 2]]
+                    self.stats['witness_steps'] = len(P)-1
+        if self._witness is False:
+            return None
+        W = self._witness
+        T = len(W)-1
+        p = st.legal.pose
+        t = st.index
+        d = np.hypot(W[:, 0]-p[0], W[:, 1]-p[2])/0.208
+        k = np.arange(T+1)
+        total = np.maximum(T-t, d+(T-k))+cfg.witness_late_cost*np.maximum(0., t+d-k)
+        return float(total.min())
 
     def _sig(self, st, fine=False):
         return self._sig_pose(st.legal.pose, st.index, fine)
