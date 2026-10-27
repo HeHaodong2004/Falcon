@@ -326,6 +326,17 @@ then budget scaling of representative DEV failures.
 - **DWA x inertia (pre-freeze code)**: 14/16 feasible DEV episodes completed so far pass (Nfvxx8J5NCo,
   TEEsavR23oF fail).
 
+- **Final pre-freeze fixes (2026-10-27 evening)**: manoeuvre mode keeps `goal_tc` (3t8DB4Uzvkt leaves its
+  spawn manoeuvres with it) and orders creep1 before the rotations; escape map = exact breadth-first map
+  first, A* escape path only when BFS finds no escape (A*-only mis-guided 3t8DB4Uzvkt); escape penalty
+  back to manoeuvre edges only; DWA exact per-call memo (2.8x faster planner, identical search).
+  K=6 uses `goal_tc` (solves SByzJLxpRGn, 3t8DB4Uzvkt, LEFTm3JecaC, TEEsavR23oF in checks), K=10 both
+  variants.  Hard episodes near the budget edge flip with small search changes (3t8DB4Uzvkt: PASS in
+  earlier K=10 snapshots, 342/432 steps and FAIL in the last check, PASS at K=6).
+- **Freeze `querygen-freeze-v9`** (commit aea47081); final DEV + unseen runs launched with
+  `scripts/querygen_final_v9.sh` (C1-K10, C1-K6, C2-K10) and unseen certificates
+  (`scripts/querygen_unseen_certificates.sh`) -> `output/runs/final_v9/`.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
