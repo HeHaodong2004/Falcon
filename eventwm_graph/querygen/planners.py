@@ -529,7 +529,10 @@ class DWAPlanner(Planner):
         if chosen is None:
             self.mode = 'blocked'
             if dyn.stateful:
-                return Realized('idle', max(0, int(ctx.dyn_state or 0)-dyn.brake))
+                # v10: a moving robot brakes at its brake limit (v9 commanded zero velocity here while the speed
+                # level only dropped by `brake`: an instantaneous stop the dynamics model forbids)
+                l2 = max(0, int(ctx.dyn_state or 0)-dyn.brake)
+                return Realized(('forward', l2) if l2 > 0 else 'idle', l2)
             return Realized(adapter.wait_action(ctx.P, ctx.psi, ctx.gmap), 0)
         steps, self.mode = chosen[1], chosen[2]
         cmd, level = steps[0][3], steps[0][2]

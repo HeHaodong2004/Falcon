@@ -102,6 +102,26 @@ class DynamicsModel:
         return d
 
 
+def dynamics_violations(dyn, commands):
+    """Number of executed commands that break the family's motion model: a speed-level change beyond
+    ``accel``/``brake``, turning while moving (``turn_needs_stop``) or with translation, STOP while moving.
+    Native (instant-speed) robots have no velocity state: always 0."""
+    if dyn.native_actions or not dyn.stateful:
+        return 0
+    unit = dyn.levels[1]*CTRL_FREQ
+    prev, bad = 0, 0
+    for c in commands:
+        if isinstance(c, str):
+            bad += int(c == 'stop' and prev > 0)
+            continue
+        lin, ang = float(c[0]), float(c[1])
+        lvl = int(round(lin/unit))
+        bad += int(lvl-prev > dyn.accel or prev-lvl > dyn.brake or abs(lin-dyn.levels[min(lvl, len(dyn.levels)-1)]*CTRL_FREQ) > 1e-6
+                   or (ang != 0. and (lin != 0. or (dyn.turn_needs_stop and prev > 0))))
+        prev = lvl
+    return bad
+
+
 def _levels(n):
     return tuple(NATIVE_STEP_M*k/n for k in range(n+1))
 

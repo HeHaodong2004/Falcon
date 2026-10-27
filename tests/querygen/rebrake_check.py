@@ -1,10 +1,11 @@
-"""Re-verify recorded solutions of a robot with momentum when STOP must first brake to rest (v10 rule).
+"""Re-verify recorded solutions of a robot with momentum under the v10 motion rules.
 
   python scripts/querygen_run.py tests.querygen.rebrake_check RUN_DIR [RUN_DIR ...]
 
-For every replay-verified PASS whose final STOP was issued while the robot still had a speed level > 0,
-the recorded decision sequence is replayed (authoritative continuous replay, current executor: the STOP
-decision brakes at the brake limit and then stops) and the strict verdict is recomputed.
+For every replay-verified PASS whose executed commands break the dynamics model (dynamics.dynamics_violations:
+STOP while moving; v9 DWA "blocked" fallback = instantaneous stop), the recorded *query sequence* is replayed
+with the current executor/planners (STOP brakes to rest at the brake limit; a blocked DWA brakes) and the
+strict verdict, now including zero dynamics violations, is recomputed.
 """
 import argparse
 import glob
@@ -32,30 +33,38 @@ def main():
             dyn = FAMILIES[r['dynamics']]
             if not dyn.stateful:
                 continue
-            vc = r['replay']['trace']['velocity_commands']
-            lvl = int(round(vc[-1][0]/120./dyn.levels[1])) if vc and vc[-1] else 0
-            if lvl == 0:
+            tr = r['replay']['trace']
+            vc = tr['velocity_commands']
+            it = iter(vc)
+            cmds = ['stop' if x == 's' else next(it) if x == 'v' else x for x in tr['actions']]
+            from eventwm_graph.querygen.dynamics import dynamics_violations
+            nviol = dynamics_violations(dyn, cmds)
+            if nviol == 0:
                 continue
+            lvl = int(round(vc[-1][0]/120./dyn.levels[1])) if vc and vc[-1] else 0
             decisions = []
             for x in r['decisions']:
                 q = Query(x['kind'], via=tuple(tuple(v) for v in x['via']), heading=x['heading'],
                           duration=x['duration'], speed=x['speed'], label=x['label'], meta=x['meta'] or {})
                 decisions.append(dict(query=q, cont=x['cont'], horizon=x['horizon']))
-            decisions[-1]['horizon'] = 1+dyn.stop_steps(lvl)
+            decisions[-1]['horizon'] = 1+dyn.stop_steps(len(dyn.levels)-1)
             s = r['spec']
             spec = EpisodeSpec(s['dataset'], s['split'], s['scene'], s['episode_id'], s['seed'])
             rep = replay(spec, r['planner'], dyn, decisions)
             m = rep['metrics']
             ok = (bool(m.get('success')) and not m.get('human_collision') and rep['body_overlap_steps'] == 0 and
-                  rep['static_contact_steps'] == 0 and rep['shadow_pose_mismatch_steps'] == 0)
-            row = dict(key=r['key'], run=d, stop_level=lvl, old_final_geodesic=r['replay']['final_geodesic'],
-                       new_final_geodesic=rep['final_geodesic'], success=bool(m.get('success')),
-                       overlaps=rep['body_overlap_steps'], statics=rep['static_contact_steps'], strict_pass=ok)
+                  rep['static_contact_steps'] == 0 and rep['shadow_pose_mismatch_steps'] == 0 and
+                  rep['dynamics_violation_steps'] == 0)
+            row = dict(key=r['key'], run=d, v9_violations=nviol, stop_level=lvl,
+                       old_final_geodesic=r['replay']['final_geodesic'], new_final_geodesic=rep['final_geodesic'],
+                       success=bool(m.get('success')), overlaps=rep['body_overlap_steps'],
+                       statics=rep['static_contact_steps'], violations=rep['dynamics_violation_steps'],
+                       steps=rep['steps'], strict_pass=ok)
             out.append(row)
             print(json.dumps(row), flush=True)
     n = len(out)
-    print(f'{sum(x["strict_pass"] for x in out)}/{n} moving-STOP solutions still pass after braking to rest '
-          f'(success radius {SUCCESS_DISTANCE} m)')
+    print(f'{sum(x["strict_pass"] for x in out)}/{n} solutions with v9 dynamics violations still pass under the '
+          f'v10 motion rules (success radius {SUCCESS_DISTANCE} m)')
 
 
 if __name__ == '__main__':

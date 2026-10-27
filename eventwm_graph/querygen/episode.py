@@ -332,7 +332,9 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, p
             per_decision.append(n)
             ex.decision_boundary()
         metrics = task.metrics()
+        from .dynamics import dynamics_violations
         return dict(metrics=metrics, actions=actions, static_contact_steps=statics,
+                    dynamics_violation_steps=dynamics_violations(dyn, actions),
                     spawn_contact=spawn_contact, escape_contact_steps=escape_contacts,
                     body_overlap_steps=overlaps, min_rect_distance=min_rect,
                     shadow_pose_mismatch_steps=pose_mismatch,

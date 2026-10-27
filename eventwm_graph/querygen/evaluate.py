@@ -108,10 +108,12 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
         identical = rep['actions'] == st.actions
         ok = (identical and m.get('success') == 1.0 and m.get('human_collision') == 0.0 and
               rep['static_contact_steps'] == 0 and rep['body_overlap_steps'] == 0 and
-              rep['shadow_pose_mismatch_steps'] == 0 and not rep['canonical_human_collision'])
+              rep['shadow_pose_mismatch_steps'] == 0 and not rep['canonical_human_collision'] and
+              rep['dynamics_violation_steps'] == 0)
         verdict = 'PASS' if ok else 'FAIL_REPLAY'
         record['replay'] = dict(metrics=m, actions_identical=identical, steps=rep['steps'],
                                 static_contact_steps=rep['static_contact_steps'],
+                                dynamics_violation_steps=rep['dynamics_violation_steps'],
                                 spawn_contact=rep['spawn_contact'], escape_contact_steps=rep['escape_contact_steps'],
                                 body_overlap_steps=rep['body_overlap_steps'],
                                 min_rect_distance=rep['min_rect_distance'],
@@ -157,7 +159,7 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
                             canonical_human_collision=rep['canonical_human_collision'], trace=compact_trace(rep))
     record['decisions'] = _decisions_json(st.decisions)
     strict_ok = (m.get('success') == 1.0 and m.get('human_collision') == 0.0 and rep['static_contact_steps'] == 0
-                 and rep['body_overlap_steps'] == 0)
+                 and rep['body_overlap_steps'] == 0 and rep['dynamics_violation_steps'] == 0)
     record['verdict'] = 'PASS' if strict_ok else ('NATIVE_SUCCESS_ONLY' if m.get('success') == 1.0 else 'FAIL')
     record['wall_seconds'] = time.perf_counter()-t0
     (out_dir/f"{spec.key.replace('/', '_')}.json").write_text(json.dumps(record, indent=1, default=float))
