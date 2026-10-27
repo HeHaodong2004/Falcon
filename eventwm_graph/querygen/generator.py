@@ -87,6 +87,8 @@ class GeneratorConfig:
                                      # rectangle check only (ORCA soft avoidance suspended); 0 = off
     st_goal: bool = False            # v9: also offer 'st_goal' (legal space-time lattice plan to the goal,
                                      # stplan.py) as a fixed candidate (native-like discrete robots only)
+    v9_select: bool = True           # v9: approach gated by legal *route* length; K=10 quotas from solution usage
+                                     # (alt/frontier get slots; wait_long, retreat, look_lost_human only as leftovers)
     kturns: tuple = ()               # v9: multi-point turns offered in manoeuvre mode: first in-place turn of
                                      # k steps away from the final direction, one creep step, then turn to the
                                      # route heading (e.g. (6, 12)); () = off
@@ -158,7 +160,7 @@ class QueryGenerator:
         humans = [h for h in human_estimates(legal.tracks, legal.time)
                   if float(np.hypot(*(h.position-to_plane(robot_xz)))) <= cfg.human_range]
         cats = {k: [] for k in ('human', 'wait', 'alt', 'frontier', 'observe', 'advance', 'yield', 'turn', 'retreat',
-                                'approach', 'maneuver')}
+                                'approach', 'maneuver', 'wait_long', 'observe_lost')}
         fixed = []
         diag = dict(route_len=path_length(route) if route is not None else None, humans=len(humans))
 
@@ -210,7 +212,9 @@ class QueryGenerator:
 
         # ---- goal approach alignment: final straight drive along a heading whose
         # goal pose keeps the long body off observed walls
-        if gd < cfg.approach_range:
+        # v9: the approach trigger uses the legal route length (a goal behind a wall is not 'near')
+        gd_route = path_length(route) if (cfg.v9_select and route is not None and len(route) >= 2) else gd
+        if gd_route < cfg.approach_range:
             for th, via in self._approaches(view, rfield, legal, goal_xz, robot_xz):
                 cats['approach'].append(Query('goal', via=(via,), label='approach',
                                               meta=dict(heading=round(th, 3))))
@@ -250,7 +254,8 @@ class QueryGenerator:
             # hold until the legally predicted conflict with the route ahead is gone
             cats['wait'].append(Query('wait_clear', duration=cfg.wait_clear_max, heading=route_dir, label='wait_clear'))
         cats['wait'].append(Query('wait', duration=cfg.wait_short, label='wait_short'))
-        cats['wait'].append(Query('wait', duration=cfg.wait_long, label='wait_long'))
+        (cats['wait_long'] if cfg.v9_select else cats['wait']).append(Query('wait', duration=cfg.wait_long,
+                                                                            label='wait_long'))
 
         # ---- alternative routes
         if route is not None:
@@ -284,7 +289,8 @@ class QueryGenerator:
             t = min(lost, key=lambda t: math.hypot(t['position'][0]-robot_xz[0], t['position'][2]-robot_xz[1]))
             ldir = math.atan2(-(t['position'][2]-robot_xz[1]), t['position'][0]-robot_xz[0])
             if abs(wrap(ldir-pose[3])) > math.radians(35):
-                cats['observe'].append(Query('rotate', heading=ldir, duration=40, label='look_lost_human'))
+                (cats['observe_lost'] if cfg.v9_select else cats['observe']).append(
+                    Query('rotate', heading=ldir, duration=40, label='look_lost_human'))
 
         # ---- stalled near the start or the goal (legal history test) -> exact
         # primitive-count manoeuvres to compose an escape / final approach
@@ -638,8 +644,15 @@ class QueryGenerator:
                 if math.hypot(c.via[0][0]-q.via[0][0], c.via[0][1]-q.via[0][1]) < cfg.dedup_m:
                     return True
             return False
-        quotas = (('maneuver', 8), ('human', 3), ('approach', 2), ('yield', 2), ('turn', 2), ('wait', 2),
-                  ('retreat', 1), ('advance', 1), ('alt', 1), ('frontier', 1), ('observe', 1))
+        if cfg.v9_select:
+            # usage in ~60 DEV/HOLDOUT solutions: goal, advance, turns, approach, alt_route, wait_short, pass_*
+            # dominate; wait_long, retreat, look_lost_human never occur -> leftovers only
+            quotas = (('maneuver', 8), ('human', 3), ('approach', 2), ('yield', 2), ('turn', 2), ('wait', 2),
+                      ('alt', 1), ('frontier', 1), ('advance', 1), ('observe', 1), ('retreat', 0), ('wait_long', 0),
+                      ('observe_lost', 0))
+        else:
+            quotas = (('maneuver', 8), ('human', 3), ('approach', 2), ('yield', 2), ('turn', 2), ('wait', 2),
+                      ('retreat', 1), ('advance', 1), ('alt', 1), ('frontier', 1), ('observe', 1))
         pools = {k: list(cats.get(k, [])) for k, _ in quotas}
         for k, quota in quotas:
             taken = 0
