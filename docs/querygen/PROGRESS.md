@@ -149,6 +149,28 @@ planner/dynamics regret; `sandbox.py`/`sandbox_study.py` nominal vs closed-loop 
   gate (`maneuver_gate`): entering manoeuvre mode costs +120 unless every ordinary movement query
   tried from the parent failed natively.
 
+- **Freeze** `querygen-freeze-v1` (commit 0d9eabb6): generator v6 + Oracle defaults (space-time
+  heuristic, manoeuvre gate 120, 6000-edge deterministic budget). DEV final and HOLDOUT final run
+  from byte-identical snapshots. HOLDOUT certificates computed only after the freeze.
+- HOLDOUT findings (no system change made after them):
+  * cYkrGrCg2kB/14, dHwjuKfkRUR/18: start-escape certificates (complete, 286/289 states) -> infeasible.
+  * kJJyRFXVpx2/17: exact-gait progress search exhausted (4,419 states, max depth 68) without any
+    state closer to the goal than the spawn -> infeasible.
+  * vBMLrTe4uLA/21: **generator gap** - all 10 root candidates (goal, turns, sidesteps, alt route,
+    frontiers and both waits = alternating in-place turns) collide (first right turn hits the hind
+    leg); no candidate survives, so manoeuvre mode (needs a surviving stalled child) is never offered.
+    The progress witness `ff` (two forward steps) reduces the geodesic 3.51 -> 3.14 m. Fix for a
+    revision: offer a 1-step creep (and 1-step rotations) when the robot has no motion history.
+  * X7gTkoDHViv/2: **FAIL_REPLAY** - the Oracle branch (112 steps) and the authoritative replay (111
+    steps, official success, 0 collisions/overlaps/static, shadow pose identical) differ by one STOP
+    step; re-executing the same decisions in a fresh branch simulator gives 111 = replay, so the Oracle
+    branch was influenced by search history. Suspect: the legal sensor's private support/probe caches
+    are keyed by 0.1 m height layer but computed at the exact base height of the first request; this
+    episode's floor varies by 0.2 m (-0.02..0.18 m base heights), so a cached certificate can depend on
+    which branch asked first. Deterministic reproduction running; branch-pure caches
+    (`LegalSensor(pure_caches=True)`: 1 cm height quantisation + per-height namespace) implemented and
+    verified identical to the accepted observer on a flat floor.
+
 ## Important failed hypotheses / lessons
 - Velocity-tracking alone cannot handle Spot's 1.23 m body in tight spaces -> body-aware lattice.
 - ORCA static horizon 0.4 s at native speed forbade all motion near walls (now 0.15 s).

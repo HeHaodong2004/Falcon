@@ -214,15 +214,44 @@ class _ShallowCopy:
         return x
 
 
+HEIGHT_QUANTUM = 0.01   # m; branch-pure private caches (see LegalSensor.pure_caches)
+
+
+def _pure_observer_class():
+    """FastGeometryObserver whose private support / probe certificates are pure
+    functions of (cell, quantised base height).
+
+    The accepted observer caches static support certificates per 0.1 m height
+    *layer* but computes them at the exact base height of the first request, so
+    on sloped floors the cached value depends on which pose asked first.  With
+    many Oracle branches sharing one cache this made a branch's legal map depend
+    on the search history (found by a HOLDOUT replay mismatch).  Here the height
+    is quantised to 1 cm before computing and the cache namespace carries the
+    quantised height, so no value is reused across heights.  On flat floors the
+    certificates are identical to the accepted observer's.
+    """
+    from ..partial.fast_observer import FastGeometryObserver
+
+    class PureFastGeometryObserver(FastGeometryObserver):
+        def _support(self, key, base_height):
+            return super()._support(key, round(float(base_height)/HEIGHT_QUANTUM)*HEIGHT_QUANTUM)
+
+        def _targets(self, key, height):
+            return super()._targets(key, round(float(height)/HEIGHT_QUANTUM)*HEIGHT_QUANTUM)
+    return PureFastGeometryObserver
+
+
 class LegalSensor:
     """Wrapper around the project's ideal geometry sensor with copyable state.
 
     The private static-support/probe caches are sensor-side simulation caches
     (static geometry evaluated once per scene); they never enter the legal
     state.  The per-branch sensor state (tracker, certified-cell set) does.
+    ``pure_caches`` (default False = the accepted observer, as frozen in
+    querygen-freeze-v1) makes those caches branch-history independent.
     """
 
-    def __init__(self, task, resolution=RESOLUTION, private_cache=None):
+    def __init__(self, task, resolution=RESOLUTION, private_cache=None, pure_caches=False):
         from types import SimpleNamespace
         from habitat_baselines.config.default import get_config
         from scripts.collector.observation import ObservationConfig
@@ -233,7 +262,11 @@ class LegalSensor:
         rt = SimpleNamespace(sim=task.sim, observation_config=self.config, count=task.human_count,
                              episode=SimpleNamespace(scene_id=task.episode.scene_id,
                                                      info={'graph_navmesh': 'native_benchmark_navmesh'}))
-        self.observer = FastGeometryObserver(rt, resolution, private_cache=private_cache if private_cache is not None else {})
+        cls = _pure_observer_class() if pure_caches else FastGeometryObserver
+        self.observer = cls(rt, resolution, private_cache=private_cache if private_cache is not None else {})
+        self.task = task
+        self.pure_caches = pure_caches
+        self._namespace0 = self.observer.cache_namespace
         # The observer deep-copies each full row into ``last_row`` only to
         # serve repeated timestamps; rows are never mutated and timestamps
         # never repeat here, so that copy (~30% of sensing time) is skipped.
@@ -242,6 +275,9 @@ class LegalSensor:
             _fo.copy = _ShallowCopy()
 
     def observe(self, timestamp):
+        if self.pure_caches:
+            h = round(float(self.task.robot.base_pos[1])/HEIGHT_QUANTUM)
+            self.observer.cache_namespace = self._namespace0+(('qheight', h),)
         return self.observer.observe(timestamp)
 
     def state(self):
