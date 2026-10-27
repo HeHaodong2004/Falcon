@@ -167,9 +167,20 @@ planner/dynamics regret; `sandbox.py`/`sandbox_study.py` nominal vs closed-loop 
     branch was influenced by search history. Suspect: the legal sensor's private support/probe caches
     are keyed by 0.1 m height layer but computed at the exact base height of the first request; this
     episode's floor varies by 0.2 m (-0.02..0.18 m base heights), so a cached certificate can depend on
-    which branch asked first. Deterministic reproduction running; branch-pure caches
+    which branch asked first. **Confirmed** (`tests/querygen/repro_replay_divergence.py`): the
+    deterministic Oracle re-finds the identical 112-step branch; re-executing its decisions in the same
+    process (search-populated private cache) gives 112 steps, in a fresh process 111. Branch-pure caches
     (`LegalSensor(pure_caches=True)`: 1 cm height quantisation + per-height namespace) implemented and
     verified identical to the accepted observer on a flat floor.
+
+- **Final results (frozen `querygen-freeze-v1`)**: DEV final 14/28 PASS (14/24 feasible), HOLDOUT
+  19/39 PASS (19/36 feasible; HM3D 13/28, MP3D 6/11; 2 FAIL_REPLAY from the cache-isolation defect;
+  1 generator gap; 14 budget). 0 human-collision episodes, 0 static-collision steps in all accepted
+  runs. Verdict REVISE (see REPORT.md). Post-freeze revision v7b (root probes, pure caches, goal test)
+  on DEV: 15/28 (15/24), rsggHU7g7dh fixed; v7 pure caches make the X7gTkoDHViv Oracle branch
+  reproducible in a fresh process (110 == 110 steps).
+- Certificate semantics fix: a goal-region check with zero test points (q5QZSEeHe5g/0) is
+  undetermined, not a proof.
 
 ## Important failed hypotheses / lessons
 - Velocity-tracking alone cannot handle Spot's 1.23 m body in tight spaces -> body-aware lattice.
@@ -179,7 +190,10 @@ planner/dynamics regret; `sandbox.py`/`sandbox_study.py` nominal vs closed-loop 
   19 steps); handled at query level (wait/yield before entering) + Oracle danger term.
 - Over-triggered boxed-in maneuvers regressed rsggHU7g7dh/12 -> lattice-based stuck test.
 
-## Next steps
-1. Finish DEV v3; analyse failures; iterate generator (DEV only).
-2. Diversity (regret) study across {orca,sfm,dwa} x dynamics; sandbox study across DEV states.
-3. Freeze generator; certificates + one HOLDOUT run; final report (PASS/REVISE/BLOCKED).
+## Next steps (REVISE)
+1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
+   with the gate restated over certificate-filtered episodes.
+2. Oracle search for human timing in narrow passages and long Spot-tight routes (largest failure
+   class): larger budgets or a cheaper sensor-free search layer (space-time plan + native
+   verification), and better de-duplication of time-indexed states.
+3. Layer 3: train selectors only on certificate-feasible episodes; condition on planner/dynamics.
