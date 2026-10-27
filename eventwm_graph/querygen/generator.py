@@ -382,12 +382,15 @@ class QueryGenerator:
             # steps each way and k-step forward creeps.  Composed by the
             # Oracle they express any multi-point turn (there is no reverse
             # action); confined escapes are sensitive to single steps.
+            # Order (v9): the 1-step creep first, then rotations by size, then the longer creeps, so a
+            # short slot budget still keeps a forward probe.
+            rots = []
             for k in cfg.maneuver_turns:
                 for side, sgn in (('left', 1.), ('right', -1.)):
-                    cats['maneuver'].append(Query('rotate', heading=wrap(float(pose[3])+sgn*k*self.dyn.turn_rad),
-                                                  duration=k+1, label=f'rot_{side}{k}', meta=dict(direction=side)))
-            for n in cfg.maneuver_creeps:
-                cats['maneuver'].append(Query('creep', duration=n, label=f'creep{n}'))
+                    rots.append(Query('rotate', heading=wrap(float(pose[3])+sgn*k*self.dyn.turn_rad),
+                                      duration=k+1, label=f'rot_{side}{k}', meta=dict(direction=side)))
+            creeps = [Query('creep', duration=n, label=f'creep{n}') for n in cfg.maneuver_creeps]
+            cats['maneuver'] += creeps[:1]+rots[:4]+creeps[1:]+rots[4:]
             if cfg.kturns and route_dir is not None and not self.dyn.stateful:
                 # multi-point turns toward the route heading: turn away, step, turn back (both senses);
                 # listed first so the quota selector keeps them next to the finest probes
@@ -414,10 +417,10 @@ class QueryGenerator:
                     cats[k] = []
         diag['conflicts'] = len(conflicts)
         if stuck:
-            # manoeuvre mode: the extra progress variants (st_goal, *_tc) would crowd out the exact manoeuvres
-            # (in mixed mode K=10 kept only ~5 slots; vd3HHTEpmyA/yZME6UR9dUN lost every creep and never
-            # escaped the spawn) -- keep only continue / goal / stop
-            fixed = [q for q in fixed if q.label in ('continue', 'goal', 'stop')]
+            # manoeuvre mode: the space-time variants would crowd out the exact manoeuvres (in mixed mode K=10
+            # kept only ~5 slots; vd3HHTEpmyA/yZME6UR9dUN lost every creep) -- keep continue / goal / goal_tc /
+            # stop (3t8DB4Uzvkt's solution leaves its spawn manoeuvres with goal_tc)
+            fixed = [q for q in fixed if q.label in ('continue', 'goal', 'goal_tc', 'stop')]
         queries = self._select_compact(fixed, cats, diag) if cfg.select == 'compact' else self._select(fixed, cats)
         diag.update(raw={k: len(v) for k, v in cats.items()}, fixed=len(fixed), kept=len(queries),
                     conflicts=len(conflicts))
