@@ -229,6 +229,12 @@ class QueryExecution:
         legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)))
         prim = self._step_kin(legal, level)
         if prim == 'stop':
+            if self.dyn.stateful and int(level) > 0:
+                # v10: a robot with momentum declares STOP only at rest -- it brakes at its brake limit first
+                # (v9 let the Oracle's goal test stop at any speed level: an instantaneous halt)
+                self.status, self.reason = 'running', ''
+                l2 = max(0, int(level)-self.dyn.brake)
+                return (('forward', l2) if l2 > 0 else 'idle'), l2
             return 'stop', 0
         from .planners import Realized
         if isinstance(prim, Realized):
@@ -295,9 +301,11 @@ class QueryExecution:
                 hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
                 P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, direction)
                 if hard is None or hard(P1, psi1):
-                    if q.meta.get('exact_end') and face is not None:
+                    if q.meta.get('exact_end') and face is not None and \
+                            not (self.dyn.stateful and self.dyn.turn_needs_stop and int(dyn_state) > 0):
                         # v10: this primitive reaches the target heading -> the decision ends with it
-                        # (no trailing hold step; a native hold is itself an in-place turn)
+                        # (no trailing hold step; a native hold is itself an in-place turn).  A moving
+                        # robot that must stop before turning brakes on this step instead (motion.py).
                         after = pose[3]+(self.dyn.turn_rad if direction == 'left' else -self.dyn.turn_rad)
                         if abs(wrap(face-after)) <= self.dyn.turn_rad*.55:
                             self.status, self.reason = 'done', 'heading_reached'

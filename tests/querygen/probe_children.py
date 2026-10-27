@@ -19,6 +19,8 @@ def main():
     ap.add_argument('--horizon', type=int, default=16)
     ap.add_argument('--depth2', action='store_true')
     ap.add_argument('--trace', default='', help='comma-separated candidate labels: print their per-step trace')
+    ap.add_argument('--planner', default='orca')
+    ap.add_argument('--dynamics', default='native')
     a = ap.parse_args()
     from eventwm_graph.querygen.suites import load
     from eventwm_graph.querygen.episode import EpisodeRuntime
@@ -27,8 +29,8 @@ def main():
     from eventwm_graph.querygen.dynamics import FAMILIES
     from eventwm_graph.querygen.native import MAX_EPISODE_STEPS
     spec = [s for s in load(a.suite) if s.key == a.key][0]
-    dyn = FAMILIES['native']
-    rt = EpisodeRuntime(spec, 'orca', dyn, strict=True, trace=bool(a.trace))
+    dyn = FAMILIES[a.dynamics]
+    rt = EpisodeRuntime(spec, a.planner, dyn, strict=True, trace=bool(a.trace))
     want = set(x for x in a.trace.split(',') if x)
     gen = QueryGenerator(dyn, GeneratorConfig(**json.loads(a.gen)))
     ocfg = OracleConfig()

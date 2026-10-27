@@ -161,7 +161,7 @@ class SpaceTimeHeuristic:
 
 def horizon_for(query, cfg):
     if query.kind == 'stop':
-        return 1
+        return 8      # 1 for instant-speed robots; robots with momentum brake to rest first (executor)
     if query.kind in ('wait', 'wait_clear', 'creep', 'kturn'):
         return max(1, int(query.duration))
     return cfg.horizon          # movement and rotation: one decision interval, continuable
@@ -664,7 +664,10 @@ class Oracle:
                 stop_q = next((x for x in queries if x.kind == 'stop'), None)
                 if stop_q is not None:
                     t = time.perf_counter()
-                    done = self.rt.run(child, stop_q, horizon=1)
+                    # a robot with momentum brakes to rest before STOP (executor): allow those steps
+                    dyn = self.rt.dyn
+                    lvl = int(child.dyn_state) if not isinstance(child.dyn_state, tuple) else 0
+                    done = self.rt.run(child, stop_q, horizon=1+(dyn.stop_steps(lvl) if dyn.stateful else 0))
                     self.stats['run_s'] += time.perf_counter()-t
                     self.stats['children'] += 1
                     self.stats['goal_tests'] = self.stats.get('goal_tests', 0)+1
