@@ -50,6 +50,7 @@ CLOSE_ORCA = dict(robot_radius=0.30, human_radius=0.25, margin=0.05, time_horizo
 # 'stgoal' queries (v9): legal space-time lattice plan (stplan.py) re-planned every ST_REPLAN steps
 ST_HORIZON = 40
 ST_MARGIN = 0.35            # rectangle to predicted human centre at t = 0 ...
+ST_MARGIN_CLOSE = 0.28      # ... for 'close' queries (declared body proxy 0.25 m)
 ST_GROWTH = 0.004           # ... plus this per predicted step (CV uncertainty)
 ST_REPLAN = 4
 ST_HUMAN_RANGE = 8.0
@@ -384,7 +385,9 @@ class QueryExecution:
                 return self.planner.act(ctx, self.adapter)
             P = to_plane([pose[0], pose[2]])
             humans = [h for h in ctx.humans if float(np.hypot(*(h.position-P))) <= ST_HUMAN_RANGE]
-            kw = dict(horizon=ST_HORIZON, goal_tol=STOP_M*0.8 if not q.via else ARRIVE_M*0.8, margin=ST_MARGIN,
+            close = bool((q.meta or {}).get('close'))
+            kw = dict(horizon=ST_HORIZON, goal_tol=STOP_M*0.8 if not q.via else ARRIVE_M*0.8,
+                      margin=ST_MARGIN_CLOSE if close else ST_MARGIN,
                       growth=ST_GROWTH, start_budget=body_cost(legal.map, P, pose[3]))
             self.st = stplan.plan(self.view, self.field, pose, target, self.dyn.step_m, self.dyn.turn_rad, humans,
                                   STEP_SECONDS, **kw)
