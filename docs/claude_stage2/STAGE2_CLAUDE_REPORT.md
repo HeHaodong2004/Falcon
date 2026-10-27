@@ -30,6 +30,7 @@ those of the previous range API (section 5, `eventwm_graph/stage2_claude/README.
 | 1-epoch warm restart + soft label-aware IoU loss (v7r) | +0.0115 |
 | three legal channels + zero-initialized coarse capacity + EMA + 2.9k more TRAIN Roots (v11) | +0.0060 |
 | self-distillation restarts v12, v13, v14, v15 | +0.0047, +0.0034, +0.0014, +0.0018 |
+| soft-IoU weight 1.0 instead of 0.5 (v16_b vs v16_a) | +0.0019 (160 Roots, single threshold), +0.0003 (400 Roots, class rule) |
 | 256 px instead of 128 px legal sensing at inference | +0.002-0.003 |
 | net, full development | v7 0.4563 -> v11 0.4688 -> v12 0.4716 -> v15 0.4784 |
 
@@ -363,10 +364,10 @@ Later experiments (TRAIN validation, 160 Roots, single-threshold rule unless not
 | soup_v11_v12 | weight average of v11_ext and v12_distill | 0.4657 (< v12; not used) |
 
 | v16_a | 1-epoch self-distillation restart from v15 (teacher v15, seed 16) with 20,969 TRAIN Roots (+14 %: new 128 px packets from the unchanged environment replay) | 0.4719 @6k, 0.4720 @12k, 0.4746 @18k, 0.4744 @24k, **final 0.4753** (v15 0.4742) |
-| v16_b | 1-epoch restart from `v15_cap` (teacher v15, seed 17), 21,974 TRAIN Roots, soft-IoU weight 1.0 (instead of 0.5) | 0.4715 @6k, 0.4734 @12k, 0.4764 @18k, 0.4751 @24k, 0.4772 @30k, **final 0.4772** (v16_a: 0.4719 / 0.4720 / 0.4746 / 0.4744 / 0.4753 / 0.4753; higher at every threshold >= 0.4 and much higher at low thresholds, e.g. 0.4559 vs 0.4433 at 0.3). Soft-IoU weight 1.0 adds ~+0.002 on top of a cycle; from v17 on both lines use it |
+| v16_b | 1-epoch restart from `v15_cap` (teacher v15, seed 17), 21,974 TRAIN Roots, soft-IoU weight 1.0 (instead of 0.5) | 0.4715 @6k, 0.4734 @12k, 0.4764 @18k, 0.4751 @24k, 0.4772 @30k, **final 0.4772** (v16_a: 0.4719 / 0.4720 / 0.4746 / 0.4744 / 0.4753 / 0.4753; higher at every threshold >= 0.4 and much higher at low thresholds, e.g. 0.4559 vs 0.4433 at 0.3). On the 400-Root selection set with optimized class thresholds the advantage shrinks to +0.0003 (0.4869 vs 0.4866), i.e. most of the 160-Root lead came from thresholds the final rule does not use; v17 cycles use weight 1.0 nonetheless (it is not worse) |
 Operating points on 400 TRAIN-validation Roots (`select.py`, best rule, hierarchical label-aware IoU):
 v7 0.4628 (class 0.425/0.525) -> v7r 0.4711 (class 0.475/0.575) -> v11 0.4750 (class 0.475/0.575) ->
-v12 0.4793 (class 0.475/0.55) -> v15 0.4853 (class 0.50/0.575) -> v16_a 0.4866 (class 0.50/0.575) (v15: `v15_cap` 0.4853 as well, not preferred under the
+v12 0.4793 (class 0.475/0.55) -> v15 0.4853 (class 0.50/0.575) -> v16_a 0.4866 (class 0.50/0.575), v16_b 0.4869 (class 0.55/0.575) (v15: `v15_cap` 0.4853 as well, not preferred under the
 pre-registered tie-break). The logit ensemble of v15 + `v15_cap` scores 0.4742 on the 160 Roots, the same as each member.
 | v13-15_chain | chain of 1-epoch self-distillation restarts (each warm-starts from and distils from the previous model), stopped when a cycle gains < 0.001 | v13 (from v12): 0.4665 @6k, 0.4684 @12k, 0.4703 @18k, 0.4702 @24k, **final 0.4710**; v14 (from v13): 0.4675 @6k, 0.4710 @12k, 0.4714 @18k, 0.4720 @24k, **final 0.4724**; v15 (from v14): 0.4710 @6k, 0.4720 @12k, 0.4720 @18k, **final 0.4742** (chain best; the chain is limited to three cycles) |
 | v15_cap | as the v15 cycle (from v14, teacher v14, seed 15, same data) plus zero-initialized decoder side branches (`--dside 1:96:2,2:128:2`, +0.96M parameters) on physical GPU1 | 0.4711 @6k (v15: 0.4710), 0.4720 @12k, 0.4720 @18k, **final 0.4742** — identical to v15 at every threshold of every validation: decoder capacity is not what limits accuracy. Pre-registered tie-break (before its 400-Root result): it is preferred over v15 only with >= 0.001 more on the 400 Roots, since it costs ~1.5 ms of network time |
