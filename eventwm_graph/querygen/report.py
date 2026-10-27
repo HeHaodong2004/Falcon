@@ -71,6 +71,83 @@ def behaviour(rec):
                 min_clearance=float(np.nanmin(traj[:, 4])) if np.isfinite(traj[:, 4]).any() else None)
 
 
+def effective_branching(n_nodes, depth):
+    """b* with n_nodes = b + b^2 + ... + b^depth (bisection; None if undefined)."""
+    if not depth or n_nodes < depth:
+        return None
+    f = lambda b: sum(b**i for i in range(1, depth+1))-n_nodes
+    lo, hi = 1e-6, max(2., float(n_nodes))
+    if f(lo) > 0:
+        return None
+    for _ in range(100):
+        mid = 0.5*(lo+hi)
+        if f(mid) > 0:
+            hi = mid
+        else:
+            lo = mid
+    return 0.5*(lo+hi)
+
+
+def search_stats(r):
+    """Search-tree quality of one Oracle run."""
+    o = r.get('oracle') or {}
+    st = o.get('stats', {})
+    cfg = r.get('oracle_config', {})
+    oc = st.get('outcomes', {})
+    edges = int(st.get('children', 0))
+    failed = sum(v for k, v in oc.items() if k != 'success')
+    solved = bool(o.get('success'))
+    max_edges = cfg.get('max_edges', 6000)
+    max_s = cfg.get('max_seconds', 1e9)
+    if solved:
+        status = 'solved'
+    elif edges >= max_edges or o.get('seconds', 0) >= max_s-1:
+        status = 'budget'
+    else:
+        status = 'exhausted'           # the induced search space ran out (up to state merging)
+    nodes = int(st.get('expansions', 0))
+    depth = len(r.get('decisions', [])) if solved else None
+    return dict(status=status, edges=edges, nodes=nodes, depth=depth,
+                b_eff=effective_branching(nodes, depth) if solved else None,
+                dup_rate=st.get('duplicates', 0)/max(1, edges-failed),
+                human_edge_rate=(oc.get('human_collision', 0)+oc.get('body_overlap', 0))/max(1, edges),
+                static_edge_rate=oc.get('static_collision', 0)/max(1, edges),
+                kept_per_node=st.get('kept_candidates', 0)/max(1, nodes))
+
+
+def path_length(rec):
+    tr = (rec.get('replay') or {}).get('trace')
+    if not tr:
+        return None
+    T = np.array([[np.nan if v is None else v for v in row] for row in tr['trajectory']], dtype=float)
+    return float(np.hypot(np.diff(T[:, 0]), np.diff(T[:, 1])).sum())
+
+
+def search_summary(recs, budgets=(500, 1000, 2000, 3000, 6000)):
+    S = [(r, search_stats(r)) for r in recs]
+    solved = [(r, x) for r, x in S if x['status'] == 'solved']
+    med = lambda v: float(np.median(v)) if v else None
+    out = dict(n=len(S), solved=len(solved),
+               status=dict(Counter(x['status'] for _, x in S)),
+               success_at_budget={b: sum(1 for _, x in solved if x['edges'] <= b) for b in budgets},
+               edges_to_solution_median=med([x['edges'] for _, x in solved]),
+               nodes_to_solution_median=med([x['nodes'] for _, x in solved]),
+               solution_decisions_median=med([x['depth'] for _, x in solved]),
+               b_eff_median=med([x['b_eff'] for _, x in solved if x['b_eff']]),
+               dup_rate_mean=float(np.mean([x['dup_rate'] for _, x in S])) if S else None,
+               human_edge_rate_mean=float(np.mean([x['human_edge_rate'] for _, x in S])) if S else None,
+               static_edge_rate_mean=float(np.mean([x['static_edge_rate'] for _, x in S])) if S else None,
+               kept_per_node_mean=float(np.mean([x['kept_per_node'] for _, x in S])) if S else None)
+    P = [r for r in recs if r.get('verdict') == 'PASS']
+    if P:
+        m = [r['replay']['metrics'] for r in P]
+        lens = [path_length(r) for r in P]
+        out.update(path_length_m_mean=float(np.mean([v for v in lens if v is not None])) if any(v is not None for v in lens) else None,
+                   time_s_mean=float(np.mean([r['replay']['steps']*STEP_S for r in P])),
+                   spl_mean=float(np.mean([x['spl'] for x in m])), psc_mean=float(np.mean([x['psc'] for x in m])))
+    return out
+
+
 def load_run(d):
     d = Path(d)
     recs = [json.loads(p.read_text()) for p in sorted(d.glob('*.json')) if p.name not in ('summary.json', 'run.json', 'report.json')]
@@ -116,6 +193,7 @@ def summarize_run(d, certs=None):
     B = [x['behaviour'] for x in rows if x['behaviour'] and x['verdict'] == 'PASS']
     summ = dict(
         run=str(d), n=n, passed=len(passed), pass_rate=len(passed)/max(1, n),
+        search=search_summary(recs),
         certified_infeasible=[x['key'] for x in infeasible],
         feasible_n=len(feas), feasible_passed=sum(x['verdict'] == 'PASS' for x in feas),
         verdicts=dict(Counter(x['verdict'] for x in rows)),
@@ -165,6 +243,13 @@ def markdown(summ):
           f"oracle per episode {f(rt['oracle_s_p50'], 0)}/{f(rt['oracle_s_p95'], 0)} s; replay {f(rt['replay_s_p50'], 0)}/{f(rt['replay_s_p95'], 0)} s",
           f"queries: raw/node {f(summ['queries']['raw_per_node_mean'], 1)}, kept/node {f(summ['queries']['kept_per_node_mean'], 1)}",
           f"selected query labels in PASS branches: {summ['queries']['selected_label_counts']}"]
+    sr = summ['search']
+    L.append(f"search: status {sr['status']}; success@edges {sr['success_at_budget']}; edges/nodes to solution (median) "
+             f"{f(sr['edges_to_solution_median'], 0)}/{f(sr['nodes_to_solution_median'], 0)}; solution decisions {f(sr['solution_decisions_median'], 0)}; "
+             f"b_eff {f(sr['b_eff_median'], 2)}; duplicate rate {f(sr['dup_rate_mean'], 2)}; edges ending in human contact/overlap "
+             f"{f(sr['human_edge_rate_mean'], 3)}, static {f(sr['static_edge_rate_mean'], 3)}; kept queries/node {f(sr['kept_per_node_mean'], 1)}")
+    if sr.get('spl_mean') is not None:
+        L.append(f"paths (PASS): length {f(sr['path_length_m_mean'], 2)} m, time {f(sr['time_s_mean'], 1)} s, SPL {f(sr['spl_mean'], 3)}, PSC {f(sr['psc_mean'], 3)}")
     if summ['behaviour_pass']:
         b = summ['behaviour_pass']
         L.append(f"behaviour (PASS episodes with trace, n={b['n']}): wait {b['wait_steps_mean']:.1f} steps, "

@@ -57,6 +57,8 @@ class GeneratorConfig:
     maneuver_start_m: float = 1.0    # exact manoeuvres only within this distance of the start pose
     maneuver_goal_m: float = 1.0     # ... or of the goal
     root_probes: bool = True         # v7: 1-step creep/rotations at the reset state (False = frozen v6)
+    categories: tuple = ()           # ablation: keep only these candidate categories (() = all); the fixed
+                                     # goal / continue / stop queries are always offered
     stall_window: int = 16           # ... and only after this many steps without translation or turning
     stall_min: int = 6
     stall_disp_m: float = 0.15
@@ -309,6 +311,10 @@ class QueryGenerator:
         if view.inside(i, j) and not view.blocked[i, j]:
             cats['advance'].append(Query('goto', via=(tuple(ahead),), label='advance'))
 
+        if cfg.categories:
+            for k in cats:
+                if k not in cfg.categories:
+                    cats[k] = []
         queries = self._select(fixed, cats)
         diag.update(raw={k: len(v) for k, v in cats.items()}, fixed=len(fixed), kept=len(queries),
                     conflicts=len(conflicts))
