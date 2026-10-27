@@ -101,10 +101,10 @@ See `docs/claude_stage2/STAGE2_CLAUDE_REPORT.md` for protocols, receipts and the
 graph runner; `train.py`/`data.py` training on TRAIN roots; `select.py` operating-point selection on
 scene-disjoint TRAIN validation; `evaluate.py` original development evaluation (identical assertions and
 `summarize()` to `stage2_repair/range_full_evaluate.py`); `benchmark.py` original 32-workload complete
-latency; `test_api.py` contract tests. Diagnostics: `sim_eval.py`, `sim_check*.py`, `cam_check.py`,
+latency; `test_api.py` contract tests; `test_cache.py` legal-map cache contract. Diagnostics: `sim_eval.py`, `sim_check*.py`, `cam_check.py`,
 `blocked_debug.py`, `ray_debug.py`, `entry_debug.py`, `fp_debug.py`, `strata.py`, `aux_eval.py`,
 `fitcheck.py`, `check_past.py`, `fidelity_debug.py`, `near_ab.py`, `compare_pilot.py`, `viz*.py`,
-`human_diag.py`, `human_shadow.py`, `bucket_select.py`, `valcheck.py`, `prof_step.py`, `lanes_bench.py`. Tools:
+`human_diag.py`, `human_shadow.py`, `pocket_diag.py`, `sensor_rule.py`, `bucket_select.py`, `valcheck.py`, `prof_step.py`, `lanes_bench.py`. Tools:
 `sensor_select.py` (128 vs 256 px on TRAIN validation), `val256_expand.py` (256 px packets for validation
 Roots, unchanged environment replay), `make_ensemble.py`, `soup.py`.
 `quiet.py` runs a benchmark with this session's own background jobs paused (run as a module).
