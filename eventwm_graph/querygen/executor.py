@@ -202,7 +202,8 @@ class QueryExecution:
             i, j = self.view.to_local(*robot_xz)
             need = not self.view.inside(i, j)
         if need:
-            self.view = PlanningView(legal.map, robot_xz, target_xz)
+            uc = (self.query.meta or {}).get('unknown_cost')
+            self.view = PlanningView(legal.map, robot_xz, target_xz, **({'unknown_cost': float(uc)} if uc else {}))
             self.field = self.view.field([target_xz])
             self.field_key = key
         self.route = self.view.route(self.field, robot_xz)

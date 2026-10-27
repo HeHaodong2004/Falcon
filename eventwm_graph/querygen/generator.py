@@ -85,6 +85,8 @@ class GeneratorConfig:
                                      # (executor.CLOSE_ORCA, rectangle hard check 0.27 m); 0 = off
     commit: int = 0                  # v9 ablation: every query follows its static plan under the hard
                                      # rectangle check only (ORCA soft avoidance suspended); 0 = off
+    goal_opt: bool = False           # v9: optimistic goal route (UNKNOWN priced like FREE) as an 'alt' candidate when
+                                     # its first alt_via_m metres diverge from the main route (unexplored shortcuts)
     tc_variants: tuple = ()          # v9 mixed mode: also offer tight(1)+close copies of these fixed queries
                                      # (labels + '_tc'), e.g. ('goal', 'st_goal'); the rest stays conservative
     st_goal: bool = False            # v9: also offer 'st_goal' (legal space-time lattice plan to the goal,
@@ -278,6 +280,15 @@ class QueryGenerator:
         cats['wait'].append(Query('wait', duration=cfg.wait_short, label='wait_short'))
         (cats['wait_long'] if cfg.v9_select else cats['wait']).append(Query('wait', duration=cfg.wait_long,
                                                                             label='wait_long'))
+
+        # ---- optimistic route through unexplored space (v9): offered when it diverges from the main route
+        if cfg.goal_opt and route is not None:
+            oview = PlanningView(legal.map, robot_xz, goal_xz, unknown_cost=1.0)
+            oroute = oview.route(oview.field([goal_xz]), robot_xz)
+            if oroute is not None and len(oroute) >= 2:
+                a = point_along(route, cfg.alt_via_m); b = point_along(oroute, cfg.alt_via_m)
+                if float(np.hypot(*(np.asarray(a)-np.asarray(b)))) > 0.8:
+                    cats['alt'].insert(0, Query('goal', label='goal_opt', meta=dict(unknown_cost=1.0)))
 
         # ---- alternative routes
         if route is not None:
