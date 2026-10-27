@@ -1,0 +1,13 @@
+{
+ "name": "hwm_lite_e12",
+ "checkpoint": "hwm_lite_e12.pt",
+ "checkpoint_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
+ "source_checkpoint": "/home/haodong/workspace/projects/eventwm-falcon-stage1-claude-20261026/output/stage1_hwm/runs/hwm_lite_e12/best.pt",
+ "source_branch": "research/stage1-claude-20261026",
+ "source_commit": "cd7f3761",
+ "selection": "docs/stage1_hwm/SELECTED.json (identical bytes, SHA-256 checked)",
+ "contents": "model state_dict + config + step + validation record (already inference-only; copied byte-for-byte)",
+ "training_config": "training_config.json",
+ "deployment": {"device": "cpu", "torch_threads": 1, "worlds": 40, "times": 64, "horizon_seconds": 3.0},
+ "results": "docs/stage1_hwm/RESULTS.md"
+}

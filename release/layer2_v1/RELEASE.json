@@ -1,0 +1,30 @@
+{
+ "name": "layer2_v1",
+ "version": "layer2_unified_1",
+ "date": "2026-10-27",
+ "stage1": {
+  "name": "hwm_lite_e12",
+  "kind": "stage1_hwm",
+  "checkpoint": "release/stage1_hwm_lite_e12/hwm_lite_e12.pt",
+  "checkpoint_sha256": "53d44d85e7b18f893aded2f8981c27d46073aea937a04455c08ae0a6c6df0f51",
+  "source": "research/stage1-claude-20261026 @ cd7f3761 (merged)",
+  "api": "eventwm_graph.stage1_hwm.api.HumanWorldModel",
+  "device": "cpu",
+  "worlds": 40,
+  "times": 64,
+  "horizon_seconds": 3.0,
+  "status": "selected under the Stage 1 speed rule; better than the legacy Stage 1 on every reported quality metric (docs/stage1_hwm/RESULTS.md)"
+ },
+ "stage2": {
+  "name": "v17a",
+  "kind": "stage2_claude",
+  "checkpoint": "release/stage2_claude_v17a/stage2_claude_v17a.pt",
+  "checkpoint_sha256": "bef7f5fd73898903c309cfa9a8f18d0944352dc39e19e72db3cdbe32c3559a8d",
+  "source": "research/stage2-claude-exploration-20261026 @ 70fae3cf",
+  "api": "eventwm_graph.stage2_claude.api.LegalVoxelPredictor",
+  "device": "cuda",
+  "lanes": 3,
+  "range_sensor_px": 256,
+  "status": "latency gate met (dense K=6 cold P95 41.1 ms < 50 ms); ACCURACY GATE NOT MET (full-dev label-aware IoU 0.4831, required > 0.50); probabilities uncalibrated"
+ }
+}

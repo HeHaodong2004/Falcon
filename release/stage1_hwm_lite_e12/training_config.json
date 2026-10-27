@@ -1,0 +1,28 @@
+{
+ "name": "hwm_lite_e12",
+ "epochs": 12,
+ "batch": 128,
+ "lr": 0.001,
+ "wd": 0.0001,
+ "device": "cuda:0",
+ "workers": 6,
+ "limit_shards": 0,
+ "seed": 17,
+ "val_every": 4000,
+ "threads": 4,
+ "width": 128,
+ "modes": 6,
+ "arch": "lite",
+ "truncate": true,
+ "ablate": [],
+ "hard_labels": false,
+ "train_anchors": 781228,
+ "val_anchors": 45628,
+ "model": {
+  "d": 128,
+  "modes": 6,
+  "arch": "lite",
+  "truncate": true,
+  "ablate": []
+ }
+}
