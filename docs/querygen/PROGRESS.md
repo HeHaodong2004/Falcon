@@ -235,6 +235,36 @@ then budget scaling of representative DEV failures.
   Dd4bFSTQ8gi, 5cdEh9F2hJL); 3t8DB4Uzvkt unresolved (4 humans share the needed corridor; 30-min
   witness search reached 4.0 m of 11.1 m, not exhausted).
 
+- **Guided K=10 (v7b + witness heuristic), DEV complete except 3**: solved only episodes that already
+  pass unguided (13 PASS); every hard episode still fails (Qpor2mEya8F, Nfvxx8J5NCo, TEEsavR23oF,
+  LEFTm3JecaC, SByzJLxpRGn, YRUkbU5xsYj, bzCsHPLDztK, 3t8DB4Uzvkt) and AWUFxHEyV3T **regressed** (PASS
+  unguided in 3,540 edges, FAIL guided): the join-the-witness term is inadmissible for the generator's
+  reachable set and pulls the search toward witness states its queries cannot reach.  Dropped as the
+  main configuration.  v8 (spawn-only manoeuvres) K=6: LEFTm3JecaC, Nfvxx8J5NCo still fail.
+- **Why the hard episodes fail (diagnostics, 2026-10-27):**
+  * Not needles: witnesses with a 0.5 m human margin (2x the body proxy; `witness.py --margin`) exist for
+    Qpor2mEya8F (115 steps), Nfvxx8J5NCo (165), AWUFxHEyV3T (245), LEFTm3JecaC (56), bCPU9suPUw9 (111);
+    TEEsavR23oF none in 1200 s.
+  * Witness tracking (`tests/querygen/witness_track.py`): generator queries follow the witness until the
+    critical human interaction, then every child of the near-witness states is doomed.
+  * Witnesses of passing *and* failing episodes put the body axis on the legal map's inflated wall band
+    (`witness_legal.py`: 13-93 steps per witness), so legal-map conservatism alone does not separate them;
+    but waiting/squeezing next to humans and tight corners (LEFTm3JecaC, YRUkbU5xsYj spawn 3-point
+    turn) need it.
+  * Executor (`trace_exec.py`): ORCA's disc proxy (0.55 + 0.30 + 0.25 m, 1.5 s horizon = ~6.5 m of
+    native travel) forbids approaching any human ahead and makes plan-following dither left/right (the
+    static plan turns one way, ORCA's velocity the other): Qpor2mEya8F's goal query wastes ~25 of its
+    first 58 steps; near-goal failures (bCPU9suPUw9 0.44 m) have a human standing ~0.7 m from the goal.
+  * Timing: at Qpor2mEya8F's corridor exit every forward query steps into a crossing human's path and is
+    trapped (no reverse, humans do not react); the witness crosses ahead of the human diagonally ~10
+    steps earlier.  No query reasons about time.
+- **v9 candidates** (commits e8dcb244, 1e5897a2): ORCA turn commit + non-holonomic speed governor
+  (executor default); query options `tight` (outer band ring as UNKNOWN), `close` (body-width ORCA
+  proxies, 0.5 s horizon, 0.27 m rectangle check), `commit` (plan + hard check only); **`st_goal`**:
+  legal space-time lattice plan (stplan.py: exact native primitives incl. holds, legal map, legal CV
+  human predictions with growing margin) re-planned every 4 steps.  Ablations on the 9 DEV failures
+  running (`dev_tight1`, `dev_v9tc`, `dev_v9st`).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
