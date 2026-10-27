@@ -208,6 +208,23 @@ Running: generator ablations at an identical 3000-edge budget on DEV (goal-only;
 spatial-only; full minus manoeuvres), then planners/dynamics (SFM, DWA, ORCA x inertia/slowturn),
 then budget scaling of representative DEV failures.
 
+## Phase 2 (user, 2026-10-27): >= 95% Oracle success on genuinely feasible episodes, K ~ 6
+- **Privileged witness planner** (`witness.py`, commit 9f2aedc3): weighted A* over exactly simulated
+  native primitives (no legal sensor, ~6 ms/step) with the space-time cost-to-go + in-place turn steps
+  to the geodesic direction; every witness is re-executed from reset with Env.step + shadow simulator
+  (all declared rules). DEV: verified witnesses for every episode that is not certified infeasible,
+  including all Oracle failures of the frozen system (Nfvxx8J5NCo 142 steps, Qpor2mEya8F 109,
+  TEEsavR23oF 134, LEFTm3JecaC 55, bzCsHPLDztK 239, bCPU9suPUw9 106, YRUkbU5xsYj 130), typically in
+  1-4 min (max 17 min). => the ~60% Oracle success was a search limitation, not infeasibility.
+- **Witness-guided Oracle** (`OracleConfig.witness_dir`): h = max(geodesic, space-time, h_w) where h_w
+  is the remaining time when joining the verified witness (late joins penalised). Still selects only
+  generator queries; generator and partial maps unchanged (legal).
+- **Compact generator** (`select='compact'`, K = 6): goal/continue + one hold + situational slots
+  (manoeuvres when stalled; pass/yield on conflict; approaches near the goal; turn; advance / alt route
+  / frontier / retreat) + a root forward probe.
+- **Unseen-scene suite frozen** (`docs/querygen/suites_unseen.json`, 30 HM3D + 10 MP3D train-split
+  scenes, sha256 a5704e8b..., commit 5c60e909) for generalization; not used for development.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
