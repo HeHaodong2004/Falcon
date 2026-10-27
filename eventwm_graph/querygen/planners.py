@@ -170,11 +170,12 @@ class ORCAPlanner(Planner):
     velocity (RVO2 semantics) and is tracked by the dynamics adapter."""
     name = 'orca'
 
-    def __init__(self, config=None, hard_clearance=0.30, turn_commit=True, nh_project=True):
+    def __init__(self, config=None, hard_clearance=0.30, turn_commit=True, nh_project=True, commit=False):
         self.solver = ORCASolver(config or ORCAConfig())
         self.hard_clearance = hard_clearance
         self.turn_commit = turn_commit
         self.nh_project = nh_project
+        self.commit = commit          # 'commit' queries: follow the static plan under the hard check only
         self.v = None
         self.last = None
 
@@ -191,6 +192,16 @@ class ORCAPlanner(Planner):
         self.v = v
         self.last = dict(v=v.tolist(), n_lines=len(lines), n_obst=nobst)
         hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
+        if self.commit and not ctx.hold and ctx.plan_prims and ctx.dyn.discrete:
+            # decisive execution (timing is the decision layer's job): the body-aware static plan
+            # is followed whenever its next pose keeps the one-step rectangle clearance; otherwise
+            # hold (or step forward out of an imminent violation)
+            prim = ctx.plan_prims[0]
+            P1, psi1 = adapter.predicted_pose(ctx.P, ctx.psi, prim)
+            if hard is None or hard(P1, psi1):
+                self.mode = 'commit'
+                return prim
+            return self._emit(ctx, adapter, np.zeros(2), hard)
         if (not ctx.hold and ctx.plan_prims and ctx.dyn.discrete and
                 float(np.hypot(*(v-v_pref))) <= 0.05*ctx.vmax):
             # Nominal motion is ORCA-admissible: execute the static plan.

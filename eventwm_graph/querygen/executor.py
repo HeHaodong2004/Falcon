@@ -47,6 +47,12 @@ CLOSE_HARD_CLEARANCE = 0.27  # 'close' queries (declared body proxy: 0.25 m)
 # 0.5 s human horizon (~10 native steps; the native robot stops instantly and is ~4x faster than
 # the humans, so 1.5 s forbade approaching any human within ~6 m along the heading)
 CLOSE_ORCA = dict(robot_radius=0.30, human_radius=0.25, margin=0.05, time_horizon=0.5)
+# 'stgoal' queries (v9): legal space-time lattice plan (stplan.py) re-planned every ST_REPLAN steps
+ST_HORIZON = 40
+ST_MARGIN = 0.35            # rectangle to predicted human centre at t = 0 ...
+ST_GROWTH = 0.004           # ... plus this per predicted step (CV uncertainty)
+ST_REPLAN = 4
+ST_HUMAN_RANGE = 8.0
 VIA_ADVANCE_M = 0.45
 STOP_M = 0.15
 STUCK_STOP_M = 0.22
@@ -127,9 +133,14 @@ class QueryExecution:
         self.realizer = MotionRealizer(dyn)
         self.speed_debt = 0.
         self.clear_streak = 0
+        self.st = None              # stgoal: current space-time plan
+        self.st_i = 0
+        self.st_age = 0
         self.hard_clearance = HARD_CLEARANCE
         if (query.meta or {}).get('close'):
             self._make_close()
+        if (query.meta or {}).get('commit') and hasattr(self.planner, 'commit'):
+            self.planner.commit = True
         self.planner.reset()
 
     def _make_close(self):
@@ -157,6 +168,7 @@ class QueryExecution:
         self.plan = None
         self.plan_i = 0
         self.plan_age = 0
+        self.st = None
         if hasattr(self.adapter, 'reset'):
             self.adapter.reset()
 
@@ -271,6 +283,8 @@ class QueryExecution:
                 return self.planner.act(ctx, self.adapter)
             ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=face)
             return self.planner.act(ctx, self.adapter)
+        if q.kind == 'stgoal':
+            return self._step_st(legal, dyn_state)
         # goto / goal
         if q.kind == 'goal' and q.via:
             # goal approach through ordered pre-goal via-points
@@ -336,6 +350,58 @@ class QueryExecution:
         else:
             self.plan = None          # deviated (human avoidance / adapter) -> replan
         return prim
+
+    def _step_st(self, legal, dyn_state):
+        """stgoal: follow a legal space-time lattice plan to the goal (or the last via-point).
+
+        The plan (stplan.py: exact native primitives incl. two-step holds, legal map, legal CV human
+        predictions) is recomputed every ST_REPLAN steps, when the robot is off the planned pose, or
+        when the one-step rectangle check rejects its next primitive (then the robot holds once).
+        """
+        from . import stplan
+        from .planners import one_step_hard_ok
+        q = self.query
+        pose = legal.pose
+        target = tuple(map(float, q.via[-1])) if q.via else self._goal_xz(legal)
+        d = math.hypot(target[0]-pose[0], target[1]-pose[2])
+        if not q.via:
+            self.recent.append(d)
+            if d < STOP_M or (d < STUCK_STOP_M and len(self.recent) >= 4 and self.recent[-4]-d < 0.02):
+                self.status, self.reason = 'done', 'stop_at_goal'
+                return 'stop'
+        ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
+        if q.via and d < ARRIVE_M:
+            self.status, self.reason = 'done', 'arrived'
+            return self.planner.act(ctx, self.adapter)
+        need = self.st is None or self.st_i >= len(self.st['prims']) or self.st_age >= ST_REPLAN
+        if not need and self.st_i > 0:
+            ex = self.st['poses'][self.st_i-1]
+            need = math.hypot(ex[0]-pose[0], ex[1]-pose[2]) > 0.06 or abs(wrap(ex[2]-pose[3])) > 0.03
+        if need:
+            route = self._ensure_field(legal, target)
+            if route is None:
+                self.status, self.reason = 'done', 'unreachable'
+                return self.planner.act(ctx, self.adapter)
+            P = to_plane([pose[0], pose[2]])
+            humans = [h for h in ctx.humans if float(np.hypot(*(h.position-P))) <= ST_HUMAN_RANGE]
+            self.st = stplan.plan(self.view, self.field, pose, target, self.dyn.step_m, self.dyn.turn_rad, humans,
+                                  STEP_SECONDS, horizon=ST_HORIZON, goal_tol=STOP_M*0.8 if not q.via else ARRIVE_M*0.8,
+                                  margin=ST_MARGIN, growth=ST_GROWTH, start_budget=body_cost(legal.map, P, pose[3]))
+            self.st_i = 0
+            self.st_age = 0
+            self.lattice_calls += 1
+        self.st_age += 1
+        prims = self.st['prims']
+        if self.st_i < len(prims):
+            prim = prims[self.st_i]
+            hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
+            P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, prim)
+            if hard is None or hard(P1, psi1):
+                self._plan_now = prims[self.st_i:]
+                self.st_i += 1
+                return prim
+            self.st = None
+        return self.planner.act(ctx, self.adapter)
 
     def _route_clear(self, legal, horizon_m=3.0, robot_speed=2.0, conflict_dist=1.3, human_range=5.0):
         """Legal: no tracked human (constant velocity) meets the next metres of the goal route."""

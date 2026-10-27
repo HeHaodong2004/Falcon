@@ -83,6 +83,10 @@ class GeneratorConfig:
                                      # BLOCKED band relabelled UNKNOWN (executor._TightLegal); 0 = off
     close: int = 0                   # v9 ablation: every query executes with close-pass human avoidance
                                      # (executor.CLOSE_ORCA, rectangle hard check 0.27 m); 0 = off
+    commit: int = 0                  # v9 ablation: every query follows its static plan under the hard
+                                     # rectangle check only (ORCA soft avoidance suspended); 0 = off
+    st_goal: bool = False            # v9: also offer 'st_goal' (legal space-time lattice plan to the goal,
+                                     # stplan.py) as a fixed candidate (native-like discrete robots only)
 
 
 _route_points = resample_route
@@ -129,10 +133,10 @@ class QueryGenerator:
     # --------------------------------------------------------------- propose
     def propose(self, legal, execution=None):
         cfg = self.cfg
-        if cfg.tight or cfg.close:
+        if cfg.tight or cfg.close or cfg.commit:
             from .executor import tight_legal
             queries, diag = self._propose(tight_legal(legal, cfg.tight), execution)
-            extra = {k: int(v) for k, v in (('tight', cfg.tight), ('close', cfg.close)) if v}
+            extra = {k: int(v) for k, v in (('tight', cfg.tight), ('close', cfg.close), ('commit', cfg.commit)) if v}
             for q in queries:
                 if q.kind != 'continue':
                     q.meta = dict(q.meta, **extra)
@@ -159,6 +163,8 @@ class QueryGenerator:
             fixed.append(Query('continue', label='continue', meta=dict(of=execution.query.label)))
         gd = math.hypot(goal_xz[0]-robot_xz[0], goal_xz[1]-robot_xz[1])
         fixed.append(Query('goal', label='goal'))
+        if cfg.st_goal and not self.dyn.stateful:
+            fixed.append(Query('stgoal', label='st_goal'))
         if gd < cfg.stop_radius:
             fixed.append(Query('stop', label='stop', meta=dict(legal_goal_distance=gd)))
 
@@ -558,6 +564,7 @@ class QueryGenerator:
         if cont is not None and cont.meta.get('of') not in ('goal', None):
             take(cont)
         take(by_kind.get('goal'))
+        take(by_kind.get('stgoal'))
         if diag.get('stuck'):
             want = ('creep1', 'rot_left1', 'rot_right1', 'rot_left4', 'rot_right4', 'rot_left10', 'rot_right10',
                     'creep3')
