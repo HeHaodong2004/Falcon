@@ -33,7 +33,7 @@ from eventwm_graph.stage2_segment.native import Base
 from eventwm_graph.stage2_repair.range_history import validate
 from eventwm_graph.stage2_repair.range_identity import identity as range_identity
 from eventwm_graph.stage2_repair.increment import SparseIncrement
-from eventwm_graph.stage2_repair.materialize import future_from_columns
+from .materialize import future_from_columns_merged as future_from_columns
 from eventwm_graph.stage2_repair.diagnose import sha
 from .features import GroupContext, crop_box, build_inputs, human_arrays, current_humans, channel_index, MAP_CHANNELS, QUERY_CHANNELS, RADIUS
 from .model import UNet, GraphRunner, build_model
