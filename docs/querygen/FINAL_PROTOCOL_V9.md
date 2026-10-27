@@ -12,9 +12,9 @@ Configurations (planner x dynamics), each with the same query generator code:
 
 | id | planner | dynamics | generator config | Oracle config |
 |---|---|---|---|---|
-| C1-K10 | ORCA (full responsibility, v9 executor) | native | `tc_variants=(st_goal,)`, `st_goal`, `maneuver_spawn_only=False`, budget 10 (quota) | `heading_h`, `escape_penalty=80`, `escape_h`, `prefix_cache=48`, 6000 edges |
-| C1-K6 | ORCA | native | as C1 with `select=compact`, budget 6 | as C1 |
-| C2-K10 | DWA | inertia | as C1-K10 (st_goal and close passes are automatically unavailable for momentum dynamics) | as C1 |
+| C1-K10 | ORCA (full responsibility, v9 executor) | native | `tc_variants=(goal, st_goal)`, `st_goal`, `maneuver_spawn_only=False`, budget 10 (quota) | `heading_h`, `escape_penalty=80`, `escape_h`, `prefix_cache=48`, 6000 edges |
+| C1-K6 | ORCA | native | `select=compact`, budget 6, `tc_variants=(st_goal,)`, `st_goal`, `maneuver_spawn_only=False` | as C1 |
+| C2-K10 | DWA | inertia | as C1-K10 (st_goal and close passes are automatically unavailable for momentum dynamics; tight variants remain) | as C1 |
 
 Launcher: `scripts/querygen_final_v9.sh SUITE CONFIG OUT_ROOT` (refuses a dirty package).
 Everything else at the code defaults of the tag (including the v9 selection rules and the 6000-edge

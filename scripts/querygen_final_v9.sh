@@ -11,9 +11,9 @@ if [ -n "$(git status --porcelain -- eventwm_graph/querygen)" ]; then
 fi
 ORACLE='{"heading_h": true, "escape_penalty": 80, "escape_h": true, "prefix_cache": 48}'
 case "$CFG" in
-  c1k10) PL=orca; DY=native; GEN='{"tc_variants": ["st_goal"], "st_goal": true, "maneuver_spawn_only": false}' ;;
+  c1k10) PL=orca; DY=native; GEN='{"tc_variants": ["goal", "st_goal"], "st_goal": true, "maneuver_spawn_only": false}' ;;
   c1k6)  PL=orca; DY=native; GEN='{"select": "compact", "budget": 6, "tc_variants": ["st_goal"], "st_goal": true, "maneuver_spawn_only": false}' ;;
-  c2k10) PL=dwa;  DY=inertia; GEN='{"tc_variants": ["st_goal"], "st_goal": true, "maneuver_spawn_only": false}' ;;
+  c2k10) PL=dwa;  DY=inertia; GEN='{"tc_variants": ["goal", "st_goal"], "st_goal": true, "maneuver_spawn_only": false}' ;;
   *) echo "unknown config $CFG" >&2; exit 1 ;;
 esac
 OUT="$ROOT/${SUITE}_${CFG}"
