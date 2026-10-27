@@ -459,6 +459,18 @@ class Oracle:
             if cfg.escape_penalty and not self._escaped and not self._in_spawn(child, cfg.escape_m):
                 self._escaped = True
                 self.stats['escaped_at_edge'] = self.stats['children']
+            # Exact shortcut: with edge-type fine de-duplication the signature does not depend on the
+            # generator's output, so a duplicate child (55-75% of edges) is dropped before the generator
+            # runs (~100 ms) -- unless it is inside the success radius (goal test first, as before).
+            early_sig = None
+            if cfg.fine_by_edge and not (cfg.goal_test and child.geodesic < SUCCESS_DISTANCE):
+                early_fine = self.is_maneuver(q) or (cfg.goal_fine_m > 0 and child.geodesic < cfg.goal_fine_m)
+                early_sig = self._sig(child, fine=early_fine)
+                if early_sig in seen:
+                    self.stats['duplicates'] = self.stats.get('duplicates', 0)+1
+                    dl = self.stats.setdefault('dup_by_label', {})
+                    dl[q.label.rstrip('0123456789')] = dl.get(q.label.rstrip('0123456789'), 0)+1
+                    continue
             queries, diag = propose(child)
             if cfg.goal_test and child.geodesic < SUCCESS_DISTANCE:
                 # privileged goal test on generation: a state inside the success
