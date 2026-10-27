@@ -20,12 +20,20 @@ MARGIN = .08     # carving margin (m)
 
 def upload(arr, device):
     """Host->device copy that never blocks on queued GPU work: the array is
-    staged in (cached) pinned memory and copied asynchronously in stream order."""
+    staged in (cached) pinned memory and copied asynchronously in stream order.
+    Large arrays (range packets) are staged in 8 slices along the first axis, so
+    the host copy of one slice overlaps the transfer of the previous one."""
     t = torch.from_numpy(np.ascontiguousarray(arr))
     device = torch.device(device)
-    if device.type == 'cuda':
+    if device.type != 'cuda':
+        return t
+    if t.dim() == 0 or t.shape[0] < 8 or t.numel()*t.element_size() < (8 << 20):
         return t.pin_memory().to(device, non_blocking=True)
-    return t
+    out = torch.empty(t.shape, dtype=t.dtype, device=device)
+    step = -(-t.shape[0]//8)
+    for a in range(0, t.shape[0], step):
+        out[a:a+step].copy_(t[a:a+step].pin_memory(), non_blocking=True)
+    return out
 
 
 def local_dirs(size):

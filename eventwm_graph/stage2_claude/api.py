@@ -20,6 +20,7 @@ exactly; predictions are marked hypothetical and never certify the real graph.
 """
 from collections import OrderedDict
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 import time
 
 import numpy as np
@@ -124,12 +125,15 @@ class LegalVoxelPredictor:
         self.cache_size = cache_size
         self.graph_cache = OrderedDict()
         self.map_cache = OrderedDict()
+        self.map_quick = {}
+        self._hasher = ThreadPoolExecutor(1)
         self.last_batch_profile = {}
         self._pinned = None
 
     def clear_cache(self):
         self.graph_cache.clear()
         self.map_cache.clear()
+        self.map_quick.clear()
 
     # ------------------------------------------------------------------ graph
     def prepare_graph(self, graph):
@@ -184,13 +188,24 @@ class LegalVoxelPredictor:
         origins = np.asarray(packet['origins'], np.float64)
         rotations = np.asarray(packet['rotations'], np.float64)
         timestamps = np.asarray(packet['timestamps'], np.float64)
-        ident = range_identity(ranges, origins, rotations, timestamps, track_history, prepared.resolution, 1)
-        key = (ident, prepared.identity)
+        args = (ranges, origins, rotations, timestamps, track_history, prepared.resolution, 1)
+        # The full-content identity decides every cache hit. A cheap necessary condition (graph identity,
+        # packet shape, camera poses and times) tells whether any cached map can match at all; if none
+        # can, the full identity is hashed on a helper thread while the map is built.
+        quick = (prepared.identity, ranges.shape, hashlib.sha1(np.ascontiguousarray(origins).tobytes()+
+                 np.ascontiguousarray(rotations).tobytes()+np.ascontiguousarray(timestamps).tobytes()).hexdigest())
+        pending = None
+        if quick in self.map_quick.values():
+            ident = range_identity(*args)
+            key = (ident, prepared.identity)
+            ctx = self.map_cache.get(key)
+        else:
+            pending = self._hasher.submit(range_identity, *args)
+            ctx = None
         res = prepared.resolution
         start = paths[0][0]
         need_lo = np.min([crop_box(p, res)[0] for p in paths], 0)
         need_hi = np.max([crop_box(p, res)[1] for p in paths], 0)
-        ctx = self.map_cache.get(key)
         if ctx is None or np.any(need_lo < ctx.lo) or np.any(need_hi > ctx.lo+np.asarray(ctx.shape)):
             center = np.floor(np.asarray([start[1], start[3]], np.float64)/res).astype(np.int64)
             margin = int(np.ceil(FRAME_MARGIN/res))
@@ -204,9 +219,14 @@ class LegalVoxelPredictor:
                                near=float(self.config.get('near', 0.)),
                                human_motion=current_humans(track_history, motion=True)
                                if 'human_future' in self.config.get('query_channels', ()) else None)
+            if pending is not None:
+                ident = pending.result()
+                key = (ident, prepared.identity)
             self.map_cache[key] = ctx
+            self.map_quick[key] = quick
             while len(self.map_cache) > 2:
-                self.map_cache.popitem(last=False)
+                old, _ = self.map_cache.popitem(last=False)
+                self.map_quick.pop(old, None)
         self.map_cache.move_to_end(key)
         return ctx, ident
 
