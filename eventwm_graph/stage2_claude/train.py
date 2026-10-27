@@ -411,6 +411,9 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
                   val_roots=len(val_rows), seed=seed, warm=warm, cascade_from=cascade_from, ema=float(ema), pool_factor=int(pool_factor), overlap=bool(overlap),
                   teacher=teacher, distill=float(distill) if teacher else 0.)
     (dest/'config.json').write_text(json.dumps(config, indent=1))
+    # Exact TRAIN Root set of this run (packet directories keep growing while packets are generated).
+    (dest/'train_roots.json').write_text(json.dumps([[r['root_id'], r.get('sensor_dir', 'expanded_train_range_branches')]
+                                                     for r in train_rows]))
     print('train roots', len(train_rows), 'val roots', len(val_rows), 'params', sum(p.numel() for p in model.parameters()), flush=True)
     global_iou = GlobalIoU() if iou_mode == 'global' else None
     opt = torch.optim.AdamW([p_ for p_ in model.parameters() if p_.requires_grad], lr=lr, weight_decay=1e-4)
