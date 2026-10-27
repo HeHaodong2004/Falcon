@@ -232,10 +232,12 @@ def main():
     ap.add_argument('--dynamics', default='native')
     ap.add_argument('--margin', type=float, default=0., help='also require robot-rectangle to human-centre distance >= this '
                     '(stricter than the 0.25 m body proxy; robustness study only)')
+    ap.add_argument('--max-sims', type=int, default=400_000)
     a = ap.parse_args()
     from .suites import load
     spec = [s for s in load(a.suite) if s.key == a.key][0]
-    rec = find_witness(spec, budget_s=a.budget, weight=a.weight, dynamics=a.dynamics, margin=a.margin)
+    rec = find_witness(spec, budget_s=a.budget, weight=a.weight, dynamics=a.dynamics, margin=a.margin,
+                       max_sims=a.max_sims)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     (out/f"{spec.key.replace('/', '_')}.json").write_text(json.dumps(rec, indent=1, default=float))
     print(json.dumps({k: v for k, v in rec.items() if k != 'actions'}, default=float))
