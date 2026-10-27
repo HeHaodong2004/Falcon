@@ -85,8 +85,8 @@ class Oracle:
         return (int(math.floor(p[0]/cfg.dedup_cell)), int(math.floor(p[2]/cfg.dedup_cell)), hb, tb, running)
 
     # Generic (episode-independent) edge priors in steps for lazy ordering.
-    PRIOR = dict(continue_=0., goal=0., stop=0., pass_=2., sidestep=3., yield_=3., wait_short=2.,
-                 wait_long=4., retreat=5., turn=2., advance=2., alt_route=3., frontier=5., look=5.)
+    PRIOR = dict(continue_=0., goal=0., stop=0., approach=1., pass_=2., sidestep=3., yield_=3., wait_short=2.,
+                 wait_long=4., retreat=5., turn=2., advance=2., alt_route=3., frontier=5., look=5., rot_=2.)
 
     def _prior(self, q):
         lab = q.label

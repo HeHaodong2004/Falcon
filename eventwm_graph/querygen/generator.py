@@ -53,6 +53,9 @@ class GeneratorConfig:
     stop_radius: float = 0.40
     advance_m: float = 0.7
     retreat_m: float = 1.6           # backtrack distance along the robot's own legal trajectory
+    approach_range: float = 3.0      # goal-approach alignment candidates within this goal distance
+    approach_m: float = 0.9          # straight final segment into the goal
+    approaches: int = 2
     sidestep_m: float = 0.9
     sidestep_human_m: float = 3.0
     dedup_m: float = 0.45
@@ -109,7 +112,8 @@ class QueryGenerator:
         route = view.route(gfield, robot_xz)
         humans = [h for h in human_estimates(legal.tracks, legal.time)
                   if float(np.hypot(*(h.position-to_plane(robot_xz)))) <= cfg.human_range]
-        cats = {k: [] for k in ('human', 'wait', 'alt', 'frontier', 'observe', 'advance', 'yield', 'turn', 'retreat')}
+        cats = {k: [] for k in ('human', 'wait', 'alt', 'frontier', 'observe', 'advance', 'yield', 'turn', 'retreat',
+                                'approach', 'maneuver')}
         fixed = []
         diag = dict(route_len=path_length(route) if route is not None else None, humans=len(humans))
 
@@ -156,6 +160,13 @@ class QueryGenerator:
             if y is not None:
                 cats['yield'].append(Query('goto', via=(y,), heading=route_dir, label='yield',
                                            meta=dict(track=h.track_id)))
+
+        # ---- goal approach alignment: final straight drive along a heading whose
+        # goal pose keeps the long body off observed walls
+        if gd < cfg.approach_range:
+            for th, via in self._approaches(view, rfield, legal, goal_xz, robot_xz):
+                cats['approach'].append(Query('goal', via=(via,), label='approach',
+                                              meta=dict(heading=round(th, 3))))
 
         # ---- sidestep out of a tracked human's way (left/right of the heading)
         if any(float(np.hypot(*(h.position-to_plane(robot_xz)))) <= cfg.sidestep_human_m for h in humans):
@@ -211,6 +222,15 @@ class QueryGenerator:
             if abs(wrap(ldir-pose[3])) > math.radians(35):
                 cats['observe'].append(Query('rotate', heading=ldir, duration=40, label='look_lost_human'))
 
+        # ---- boxed in (legal test): forward or both 90 deg rotation sweeps reach
+        # observed wall bands -> fine partial rotations to compose an escape
+        if self._boxed_in(legal):
+            for ang in (20., 45.):
+                for side, sgn in (('left', 1.), ('right', -1.)):
+                    cats['maneuver'].append(Query('rotate', heading=wrap(float(pose[3])+sgn*math.radians(ang)),
+                                                  duration=int(math.ceil(math.radians(ang)/self.dyn.turn_rad))+1,
+                                                  label=f'rot_{side}{int(ang)}', meta=dict(direction=side)))
+
         # ---- advance (manoeuvring space)
         h = heading_vec(pose[3])
         ahead = to_world(to_plane(robot_xz)+cfg.advance_m*h)
@@ -248,6 +268,39 @@ class QueryGenerator:
                 out.append((h, best[1], best[2], best[3], best[0]))
         out.sort(key=lambda r: (r[4], r[1]))
         return [r[:4] for r in out]
+
+    def _boxed_in(self, legal):
+        from .control import turn_ok, FORWARD_X
+        P = to_plane([legal.pose[0], legal.pose[2]]); psi = float(legal.pose[3])
+        budget = body_cost(legal.map, P, psi)
+        fwd_budget = body_cost(legal.map, P, psi, FORWARD_X)
+        fwd = body_cost(legal.map, P+self.dyn.step_m*heading_vec(psi), psi, FORWARD_X) <= fwd_budget
+        left = turn_ok(legal.map, P, psi, math.pi/2, True, budget)
+        right = turn_ok(legal.map, P, psi, -math.pi/2, True, budget)
+        return (not fwd) or (not left and not right)
+
+    def _approaches(self, view, rfield, legal, goal_xz, robot_xz):
+        cfg = self.cfg
+        G = to_plane(goal_xz)
+        out = []
+        for k in range(8):
+            th = k*math.pi/4
+            if body_cost(legal.map, G, th) > 0:
+                continue
+            B = G-cfg.approach_m*heading_vec(th)
+            Bxz = tuple(to_world(B))
+            i, j = view.to_local(*Bxz)
+            if not view.inside(i, j) or view.blocked[i, j] or rfield[i, j] >= INF/2:
+                continue
+            if body_cost(legal.map, B, th) > 0:
+                continue
+            # straight final segment must stay off observed walls
+            if any(body_cost(legal.map, B+t*cfg.approach_m*heading_vec(th), th) > 0 for t in (0.33, 0.66)):
+                continue
+            score = rfield[i, j]*view.res+0.3*abs(wrap(th-float(legal.pose[3])))
+            out.append((score, th, Bxz))
+        out.sort()
+        return [(th, b) for _, th, b in out[:cfg.approaches]]
 
     def _nearest_open(self, view, rfield, xz, radius=0.4):
         """Nearest reachable non-BLOCKED cell (FREE preferred, UNKNOWN allowed)."""
@@ -363,6 +416,11 @@ class QueryGenerator:
         return out[:cfg.frontiers]
 
     def _select(self, fixed, cats):
+        """Situation-aware quotas in priority order, then round-robin leftovers.
+
+        Quotas react only to the categories' legal triggers (boxed in, human
+        conflict, near goal); a category with no candidates takes no slots.
+        """
         cfg = self.cfg
         chosen = list(fixed)
 
@@ -375,10 +433,17 @@ class QueryGenerator:
                 if math.hypot(c.via[0][0]-q.via[0][0], c.via[0][1]-q.via[0][1]) < cfg.dedup_m:
                     return True
             return False
-        order = ('human', 'yield', 'turn', 'wait', 'retreat', 'advance', 'alt', 'frontier', 'observe')
-        pools = {k: list(cats[k]) for k in order}
+        quotas = (('maneuver', 4), ('human', 3), ('approach', 2), ('yield', 2), ('turn', 2), ('wait', 2),
+                  ('retreat', 1), ('advance', 1), ('alt', 1), ('frontier', 1), ('observe', 1))
+        pools = {k: list(cats.get(k, [])) for k, _ in quotas}
+        for k, quota in quotas:
+            taken = 0
+            while pools[k] and taken < quota and len(chosen) < cfg.budget:
+                q = pools[k].pop(0)
+                if not dup(q):
+                    chosen.append(q); taken += 1
         while len(chosen) < cfg.budget and any(pools.values()):
-            for k in order:
+            for k, _ in quotas:
                 while pools[k]:
                     q = pools[k].pop(0)
                     if not dup(q):

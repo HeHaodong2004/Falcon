@@ -182,7 +182,13 @@ class QueryExecution:
             ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=face)
             return self.planner.act(ctx, self.adapter)
         # goto / goal
-        if q.kind == 'goal':
+        if q.kind == 'goal' and q.via:
+            # goal approach through ordered pre-goal via-points
+            while self.via_index < len(q.via) and np.hypot(*(robot_xz-np.asarray(q.via[self.via_index]))) < VIA_ADVANCE_M*0.6:
+                self.via_index += 1
+        if q.kind == 'goal' and q.via and self.via_index < len(q.via):
+            target = tuple(map(float, q.via[self.via_index]))
+        elif q.kind == 'goal':
             target = self._goal_xz(legal)
             d = float(np.hypot(*(robot_xz-target)))
             self.recent.append(d)
@@ -206,7 +212,7 @@ class QueryExecution:
             ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
             return self.planner.act(ctx, self.adapter)
         Pl = to_plane(robot_xz)
-        final = q.kind == 'goal' or self.via_index == len(q.via)-1
+        final = (q.kind == 'goal' and self.via_index >= len(q.via)) or (q.kind != 'goal' and self.via_index == len(q.via)-1)
         prims, plan_poses = self._static_plan(legal, target, final)
         look = point_along(route, LOOKAHEAD_M)
         direction = to_plane(look)-Pl
@@ -264,8 +270,9 @@ class QueryExecution:
                     break
         if not ok:
             d = math.hypot(target[0]-pose[0], target[1]-pose[2])
-            tol = (STOP_M*0.8 if self.query.kind == 'goal' else ARRIVE_M*0.8)
-            near_goal = self.query.kind == 'goal' and d <= 1.2
+            at_goal_stage = self.query.kind == 'goal' and self.via_index >= len(self.query.via)
+            tol = (STOP_M*0.8 if at_goal_stage else ARRIVE_M*0.6 if self.query.kind == 'goal' else ARRIVE_M*0.8)
+            near_goal = at_goal_stage and d <= 1.2
             i, j = self.view.to_local(pose[0], pose[2])
             if d <= 4.0:
                 goal_tol, goal_field = (tol, -1.)

@@ -63,6 +63,13 @@ executor (goto/goal/wait/rotate/stop), episode runtime + authoritative replay, v
 - Executor-only ORCA cannot escape a human walking up a 1 m corridor toward it (90 deg rotation =
   19 steps); this must be avoided at query level (wait before entering) -> Oracle danger term.
 
+## Planned: sandbox approximation study (task section 10)
+At real decision states: M predicted human futures (legal CV + noise; Stage 1 samples when frozen).
+(a) nominal: one planner rollout per query in a kinematic sandbox (legal map, nominal future) then
+vectorised scoring of that trajectory against all M futures; (b) closed loop: M planner rollouts,
+one per future. Report risk/progress/ranking agreement and end-to-end time. Validate the sandbox
+itself against native branch rollouts with the true future (privileged, validation only).
+
 ## Next steps
 1. Generator v0 + Oracle v0 (best-first over decision nodes), replay verification.
 2. Declare frozen dev/acceptance and untouched test suites.

@@ -23,6 +23,9 @@ os.environ.setdefault('MAGNUM_LOG', 'quiet')
 os.environ.setdefault('HABITAT_SIM_LOG', 'quiet')
 ns = types.ModuleType('eventwm_graph')
 ns.__path__ = [str(BASE / 'eventwm_graph')]
+if os.environ.get('QG_SNAPSHOT'):
+    # Frozen suite code: resolve eventwm_graph.querygen from the snapshot first.
+    ns.__path__.insert(0, os.environ['QG_SNAPSHOT'])
 sys.modules['eventwm_graph'] = ns
 module = sys.argv.pop(1)
 sys.argv[0] = module

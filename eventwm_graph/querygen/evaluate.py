@@ -11,8 +11,10 @@ steps, zero static-contact steps, and replayed actions identical to the
 Oracle branch actions.
 """
 import argparse
+import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -29,6 +31,15 @@ def git_identity():
         return dict(commit=head, querygen_dirty=dirty)
     except Exception as exc:  # pragma: no cover
         return dict(error=str(exc))
+
+
+def snapshot_identity():
+    """Content hash of the querygen package actually imported by this process."""
+    root = Path(__file__).resolve().parent
+    h = hashlib.sha256()
+    for p in sorted(root.glob('*.py')):
+        h.update(p.name.encode()); h.update(p.read_bytes())
+    return dict(path=str(root), sha256=h.hexdigest())
 
 
 def _decisions_json(decisions):
@@ -56,6 +67,7 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
     st = res['state']
     record = dict(spec=spec.asdict(), key=spec.key, planner=planner, dynamics=dynamics,
                   generator=asdict(gen.cfg), oracle_config=asdict(oracle.cfg), code=git_identity(),
+                  code_snapshot=snapshot_identity(),
                   start_geodesic=rt.start_geodesic, setup_s=rt.setup_s, spawn_contact=rt.spawn_contact,
                   oracle=dict(success=res['success'], steps=res['steps'], outcome=res['outcome'],
                               final_geodesic=res['final_geodesic'], seconds=res['seconds'],
@@ -142,12 +154,19 @@ def main():
         keep = set(a.only.split(','))
         specs = [s for s in specs if s.scene in keep]
     out.mkdir(parents=True, exist_ok=True)
-    (out/'run.json').write_text(json.dumps(dict(argv=sys.argv, code=git_identity(), started=time.time()), indent=1))
+    # Freeze the code for the whole suite: every episode subprocess imports
+    # eventwm_graph.querygen from this snapshot (see scripts/querygen_run.py).
+    base = Path(__file__).resolve().parents[2]
+    snap = (out/'code_snapshot'/'eventwm_graph').resolve()
+    if not (snap/'querygen').exists():
+        shutil.copytree(base/'eventwm_graph'/'querygen', snap/'querygen', ignore=shutil.ignore_patterns('__pycache__'))
+    (out/'run.json').write_text(json.dumps(dict(argv=sys.argv, code=git_identity(), started=time.time(),
+                                                snapshot=str(snap)), indent=1))
     pending = [s for s in specs if not (out/f"{s.key.replace('/', '_')}.json").exists()]
     procs = []
     py = sys.executable
     runner = str(Path(__file__).resolve().parents[2]/'scripts/querygen_run.py')
-    env = dict(os.environ, CUDA_VISIBLE_DEVICES=os.environ.get('CUDA_VISIBLE_DEVICES', '1'))
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES=os.environ.get('CUDA_VISIBLE_DEVICES', '1'), QG_SNAPSHOT=str(snap))
     logs = out/'logs'; logs.mkdir(exist_ok=True)
     while pending or procs:
         while pending and len(procs) < a.workers:

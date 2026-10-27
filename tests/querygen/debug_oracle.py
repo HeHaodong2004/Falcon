@@ -11,7 +11,8 @@ from eventwm_graph.querygen.dynamics import NATIVE
 key = sys.argv[1] if len(sys.argv) > 1 else 'hm3d/val/3t8DB4Uzvkt/1'
 depth = int(sys.argv[2]) if len(sys.argv) > 2 else 3
 ds, sp, sc, ep = key.split('/')
-rt = EpisodeRuntime(EpisodeSpec(ds, sp, sc, ep, 101), 'orca', NATIVE, strict=True)
+seed = int(sys.argv[3]) if len(sys.argv) > 3 else 101
+rt = EpisodeRuntime(EpisodeSpec(ds, sp, sc, ep, seed), 'orca', NATIVE, strict=True)
 gen = QueryGenerator(NATIVE)
 cfg = OracleConfig()
 node = rt.root
