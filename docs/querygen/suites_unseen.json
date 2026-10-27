@@ -1,0 +1,408 @@
+{
+ "salt": "querygen-unseen-train-scenes-20261027",
+ "rule": "Frozen *unseen-scene* suite from the Falcon train splits (never used for development):\n    scenes ordered by sha256(UNSEEN_SALT|dataset|scene), first n per dataset, smallest-hash episode\n    per scene; only the chosen scene files are opened.",
+ "unseen": [
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "PUNuHY5M7MS",
+   "episode_id": "3864",
+   "seed": 1897021695,
+   "human_num": 4,
+   "geodesic": 14.161
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "iePHCSf119p",
+   "episode_id": "1441",
+   "seed": 1712234361,
+   "human_num": 2,
+   "geodesic": 4.901
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "nS8T59Aw3sf",
+   "episode_id": "6871",
+   "seed": 975768545,
+   "human_num": 0,
+   "geodesic": 6.671
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "FgswoxWb3uN",
+   "episode_id": "4796",
+   "seed": 1018220934,
+   "human_num": 4,
+   "geodesic": 8.081
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "bXu6SSWkJY8",
+   "episode_id": "409",
+   "seed": 38061974,
+   "human_num": 2,
+   "geodesic": 2.948
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "W16Bm4ysK8v",
+   "episode_id": "1557",
+   "seed": 423995538,
+   "human_num": 2,
+   "geodesic": 3.764
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "12e6joG2B2T",
+   "episode_id": "524",
+   "seed": 169525834,
+   "human_num": 4,
+   "geodesic": 8.16
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "TQSiMZJawkS",
+   "episode_id": "4083",
+   "seed": 154455473,
+   "human_num": 4,
+   "geodesic": 15.008
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "3Ao63EY7J83",
+   "episode_id": "2231",
+   "seed": 1648239734,
+   "human_num": 6,
+   "geodesic": 14.83
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "iigzG1rtanx",
+   "episode_id": "2175",
+   "seed": 152547849,
+   "human_num": 6,
+   "geodesic": 4.302
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "URjpCob8MGw",
+   "episode_id": "76",
+   "seed": 1052853357,
+   "human_num": 2,
+   "geodesic": 2.43
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "77mMEyxhs44",
+   "episode_id": "8503",
+   "seed": 973243312,
+   "human_num": 2,
+   "geodesic": 2.421
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "mHXUEKEV6gR",
+   "episode_id": "7978",
+   "seed": 330497261,
+   "human_num": 0,
+   "geodesic": 5.539
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "zUG6FL9TYeR",
+   "episode_id": "1286",
+   "seed": 637494252,
+   "human_num": 6,
+   "geodesic": 6.594
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "zR6kPe1PsyS",
+   "episode_id": "4247",
+   "seed": 2133542215,
+   "human_num": 2,
+   "geodesic": 6.731
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "D8bT1ambLFc",
+   "episode_id": "1655",
+   "seed": 481994224,
+   "human_num": 4,
+   "geodesic": 10.686
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "pcpn6mFqFCg",
+   "episode_id": "4782",
+   "seed": 214762335,
+   "human_num": 0,
+   "geodesic": 1.464
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "kdFEfVoT1WE",
+   "episode_id": "6336",
+   "seed": 1367554449,
+   "human_num": 4,
+   "geodesic": 5.416
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "PjnDyQJJ3eM",
+   "episode_id": "2554",
+   "seed": 1875341489,
+   "human_num": 2,
+   "geodesic": 8.256
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "wz9FcGhrndc",
+   "episode_id": "2604",
+   "seed": 960495999,
+   "human_num": 0,
+   "geodesic": 3.688
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "gDDiZeyaVc2",
+   "episode_id": "4518",
+   "seed": 9250362,
+   "human_num": 6,
+   "geodesic": 5.87
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "BJovXQkqbC3",
+   "episode_id": "4845",
+   "seed": 920526982,
+   "human_num": 2,
+   "geodesic": 1.294
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "p4ZPcGtk6Ex",
+   "episode_id": "3459",
+   "seed": 2139588607,
+   "human_num": 2,
+   "geodesic": 8.769
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "nMeXfQU4PMS",
+   "episode_id": "9999",
+   "seed": 1019614143,
+   "human_num": 4,
+   "geodesic": 9.881
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "x1pTUWx9DPr",
+   "episode_id": "444",
+   "seed": 2030228249,
+   "human_num": 4,
+   "geodesic": 9.201
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "pUneSGJDrvY",
+   "episode_id": "9077",
+   "seed": 2084030022,
+   "human_num": 0,
+   "geodesic": 2.418
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "s19Uyn7AWwv",
+   "episode_id": "7670",
+   "seed": 1116346725,
+   "human_num": 4,
+   "geodesic": 7.424
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "4RuxhXRmb3V",
+   "episode_id": "9950",
+   "seed": 585843310,
+   "human_num": 4,
+   "geodesic": 18.176
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "C6JvMamYTRg",
+   "episode_id": "5181",
+   "seed": 880583977,
+   "human_num": 2,
+   "geodesic": 7.166
+  },
+  {
+   "dataset": "hm3d",
+   "split": "train",
+   "scene": "b3CuYvwpzZv",
+   "episode_id": "4954",
+   "seed": 1912547544,
+   "human_num": 4,
+   "geodesic": 6.542
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "YmJkqBEsHnH",
+   "episode_id": "12692",
+   "seed": 1814158958,
+   "human_num": 0,
+   "geodesic": 7.893
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "JeFG25nYj2p",
+   "episode_id": "56753",
+   "seed": 1894882512,
+   "human_num": 4,
+   "geodesic": 12.482
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "mJXqzFtmKg4",
+   "episode_id": "58768",
+   "seed": 243327276,
+   "human_num": 6,
+   "geodesic": 17.041
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "Vvot9Ly1tCj",
+   "episode_id": "9337",
+   "seed": 172308006,
+   "human_num": 6,
+   "geodesic": 7.597
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "Pm6F8kyY3z2",
+   "episode_id": "56171",
+   "seed": 1888444788,
+   "human_num": 4,
+   "geodesic": 4.917
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "PuKPg4mmafe",
+   "episode_id": "9198",
+   "seed": 1467460064,
+   "human_num": 6,
+   "geodesic": 27.04
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "sT4fr6TAbpF",
+   "episode_id": "3457",
+   "seed": 818215232,
+   "human_num": 6,
+   "geodesic": 14.192
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "VLzqgDo317F",
+   "episode_id": "32160",
+   "seed": 98727968,
+   "human_num": 6,
+   "geodesic": 6.903
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "r1Q1Z4BcV1o",
+   "episode_id": "47226",
+   "seed": 1157690350,
+   "human_num": 0,
+   "geodesic": 18.176
+  },
+  {
+   "dataset": "mp3d",
+   "split": "train",
+   "scene": "1pXnuDYAj8r",
+   "episode_id": "41287",
+   "seed": 1912107163,
+   "human_num": 0,
+   "geodesic": 3.763
+  }
+ ],
+ "dataset_file_sha256": {
+  "data/datasets/pointnav/social-hm3d/train/content/PUNuHY5M7MS.json.gz": "a6e8b54954caf9d22afdc86a87236cee31cba425f8d32134c55b2490d9b47df1",
+  "data/datasets/pointnav/social-hm3d/train/content/iePHCSf119p.json.gz": "e79b046620013230d470efd9db01abeeae9b26422ee683a2f43c1c1e29a6ea36",
+  "data/datasets/pointnav/social-hm3d/train/content/nS8T59Aw3sf.json.gz": "766b76f81525d0da50ddb72aabbf70331c09e99dea9feea29c06aa874ba54e3e",
+  "data/datasets/pointnav/social-hm3d/train/content/FgswoxWb3uN.json.gz": "954b3ac818686a7460e3908299201cc15c92eeaafdcc9786c16e62a0f1c1426d",
+  "data/datasets/pointnav/social-hm3d/train/content/bXu6SSWkJY8.json.gz": "b203c2a228d34133f84a9e52a5347ba24e0084e18b4cd5f86e4023185e05f7c9",
+  "data/datasets/pointnav/social-hm3d/train/content/W16Bm4ysK8v.json.gz": "b95536c7c8b1720c8dd93c277f29703c67a8947b441ce6220ac5dd8a331ffa4a",
+  "data/datasets/pointnav/social-hm3d/train/content/12e6joG2B2T.json.gz": "fd53979bbd1aab24482d9eebad6b0e4c34b4e61babb038c6ba75b031d1767cbf",
+  "data/datasets/pointnav/social-hm3d/train/content/TQSiMZJawkS.json.gz": "66c2ab130dd91130fce81bcd1879e672d5ba630b1c5711968048a58ea36c5542",
+  "data/datasets/pointnav/social-hm3d/train/content/3Ao63EY7J83.json.gz": "a3067e78f94a18ff62d9eaeca532675521ee42740c7a4b914ac6a72417db2b1d",
+  "data/datasets/pointnav/social-hm3d/train/content/iigzG1rtanx.json.gz": "aa05b28b0e2393a22b7a2a42cf47cf52eba78d0be06c559a9c972ab701bb521c",
+  "data/datasets/pointnav/social-hm3d/train/content/URjpCob8MGw.json.gz": "a2bf80e1cc62b63e9cf07209ef42b3a0096bc4d62b357d812ee99b212478af7c",
+  "data/datasets/pointnav/social-hm3d/train/content/77mMEyxhs44.json.gz": "29e9cac78b6281e2c02b9c340be0721047fa2db505c677a5893feb6afb1cfa8b",
+  "data/datasets/pointnav/social-hm3d/train/content/mHXUEKEV6gR.json.gz": "1a3b41d3bfca1043a8dbeef20115232d31c8d16153bbe531a714d3580a49b82c",
+  "data/datasets/pointnav/social-hm3d/train/content/zUG6FL9TYeR.json.gz": "f1bd974b3c055358469970efbb4dfb4856f117ee68d37e511cefecac18bb55a5",
+  "data/datasets/pointnav/social-hm3d/train/content/zR6kPe1PsyS.json.gz": "43373a9bbe7535bf70a3c6faa809499537ae5da06af79c2a72e1c61278d68be0",
+  "data/datasets/pointnav/social-hm3d/train/content/D8bT1ambLFc.json.gz": "50496efa7693b2bb11d15d764020565560c3e7811298e8ff52c33eeaf52f39ec",
+  "data/datasets/pointnav/social-hm3d/train/content/pcpn6mFqFCg.json.gz": "022540917c0903e59f599fd26202e59e03e3a05d2586e807417c691ca18393dc",
+  "data/datasets/pointnav/social-hm3d/train/content/kdFEfVoT1WE.json.gz": "c1bdbf300b5ea2cf78bc624da55669b113a49258b7170d974653d858d7969518",
+  "data/datasets/pointnav/social-hm3d/train/content/PjnDyQJJ3eM.json.gz": "e3a7365b8ac58333b48bd4bd21dab3fa89525c3eadea86d46e90f7d10463a0f9",
+  "data/datasets/pointnav/social-hm3d/train/content/wz9FcGhrndc.json.gz": "4e021400020ffd9c4c97945d1bc3048f9d7f73bf445f89c56bbca330c029b807",
+  "data/datasets/pointnav/social-hm3d/train/content/gDDiZeyaVc2.json.gz": "12029e35a683568d082b4dc20753c1bdef640c6aab11f0e870137f7e0c0f861d",
+  "data/datasets/pointnav/social-hm3d/train/content/BJovXQkqbC3.json.gz": "981d9f66e542c57a4d57f9c491a235e49d3e11d2eba0b31ecbce8117bebc419e",
+  "data/datasets/pointnav/social-hm3d/train/content/p4ZPcGtk6Ex.json.gz": "0c93f2bce13b99bac518ef982bf3c093df8eff54b552624484935780b5dd69f1",
+  "data/datasets/pointnav/social-hm3d/train/content/nMeXfQU4PMS.json.gz": "1e1122fe21ea7c252580059e6d7ff3b1959509208e2327f8f3c2e95d6fd6f736",
+  "data/datasets/pointnav/social-hm3d/train/content/x1pTUWx9DPr.json.gz": "655dd65e00544d9b43e3a14a5baf0098d5c4cfc0941037e75cd8cf47d2cc7aad",
+  "data/datasets/pointnav/social-hm3d/train/content/pUneSGJDrvY.json.gz": "49a8245b1cd5b3a73d889876544ad569712a0f79e5dafe161b1065ca00a5a4a1",
+  "data/datasets/pointnav/social-hm3d/train/content/s19Uyn7AWwv.json.gz": "2fcb1188309d8b4971aa30d4fa1c4d419d32cfcfbc925bc30909eebbf1132b35",
+  "data/datasets/pointnav/social-hm3d/train/content/4RuxhXRmb3V.json.gz": "c397ae05c5a053759ec024d235ec0873a3b42fbba684a8dab35c5ff93010cf82",
+  "data/datasets/pointnav/social-hm3d/train/content/C6JvMamYTRg.json.gz": "19694329fc07a41dffdcbac27bfdaacaa376e2d38e984a41a73ae5c45816b9c5",
+  "data/datasets/pointnav/social-hm3d/train/content/b3CuYvwpzZv.json.gz": "c23aaa11eb9a18ff8f944922470e185a5085212f4b8bf17bb020d10b8bc436ba",
+  "data/datasets/pointnav/social-mp3d/train/content/YmJkqBEsHnH.json.gz": "11236dd657f4f5f6f7485d7255439d719213a2db516dc43f585516edfc09eea0",
+  "data/datasets/pointnav/social-mp3d/train/content/JeFG25nYj2p.json.gz": "0aaf424d3ac9b5f2fb7509746abb65a1b14dd1a1b2ba238e081e882181194234",
+  "data/datasets/pointnav/social-mp3d/train/content/mJXqzFtmKg4.json.gz": "9e79ccc652cbaa19f1b6a9e49b7bcd033704cb7c3492464618233c5a7e9ee749",
+  "data/datasets/pointnav/social-mp3d/train/content/Vvot9Ly1tCj.json.gz": "8314d959fc6832186daf9cce366ae3237ff1c091676bd8ec5bbae449dde27d10",
+  "data/datasets/pointnav/social-mp3d/train/content/Pm6F8kyY3z2.json.gz": "2bd9115862428ced1474efba25ed299f9f595f0656a72148d9377669c02f30cc",
+  "data/datasets/pointnav/social-mp3d/train/content/PuKPg4mmafe.json.gz": "0eeab7d7d871bf6f3725dbedf012febf53c2e4a2376f0cba02dd18b2660b5fff",
+  "data/datasets/pointnav/social-mp3d/train/content/sT4fr6TAbpF.json.gz": "3db743b14d6ec65114a8a823252bf026afde639db6cefda944855ce8a94f34db",
+  "data/datasets/pointnav/social-mp3d/train/content/VLzqgDo317F.json.gz": "44261807b0534c9efb4b622135bede4490e838bcc4bc3cc7360c647fac00767f",
+  "data/datasets/pointnav/social-mp3d/train/content/r1Q1Z4BcV1o.json.gz": "a1da089205b850b2e0a2dc29c6cb7d8e20e2735650e0e233587dadd58a91674d",
+  "data/datasets/pointnav/social-mp3d/train/content/1pXnuDYAj8r.json.gz": "be1e30b7bfdf6edd3f9710b345b7344b0e1e1087f82344395ae9cb7c0aad8de7"
+ }
+}
