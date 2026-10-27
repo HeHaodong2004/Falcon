@@ -295,7 +295,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
         human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None, ema=0., extend=False, pool_factor=4,
-        overlap=False, side=None, teacher=None, distill=.5, dside=None, attn=0, iou_mode='batch'):
+        overlap=False, side=None, teacher=None, distill=.5, dside=None, attn=0, iou_mode='batch', train_roots=None):
     cli_near = near
     GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
@@ -384,6 +384,18 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
             seen |= {r['root_id'] for r in extra}
             train_rows = train_rows+extra
             print('extra sensor', directory, len(extra), 'TRAIN Roots', flush=True)
+    if train_roots:
+        # Exact TRAIN Root set of an earlier run (its train_roots.json: [root_id, packet directory] pairs).
+        from eventwm_graph.stage2_repair.diagnose import source_rows
+        by_id = {r['root_id']: r for r in source_rows('train')[0]}
+        train_rows = []
+        for root_id, directory in json.loads(Path(train_roots).read_text()):
+            r = dict(by_id[root_id])
+            if directory != 'expanded_train_range_branches':
+                r['sensor_dir'] = directory
+            train_rows.append(r)
+        assert not ({r['scene_id'] for r in train_rows} & {r['scene_id'] for r in val_rows}), 'TRAIN/validation scene overlap'
+        print('train roots from', train_roots, len(train_rows), flush=True)
     teachers = []
     if teacher:
         # Frozen teacher(s) (logit average) on the student's full input channel set.
@@ -565,6 +577,7 @@ if __name__ == '__main__':
     p.add_argument('--human-occluders', action='store_true')
     p.add_argument('--near', type=float, default=0.)
     p.add_argument('--iou-weight', type=float, default=0.)
+    p.add_argument('--train-roots', help='train_roots.json of an earlier run: train on exactly that TRAIN Root set')
     p.add_argument('--iou-mode', default='batch', choices=('batch', 'global'), help='soft IoU of each batch, or the gradient of the dataset-level IoU at running sums')
     p.add_argument('--warmup', type=int, default=500)
     p.add_argument('--cascade-from')
