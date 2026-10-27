@@ -45,6 +45,7 @@ class OracleConfig:
     dup_penalty: float = 25.          # defer predicted duplicates by this f penalty instead of simulating
     maneuver_prior: float = 10.       # extra f for exact manoeuvre edges (used when ordinary queries do not help)
     fine_by_edge: bool = True         # fine de-duplication for states reached by manoeuvre edges (else: stuck nodes)
+    tie_bucket: float = 0.            # >0: f is bucketed and ties prefer the later node (cross waiting plateaus forward in time)
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
     block_dist: float = 0.5           # centre distance to the geodesic path that blocks it (> half-width + body proxy)
     block_horizon_m: float = 8.0      # path length checked ahead
@@ -155,6 +156,15 @@ class Oracle:
                  wait_long=4., wait_clear=3., retreat=5., turn=2., advance=2., alt_route=3., frontier=5., look=5., rot_=3.,
                  creep=2.)
 
+    def _key(self, f, node):
+        """Heap key: f, or (bucketed f, -index) so equal-cost nodes prefer later times."""
+        b = self.cfg.tie_bucket
+        return (round(f/b), -node.index) if b > 0 else (f, 0)
+
+    def _defer(self, key, penalty):
+        b = self.cfg.tie_bucket
+        return (key[0]+round(penalty/b), key[1]) if b > 0 else (key[0]+penalty, key[1])
+
     @staticmethod
     def is_maneuver(q):
         lab = q.label
@@ -205,7 +215,7 @@ class Oracle:
             fine = bool(diag.get('stuck'))
             for q in queries:
                 counter += 1
-                heapq.heappush(heap, (fn+self._prior(q), counter, node, q, False, fine))
+                heapq.heappush(heap, (self._key(fn+self._prior(q), node), counter, node, q, False, fine))
         push_children(root, *propose(root))
         while heap and self.stats['children'] < cfg.max_edges and time.perf_counter()-t0 < cfg.max_seconds:
             prio, _, node, q, deferred, node_fine = heapq.heappop(heap)
@@ -217,7 +227,7 @@ class Oracle:
                 self.stats['predict_s'] = self.stats.get('predict_s', 0.)+time.perf_counter()-t
                 if psig is not None and psig in seen:
                     counter += 1
-                    heapq.heappush(heap, (prio+cfg.dup_penalty, counter, node, q, True, node_fine))
+                    heapq.heappush(heap, (self._defer(prio, cfg.dup_penalty), counter, node, q, True, node_fine))
                     self.stats['deferred'] = self.stats.get('deferred', 0)+1
                     continue
             t = time.perf_counter()
