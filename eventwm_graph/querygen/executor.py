@@ -13,6 +13,13 @@ layer interrupts it at its horizon.  Semantics:
             in-place turns or turning toward ``heading``); the planner still
             evades if holding becomes inadmissible.
 ``rotate``  turn in place toward ``heading``.
+``creep``   manoeuvre primitive: ``duration`` forward steps, each only if it
+            keeps the one-step human clearance (otherwise hold); like explicit
+            rotations it is not filtered by the (dilated) legal wall band.
+            Proposed only when the legal stuck test fires.
+``wait_clear`` hold (like ``wait``) until no tracked human is legally predicted
+            to conflict with the next metres of the goal route for two
+            consecutive steps, at most ``duration`` steps.
 ``stop``    issue STOP now (only proposed near the goal).
 
 Routes are recomputed on the *current legal map* (UNKNOWN traversed
@@ -81,6 +88,7 @@ class QueryExecution:
         self.lattice_calls = 0
         self.realizer = MotionRealizer(dyn)
         self.speed_debt = 0.
+        self.clear_streak = 0
         self.planner.reset()
 
     def copy(self):
@@ -171,6 +179,25 @@ class QueryExecution:
         if q.kind == 'stop':
             self.status, self.reason = 'done', 'stop'
             return 'stop'
+        if q.kind == 'creep':
+            if self.steps >= max(1, int(q.duration)):
+                self.status, self.reason = 'done', 'crept'
+            ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
+            from .planners import one_step_hard_ok
+            hard = one_step_hard_ok(ctx.humans, 0.30)
+            P1, psi1 = ctx.P+self.dyn.step_m*heading_vec(ctx.psi), ctx.psi
+            if hard is None or hard(P1, psi1):
+                remaining = max(1, int(q.duration)-self.steps+1)
+                self._plan_now = ['forward']*remaining     # stateful families brake to rest at the end
+                return 'forward'
+            return self.planner.act(ctx, self.adapter)
+        if q.kind == 'wait_clear':
+            clear = self._route_clear(legal)
+            self.clear_streak = self.clear_streak+1 if clear else 0
+            if self.steps >= max(1, q.duration) or self.clear_streak >= 2:
+                self.status, self.reason = 'done', ('clear' if clear else 'waited')
+            ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=q.heading)
+            return self.planner.act(ctx, self.adapter)
         if q.kind in ('wait', 'rotate'):
             face = q.heading
             if q.kind == 'rotate' and face is not None and abs(wrap(face-pose[3])) <= self.dyn.turn_rad*.55:
@@ -257,6 +284,16 @@ class QueryExecution:
         else:
             self.plan = None          # deviated (human avoidance / adapter) -> replan
         return prim
+
+    def _route_clear(self, legal, horizon_m=3.0, robot_speed=2.0, conflict_dist=1.3, human_range=5.0):
+        """Legal: no tracked human (constant velocity) meets the next metres of the goal route."""
+        from .control import route_conflicts
+        humans = [h for h in human_estimates(legal.tracks, legal.time)
+                  if float(np.hypot(*(h.position-to_plane([legal.pose[0], legal.pose[2]])))) <= human_range]
+        if not humans:
+            return True
+        route = self._ensure_field(legal, self._goal_xz(legal))
+        return not route_conflicts(route, humans, horizon_m, robot_speed, conflict_dist)
 
     def _static_plan(self, legal, target, final):
         """Remaining body-feasible primitives (list) and their poses."""

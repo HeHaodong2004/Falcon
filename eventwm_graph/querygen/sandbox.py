@@ -92,11 +92,13 @@ def tracks_from_future(F, k, now):
     return out
 
 
-def rollout(legal, query, planner_name, dyn, F, steps):
-    """Run the query executor in the sandbox against human future F [T+1, N, 3]."""
+def rollout(legal, query, planner_name, dyn, F, steps, execution=None, level=0):
+    """Run the query executor in the sandbox against human future F [T+1, N, 3].
+
+    ``execution`` (optional) continues an existing ``QueryExecution`` instead of
+    starting ``query`` afresh (the caller passes a copy)."""
     sl = SandboxLegal(legal)
-    ex = QueryExecution(query, make_planner(planner_name), dyn)
-    level = 0
+    ex = execution if execution is not None else QueryExecution(query, make_planner(planner_name), dyn)
     poses = [sl.pose.copy()]
     for k in range(steps):
         sl.tracks = tracks_from_future(F, k, sl.time) if F.shape[1] else []

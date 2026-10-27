@@ -17,8 +17,16 @@ from numba import njit
 
 from .control import BODY_X, FRONT_MARGIN
 
-N_BINS = 72
+N_BINS = 72                 # legacy constant (bins are now derived from the turn step, see plan())
 SAMPLE_SPACING = 0.1
+
+
+def heading_bins(turn_rad):
+    """Heading bins for duplicate detection: at least two bins per turn step, so a
+    single in-place turn always changes the bin.  (72 bins of 5 deg against the
+    native 4.77 deg turn merged some single turns into their parent's bin and cut
+    rotation chains after ~50 deg.)"""
+    return 2*int(math.ceil(2*math.pi/turn_rad))
 
 
 @njit(cache=True)
@@ -157,7 +165,8 @@ def plan(view, field, start_pose, goal_xz, step_m, turn_rad, goal_tol=0.3, goal_
         sx, sz, spsi, float(goal_xz[0]), float(goal_xz[1]), float(goal_tol), float(goal_field),
         float(step_m), float(turn_rad), int(max_expand), float(unknown_pen), int(start_budget),
         float(field_scale), float(BODY_X[0]), float(BODY_X[1]),
-        float(BODY_X[1]+(FRONT_MARGIN if nose_margin is None else nose_margin)), N_BINS, float(unknown_turn_pen))
+        float(BODY_X[1]+(FRONT_MARGIN if nose_margin is None else nose_margin)), heading_bins(turn_rad),
+        float(unknown_turn_pen))
     prims, poses = [], []
     k = node
     while k > 0:

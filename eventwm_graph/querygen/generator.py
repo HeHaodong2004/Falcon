@@ -15,9 +15,12 @@ de-duplicated ``Query`` objects plus diagnostics.  Categories:
               it, then rejoin the main route
   yield       retreat to the nearby reachable point that maximises predicted
               clearance from conflicting humans
-  wait        hold position for a short/long time facing the route
+  wait        hold position for a short/long time facing the route, or (on a
+              predicted route conflict) until the conflict is legally clear
   observe     rotate toward the goal direction / a recently lost human
   advance     short straight move to gain manoeuvring space
+  maneuver    (legal stuck test) exact 1/4/10-step rotations both ways and
+              1/3-step forward creeps, composable into multi-point turns
 
 UNKNOWN is never treated as verified free: routes may cross it only
 optimistically (higher cost) and via-points must be on FREE cells.
@@ -29,7 +32,8 @@ from scipy import ndimage
 
 from .legal import FREE, BLOCKED, UNKNOWN
 from .gridplan import PlanningView, INF, path_length, point_along, _dijkstra
-from .control import to_plane, to_world, wrap, human_estimates, body_cost, heading_vec
+from .control import (to_plane, to_world, wrap, human_estimates, body_cost, heading_vec, resample_route,
+                      route_conflicts)
 from .executor import Query, STOP_M
 from .dynamics import STEP_SECONDS
 
@@ -45,6 +49,15 @@ class GeneratorConfig:
     robot_speed: float = 2.0         # m/s effective (turning included) for ETA estimates
     wait_short: int = 6
     wait_long: int = 16
+    wait_clear_max: int = 48
+    maneuver_turns: tuple = (1, 4, 10)
+    maneuver_creeps: tuple = (1, 3)
+    maneuver_start_m: float = 1.0    # exact manoeuvres only within this distance of the start pose
+    maneuver_goal_m: float = 1.0     # ... or of the goal
+    maneuver_anywhere: bool = True   # scope: anywhere (the Oracle's manoeuvre prior keeps them a last resort)
+    stall_window: int = 24           # ... and only after this many steps without translation
+    stall_min: int = 6
+    stall_disp_m: float = 0.3
     alt_routes: int = 2
     alt_penalty: float = 8.0
     alt_corridor_m: float = 0.8
@@ -61,12 +74,7 @@ class GeneratorConfig:
     dedup_m: float = 0.45
 
 
-def _route_points(route, step=0.25):
-    if route is None or len(route) < 2:
-        return route
-    L = path_length(route)
-    n = max(2, int(L/step)+1)
-    return np.asarray([point_along(route, d) for d in np.linspace(0., L, n)])
+_route_points = resample_route
 
 
 class QueryGenerator:
@@ -199,6 +207,9 @@ class QueryGenerator:
         # ---- temporal alternatives
         # Holding alternates small in-place turns (no native pause action);
         # it deliberately does not rotate toward the route (a sweep choice).
+        if conflicts:
+            # hold until the legally predicted conflict with the route ahead is gone
+            cats['wait'].append(Query('wait_clear', duration=cfg.wait_clear_max, heading=route_dir, label='wait_clear'))
         cats['wait'].append(Query('wait', duration=cfg.wait_short, label='wait_short'))
         cats['wait'].append(Query('wait', duration=cfg.wait_long, label='wait_long'))
 
@@ -236,17 +247,34 @@ class QueryGenerator:
             if abs(wrap(ldir-pose[3])) > math.radians(35):
                 cats['observe'].append(Query('rotate', heading=ldir, duration=40, label='look_lost_human'))
 
-        # ---- stuck (legal test): the executor's own body-aware lattice finds no
-        # progressing plan toward the goal -> fine partial rotations to compose
-        # an escape (the Oracle chains them with advances/continuations)
-        stuck = self._stuck(view, gfield, legal, goal_xz)
+        # ---- stalled near the start or the goal (legal history test) -> exact
+        # primitive-count manoeuvres to compose an escape / final approach
+        # Exact manoeuvres are offered only where the benchmark placed the robot
+        # or the goal arbitrarily: near the legal start pose (confined spawn) or
+        # near the public goal (tight final approach).  Elsewhere the robot got
+        # there with ordinary queries, which can also take it out again.
+        # They also require that the robot's own recent legal history shows a
+        # stall (no translation beyond 0.3 m over the last <= 24 steps).
+        P0 = np.asarray(legal.poses[0], dtype=float)
+        near_start = math.hypot(float(pose[0])-P0[0], float(pose[2])-P0[2]) < cfg.maneuver_start_m
+        near_goal = gd < cfg.maneuver_goal_m
+        # The stall itself is the signal: obstacles that block the body may be
+        # absent from the legal map (e.g. at arm height), so the legal lattice
+        # cannot be required to agree.
+        scope = cfg.maneuver_anywhere or near_start or near_goal
+        stuck = scope and (self._stalled(legal) or self._stuck(view, gfield, legal, goal_xz))
         diag['stuck'] = stuck
         if stuck:
-            for ang in (20., 45.):
+            # Exact primitive-count manoeuvres: in-place rotations of k turn
+            # steps each way and k-step forward creeps.  Composed by the
+            # Oracle they express any multi-point turn (there is no reverse
+            # action); confined escapes are sensitive to single steps.
+            for k in cfg.maneuver_turns:
                 for side, sgn in (('left', 1.), ('right', -1.)):
-                    cats['maneuver'].append(Query('rotate', heading=wrap(float(pose[3])+sgn*math.radians(ang)),
-                                                  duration=int(math.ceil(math.radians(ang)/self.dyn.turn_rad))+1,
-                                                  label=f'rot_{side}{int(ang)}', meta=dict(direction=side)))
+                    cats['maneuver'].append(Query('rotate', heading=wrap(float(pose[3])+sgn*k*self.dyn.turn_rad),
+                                                  duration=k+1, label=f'rot_{side}{k}', meta=dict(direction=side)))
+            for n in cfg.maneuver_creeps:
+                cats['maneuver'].append(Query('creep', duration=n, label=f'creep{n}'))
 
         # ---- advance (manoeuvring space)
         h = heading_vec(pose[3])
@@ -264,27 +292,7 @@ class QueryGenerator:
     def _conflicts(self, route, humans, robot_xz):
         """Humans whose constant-velocity path meets the next metres of route."""
         cfg = self.cfg
-        if route is None or not humans:
-            return []
-        pts = _route_points(route)
-        if pts is None or len(pts) < 2:
-            return []
-        dists = np.concatenate([[0.], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
-        keep = dists <= cfg.horizon_m+1.
-        pts, dists = pts[keep], dists[keep]
-        P = to_plane(pts)
-        out = []
-        for h in humans:
-            best = None
-            for k, (q, d) in enumerate(zip(P, dists)):
-                t = d/cfg.robot_speed
-                sep = float(np.hypot(*(h.at(t)-q)))
-                if best is None or sep < best[0]:
-                    best = (sep, t, tuple(pts[k]), float(d))
-            if best is not None and best[0] <= cfg.conflict_dist:
-                out.append((h, best[1], best[2], best[3], best[0]))
-        out.sort(key=lambda r: (r[4], r[1]))
-        return [r[:4] for r in out]
+        return route_conflicts(route, humans, cfg.horizon_m, cfg.robot_speed, cfg.conflict_dist)
 
     def _stuck(self, view, gfield, legal, goal_xz):
         from . import lattice
@@ -299,6 +307,18 @@ class QueryGenerator:
                             goal_tol=0.12, goal_field=goal_field, start_budget=body_cost(legal.map, P, float(pose[3])),
                             max_expand=15000)
         return not plan['prims']
+
+    def _stalled(self, legal):
+        """Legal history test: over the last ``stall_window`` steps (at least
+        ``stall_min`` available) the robot stayed within ``stall_disp_m`` of where
+        it was (turning in place does not count as progress, so a robot
+        manoeuvring in a confined spot stays in manoeuvre mode)."""
+        cfg = self.cfg
+        n = min(cfg.stall_window, len(legal.poses)-1)
+        if n < cfg.stall_min:
+            return False
+        P = np.asarray(legal.poses[-1-n:], dtype=float)
+        return float(np.max(np.hypot(P[:, 0]-P[-1, 0], P[:, 2]-P[-1, 2]))) < cfg.stall_disp_m
 
     def _boxed_in(self, legal):
         from .control import turn_ok, FORWARD_X
@@ -464,7 +484,7 @@ class QueryGenerator:
                 if math.hypot(c.via[0][0]-q.via[0][0], c.via[0][1]-q.via[0][1]) < cfg.dedup_m:
                     return True
             return False
-        quotas = (('maneuver', 4), ('human', 3), ('approach', 2), ('yield', 2), ('turn', 2), ('wait', 2),
+        quotas = (('maneuver', 8), ('human', 3), ('approach', 2), ('yield', 2), ('turn', 2), ('wait', 2),
                   ('retreat', 1), ('advance', 1), ('alt', 1), ('frontier', 1), ('observe', 1))
         pools = {k: list(cats.get(k, [])) for k, _ in quotas}
         for k, quota in quotas:

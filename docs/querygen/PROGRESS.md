@@ -68,12 +68,51 @@ planner/dynamics regret; `sandbox.py`/`sandbox_study.py` nominal vs closed-loop 
   base+front legs into it, 2-6 turn steps either way bring legs into contact; search complete with
   25 / 4 reachable states, 0 m contact-free displacement). Contact-ignoring BFS escapes only by
   scraping (`tests/querygen/probe_wedge.py`). All other certified DEV episodes are feasible.
-- DEV v3 (commit 4aaff8cb, running): early results auFeVz9Go4m/16, HMkoS756sz6/10,
-  hkr2MGpHD6B/8 PASS; both certified-infeasible episodes FAIL_SEARCH.
+- DEV v3 (commit 4aaff8cb, Oracle 1800 s / 5000 edges, ORCA/native): **11/28 PASS** (11/25 on
+  certifiably feasible episodes; 3 certified infeasible: yr17PDCnDDW/5, 7Ukhou1GxYi/14,
+  Dd4bFSTQ8gi/12 - spawned 1.4-9 cm inside static geometry, one forward step adds 8-12.5 cm).
+  Zero replay failures: every Oracle success replayed bit-identically with 0 human collisions,
+  0 static contacts, 0 overlaps. Failures are all search failures:
+  * 3 stall at the start (YRUkbU5xsYj/10, vd3HHTEpmyA/8, 5cdEh9F2hJL/6): certified escapes exist
+    but need exact primitive sequences (e.g. `r12 f l28 f6`, `r10 f r f r12 f4`); the generator
+    had no single-step manoeuvres and the Oracle's 0.3 m / 45 deg de-duplication merged them.
+  * 11 exhaust 1800 s: dominated by humans traversing/parking in the narrow passages the route
+    needs (AWUFxHEyV3T: two humans walk the 1.2 m corridor head-on, steps 48-144; TEEsavR23oF: one
+    head-on, one parks at the corridor end; Nfvxx8J5NCo/Qpor2mEya8F: humans park in the passage /
+    corridor exit from ~step 90-175; LEFTm3JecaC: human walks through the near-wall goal area
+    steps 84-170, best branch 0.236 m from the goal). Solutions need waiting at the right place;
+    with f = g + 2h every wait step costs like 1/12 m of lost progress, so waits are explored last.
+  * Search waste: 60-77% of simulated edges end in an already-seen signature; the legal sensor
+    is ~80% of step time (~1500 rays/step re-testing occluded cells; inherent to the accepted
+    observer, so not approximated).
+- Goal-region certificates (`feasibility.py --goal`, all 75 headings x 5 gait phases on 4 cm
+  points within the success region, canonical contacts; placement self-check reproduces the reset
+  transform and contacts exactly): rsggHU7g7dh 97% of final poses contact-free, TEEsavR23oF 41%.
 - Sandbox study (1 episode, 5 states, 50 queries, M=16 CV+noise futures): nominal-rollout +
   vectorised scoring vs closed-loop per-future rollouts: overlap-probability MAE 0.015 (corr
   0.72), median d_min MAE 0.007 m, top-choice agreement 100%, 166 vs 2464 ms/query (~15x);
   sandbox vs native with true future: mean deviation 0.064 m, outcome agreement 100%.
+
+- v4/v5 iteration (DEV only):
+  * **Lattice bug** (present in all runs up to DEV v3): the static hybrid-A* keyed headings on 72
+    bins of 5 deg while a native turn is 4.77 deg, so some single turns stayed in the parent's bin
+    and were pruned as duplicates; rotation chains broke after ~50 deg (TEEsavR23oF reset: only 23
+    reachable headings, 42,518 expansions without progress -> spurious 'stuck'). Fixed: >= 2 bins
+    per turn step (`lattice.heading_bins`); the same query now finds a progressing plan in 3,813.
+  * Exact manoeuvres (rotations of 1/4/10 turn steps, 1/3-step creeps; creeps like explicit
+    rotations are not filtered by the dilated wall band) solve vd3HHTEpmyA/8 (PASS, 128 steps), but
+    offered at every lattice-'stuck' node they exploded the search (HMkoS756sz6: 1,823 expansions,
+    1,087 s vs 148 / 124 s without; ablation: block-time term irrelevant there). Now gated: only
+    within 1 m of the start pose or the goal AND after the legal history shows a stall (no
+    translation > 0.15 m and no net turn > 0.35 rad over the last <= 16 steps).
+  * `wait_clear` query (hold until the legally predicted route conflict clears, <= 48 steps) and a
+    privileged Oracle block-time term (smallest departure delay after which the true geodesic path
+    is free of humans within 0.5 m for 8 m, from the human tape) so that necessary waits are not
+    penalised as lost progress.
+  * Progress witness search (`feasibility.py --progress`): 5cdEh9F2hJL/6 exhausted all 36,799
+    reachable states (gait-merged) without any state closer to the goal than the spawn (the robot
+    spawns facing away from the goal in a corridor too narrow to turn in; there is no reverse);
+    an exact-gait rerun is running to make this a certificate.
 
 ## Important failed hypotheses / lessons
 - Velocity-tracking alone cannot handle Spot's 1.23 m body in tight spaces -> body-aware lattice.

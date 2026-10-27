@@ -73,6 +73,44 @@ def human_estimates(tracks, now, max_age=2.0):
     return out
 
 
+def resample_route(route, step=0.25):
+    """Route polyline resampled every ``step`` metres (None/short routes unchanged)."""
+    from .gridplan import path_length, point_along
+    if route is None or len(route) < 2:
+        return route
+    L = path_length(route)
+    n = max(2, int(L/step)+1)
+    return np.asarray([point_along(route, d) for d in np.linspace(0., L, n)])
+
+
+def route_conflicts(route, humans, horizon_m, robot_speed, conflict_dist):
+    """Legal conflict test: humans whose constant-velocity path meets the next
+    ``horizon_m`` metres of the route when the robot (at ``robot_speed``) gets
+    there.  Returns [(human, t_star, conflict_xz, route_distance)] sorted by
+    separation, then time."""
+    if route is None or not humans:
+        return []
+    pts = resample_route(route)
+    if pts is None or len(pts) < 2:
+        return []
+    dists = np.concatenate([[0.], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
+    keep = dists <= horizon_m+1.
+    pts, dists = pts[keep], dists[keep]
+    P = to_plane(pts)
+    out = []
+    for h in humans:
+        best = None
+        for k, (q, d) in enumerate(zip(P, dists)):
+            t = d/robot_speed
+            sep = float(np.hypot(*(h.at(t)-q)))
+            if best is None or sep < best[0]:
+                best = (sep, t, tuple(pts[k]), float(d))
+        if best is not None and best[0] <= conflict_dist:
+            out.append((h, best[1], best[2], best[3], best[0]))
+    out.sort(key=lambda r: (r[4], r[1]))
+    return [r[:4] for r in out]
+
+
 def body_axis_points(P, psi, spacing=0.1, x_range=BODY_X):
     n = int(math.ceil((x_range[1]-x_range[0])/spacing))+1
     xs = np.linspace(x_range[0], x_range[1], n)
