@@ -194,17 +194,22 @@ class EscapeMap:
         escapes = set()
         first = None
         sims = 0
+        blocked_early = 0          # static contacts among depth <= 2 expansions: a confined spawn
         acts = ('forward', 'left', 'right')
         while q and sims < max_sims:
             st, d, ti, xz, esc, trav, kp = q.popleft()
             if first is not None and d >= first+extra_depth:
                 break
+            if d >= 3 and blocked_early == 0:
+                break               # nothing touched geometry near the spawn: an open spawn, no map needed
             for a in acts:
                 sim.load(st, d)
                 r = sim.step(a, compute_geodesic=False)
                 sims += 1
                 trav2 = trav+math.hypot(r.pose[0]-xz[0], r.pose[2]-xz[1])
                 if r.static_contact and not escape_exempt(r.static_links, C0, d+1, trav2):
+                    if d <= 2:
+                        blocked_early += 1
                     continue
                 esc2 = esc and bool(r.static_contact)
                 ti2 = ti+(1 if a == 'left' else -1 if a == 'right' else 0)
@@ -225,7 +230,8 @@ class EscapeMap:
         self.first = first
         self.sims = sims
         self.states = len(depth)
-        self.active = first is not None and first > open_depth
+        self.blocked_early = blocked_early
+        self.active = first is not None and first > open_depth and blocked_early > 0
         self.steps = {}
         self.known = set(depth) if first is not None else set()
         if self.active:
@@ -329,6 +335,7 @@ class Oracle:
                 self._escmap = EscapeMap(self.rt, max_sims=cfg.escape_h_sims)
                 em = self._escmap
                 self.stats['escape_map'] = dict(active=em.active, first_escape=em.first, states=em.states,
+                                                blocked_early=em.blocked_early,
                                                 sims=em.sims, seconds=round(em.seconds, 1))
             if self._escmap.active and self._in_spawn(st, 1.2):
                 k = self._escmap.lookup(st.legal.pose, st.escape_open)
