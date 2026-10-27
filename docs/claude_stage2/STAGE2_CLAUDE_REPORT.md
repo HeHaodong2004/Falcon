@@ -2,7 +2,7 @@
 
 Status (2026-10-27 07:30 UTC): best verified model `final/v15.pt` — original full-development
 label-aware increment IoU **0.4784** (target > 0.50 **not met**; v12 0.4716, previous model A 0.4171), complete
-dense K=6 cold P95 **32.0 ms** (< 50 ms, met; measured under heavy external CPU load). All numbers below are
+dense K=6 cold P95 **27.4 ms** (< 50 ms, met; P50 24.1 ms; 32.0 ms under heavy external CPU load). All numbers below are
 read from the frozen evaluation and benchmark receipts. Running: v16_a (line A, +14 % TRAIN Roots) and, next,
 v16_b (soft-IoU weight 1.0); ~1,000 new TRAIN Roots per hour are being generated. A later candidate is
 evaluated on development only if it beats the current best on TRAIN validation, and is then reported here.
@@ -11,8 +11,8 @@ evaluated on development only if it beats the current best on TRAIN validation, 
 
 **Outcome.** Best verified model `final/v15.pt`: original full-development label-aware increment IoU
 **0.4784** (bootstrap 95 % [0.4655, 0.4910]; requirement > 0.50 **not met**; previous model A 0.4171,
-graph-only baseline 0.2177) and complete dense K=6 cold P50 / P95 **27.2 / 32.0 ms** (requirement < 50 ms met;
-preferred 20-30 ms reached at P50, P95 just above under a load average of ~30-35 from another session), from
+graph-only baseline 0.2177) and complete dense K=6 cold P50 / P95 **24.1 / 27.4 ms** (requirement < 50 ms met, preferred 20-30 ms band
+reached; 27.2 / 32.0 ms when another session loaded the CPU to a load average of ~30-35), from
 the same implementation, legal inputs only, original evaluator and original benchmark workloads.
 
 **Method.** Legal tri-state voxel map from the measured past/current range frames -> exact simulation of the
@@ -110,34 +110,33 @@ Per-Root comparison v11 vs v7 (same 2,110 Roots): label-aware IoU improved on 69
 
 Complete latency of the same frozen `final/v15.pt` (original 32 workloads with 256 px packets
 `range_benchmark_256`, K=1/4/6, 3 repetitions, `lanes=3`, BatchNorm folded; physical GPU0 with this
-session's own training and packet generation paused by `quiet.py`; another session's ~20 CPU-bound
-query-generation processes kept running, load average ~30-35 on 36 cores during both runs, vs ~10 during the
-v12 run) — `benchmark/v15_bench256_r2.json` (current code, incl. the overlapped range identity),
-`benchmark/quiet_v15_256_r2.json`:
+session's own training and packet generation paused by `quiet.py`; load average 15.5 before / 12.8 after the
+run, close to the ~10 of the v12 run) — `benchmark/v15_bench256_r3.json`, `benchmark/quiet_v15_256_r3.json`:
 
 | cohort / cache | K=1 P50 / P95 | K=4 P50 / P95 | K=6 P50 / P95 |
 | --- | ---: | ---: | ---: |
-| dense, cold | 11.702 / 18.489 | 21.316 / 24.448 | **27.176 / 32.038** |
-| dense, map_warm_new_queries | 8.340 / 11.144 | 18.110 / 21.558 | 23.036 / 26.915 |
-| dense, warm | 8.394 / 11.162 | 18.072 / 21.130 | 22.873 / 26.206 |
-| representative, cold | 10.102 / 12.148 | 17.990 / 23.469 | 22.698 / 25.117 |
-| representative, map_warm_new_queries | 7.366 / 9.115 | 15.664 / 19.835 | 20.360 / 24.369 |
-| representative, warm | 7.512 / 9.138 | 15.625 / 17.586 | 20.387 / 22.622 |
+| dense, cold | 10.237 / 15.101 | 18.849 / 22.708 | **24.108 / 27.380** |
+| dense, map_warm_new_queries | 7.021 / 9.229 | 16.083 / 19.247 | 21.014 / 24.175 |
+| dense, warm | 7.023 / 9.351 | 16.300 / 19.343 | 21.149 / 24.185 |
+| representative, cold | 9.005 / 10.568 | 15.998 / 18.369 | 20.769 / 23.479 |
+| representative, map_warm_new_queries | 6.270 / 7.966 | 14.062 / 16.035 | 18.608 / 21.888 |
+| representative, warm | 6.362 / 7.896 | 14.159 / 16.261 | 18.588 / 21.105 |
 
-startup: constructor 7082 ms (CUDA kernel compilation + graph capture), first complete K=6 call 175 ms.
-Median / P95 dense-cold K=6 stage times: graph preparation 2.2 / 3.8 ms, legal map 3.7 / 8.3 ms, query
-features 4.3 / 7.5 ms, network 11.6 / 13.1 ms, decode + sparse increment + complete native hypothetical graphs
-3.2 / 4.1 ms. The first v15 run (`benchmark/v15_bench256.json`, before the overlapped range identity, same
-load): K=6 dense cold P50 26.6 / P95 31.8 ms. In v12's run the slowest dense calls were all on the 82-frame
-workloads (~34.5 ms, legal map ~8.6 ms + query features ~9.7 ms); with the exact latency engineering those
-calls take ~30.6 ms and the tail is now set by CPU-contention outliers on ordinary workloads (33-37 ms, with
-inflated host-side stages). v12 measured at load ~10: dense K=6 cold P50 25.1 / P95 34.6 ms
-(`benchmark/v12_bench256.json`); v11: 24.9 / 34.2 ms.
+startup: constructor 6093 ms (CUDA kernel compilation + graph capture), first complete K=6 call 149 ms; dense
+K=6 cold maximum 29.7 ms. Median / P95 dense-cold K=6 stage times: graph preparation 1.9 / 3.1 ms, legal map
+3.1 / 7.4 ms, query features 3.8 / 6.0 ms, network 11.2 / 13.7 ms (10.4M parameters), decode + sparse
+increment + complete native hypothetical graphs 2.6 / 3.3 ms.
+
+The same model and code measured earlier under a load average of ~30-35 (another session's ~20 CPU-bound
+processes): dense K=6 cold P50 27.2 / P95 32.0 ms (`benchmark/v15_bench256_r2.json`; before the overlapped range
+identity: 26.6 / 31.8 ms, `benchmark/v15_bench256.json`) — the tail there consists of CPU-contention outliers on
+ordinary workloads. For reference, v12 with the code before the exact latency engineering, load ~10: 25.1 /
+34.6 ms (`benchmark/v12_bench256.json`), where every slowest call was an 82-frame-history workload (~34.5 ms).
 Contract tests on `final/v15.pt` (`test_api.py`): exact domain, zero horizon, no mutation, batched == single
 bit-identical, lanes=3 == lanes=1 bit-identical — all pass; cache contract (`test_cache.py`) passes.
 
-The required accuracy (> 0.50) is **not** reached (best 0.4784); see sections 9-10. The latency
-requirement is met (dense K=6 cold P95 32.0 ms < 50 ms under heavy external CPU load; P50 27.2 ms).
+The required accuracy (> 0.50) is **not** reached (best 0.4784); see sections 9-10. The latency requirement is
+met with the preferred 20-30 ms band reached: dense K=6 cold P50 24.1 / P95 27.4 ms.
 
 ### 1.1 Frozen model `final/v7.pt` (checkpoint `training/past_v7/final.pt` + frozen operating point)
 
