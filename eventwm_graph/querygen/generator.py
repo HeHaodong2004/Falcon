@@ -410,6 +410,11 @@ class QueryGenerator:
                 if k not in cfg.categories:
                     cats[k] = []
         diag['conflicts'] = len(conflicts)
+        if stuck:
+            # manoeuvre mode: the extra progress variants (st_goal, *_tc) would crowd out the exact manoeuvres
+            # (in mixed mode K=10 kept only ~5 slots; vd3HHTEpmyA/yZME6UR9dUN lost every creep and never
+            # escaped the spawn) -- keep only continue / goal / stop
+            fixed = [q for q in fixed if q.label in ('continue', 'goal', 'stop')]
         queries = self._select_compact(fixed, cats, diag) if cfg.select == 'compact' else self._select(fixed, cats)
         diag.update(raw={k: len(v) for k, v in cats.items()}, fixed=len(fixed), kept=len(queries),
                     conflicts=len(conflicts))
