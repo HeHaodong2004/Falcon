@@ -351,7 +351,10 @@ class QueryGenerator:
         if cfg.maneuver_spawn_only:
             stuck = in_spawn and (in_mode or self._stalled(legal))
         else:
-            stuck = in_mode or ((near_start or near_goal) and self._stalled(legal))
+            # v9: manoeuvre mode only near the start or the goal -- it used to persist anywhere while the
+            # previous decision was a manoeuvre, so exact rotate/creep chains wandered 2-4 m from the spawn
+            # (YRUkbU5xsYj: 88% of expansions, 2,719 static-collision edges)
+            stuck = (near_start or near_goal) and (in_mode or self._stalled(legal))
         diag['stuck'] = stuck
         diag['maneuver_mode'] = in_mode
         # v7: with no motion history yet (reset state) also offer the finest
