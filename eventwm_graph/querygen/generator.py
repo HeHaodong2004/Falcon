@@ -85,6 +85,8 @@ class GeneratorConfig:
                                      # (executor.CLOSE_ORCA, rectangle hard check 0.27 m); 0 = off
     commit: int = 0                  # v9 ablation: every query follows its static plan under the hard
                                      # rectangle check only (ORCA soft avoidance suspended); 0 = off
+    glance: bool = False             # v10: bounded (<= 45 deg) in-place glance toward the goal bearing instead of the
+                                     # full look_goal rotation (observe openings on the goal side)
     goal_opt: bool = False           # v9: optimistic goal route (UNKNOWN priced like FREE) as an 'alt' candidate when
                                      # its first alt_via_m metres diverge from the main route (unexplored shortcuts)
     tc_variants: tuple = ()          # v9 mixed mode: also offer tight(1)+close copies of these fixed queries
@@ -315,7 +317,16 @@ class QueryGenerator:
         # ---- observation rotations
         gdir = math.atan2(-(goal_xz[1]-robot_xz[1]), goal_xz[0]-robot_xz[0])
         if abs(wrap(gdir-pose[3])) > math.radians(50) and (route_dir is None or abs(wrap(gdir-route_dir)) > math.radians(30)):
-            cats['observe'].append(Query('rotate', heading=gdir, duration=40, label='look_goal'))
+            if cfg.glance:
+                # v10: bounded glance toward the goal bearing (observe side openings without leaving the route)
+                err = wrap(gdir-float(pose[3]))
+                k = int(min(abs(err), math.radians(45))/self.dyn.turn_rad)
+                if k >= 3:
+                    side = 'left' if err > 0 else 'right'
+                    cats['observe'].append(Query('rotate', heading=wrap(float(pose[3])+math.copysign(k*self.dyn.turn_rad, err)),
+                                                 duration=k+1, label='glance_goal', meta=dict(direction=side)))
+            else:
+                cats['observe'].append(Query('rotate', heading=gdir, duration=40, label='look_goal'))
         lost = [t for t in legal.tracks if not t.get('visible_now') and
                 legal.time-float(t['last_seen_time']) < 2.0]
         if lost:
