@@ -6,9 +6,10 @@ from eventwm_graph.querygen.executor import Query
 from eventwm_graph.querygen.dynamics import FAMILIES
 from eventwm_graph.querygen.suites import load
 key = sys.argv[1]; n = int(sys.argv[2]); planner = sys.argv[3] if len(sys.argv) > 3 else 'orca'
+meta = json.loads(sys.argv[4]) if len(sys.argv) > 4 else {}
 spec = [s for s in load('dev') if s.key == key][0]
 rt = EpisodeRuntime(spec, planner, FAMILIES['native'], strict=False, trace=True)
-st = rt.root; q = Query('goal', label='goal')
+st = rt.root; q = Query('goal', label='goal', meta=meta)
 while not st.terminal and st.index < n:
     cont = st.execution is not None and st.execution.status == 'running'
     st = rt.run(st, None if cont else q, horizon=1, cont=cont)

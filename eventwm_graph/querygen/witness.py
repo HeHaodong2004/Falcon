@@ -51,7 +51,8 @@ def _decode(item):
     return names[item] if isinstance(item, str) else (float(item[0]), float(item[1]))
 
 
-def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, t_bucket=4, dynamics='native'):
+def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, t_bucket=4, dynamics='native',
+                 margin=0.):
     from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, contact_links,
                          escape_exempt, MAX_EPISODE_STEPS, SUCCESS_DISTANCE)
     from .oracle import SpaceTimeHeuristic
@@ -114,7 +115,7 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
             sim.load(state, t)
             r = sim.step(a, compute_geodesic=True)
             sims += 1
-            if r.human_collision or r.body_overlap:
+            if r.human_collision or r.body_overlap or r.min_rect_distance < margin:
                 continue
             trav2 = trav+math.hypot(r.pose[0]-pose[0], r.pose[2]-pose[2])
             if r.static_contact and not escape_exempt(r.static_links, C0, t+1, trav2):
@@ -133,7 +134,7 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
                 sim.load(st2, t+1)
                 rs = sim.step('stop', compute_geodesic=True)
                 sims += 1
-                if rs.success and not rs.human_collision and not rs.body_overlap:
+                if rs.success and not rs.human_collision and not rs.body_overlap and rs.min_rect_distance >= margin:
                     found = k2
                     break
             counter += 1
@@ -152,7 +153,7 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
         acts = ''.join(a[0] for a in seq)+('s' if found else '')
     else:
         acts = [_encode(a) for a in seq]+(['s'] if found else [])
-    rec = dict(key=spec.key, dynamics=dynamics, found=found is not None, actions=acts,
+    rec = dict(key=spec.key, dynamics=dynamics, margin=margin, found=found is not None, actions=acts,
                steps=len(seq)+(1 if found else 0), start_geodesic=g0, best_geodesic=best_geo, sims=sims,
                states=len(seen), exhausted=not heap, seconds=time.perf_counter()-t0)
     if found:
@@ -229,10 +230,12 @@ def main():
     ap.add_argument('--budget', type=float, default=1800.)
     ap.add_argument('--weight', type=float, default=3.0)
     ap.add_argument('--dynamics', default='native')
+    ap.add_argument('--margin', type=float, default=0., help='also require robot-rectangle to human-centre distance >= this '
+                    '(stricter than the 0.25 m body proxy; robustness study only)')
     a = ap.parse_args()
     from .suites import load
     spec = [s for s in load(a.suite) if s.key == a.key][0]
-    rec = find_witness(spec, budget_s=a.budget, weight=a.weight, dynamics=a.dynamics)
+    rec = find_witness(spec, budget_s=a.budget, weight=a.weight, dynamics=a.dynamics, margin=a.margin)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     (out/f"{spec.key.replace('/', '_')}.json").write_text(json.dumps(rec, indent=1, default=float))
     print(json.dumps({k: v for k, v in rec.items() if k != 'actions'}, default=float))

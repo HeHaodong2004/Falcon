@@ -145,14 +145,36 @@ def one_step_hard_ok(humans, clearance):
     return ok
 
 
+def governed_speed(lines, u, s_pref):
+    """Largest s in [0, s_pref] with s*u inside every ORCA half-plane; None if no s >= 0 is."""
+    from .orca import det
+    lo, hi = 0., s_pref
+    for ln in lines:
+        a = det(ln.direction, ln.point)
+        b = det(ln.direction, u)
+        if abs(b) < 1e-9:
+            if a > 1e-9:
+                return None
+            continue
+        if b > 0:
+            lo = max(lo, a/b)
+        else:
+            hi = min(hi, a/b)
+    if lo > hi+1e-9:
+        return None
+    return max(0., hi) if lo <= 1e-9 else None
+
+
 class ORCAPlanner(Planner):
     """Full-responsibility ORCA; the solver velocity is the agent's model
     velocity (RVO2 semantics) and is tracked by the dynamics adapter."""
     name = 'orca'
 
-    def __init__(self, config=None, hard_clearance=0.30):
+    def __init__(self, config=None, hard_clearance=0.30, turn_commit=True, nh_project=True):
         self.solver = ORCASolver(config or ORCAConfig())
         self.hard_clearance = hard_clearance
+        self.turn_commit = turn_commit
+        self.nh_project = nh_project
         self.v = None
         self.last = None
 
@@ -177,6 +199,28 @@ class ORCAPlanner(Planner):
             if hard is None or hard(P1, psi1):
                 self.mode = 'plan'
                 return prim
+        if (self.turn_commit and not ctx.hold and ctx.plan_prims and ctx.dyn.discrete and
+                ctx.plan_prims[0] in ('left', 'right') and (hard is None or hard(ctx.P, ctx.psi))):
+            # v9: an in-place turn of the static plan does not translate the robot, so ORCA's
+            # velocity constraint does not apply to it; executing it (if the one-step rectangle
+            # check holds) avoids the plan/ORCA left-right dithering that wasted up to ~25
+            # steps per corridor entry (e.g. Qpor2mEya8F steps 17-28 and 37-46).
+            P1, psi1 = adapter.predicted_pose(ctx.P, ctx.psi, ctx.plan_prims[0])
+            if hard is None or hard(P1, psi1):
+                self.mode = 'plan_turn'
+                return ctx.plan_prims[0]
+        if (self.nh_project and not ctx.hold and ctx.plan_prims and ctx.dyn.discrete and
+                ctx.plan_prims[0] == 'forward'):
+            # v9: non-holonomic projection.  A turn-in-place robot cannot realise ORCA's lateral
+            # deviation without stopping to turn (it dithered between the plan heading and ORCA's
+            # direction).  Keep the plan heading and take the largest speed along it that satisfies
+            # every ORCA half-plane (possibly zero = hold); only if even holding violates ORCA
+            # (a human on a collision course) fall back to ORCA's evasive velocity.
+            u = heading_vec(ctx.psi)
+            s_gov = governed_speed(lines, u, float(np.hypot(*v_pref)))
+            if s_gov is not None:
+                self.mode = 'governed'
+                return self._emit(ctx, adapter, s_gov*u, hard)
         return self._emit(ctx, adapter, v, hard)
 
 

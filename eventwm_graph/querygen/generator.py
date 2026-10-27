@@ -79,6 +79,10 @@ class GeneratorConfig:
     sidestep_m: float = 0.9
     sidestep_human_m: float = 3.0
     dedup_m: float = 0.45
+    tight: int = 0                   # v9 ablation: every query plans with the outer N rings of the inflated
+                                     # BLOCKED band relabelled UNKNOWN (executor._TightLegal); 0 = off
+    close: int = 0                   # v9 ablation: every query executes with close-pass human avoidance
+                                     # (executor.CLOSE_ORCA, rectangle hard check 0.27 m); 0 = off
 
 
 _route_points = resample_route
@@ -124,6 +128,18 @@ class QueryGenerator:
 
     # --------------------------------------------------------------- propose
     def propose(self, legal, execution=None):
+        cfg = self.cfg
+        if cfg.tight or cfg.close:
+            from .executor import tight_legal
+            queries, diag = self._propose(tight_legal(legal, cfg.tight), execution)
+            extra = {k: int(v) for k, v in (('tight', cfg.tight), ('close', cfg.close)) if v}
+            for q in queries:
+                if q.kind != 'continue':
+                    q.meta = dict(q.meta, **extra)
+            return queries, diag
+        return self._propose(legal, execution)
+
+    def _propose(self, legal, execution=None):
         cfg = self.cfg
         pose = legal.pose
         robot_xz = (float(pose[0]), float(pose[2]))

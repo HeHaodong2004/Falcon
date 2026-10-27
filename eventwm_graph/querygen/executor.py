@@ -40,10 +40,48 @@ from .planners import PlanContext, make_adapter
 from .dynamics import STEP_SECONDS
 
 ARRIVE_M = 0.30
+HARD_CLEARANCE = 0.30        # one-step rectangle-to-predicted-human clearance (all query kinds)
+CLOSE_HARD_CLEARANCE = 0.27  # 'close' queries (declared body proxy: 0.25 m)
+# 'close' queries: ORCA disk proxies sized to the body *width* (the rectangle hard check above
+# guards the nose and tail) instead of the conservative 0.55 + 0.30 + 0.25 m combined radius, and a
+# 0.5 s human horizon (~10 native steps; the native robot stops instantly and is ~4x faster than
+# the humans, so 1.5 s forbade approaching any human within ~6 m along the heading)
+CLOSE_ORCA = dict(robot_radius=0.30, human_radius=0.25, margin=0.05, time_horizon=0.5)
 VIA_ADVANCE_M = 0.45
 STOP_M = 0.15
 STUCK_STOP_M = 0.22
 LOOKAHEAD_M = 0.8
+
+
+class _TightLegal:
+    """Legal state whose map relabels the outer rings of the inflated BLOCKED band as UNKNOWN.
+
+    The legal observer certifies BLOCKED as wall hits dilated by 0.25 m (~ the 0.243 m body
+    half width) on 0.1 m cells, so its band is conservative; a *tight* query may plan into
+    its outer ``cells`` rings (traversed optimistically like any UNKNOWN cell, never treated
+    as FREE).  Everything else is the unchanged legal state.
+    """
+
+    def __init__(self, legal, cells):
+        from scipy import ndimage
+        from .legal import GridMap, BLOCKED, UNKNOWN
+        g0 = legal.map
+        g = GridMap.__new__(GridMap)
+        g.__dict__.update(g0.__dict__)
+        B = g0.state == BLOCKED
+        core = ndimage.binary_erosion(B, iterations=int(cells), border_value=1)
+        st = g0.state.copy()
+        st[B & ~core] = UNKNOWN
+        g.state = st
+        self._legal = legal
+        self.map = g
+
+    def __getattr__(self, k):
+        return getattr(self._legal, k)
+
+
+def tight_legal(legal, cells):
+    return _TightLegal(legal, cells) if cells else legal
 
 
 @dataclass
@@ -89,7 +127,20 @@ class QueryExecution:
         self.realizer = MotionRealizer(dyn)
         self.speed_debt = 0.
         self.clear_streak = 0
+        self.hard_clearance = HARD_CLEARANCE
+        if (query.meta or {}).get('close'):
+            self._make_close()
         self.planner.reset()
+
+    def _make_close(self):
+        """Close-pass variant: smaller human-avoidance proxies, rectangle hard check at 0.27 m."""
+        from .planners import ORCAPlanner
+        from .orca import ORCASolver, ORCAConfig
+        from dataclasses import replace as _replace
+        self.hard_clearance = CLOSE_HARD_CLEARANCE
+        if isinstance(self.planner, ORCAPlanner):
+            self.planner.solver = ORCASolver(_replace(self.planner.solver.cfg, **CLOSE_ORCA))
+            self.planner.hard_clearance = CLOSE_HARD_CLEARANCE
 
     def copy(self):
         return copy.deepcopy(self)
@@ -149,6 +200,7 @@ class QueryExecution:
     def step(self, legal, level=0):
         """Next (command primitive, new speed level) under the dynamics family."""
         self._plan_now = None
+        legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)))
         prim = self._step_kin(legal, level)
         if prim == 'stop':
             return 'stop', 0
@@ -184,7 +236,7 @@ class QueryExecution:
                 self.status, self.reason = 'done', 'crept'
             ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
             from .planners import one_step_hard_ok
-            hard = one_step_hard_ok(ctx.humans, 0.30)
+            hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
             P1, psi1 = ctx.P+self.dyn.step_m*heading_vec(ctx.psi), ctx.psi
             if hard is None or hard(P1, psi1):
                 remaining = max(1, int(q.duration)-self.steps+1)
@@ -212,7 +264,7 @@ class QueryExecution:
                     direction = 'left' if wrap(face-pose[3]) > 0 else 'right'
                 ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=face)
                 from .planners import one_step_hard_ok
-                hard = one_step_hard_ok(ctx.humans, 0.30)
+                hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
                 P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, direction)
                 if hard is None or hard(P1, psi1):
                     return direction
