@@ -103,7 +103,7 @@ class Query:
     label: str = ''
     meta: dict = field(default_factory=dict)
 
-    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost')    # meta flags that change the execution
+    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -295,6 +295,12 @@ class QueryExecution:
                 hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
                 P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, direction)
                 if hard is None or hard(P1, psi1):
+                    if q.meta.get('exact_end') and face is not None:
+                        # v10: this primitive reaches the target heading -> the decision ends with it
+                        # (no trailing hold step; a native hold is itself an in-place turn)
+                        after = pose[3]+(self.dyn.turn_rad if direction == 'left' else -self.dyn.turn_rad)
+                        if abs(wrap(face-after)) <= self.dyn.turn_rad*.55:
+                            self.status, self.reason = 'done', 'heading_reached'
                     return direction
                 return self.planner.act(ctx, self.adapter)
             ctx = self._context(legal, dyn_state, np.zeros(2), hold=True, face=face)

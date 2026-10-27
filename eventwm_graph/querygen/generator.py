@@ -98,6 +98,14 @@ class GeneratorConfig:
     kturns: tuple = ()               # v9: multi-point turns offered in manoeuvre mode: first in-place turn of
                                      # k steps away from the final direction, one creep step, then turn to the
                                      # route heading (e.g. (6, 12)); () = off
+    rot_exact: bool = True           # v10: in-place rotations end on the primitive that reaches the target heading
+                                     # (v9 noticed it one step late and spent that step on a native hold turn,
+                                     # which always starts right: rot_left1 was a no-op, rot_left<k> turned k-1,
+                                     # rot_right<k> k+1).  False = v9 behaviour
+    root_cover: bool = True          # v10 compact selection at the reset state (nothing behind the robot observed yet,
+                                     # so any first primitive may meet unseen geometry): both route turns instead of
+                                     # the goal_tc copy, so the slots start with forward, left and right primitives
+                                     # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
 
 
 _route_points = resample_route
@@ -143,6 +151,14 @@ class QueryGenerator:
 
     # --------------------------------------------------------------- propose
     def propose(self, legal, execution=None):
+        queries, diag = self._propose_all(legal, execution)
+        if self.cfg.rot_exact and self.dyn.discrete:
+            for q in queries:
+                if q.kind == 'rotate':
+                    q.meta = dict(q.meta, exact_end=1)
+        return queries, diag
+
+    def _propose_all(self, legal, execution=None):
         cfg = self.cfg
         if cfg.tight or cfg.close or cfg.commit:
             from .executor import tight_legal
@@ -367,6 +383,7 @@ class QueryGenerator:
             # (YRUkbU5xsYj: 88% of expansions, 2,719 static-collision edges)
             stuck = (near_start or near_goal) and (in_mode or self._stalled(legal))
         diag['stuck'] = stuck
+        diag['reset'] = len(legal.poses) <= 1
         diag['maneuver_mode'] = in_mode
         # v7: with no motion history yet (reset state) also offer the finest
         # probes - a single forward creep and single-step rotations - because in
@@ -651,8 +668,10 @@ class QueryGenerator:
         by_label = {q.label: q for q in fixed}
         take(by_label.get('goal'))
         take(by_label.get('st_goal'))
+        cover = cfg.root_cover and diag.get('reset') and not diag.get('stuck') and len(cats.get('turn', [])) >= 2
         for lab in ('goal_tc', 'st_goal_tc'):
-            take(by_label.get(lab))
+            if not cover:
+                take(by_label.get(lab))
         if diag.get('stuck'):
             want = ('creep1', 'rot_left1', 'rot_right1', 'rot_left4', 'rot_right4', 'rot_left10', 'rot_right10',
                     'creep3')
@@ -667,6 +686,9 @@ class QueryGenerator:
         take(waits[0] if waits else None)
         # reset state: keep the single forward probe (a creep starts manoeuvre mode)
         take(next((q for q in cats.get('maneuver', []) if q.label == 'creep1'), None))
+        if cover:
+            for q in cats['turn'][:2]:
+                take(q)
         order = []
         if diag.get('conflicts'):
             order += [cats.get('yield', []), cats.get('human', [])]
