@@ -561,7 +561,7 @@ class QueryGenerator:
         by_kind = {q.kind: q for q in fixed}
         take(by_kind.get('stop'))
         cont = by_kind.get('continue')
-        if cont is not None and cont.meta.get('of') not in ('goal', None):
+        if cont is not None and cont.meta.get('of') not in ('goal', 'st_goal', None):
             take(cont)
         take(by_kind.get('goal'))
         take(by_kind.get('stgoal'))
