@@ -265,6 +265,32 @@ then budget scaling of representative DEV failures.
   human predictions with growing margin) re-planned every 4 steps.  Ablations on the 9 DEV failures
   running (`dev_tight1`, `dev_v9tc`, `dev_v9st`).
 
+- **Objective update (user, 2026-10-27 afternoon):** 95-100% Oracle SR on feasible episodes (incl. unseen),
+  planner + dynamics + generator + executor + Oracle jointly optimisable, legality/safety/dynamics rules
+  unchanged, configurations kept genuinely different (a shared Layer-3 policy must transfer across them).
+- **v9 ablations on the 9 hard DEV episodes** (ORCA/native, K=10, 6000 edges):
+  | config | Qpor2mEya8F | bzCsHPLDztK | bCPU9suPUw9 | LEFTm3JecaC | Nfvxx8J5NCo | TEEsavR23oF | YRUkbU5xsYj | SByzJLxpRGn | 3t8DB4Uzvkt |
+  |---|---|---|---|---|---|---|---|---|---|
+  | v9 exec + tight + close | PASS | PASS | PASS | fail | fail | fail | fail | fail | fail |
+  | v9 exec + st_goal | PASS | PASS | PASS | fail | fail | fail | fail | | |
+  | v9 exec + tight2 + close + st | | | | fail | | | fail | | |
+  | v9 exec + tight + close + commit + st | | PASS | | | fail | fail | | fail | |
+  The time-aware query (st_goal) and the close/tight executor each independently solve the same three.
+  Failure analysis: LEFTm3JecaC = 64 steps lost at the spawn (legal route through an unobserved wall) +
+  corner turn inside the legal band; Nfvxx8J5NCo = overshoots the still-UNKNOWN passage (route avoids
+  UNKNOWN), alt/frontier candidates were crowded out of K=10; YRUkbU5xsYj/3t8DB4Uzvkt = 72-79% of edges
+  spent on spawn manoeuvres (search budget); TEEsavR23oF = witness passes humans at 0.26 m (no 0.5 m
+  witness); SByzJLxpRGn = ~70-step wait in a side pocket next to a human (no 0.5 m witness).
+- **Generic fixes from this analysis (committed):** approach gated by the legal route cost-to-go (UNKNOWN
+  2.5x); K=10 quotas from solution usage (wait_long / retreat / look_lost_human never appear in ~60
+  solutions -> leftovers; alt/frontier get slots); Oracle `heading_h` (turn steps to the true geodesic
+  path), `escape_penalty` (de-prioritise spawn manoeuvres once any branch escaped), exact duplicate skip
+  before generation, exact sibling prefix sharing (`prefix_cache`; ~45% of sibling steps are shared;
+  equivalence test identical search).  Close/commit only for robots that stop within one step.
+- **Other configurations (4 easy DEV episodes, v9 generator):** DWA x native 4/4, SFM x native 4/4,
+  ORCA x inertia 2/3 so far (tQ5s4ShP627 fails: close mode with momentum -> 2,873 overlap edges; fixed by
+  restricting close to stateless dynamics).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
