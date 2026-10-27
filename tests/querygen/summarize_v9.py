@@ -2,7 +2,8 @@
 
   python scripts/querygen_run.py tests.querygen.summarize_v9 RUN_DIR --witness DIR [DIR ...] [--cert DIR ...]
 
-Feasible = a verified witness exists (any of the witness dirs); certified infeasible = a complete
+Feasible = a verified witness exists (any of the witness dirs) or a replay-verified PASS of any listed run
+(an Oracle solution is itself a witness); certified infeasible = a complete
 certificate in any cert dir (start escape / progress / goal region); otherwise unresolved.
 """
 import argparse
@@ -41,7 +42,17 @@ def main():
     ap.add_argument('run')
     ap.add_argument('--witness', nargs='+', default=[])
     ap.add_argument('--cert', nargs='+', default=[])
+    ap.add_argument('--proof-runs', nargs='+', default=[],
+                    help='run dirs whose replay-verified PASS records also prove feasibility (e.g. all final runs)')
     a = ap.parse_args()
+    proven = set()
+    for d in a.proof_runs:
+        for f in glob.glob(f'{d}/*.json'):
+            if f.endswith('run.json'):
+                continue
+            r = json.loads(Path(f).read_text())
+            if r.get('verdict') == 'PASS':
+                proven.add(r['key'].replace('/', '_'))
     rows = []
     for f in sorted(glob.glob(f'{a.run}/*.json')):
         if f.endswith('run.json'):
@@ -50,7 +61,8 @@ def main():
         if 'verdict' not in r:
             continue
         name = r['key'].replace('/', '_')
-        rows.append(dict(key=r['key'], name=name, verdict=r['verdict'], feasible=witness_ok(a.witness, name),
+        rows.append(dict(key=r['key'], name=name, verdict=r['verdict'],
+                         feasible=witness_ok(a.witness, name) or name in proven or r['verdict'] == 'PASS',
                          infeasible=certified_infeasible(a.cert, name), rec=r))
     n = len(rows)
     feas = [x for x in rows if x['feasible']]
