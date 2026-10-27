@@ -30,6 +30,9 @@ def certified_infeasible(dirs, name):
                 c = json.loads(f.read_text())
                 if c.get('certified_infeasible') or (c.get('feasible_goal') is False and c.get('goal_points', 0) > 0):
                     return True
+                # start-escape certificates written before the explicit flag existed
+                if c.get('feasible_escape') is False and c.get('search_complete') and not c.get('depth_limited'):
+                    return True
     return False
 
 
