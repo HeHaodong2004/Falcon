@@ -270,7 +270,7 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         val_every=4000, val_roots=160, roots=16384, widths='32,64,96,128,192', max_steps=0, seed=0, warm=None,
         arch='masked_unet', blocks='1,2,2,2,2', human_filter=False, extra_sensor=None, aux_weight=0., splat=1, sub=1, render=96,
         human_occluders=False, near=0., iou_weight=0., warmup=500, cascade_from=None, ema=0., extend=False, pool_factor=4,
-        overlap=False, side=None, teacher=None, distill=.5):
+        overlap=False, side=None, teacher=None, distill=.5, dside=None):
     cli_near = near
     GEOMETRY.update(splat=bool(splat), sub=int(sub), render=int(render), occluders=bool(human_occluders), near=float(near))
     torch.backends.cudnn.benchmark = True
@@ -302,9 +302,14 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
         splat, sub, render, human_occluders, near = GEOMETRY['splat'], GEOMETRY['sub'], GEOMETRY['render'], GEOMETRY['occluders'], GEOMETRY['near']
         if wc.get('side'):
             arch['side'] = {str(k): tuple(v) for k, v in wc['side'].items()}
+        if wc.get('dside'):
+            arch['dside'] = {str(k): tuple(v) for k, v in wc['dside'].items()}
     if side:
         # Extra zero-initialized coarse-level capacity, e.g. "3:192:3,4:256:4" (level:width:blocks).
         arch['side'] = dict(arch.get('side') or {}, **{f.split(':')[0]: (int(f.split(':')[1]), int(f.split(':')[2])) for f in side.split(',')})
+    if dside:
+        # The same after decoder stages, e.g. "1:96:2,2:128:2" (decoder output level:width:blocks).
+        arch['dside'] = dict(arch.get('dside') or {}, **{f.split(':')[0]: (int(f.split(':')[1]), int(f.split(':')[2])) for f in dside.split(',')})
     if cascade_from:
         # Refinement stage on top of a frozen trained base model.
         base_saved = torch.load(cascade_from, map_location='cpu'); bc = base_saved['config']
@@ -328,21 +333,27 @@ def run(name, device='cuda:0', epochs=1, batch=16, size=256, lr=2e-3, workers=6,
             w1[:, full.index(n)] = w0[:, i]
         sd['stem.conv.weight'] = w1
         missing, unexpected = model.load_state_dict(sd, strict=False)
-        assert not unexpected and all(k.startswith('side.') for k in missing), (missing, unexpected)
+        assert not unexpected and all(k.startswith(('side.', 'dside.')) for k in missing), (missing, unexpected)
         print('extended channels', [n for n in full if n not in old_names], 'new side modules', len(missing), flush=True)
     elif warm:
         missing, unexpected = model.load_state_dict(warm_saved['model'], strict=False)
-        assert not unexpected and all(k.startswith('side.') for k in missing), (missing, unexpected)
+        assert not unexpected and all(k.startswith(('side.', 'dside.')) for k in missing), (missing, unexpected)
     if cascade_from:
         model.base.load_state_dict(base_saved['model'])
         model.base.eval()
         for p_ in model.base.parameters():
             p_.requires_grad_(False)
     if extra_sensor:
-        extra = split_roots(roots=0, sensor=extra_sensor, start=roots, val_mod=25)
-        for r in extra[0]:
-            r['sensor_dir'] = extra_sensor
-        train_rows = train_rows+extra[0]
+        # Comma-separated packet directories for TRAIN Roots beyond the first `roots`; a Root is used once
+        # (first directory that has it).
+        seen = {r['root_id'] for r in train_rows}
+        for directory in extra_sensor.split(','):
+            extra = [r for r in split_roots(roots=0, sensor=directory, start=roots, val_mod=25)[0] if r['root_id'] not in seen]
+            for r in extra:
+                r['sensor_dir'] = directory
+            seen |= {r['root_id'] for r in extra}
+            train_rows = train_rows+extra
+            print('extra sensor', directory, len(extra), 'TRAIN Roots', flush=True)
     teachers = []
     if teacher:
         # Frozen teacher(s) (logit average) on the student's full input channel set.
@@ -527,6 +538,7 @@ if __name__ == '__main__':
     p.add_argument('--pool-factor', type=int, default=4, help='shuffle pool size in batches (windows from more Roots per batch)')
     p.add_argument('--overlap', action='store_true', help='build legal features on a side stream/thread, overlapping training')
     p.add_argument('--side', help='zero-initialized extra capacity per encoder level, e.g. 3:192:3,4:256:4')
+    p.add_argument('--dside', help='zero-initialized extra capacity after decoder stages, e.g. 1:96:2,2:128:2')
     p.add_argument('--teacher', help='comma-separated frozen teacher checkpoints (logit average) for distillation')
     p.add_argument('--distill', type=float, default=.5, help='weight of the soft-target loss (hard loss weight 1-distill)')
     run(**vars(p.parse_args()))

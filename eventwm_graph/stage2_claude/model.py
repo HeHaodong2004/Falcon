@@ -118,7 +118,7 @@ class MaskedUNet(nn.Module):
     prediction therefore does not depend on batch composition or padding.
     The validity mask is channel `valid_channel` of the input.
     """
-    def __init__(self, cin, widths=(32, 64, 96, 128, 192), blocks=(1, 2, 2, 2, 2), valid_channel=None, aux=0, side=None):
+    def __init__(self, cin, widths=(32, 64, 96, 128, 192), blocks=(1, 2, 2, 2, 2), valid_channel=None, aux=0, side=None, dside=None):
         super().__init__()
         self.widths = widths
         self.aux = aux
@@ -126,6 +126,9 @@ class MaskedUNet(nn.Module):
         # side: {level (1-based encoder level): (width, blocks)} zero-initialized extra capacity
         self.side = nn.ModuleDict({str(k): Side(widths[int(k)], int(w), int(n), dilation=2 if int(k) == len(widths)-1 else 1)
                                    for k, (w, n) in (side or {}).items()})
+        # dside: {level (0-based decoder output level): (width, blocks)}, the same zero-initialized branches
+        # applied after the decoder stage that produces that level (finer levels: boundary precision)
+        self.dside = nn.ModuleDict({str(k): Side(widths[int(k)], int(w), int(n)) for k, (w, n) in (dside or {}).items()})
         self.stem = MConvBN(cin, widths[0])
         self.stem_blocks = nn.ModuleList([MBlock(widths[0]) for _ in range(blocks[0])])
         self.down = nn.ModuleList()
@@ -164,6 +167,8 @@ class MaskedUNet(nn.Module):
             s = skips[-2-i]; ms = masks[-2-i]
             y = F.interpolate(y, size=s.shape[-2:], mode='bilinear', align_corners=False)*ms
             y = blk(fuse(torch.cat([y, s], 1), ms), ms)
+            if str(len(skips)-2-i) in self.dside:
+                y = self.dside[str(len(skips)-2-i)](y, ms)
         return self.head_b(self.head_a(y, masks[0]))
 
 
@@ -223,7 +228,7 @@ def build_model(cin, config):
     arch = config.get('arch', 'unet')
     if arch == 'masked_unet':
         return MaskedUNet(cin, tuple(config['widths']), tuple(config.get('blocks', (1, 2, 2, 2, 2))), valid_channel=config['valid_channel'],
-                          aux=int(config.get('aux', 0)), side=config.get('side'))
+                          aux=int(config.get('aux', 0)), side=config.get('side'), dside=config.get('dside'))
     return UNet(cin, tuple(config['widths']))
 
 
