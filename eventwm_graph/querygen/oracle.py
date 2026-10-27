@@ -440,6 +440,8 @@ class Oracle:
             sig = self._sig(child, fine=fine)
             if sig in seen:
                 self.stats['duplicates'] = self.stats.get('duplicates', 0)+1
+                dl = self.stats.setdefault('dup_by_label', {})
+                dl[q.label.rstrip('0123456789')] = dl.get(q.label.rstrip('0123456789'), 0)+1
                 continue
             seen.add(sig)
             push_children(child, queries, diag)
