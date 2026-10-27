@@ -231,7 +231,7 @@ then budget scaling of representative DEV failures.
   HOLDOUT, guided) occur in the first 40 steps at the spawn -> v8: manoeuvre mode only before the
   robot first leaves the 1 m spawn region; witness heuristic also charges heading mismatch near
   witness poses (commit after 9f2aedc3).
-- DEV witness coverage: 24/28 verified witnesses; 4 certified infeasible (yr17PDCnDDW, 7Ukhou1GxYi,
+- DEV witness coverage: 23/28 verified witnesses; 4 certified infeasible (yr17PDCnDDW, 7Ukhou1GxYi,
   Dd4bFSTQ8gi, 5cdEh9F2hJL); 3t8DB4Uzvkt unresolved (4 humans share the needed corridor; 30-min
   witness search reached 4.0 m of 11.1 m, not exhausted).
 
