@@ -95,7 +95,15 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
     verdict = 'FAIL_SEARCH'
     if res['success']:
         t = time.perf_counter()
-        rep = replay(spec, planner, dyn, st.decisions)
+        try:
+            rep = replay(spec, planner, dyn, st.decisions)
+        except RuntimeError as exc:
+            # the authoritative replay could not follow the Oracle branch (divergence)
+            record['replay'] = dict(error=str(exc), seconds=time.perf_counter()-t)
+            record['verdict'] = 'FAIL_REPLAY'
+            record['wall_seconds'] = time.perf_counter()-t0
+            (out_dir/f'{key}.json').write_text(json.dumps(record, indent=1, default=float))
+            return record
         m = rep['metrics']
         identical = rep['actions'] == st.actions
         ok = (identical and m.get('success') == 1.0 and m.get('human_collision') == 0.0 and
