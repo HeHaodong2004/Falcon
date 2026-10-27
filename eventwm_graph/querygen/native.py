@@ -51,6 +51,12 @@ CONTACT_GATE_M = 1.0
 # same-floor human centre (torso/limb volume proxy).
 BODY_PROXY_M = 0.25
 SAME_FLOOR_M = 0.5
+# Declared static-collision rule.  The benchmark sometimes spawns the robot
+# already touching static geometry (e.g. the arm wrist 0.6 m ahead).  Then,
+# and only then, static contacts are exempt during an escape phase that ends
+# at the first contact-free step and must end within ESCAPE_STEPS steps; every
+# later static contact (and any contact in episodes spawned clear) counts.
+ESCAPE_STEPS = 24
 
 
 @dataclass(frozen=True)

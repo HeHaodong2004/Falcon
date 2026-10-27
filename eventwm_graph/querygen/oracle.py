@@ -23,9 +23,9 @@ from .native import MAX_EPISODE_STEPS
 @dataclass
 class OracleConfig:
     horizon: int = 16                 # max control steps per movement decision
-    max_expansions: int = 400
+    max_expansions: int = 500
     max_seconds: float = 1800.
-    weight: float = 2.5               # weighted A*: f = g + w * h
+    weight: float = 2.0               # weighted A*: f = g + w * h
     speed_est: float = 0.17           # m per step for the remaining-time estimate
     clearance_soft: float = 0.6       # m rectangle-to-human clearance below which f is penalised
     clearance_cost: float = 30.       # steps per metre below clearance_soft
@@ -34,6 +34,11 @@ class OracleConfig:
     dedup_heading_bins: int = 8
     dedup_time: int = 10
     human_near_m: float = 4.0         # time matters for de-duplication only near humans
+    danger_horizon: int = 60          # steps of true human future checked against a held pose
+    danger_m: float = 0.8             # rectangle clearance below which a held pose is 'doomed'
+    danger_cost: float = 60.          # f penalty per metre below danger_m
+    lazy: bool = True                 # deferred edge evaluation (simulate an edge when popped)
+    max_edges: int = 4000             # simulated edges budget in lazy mode
 
 
 def horizon_for(query, cfg):
@@ -41,9 +46,7 @@ def horizon_for(query, cfg):
         return 1
     if query.kind == 'wait':
         return max(1, int(query.duration))
-    if query.kind == 'rotate':
-        return max(1, int(query.duration or 40))
-    return cfg.horizon
+    return cfg.horizon          # movement and rotation: one decision interval, continuable
 
 
 class Oracle:
@@ -54,10 +57,21 @@ class Oracle:
         self.stats = dict(expansions=0, children=0, outcomes={}, by_label={}, gen_s=0., run_s=0.,
                           raw_candidates=0, kept_candidates=0)
 
+    def _danger(self, st):
+        """Privileged: closest approach of any human's true future to the held pose."""
+        from .native import same_floor_rect_distance
+        tape = self.rt.tape
+        hp = tape.positions[st.index:min(len(tape), st.index+self.cfg.danger_horizon+1)]
+        if hp.size == 0 or hp.shape[1] == 0:
+            return math.inf
+        p = st.legal.pose
+        return float(same_floor_rect_distance(p, hp.reshape(-1, 3)).min())
+
     def _f(self, st):
         cfg = self.cfg
         h = st.geodesic/cfg.speed_est if st.geodesic == st.geodesic else 1e3
         pen = max(0., cfg.clearance_soft-st.min_rect_dist)*cfg.clearance_cost
+        pen += max(0., cfg.danger_m-self._danger(st))*cfg.danger_cost
         return st.index+cfg.weight*h+pen
 
     def _sig(self, st):
@@ -70,7 +84,74 @@ class Oracle:
         tb = st.index//cfg.dedup_time if near else -1
         return (int(math.floor(p[0]/cfg.dedup_cell)), int(math.floor(p[2]/cfg.dedup_cell)), hb, tb, running)
 
+    # Generic (episode-independent) edge priors in steps for lazy ordering.
+    PRIOR = dict(continue_=0., goal=0., stop=0., pass_=2., sidestep=3., yield_=3., wait_short=2.,
+                 wait_long=4., retreat=5., turn=2., advance=2., alt_route=3., frontier=5., look=5.)
+
+    def _prior(self, q):
+        lab = q.label
+        for k, v in self.PRIOR.items():
+            if lab.startswith(k.rstrip('_')):
+                return v
+        return 4.
+
     def search(self):
+        if self.cfg.lazy:
+            return self._search_lazy()
+        return self._search_eager()
+
+    def _search_lazy(self):
+        """Best-first over *edges*: an edge (node, query) is simulated when popped."""
+        cfg = self.cfg
+        t0 = time.perf_counter()
+        root = self.rt.root
+        counter = 0
+        heap = []
+        best = root
+        seen = set()
+
+        def push_children(node):
+            nonlocal counter
+            t = time.perf_counter()
+            queries, diag = self.gen.propose(node.legal, node.execution)
+            self.stats['gen_s'] += time.perf_counter()-t
+            self.stats['raw_candidates'] += sum(diag.get('raw', {}).values())+diag.get('fixed', 0)
+            self.stats['kept_candidates'] += len(queries)
+            self.stats['expansions'] += 1
+            fn = self._f(node)
+            for q in queries:
+                counter += 1
+                heapq.heappush(heap, (fn+self._prior(q), counter, node, q))
+        push_children(root)
+        while heap and self.stats['children'] < cfg.max_edges and time.perf_counter()-t0 < cfg.max_seconds:
+            _, _, node, q = heapq.heappop(heap)
+            if MAX_EPISODE_STEPS-node.index <= 0:
+                continue
+            t = time.perf_counter()
+            child = self.rt.run(node, q, horizon=min(horizon_for(q, cfg), MAX_EPISODE_STEPS-node.index))
+            self.stats['run_s'] += time.perf_counter()-t
+            self.stats['children'] += 1
+            lab = self.stats['by_label'].setdefault(q.label.rstrip('0123456789'), dict(n=0, fail=0))
+            lab['n'] += 1
+            if child.outcome is not None:
+                self.stats['outcomes'][child.outcome] = self.stats['outcomes'].get(child.outcome, 0)+1
+                if child.outcome == 'success':
+                    return self._result(child, t0, True)
+                lab['fail'] += 1
+                continue
+            if child.geodesic < best.geodesic:
+                best = child
+            sig = self._sig(child)
+            if sig in seen:
+                continue
+            seen.add(sig)
+            push_children(child)
+            if len(heap) > cfg.max_open*4:
+                heap = heapq.nsmallest(cfg.max_open*2, heap)
+                heapq.heapify(heap)
+        return self._result(best, t0, False)
+
+    def _search_eager(self):
         cfg = self.cfg
         t0 = time.perf_counter()
         root = self.rt.root

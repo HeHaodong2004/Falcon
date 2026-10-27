@@ -8,7 +8,7 @@ import time
 from eventwm_graph.querygen.native import EpisodeSpec
 from eventwm_graph.querygen.episode import EpisodeRuntime, replay
 from eventwm_graph.querygen.executor import Query
-from eventwm_graph.querygen.dynamics import NATIVE
+from eventwm_graph.querygen.dynamics import NATIVE, FAMILIES
 
 DEFAULT = ['hm3d/val/3t8DB4Uzvkt/1', 'hm3d/val/5cdEh9F2hJL/3', 'hm3d/val/3t8DB4Uzvkt/2']
 
@@ -16,12 +16,16 @@ DEFAULT = ['hm3d/val/3t8DB4Uzvkt/1', 'hm3d/val/5cdEh9F2hJL/3', 'hm3d/val/3t8DB4U
 def main():
     planner = sys.argv[1] if len(sys.argv) > 1 else 'orca'
     keys = [k for k in sys.argv[2:] if not k.startswith('--')] or DEFAULT
+    dyn = NATIVE
+    for a in sys.argv:
+        if a.startswith('--dyn='):
+            dyn = FAMILIES[a.split('=', 1)[1]]
     ok_all = True
     for k, key in enumerate(keys):
         ds, split, scene, ep = key.split('/')
         spec = EpisodeSpec(ds, split, scene, ep, 100+k)
         t0 = time.perf_counter()
-        rt = EpisodeRuntime(spec, planner, NATIVE, strict=False, trace=True)
+        rt = EpisodeRuntime(spec, planner, dyn, strict=False, trace=True)
         st = rt.root
         q = Query('goal', label='goal')
         while not st.terminal:
@@ -31,7 +35,7 @@ def main():
         from pathlib import Path
         from eventwm_graph.querygen.viz import plot_branch
         out = Path('output/runs/smoke'); out.mkdir(parents=True, exist_ok=True)
-        plot_branch(rt, st, out/f"{planner}_{key.replace('/', '_')}.png", rt.trace)
+        plot_branch(rt, st, out/f"{planner}_{dyn.name}_{key.replace('/', '_')}.png", rt.trace)
         modes = {}
         for t in rt.trace:
             modes[str(t['prim'])] = modes.get(str(t['prim']), 0)+1
@@ -40,7 +44,7 @@ def main():
         sim_perf = {k: round(v, 2) for k, v in rt.sim.performance.items()}
         rt.close()
         t0 = time.perf_counter()
-        rep = replay(spec, planner, NATIVE, st.decisions) if '--no-replay' not in sys.argv else dict(
+        rep = replay(spec, planner, dyn, st.decisions) if '--no-replay' not in sys.argv else dict(
             actions=st.actions, steps=st.index, metrics={}, static_contact_steps=None, body_overlap_steps=None)
         replay_s = time.perf_counter()-t0
         same = rep['actions'] == st.actions

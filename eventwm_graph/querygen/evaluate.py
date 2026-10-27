@@ -56,12 +56,13 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
     st = res['state']
     record = dict(spec=spec.asdict(), key=spec.key, planner=planner, dynamics=dynamics,
                   generator=asdict(gen.cfg), oracle_config=asdict(oracle.cfg), code=git_identity(),
-                  start_geodesic=rt.start_geodesic, setup_s=rt.setup_s,
+                  start_geodesic=rt.start_geodesic, setup_s=rt.setup_s, spawn_contact=rt.spawn_contact,
                   oracle=dict(success=res['success'], steps=res['steps'], outcome=res['outcome'],
                               final_geodesic=res['final_geodesic'], seconds=res['seconds'],
                               stats=res['stats'], runtime_perf=rt.perf, sim_perf=rt.sim.performance,
                               min_rect=st.min_rect_dist, psc_steps=st.psc_steps,
-                              path_length=st.path_length, static_contacts=st.static_contacts),
+                              path_length=st.path_length, static_contacts=st.static_contacts,
+                              escape_contacts=st.escape_contacts),
                   decisions=_decisions_json(st.decisions))
     if plot:
         try:
@@ -82,6 +83,7 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
         verdict = 'PASS' if ok else 'FAIL_REPLAY'
         record['replay'] = dict(metrics=m, actions_identical=identical, steps=rep['steps'],
                                 static_contact_steps=rep['static_contact_steps'],
+                                spawn_contact=rep['spawn_contact'], escape_contact_steps=rep['escape_contact_steps'],
                                 body_overlap_steps=rep['body_overlap_steps'],
                                 min_rect_distance=rep['min_rect_distance'],
                                 final_geodesic=rep['final_geodesic'], seconds=time.perf_counter()-t)
@@ -92,7 +94,9 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
 
 
 def summarize(out_dir):
-    rows = [json.loads(p.read_text()) for p in sorted(Path(out_dir).glob('*.json')) if p.name != 'summary.json']
+    rows = [json.loads(p.read_text()) for p in sorted(Path(out_dir).glob('*.json'))
+            if p.name not in ('summary.json', 'run.json')]
+    rows = [r for r in rows if 'verdict' in r]
     n = len(rows)
     passed = [r for r in rows if r['verdict'] == 'PASS']
     summ = dict(n=n, passed=len(passed), pass_rate=len(passed)/max(n, 1),

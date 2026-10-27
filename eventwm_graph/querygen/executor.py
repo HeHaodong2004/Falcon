@@ -28,6 +28,7 @@ from .control import (to_plane, to_world, wrap, heading_vec, human_estimates, bl
 from .gridplan import PlanningView, INF, path_length, point_along
 from . import lattice
 from .control import body_cost
+from .motion import MotionRealizer
 from .planners import PlanContext, make_adapter
 from .dynamics import STEP_SECONDS
 
@@ -78,6 +79,7 @@ class QueryExecution:
         self.plan_i = 0
         self.plan_age = 0
         self.lattice_calls = 0
+        self.realizer = MotionRealizer(dyn)
         self.planner.reset()
 
     def copy(self):
@@ -135,8 +137,22 @@ class QueryExecution:
                            v_pref=np.asarray(v_pref, dtype=float), humans=humans, statics=statics,
                            gmap=legal.map, hold=hold, face=face, route_dir=route_dir, progress_fn=progress_fn)
 
-    def step(self, legal, dyn_state=(0., 0.)):
-        """Next command, or 'stop'; updates completion status first."""
+    def step(self, legal, level=0):
+        """Next (command primitive, new speed level) under the dynamics family."""
+        self._plan_now = None
+        prim = self._step_kin(legal, level)
+        if prim == 'stop':
+            return 'stop', 0
+        from .planners import Realized
+        if isinstance(prim, Realized):
+            return prim[0], prim[1]          # planner already realised the command under the dynamics
+        P = to_plane([legal.pose[0], legal.pose[2]])
+        humans = human_estimates(legal.tracks, legal.time)
+        return self.realizer.realize(prim, int(level), P, float(legal.pose[3]), legal.map, humans,
+                                     self._plan_now)
+
+    def _step_kin(self, legal, dyn_state=0):
+        """Next kinematic primitive, or 'stop'; updates completion status first."""
         q = self.query
         self.steps += 1
         pose = legal.pose
@@ -170,7 +186,7 @@ class QueryExecution:
             target = self._goal_xz(legal)
             d = float(np.hypot(*(robot_xz-target)))
             self.recent.append(d)
-            stopped = self.dyn.discrete or float(dyn_state[0]) <= self.dyn.brake
+            stopped = (not self.dyn.stateful) or int(dyn_state) == 0
             if stopped and (d < STOP_M or (d < STUCK_STOP_M and len(self.recent) >= 4 and
                                            self.recent[-4]-d < 0.02)):
                 self.status, self.reason = 'done', 'stop_at_goal'
@@ -217,6 +233,7 @@ class QueryExecution:
         ctx = self._context(legal, dyn_state, v_pref, route_dir=route_dir, progress_fn=progress_fn)
         ctx.plan_prims = prims
         ctx.plan_poses = plan_poses
+        self._plan_now = prims
         prim = self.planner.act(ctx, self.adapter)
         if prims and prim == prims[0]:
             self.plan_i += 1
@@ -231,7 +248,8 @@ class QueryExecution:
             return [], []
         pose = legal.pose
         P = to_plane([pose[0], pose[2]])
-        ok = self.plan is not None and self.plan_i < len(self.plan['prims']) and self.plan_age < 24
+        ok = (self.plan is not None and self.plan_i < len(self.plan['prims']) and self.plan_age < 24
+              and not dyn.stateful)
         if ok and self.plan_i > 0:
             ex = self.plan['poses'][self.plan_i-1]
             if (math.hypot(ex[0]-pose[0], ex[1]-pose[2]) > 0.06 or
@@ -269,24 +287,19 @@ class QueryExecution:
 
 
 def command_for(dyn, primitive):
-    """Map a planner output to the robot command for this dynamics model."""
+    """Map a realised primitive to the robot command for this dynamics family."""
     if primitive == 'stop':
         return 'stop'
     if dyn.native_actions:
         return primitive
-    if dyn.discrete:
-        if primitive == 'forward':
-            return dyn.to_command(dyn.step_m, 0.)
-        if primitive == 'left':
-            return dyn.to_command(0., dyn.turn_rad)
-        if primitive == 'right':
-            return dyn.to_command(0., -dyn.turn_rad)
-        raise ValueError(primitive)
-    v, w = primitive
-    return dyn.to_command(v, w)
-
-
-def next_dyn_state(dyn, primitive, prev):
-    if dyn.discrete or primitive == 'stop':
-        return (0., 0.)
-    return (float(primitive[0]), float(primitive[1]))
+    if primitive == 'forward':
+        return dyn.to_command(dyn.step_m, 0.)
+    if primitive == 'idle':
+        return dyn.to_command(0., 0.)
+    if primitive == 'left':
+        return dyn.to_command(0., dyn.turn_rad)
+    if primitive == 'right':
+        return dyn.to_command(0., -dyn.turn_rad)
+    if isinstance(primitive, tuple) and primitive[0] == 'forward':
+        return dyn.to_command(dyn.levels[int(primitive[1])], 0.)
+    raise ValueError(primitive)

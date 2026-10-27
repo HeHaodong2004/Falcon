@@ -36,7 +36,7 @@ from .dynamics import STEP_SECONDS
 
 @dataclass(frozen=True)
 class GeneratorConfig:
-    budget: int = 8
+    budget: int = 10
     horizon_m: float = 3.0           # human relevance / conflict look-ahead along the route
     human_range: float = 5.0
     conflict_dist: float = 1.3       # human predicted path within this of the route -> conflict
@@ -52,6 +52,9 @@ class GeneratorConfig:
     frontiers: int = 2
     stop_radius: float = 0.40
     advance_m: float = 0.7
+    retreat_m: float = 1.6           # backtrack distance along the robot's own legal trajectory
+    sidestep_m: float = 0.9
+    sidestep_human_m: float = 3.0
     dedup_m: float = 0.45
 
 
@@ -106,7 +109,7 @@ class QueryGenerator:
         route = view.route(gfield, robot_xz)
         humans = [h for h in human_estimates(legal.tracks, legal.time)
                   if float(np.hypot(*(h.position-to_plane(robot_xz)))) <= cfg.human_range]
-        cats = {k: [] for k in ('human', 'wait', 'alt', 'frontier', 'observe', 'advance', 'yield', 'turn')}
+        cats = {k: [] for k in ('human', 'wait', 'alt', 'frontier', 'observe', 'advance', 'yield', 'turn', 'retreat')}
         fixed = []
         diag = dict(route_len=path_length(route) if route is not None else None, humans=len(humans))
 
@@ -153,6 +156,20 @@ class QueryGenerator:
             if y is not None:
                 cats['yield'].append(Query('goto', via=(y,), heading=route_dir, label='yield',
                                            meta=dict(track=h.track_id)))
+
+        # ---- sidestep out of a tracked human's way (left/right of the heading)
+        if any(float(np.hypot(*(h.position-to_plane(robot_xz)))) <= cfg.sidestep_human_m for h in humans):
+            hv = heading_vec(pose[3]); lv = np.array([-hv[1], hv[0]])
+            for side, sgn in (('left', 1.), ('right', -1.)):
+                cand = to_world(to_plane(robot_xz)+sgn*cfg.sidestep_m*lv)
+                via = self._nearest_open(view, rfield, cand, 0.4)
+                if via is not None:
+                    cats['yield'].append(Query('goto', via=(via,), label=f'sidestep_{side}'))
+
+        # ---- retreat along the robot's own legally observed trajectory
+        back = self._backtrack_point(legal, cfg.retreat_m)
+        if back is not None:
+            cats['retreat'].append(Query('goto', via=(back,), label='retreat'))
 
         # ---- temporal alternatives
         # Holding alternates small in-place turns (no native pause action);
@@ -232,6 +249,34 @@ class QueryGenerator:
         out.sort(key=lambda r: (r[4], r[1]))
         return [r[:4] for r in out]
 
+    def _nearest_open(self, view, rfield, xz, radius=0.4):
+        """Nearest reachable non-BLOCKED cell (FREE preferred, UNKNOWN allowed)."""
+        f = self._nearest_free(view, rfield, xz, radius)
+        if f is not None:
+            return f
+        i, j = view.to_local(*xz)
+        r = int(math.ceil(radius/view.res)); best = None
+        for a in range(i-r, i+r+1):
+            for b in range(j-r, j+r+1):
+                if not view.inside(a, b) or view.blocked[a, b] or rfield[a, b] >= INF/2:
+                    continue
+                d = (a-i)**2+(b-j)**2
+                if best is None or d < best[0]:
+                    best = (d, a, b)
+        return None if best is None else view.to_world(best[1], best[2])
+
+    def _backtrack_point(self, legal, dist):
+        """Point ~dist metres back along the robot's own past path (legal poses)."""
+        P = np.asarray(legal.poses)[:, [0, 2]]
+        if len(P) < 2:
+            return None
+        acc = 0.
+        for k in range(len(P)-1, 0, -1):
+            acc += float(np.hypot(*(P[k]-P[k-1])))
+            if acc >= dist:
+                return (float(P[k-1][0]), float(P[k-1][1]))
+        return None
+
     def _yield_point(self, view, rfield, legal, robot_xz, humans):
         P0 = to_plane(robot_xz)
         best = None
@@ -239,12 +284,13 @@ class QueryGenerator:
             for a in np.linspace(0, 2*math.pi, 16, endpoint=False):
                 Q = P0+r*np.array([math.cos(a), math.sin(a)])
                 xz = to_world(Q)
-                if not self._free_reachable(view, rfield, tuple(xz)):
+                i, j = view.to_local(*xz)
+                if not view.inside(i, j) or view.blocked[i, j] or rfield[i, j] >= INF/2:
                     continue
                 if body_cost(legal.map, Q, a) > 0:
                     continue
                 clear = min(float(np.hypot(*(h.at(t)-Q))) for h in humans for t in np.linspace(0, 3., 7))
-                score = clear-0.1*r
+                score = clear-0.1*r-(0.3 if not view.free[i, j] else 0.)
                 if best is None or score > best[0]:
                     best = (score, tuple(xz))
         return None if best is None else best[1]
@@ -329,7 +375,7 @@ class QueryGenerator:
                 if math.hypot(c.via[0][0]-q.via[0][0], c.via[0][1]-q.via[0][1]) < cfg.dedup_m:
                     return True
             return False
-        order = ('human', 'turn', 'wait', 'advance', 'alt', 'yield', 'frontier', 'observe')
+        order = ('human', 'yield', 'turn', 'wait', 'retreat', 'advance', 'alt', 'frontier', 'observe')
         pools = {k: list(cats[k]) for k in order}
         while len(chosen) < cfg.budget and any(pools.values()):
             for k in order:

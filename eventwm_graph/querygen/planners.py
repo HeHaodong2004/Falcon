@@ -15,11 +15,19 @@ from dataclasses import dataclass, field
 import math
 import numpy as np
 
-from .control import (NativeAdapter, heading_vec, wrap, body_ok, turn_ok, to_world,
-                      BODY_X, BODY_HALF_WIDTH)
+from .control import (NativeAdapter, heading_vec, wrap, body_ok, body_cost, turn_ok, to_world,
+                      BODY_X, BODY_HALF_WIDTH, FORWARD_X)
 from .dynamics import STEP_SECONDS
 from .orca import ORCASolver, ORCAConfig
 from .legal import BLOCKED
+
+
+class Realized(tuple):
+    """(command primitive, new speed level) already produced under the dynamics."""
+    __slots__ = ()
+
+    def __new__(cls, cmd, level):
+        return tuple.__new__(cls, (cmd, int(level)))
 
 
 @dataclass
@@ -86,7 +94,7 @@ class UnicycleAdapter:
 
 
 def make_adapter(dyn):
-    return DiscreteAdapter(dyn) if dyn.discrete else UnicycleAdapter(dyn)
+    return DiscreteAdapter(dyn)
 
 
 class Planner:
@@ -254,24 +262,43 @@ class SFMPlanner(Planner):
 
 @dataclass
 class DWAConfig:
-    horizon: int = 14               # control steps simulated
-    w_progress: float = 1.0         # per metre of route cost-to-go reduction
-    w_clearance: float = 0.8        # per metre of min human clearance (capped)
+    horizon: int = 16               # control steps simulated per candidate
+    w_progress: float = 1.0         # per metre of legal-route cost-to-go reduction
+    w_clearance: float = 0.6        # per metre of min human clearance (capped)
     clearance_cap: float = 1.2
-    w_heading: float = 0.3
-    human_radius: float = 0.40      # m from robot rectangle to human centre = contact
-    safety: float = 0.25            # m extra margin required for admissibility
-    turn_options: tuple = (0, 1, 2, 3, 5, 8, 12, 18, 26, 36)
+    w_heading: float = 0.25
+    w_plan: float = 0.15            # bonus for following the static body-aware plan
+    safety: float = 0.30            # admissible min rectangle-to-human clearance (m)
+    turn_options: tuple = (0, 1, 2, 4, 7, 11, 16)
+    speed_caps: tuple = (1.0, 0.5)  # fraction of top speed level for 'go' segments
+    w_commit: float = 0.3           # bonus for continuing the previously chosen trajectory
 
 
 class DWAPlanner(Planner):
-    """Sampling over admissible command sequences with forward simulation."""
+    """Dynamic Window Approach over the robot's admissible command sequences.
+
+    Candidates: follow the static body-aware plan; rotate k steps either way
+    (braking first when moving) then advance with the speed capped; hold.
+    Each candidate is rolled out with the exact dynamics family (speed
+    levels, accel/brake limits, rotation only at rest) against legal
+    constant-velocity human predictions and the legal map.  A candidate is
+    admissible if the body stays off observed walls and the rectangle keeps
+    ``safety`` clearance from every predicted human over the horizon
+    (including the braking tail).  The best admissible candidate by progress
+    + clearance + heading (+ plan agreement) is chosen and its first command
+    executed; with none admissible the maximum-clearance candidate is used.
+    """
     name = 'dwa'
+    realizes = True
 
     def __init__(self, config=None):
         self.cfg = config or DWAConfig()
+        self._hold = 1.
+        self._committed = None
 
-    # robot rectangle distance to points, vectorised over time
+    def reset(self):
+        self._committed = None
+
     @staticmethod
     def _rect_dist(P, psi, Q):
         c, s = math.cos(psi), math.sin(psi)
@@ -282,103 +309,146 @@ class DWAPlanner(Planner):
         dy = np.maximum(np.abs(ly)-BODY_HALF_WIDTH, 0.)
         return np.hypot(dx, dy)
 
-    def _candidates(self, ctx):
+    def _sequences(self, ctx):
+        """Rotate k steps (either way), advance m steps (speed-capped), then hold."""
         dyn, T = ctx.dyn, self.cfg.horizon
-        out = []
-        if dyn.discrete:
-            out.append(('hold', ['hold']*T))
-            for k in self.cfg.turn_options:
-                for side in (('left', 'right') if k else ('none',)):
-                    seq = ([side]*min(k, T))+['forward']*max(T-k, 0)
-                    out.append((f'{side}{k}', seq))
-                    if k:
-                        out.append((f'{side}{k}_hold', [side]*min(k, T)+['hold']*max(T-k, 0)))
-        else:
-            v0, w0 = ctx.dyn_state
-            vs = np.linspace(max(0., v0-min(dyn.brake, dyn.v_max)), min(dyn.v_max, v0+min(dyn.accel, dyn.v_max)), 6)
-            ws = np.linspace(max(-dyn.w_max, w0-min(dyn.w_accel, 2*dyn.w_max)), min(dyn.w_max, w0+min(dyn.w_accel, 2*dyn.w_max)), 9)
-            for v in np.unique(np.round(vs, 6)):
-                for w in np.unique(np.round(ws, 6)):
-                    out.append((f'v{v:.3f}w{w:.3f}', [(float(v), float(w))]*T))
-        return out
+        top = len(dyn.levels)-1
+        seqs = []
+        if ctx.plan_prims and not ctx.hold:
+            plan = list(ctx.plan_prims[:T])
+            seqs.append(('plan', plan+['hold']*(T-len(plan)), top))
+        seqs.append(('hold', ['hold']*T, 0))
+        for k in self.cfg.turn_options:
+            for side in (('left', 'right') if k else ('none',)):
+                rot = [side]*k if k else []
+                if k:
+                    seqs.append((f'{side}{k}_hold', rot+['hold']*(T-k), 0))
+                if ctx.hold:
+                    continue
+                for m in sorted({4, max(1, T-k)}):
+                    if k+m > T:
+                        continue
+                    caps = self.cfg.speed_caps if (k == 0 and dyn.stateful) else (1.0,)
+                    for cap in caps:
+                        seqs.append((f'{side}{k}_go{m}_c{cap}', rot+['go']*m+['hold']*(T-k-m),
+                                     max(1, int(round(top*cap)))))
+        return seqs
 
-    def _rollout(self, ctx, seq):
+    def _rollout(self, ctx, intents, cap, budget0=0):
+        """Exact dynamics rollout -> list of (P, psi, level, command) per step.
+
+        An advance segment ends (and the rest of the sequence holds) as soon
+        as continuing could not stop before the body reaches an observed wall.
+        """
         dyn = ctx.dyn
-        P, psi = ctx.P.copy(), ctx.psi
-        state = ctx.dyn_state
-        poses = []
-        hold_flip = 1.
-        for cmd in seq:
-            if dyn.discrete:
-                if cmd == 'forward':
-                    P = P+dyn.step_m*heading_vec(psi)
-                elif cmd == 'left':
-                    psi += dyn.turn_rad
-                elif cmd == 'right':
-                    psi -= dyn.turn_rad
-                elif cmd == 'hold':
-                    psi += hold_flip*dyn.turn_rad; hold_flip = -hold_flip
-            else:
-                v, w = dyn.limit(cmd, state)
-                state = (v, w)
-                psi += w
-                P = P+v*heading_vec(psi-w/2)
-            poses.append((P.copy(), psi))
-        return poses
+        P, psi, level = ctx.P.copy(), ctx.psi, int(ctx.dyn_state or 0)
+        out = []
+        flip = self._hold
+        blocked = False
+        intents = list(intents)
+        for idx, it in enumerate(intents):
+            if it == 'go' and blocked:
+                it = 'hold'
+            if it == 'go' and ctx.gmap is not None:
+                lvl = min(cap, level+dyn.accel) if level < cap else max(cap, level-dyn.brake)
+                Pn = P+dyn.levels[lvl]*heading_vec(psi)
+                stop = Pn+dyn.stop_distance(lvl)*heading_vec(psi)
+                if not (body_ok(ctx.gmap, Pn, psi, True, budget0, FORWARD_X) and
+                        body_ok(ctx.gmap, stop, psi, True, budget0, FORWARD_X)):
+                    blocked = True
+                    it = 'hold'
+            if it in ('left', 'right'):
+                if level > 0 and dyn.turn_needs_stop:
+                    level = max(0, level-dyn.brake)
+                    P = P+dyn.levels[level]*heading_vec(psi)
+                    cmd = ('forward', level) if level > 0 else 'idle'
+                else:
+                    psi += dyn.turn_rad if it == 'left' else -dyn.turn_rad
+                    cmd = it
+            elif it == 'hold':
+                if level > 0:
+                    level = max(0, level-dyn.brake)
+                    P = P+dyn.levels[level]*heading_vec(psi)
+                    cmd = ('forward', level) if level > 0 else 'idle'
+                else:
+                    psi += flip*dyn.turn_rad
+                    cmd = 'left' if flip > 0 else 'right'
+                    flip = -flip
+            else:   # 'go' / 'forward': accelerate toward the cap
+                if it == 'forward':
+                    cap_now = len(dyn.levels)-1
+                else:
+                    cap_now = cap
+                level = min(cap_now, level+dyn.accel) if level < cap_now else max(cap_now, level-dyn.brake)
+                P = P+dyn.levels[level]*heading_vec(psi)
+                cmd = ('forward', level) if level > 0 else 'idle'
+            out.append((P.copy(), psi, level, cmd))
+        # braking tail (must also be safe)
+        tail = []
+        while level > 0:
+            level = max(0, level-dyn.brake)
+            P = P+dyn.levels[level]*heading_vec(psi)
+            tail.append((P.copy(), psi, level, None))
+        return out, tail
 
     def act(self, ctx, adapter):
         cfg = self.cfg
-        cands = self._candidates(ctx)
+        dyn = ctx.dyn
         H = ctx.humans
-        best = None
-        fallback = None
-        T = cfg.horizon
-        times = np.arange(1, T+1)*STEP_SECONDS
-        Hpos = np.stack([np.stack([h.at(t) for h in H]) for t in times]) if H else None
-        start_cost = ctx.progress_fn(ctx.P) if ctx.progress_fn else 0.
-        for name, seq in cands:
-            if ctx.hold and not (name == 'hold' or name.endswith('_hold') or name.startswith('v0.000')):
-                continue
-            poses = self._rollout(ctx, seq)
-            # static admissibility: body never over observed walls
+        best = fallback = None
+        start_cost = ctx.progress_fn(ctx.P) if (ctx.progress_fn and not ctx.hold) else 0.
+        budget0 = body_cost(ctx.gmap, ctx.P, ctx.psi) if ctx.gmap is not None else 0
+        seqs = self._sequences(ctx)
+        if self._committed and not ctx.hold:
+            seqs.append(('commit', self._committed[0]+['hold']*(cfg.horizon-len(self._committed[0])), self._committed[1]))
+        for name, intents, cap in seqs:
+            steps, tail = self._rollout(ctx, intents, cap, budget0)
+            traj = steps+tail
             ok = True
-            for k, (P, psi) in enumerate(poses):
-                if k % 2 == 1 and k != len(poses)-1:
-                    continue
-                if not body_ok(ctx.gmap, P, psi):
+            for k, (P, psi, _, _) in enumerate(traj):
+                if ctx.gmap is not None and k % 2 == 0 and not body_ok(ctx.gmap, P, psi, True, budget0):
                     ok = False
                     break
             if not ok:
                 continue
-            if Hpos is not None:
-                dmin = min(float(self._rect_dist(P, psi, Hpos[k]).min()) for k, (P, psi) in enumerate(poses))
+            if H:
+                dmin = min(float(min(self._rect_dist(P, psi, h.at((k+1)*STEP_SECONDS)) for h in H))
+                           for k, (P, psi, _, _) in enumerate(traj))
             else:
-                dmin = cfg.clearance_cap+cfg.human_radius
-            clear = dmin-cfg.human_radius
-            Pend, psi_end = poses[-1]
-            progress = (start_cost-ctx.progress_fn(Pend)) if ctx.progress_fn else 0.
-            if ctx.hold:
-                progress = 0.
-            heading = 0.
-            target_dir = ctx.face if ctx.hold and ctx.face is not None else ctx.route_dir
-            if target_dir is not None:
-                heading = math.cos(wrap(target_dir-psi_end))
-            score = cfg.w_progress*progress+cfg.w_clearance*min(clear, cfg.clearance_cap)+cfg.w_heading*heading
-            if fallback is None or clear > fallback[0]:
-                fallback = (clear, seq)
-            if clear < cfg.safety:
+                dmin = cfg.clearance_cap+cfg.safety
+            Pend, psi_end = steps[-1][0], steps[-1][1]
+            progress = 0. if ctx.hold or not ctx.progress_fn else start_cost-ctx.progress_fn(Pend)
+            target = ctx.face if ctx.hold and ctx.face is not None else ctx.route_dir
+            heading = math.cos(wrap(target-psi_end)) if target is not None else 0.
+            score = (cfg.w_progress*progress+cfg.w_clearance*min(dmin, cfg.clearance_cap)+cfg.w_heading*heading
+                     +(cfg.w_plan if name == 'plan' else 0.)+(cfg.w_commit if name == 'commit' else 0.))
+            if fallback is None or dmin > fallback[0]:
+                fallback = (dmin, steps)
+            if dmin < cfg.safety:
                 continue
             if best is None or score > best[0]:
-                best = (score, seq, name)
-        seq = best[1] if best is not None else (fallback[1] if fallback is not None else None)
-        if seq is None:
-            return adapter.wait_action(ctx.P, ctx.psi, ctx.gmap, ctx.face) if ctx.dyn.discrete else ctx.dyn.limit((0., 0.), ctx.dyn_state)
-        cmd = seq[0]
-        if ctx.dyn.discrete:
-            if cmd == 'hold':
-                return adapter.wait_action(ctx.P, ctx.psi, ctx.gmap, ctx.face)
-            return cmd
-        return ctx.dyn.limit(cmd, ctx.dyn_state)
+                best = (score, steps, name, intents, cap)
+        chosen = best if best is not None else (None, fallback[1], 'fallback') if fallback is not None else None
+        if chosen is None:
+            self.mode = 'blocked'
+            if dyn.stateful:
+                return Realized('idle', max(0, int(ctx.dyn_state or 0)-dyn.brake))
+            return Realized(adapter.wait_action(ctx.P, ctx.psi, ctx.gmap), 0)
+        steps, self.mode = chosen[1], chosen[2]
+        cmd, level = steps[0][3], steps[0][2]
+        if best is not None:
+            rest = [i for i in best[3][1:] if i != 'hold']
+            self._committed = (list(best[3][1:]), best[4]) if rest else None
+        else:
+            self._committed = None
+        if self.mode == 'hold' and cmd in ('left', 'right'):
+            self._hold = -self._hold
+        if not dyn.stateful:
+            if isinstance(cmd, tuple):
+                cmd = 'forward'
+            elif cmd == 'idle':
+                cmd = adapter.wait_action(ctx.P, ctx.psi, ctx.gmap)
+        return Realized(cmd, level)
 
 
 PLANNERS = {'orca': ORCAPlanner, 'sfm': SFMPlanner, 'dwa': DWAPlanner, 'follow': FollowPlanner}

@@ -13,9 +13,9 @@ import time
 import numpy as np
 
 from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, MAX_EPISODE_STEPS,
-                     SUCCESS_DISTANCE, BODY_PROXY_M)
+                     SUCCESS_DISTANCE, BODY_PROXY_M, ESCAPE_STEPS)
 from .legal import LegalState, LegalSensor
-from .executor import QueryExecution, Query, command_for, next_dyn_state
+from .executor import QueryExecution, Query, command_for
 from .planners import make_planner
 from .dynamics import STEP_SECONDS
 
@@ -38,13 +38,16 @@ class BranchState:
     psc_steps: int = 0                    # steps with any human centre < 1 m (Euclidean, privileged)
     path_length: float = 0.
     geodesic: float = math.nan            # privileged distance-to-goal at this state
+    escape_open: bool = False             # spawned in static contact and not yet free
+    escape_contacts: int = 0              # exempt contact steps during the escape phase
 
     def copy(self):
         return BranchState(self.robot, self.index, self.sensor, self.legal.copy(), self.dyn_state,
                            self.execution.copy() if self.execution is not None else None,
                            list(self.decisions), list(self.actions), self.outcome, self.static_contacts,
                            self.body_overlaps, self.min_rect_dist,
-                           self.min_center_dist, self.psc_steps, self.path_length, self.geodesic)
+                           self.min_center_dist, self.psc_steps, self.path_length, self.geodesic,
+                           self.escape_open, self.escape_contacts)
 
     @property
     def terminal(self):
@@ -73,8 +76,10 @@ class EpisodeRuntime:
         legal.map.apply(row)
         legal.tracks = row['tracks']
         legal.track_log.append((legal.time, row['tracks']))
-        self.root = BranchState(root_robot, 0, self.sensor.state(), legal, (0., 0.), None)
+        self.root = BranchState(root_robot, 0, self.sensor.state(), legal, 0, None)
         self.root.geodesic = self.task.geodesic_to_goal()
+        self.spawn_contact = bool(classify_contacts(self.task, gate_humans=False)['static'])
+        self.root.escape_open = self.spawn_contact
         self.start_geodesic = self.root.geodesic
         self.sim.tape = HumanTape.record(self.task, tape_steps)
         self.tape = self.sim.tape
@@ -116,7 +121,7 @@ class EpisodeRuntime:
         sim, sensor, dyn = self.sim, self.sensor, self.dyn
         for _ in range(horizon):
             t = time.perf_counter()
-            prim = ex.step(st.legal, st.dyn_state)
+            prim, level = ex.step(st.legal, st.dyn_state)
             self.perf['planner_s'] += time.perf_counter()-t
             cmd = command_for(dyn, prim)
             t = time.perf_counter()
@@ -133,15 +138,22 @@ class EpisodeRuntime:
                 d = np.hypot(hp[:, 0]-res.pose[0], hp[:, 2]-res.pose[2])
                 st.min_center_dist = min(st.min_center_dist, float(d.min()))
                 st.psc_steps += int(bool((d < 1.0).any()))
+            static_violation = False
             if res.static_contact:
-                st.static_contacts += 1
+                if st.escape_open and res.index <= ESCAPE_STEPS:
+                    st.escape_contacts += 1
+                else:
+                    st.static_contacts += 1
+                    static_violation = True
+            else:
+                st.escape_open = False
             st.body_overlaps += int(res.body_overlap)
             st.min_rect_dist = min(st.min_rect_dist, res.min_rect_distance)
             if res.human_collision:
                 st.outcome = 'human_collision'
             elif res.body_overlap and self.strict:
                 st.outcome = 'body_overlap'
-            elif res.static_contact and self.strict:
+            elif static_violation and self.strict:
                 st.outcome = 'static_collision'
             elif res.stop:
                 st.geodesic = res.geodesic
@@ -155,7 +167,7 @@ class EpisodeRuntime:
                 t = time.perf_counter()
                 st.legal.observe(row, prim)
                 self.perf['legal_s'] += time.perf_counter()-t
-                st.dyn_state = next_dyn_state(dyn, prim, st.dyn_state)
+                st.dyn_state = level
             if self.trace is not None:
                 self.trace.append(dict(index=res.index, pose=res.pose.tolist(), prim=prim if isinstance(prim, str) else list(prim),
                                        static=bool(res.static_contact), overlap=res.body_overlap,
@@ -192,9 +204,11 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
         legal = LegalState(task.goal, row['robot_pose'], row['timestamp'])
         legal.map.apply(row)
         legal.tracks = row['tracks']
-        dyn_state = (0., 0.)
+        dyn_state = 0
         actions, statics, per_decision = [], 0, []
         overlaps, min_rect = 0, math.inf
+        escape_open = bool(classify_contacts(task, gate_humans=False)['static'])
+        spawn_contact, escape_contacts = escape_open, 0
         ex = None
         for rec in decisions:
             if rec['cont']:
@@ -207,26 +221,33 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
             for _ in range(rec['horizon']):
                 if task.episode_over:
                     break
-                prim = ex.step(legal, dyn_state)
+                prim, level = ex.step(legal, dyn_state)
                 cmd = command_for(dyn, prim)
                 task.step(cmd)
                 n += 1
                 actions.append(cmd if isinstance(cmd, str) else tuple(map(float, cmd)))
                 c = classify_contacts(task, gate_humans=False, need_static=True)
-                statics += int(bool(c['static']))
+                if c['static']:
+                    if escape_open and task.steps <= ESCAPE_STEPS:
+                        escape_contacts += 1
+                    else:
+                        statics += 1
+                else:
+                    escape_open = False
                 overlaps += int(c['min_rect_distance'] < BODY_PROXY_M)
                 min_rect = min(min_rect, c['min_rect_distance'])
                 if task.episode_over:
                     break
                 row = sensor.observe(task.world_time())
                 legal.observe(row, prim)
-                dyn_state = next_dyn_state(dyn, prim, dyn_state)
+                dyn_state = level
                 if ex.status != 'running':
                     break
             per_decision.append(n)
             ex.decision_boundary()
         metrics = task.metrics()
         return dict(metrics=metrics, actions=actions, static_contact_steps=statics,
+                    spawn_contact=spawn_contact, escape_contact_steps=escape_contacts,
                     body_overlap_steps=overlaps, min_rect_distance=min_rect,
                     per_decision_steps=per_decision, episode_over=task.episode_over, steps=task.steps,
                     final_geodesic=task.geodesic_to_goal())

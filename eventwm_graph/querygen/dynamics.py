@@ -33,43 +33,61 @@ def velocity_moves_legs(lin, ang):
 class DynamicsModel:
     """Robot motion capability in per-control-step units (one Env.step).
 
-    ``discrete``: the robot either translates ``step_m`` straight ahead or
-    turns in place by ``turn_rad`` (the Falcon structure); no velocity state.
-    Otherwise a unicycle: linear speed ``v`` in [0, v_max] m/step changes by
-    at most ``accel``/``brake`` m/step per step, yaw rate |w| <= w_max
-    rad/step changing by at most ``w_accel`` per step; simultaneous v and w
-    are allowed (arcs).  ``min_radius`` > 0 forbids in-place turning
-    (|w| <= v / min_radius).  Native actions map to the velocity action's
-    integrator arguments as lin = 120 * metres-per-step, ang = 120 * rad-per-step.
+    All families keep Falcon's structure -- per step the robot either
+    translates straight ahead or turns in place -- and vary capabilities
+    independently:
+
+    ``turn_rad``    in-place yaw per step (native 1/12 rad).
+    ``levels``      forward speed levels (m/step); native = (0, 25/120).
+    ``accel``/``brake``  max level change per step (native: instant).
+    ``turn_needs_stop``  rotation only when the speed level is 0.
+
+    ``native_actions`` marks the unmodified Falcon action set (no velocity
+    state).  All other families command the continuous base-velocity action
+    with lin = 120 * metres-per-step, ang = 120 * rad-per-step.
     """
     name: str
-    discrete: bool = False
-    step_m: float = NATIVE_STEP_M
     turn_rad: float = NATIVE_TURN_RAD
-    v_max: float = NATIVE_STEP_M
-    accel: float = math.inf
-    brake: float = math.inf
-    w_max: float = NATIVE_TURN_RAD
-    w_accel: float = math.inf
-    min_radius: float = 0.
-    native_actions: bool = False   # True only for the unmodified Falcon action set
+    levels: tuple = (0., NATIVE_STEP_M)
+    accel: int = 1
+    brake: int = 1
+    turn_needs_stop: bool = True
+    native_actions: bool = False
+
+    @property
+    def discrete(self):
+        return True
+
+    @property
+    def step_m(self):
+        return self.levels[-1]
+
+    @property
+    def v_max(self):
+        return self.levels[-1]
 
     @property
     def stateful(self):
-        return not self.discrete
+        return len(self.levels) > 2
 
-    def limit(self, desired, current):
-        """Clip a desired (v, w) [m/step, rad/step] given the current state."""
-        v_d, w_d = float(desired[0]), float(desired[1])
-        v0, w0 = float(current[0]), float(current[1])
-        v = min(max(v_d, 0.), self.v_max)
-        v = min(v, v0+self.accel) if v >= v0 else max(v, v0-self.brake)
-        w = min(max(w_d, -self.w_max), self.w_max)
-        w = min(max(w, w0-self.w_accel), w0+self.w_accel)
-        if self.min_radius > 0.:
-            w_cap = v/self.min_radius
-            w = min(max(w, -w_cap), w_cap)
-        return v, w
+    @property
+    def n_levels(self):
+        return len(self.levels)
+
+    def next_levels(self, level):
+        """Admissible speed levels after one step from ``level``."""
+        lo = max(0, level-self.brake); hi = min(len(self.levels)-1, level+self.accel)
+        return range(lo, hi+1)
+
+    def stop_distance(self, level):
+        """Distance travelled while braking to 0 from ``level`` (excl. current step)."""
+        d = 0.; l = level
+        while l > 0:
+            l = max(0, l-self.brake); d += self.levels[l]
+        return d
+
+    def stop_steps(self, level):
+        return int(math.ceil(level/self.brake)) if level > 0 else 0
 
     def to_command(self, v, w):
         """Velocity-action integrator arguments for (m/step, rad/step)."""
@@ -77,13 +95,24 @@ class DynamicsModel:
 
     def describe(self):
         d = asdict(self)
-        d['v_max_mps'] = self.v_max/STEP_SECONDS
-        d['stop_steps'] = (math.inf if self.brake == 0 else
-                           (0 if math.isinf(self.brake) else math.ceil(self.v_max/self.brake)))
+        d.update(v_max_mps=self.v_max/STEP_SECONDS, turn_deg_per_step=math.degrees(self.turn_rad),
+                 steps_to_full_speed=int(math.ceil((len(self.levels)-1)/self.accel)),
+                 steps_to_stop=self.stop_steps(len(self.levels)-1),
+                 stop_distance_m=self.stop_distance(len(self.levels)-1))
         return d
 
 
-NATIVE = DynamicsModel('native', discrete=True, native_actions=True)
+def _levels(n):
+    return tuple(NATIVE_STEP_M*k/n for k in range(n+1))
+
+
+NATIVE = DynamicsModel('native', native_actions=True)
 FAMILIES = {
     'native': NATIVE,
+    'slowturn': DynamicsModel('slowturn', turn_rad=NATIVE_TURN_RAD/2),
+    'inertia': DynamicsModel('inertia', levels=_levels(12), accel=2, brake=2),
+    'slowturn_inertia': DynamicsModel('slowturn_inertia', turn_rad=NATIVE_TURN_RAD/2, levels=_levels(12), accel=2, brake=2),
+    # held-out families (never used for generator development)
+    'heavy_brake': DynamicsModel('heavy_brake', levels=_levels(12), accel=2, brake=1),
+    'slowturn_heavy': DynamicsModel('slowturn_heavy', turn_rad=NATIVE_TURN_RAD/3, levels=_levels(12), accel=2, brake=1),
 }
