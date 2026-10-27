@@ -310,6 +310,22 @@ then budget scaling of representative DEV failures.
   safety check cannot protect a robot that brakes over 6 steps) -> ORCA kept for instant-stop dynamics.
   Full-DEV DWA x inertia run started.
 
+- **Mixed-mode DEV runs (pre-freeze, ORCA x native)**: K=10 with `tc_variants=(goal, st_goal)` solved
+  22/24 feasible episodes (incl. 3t8DB4Uzvkt in 432 steps, SByzJLxpRGn, LEFTm3JecaC, TEEsavR23oF); failures
+  Nfvxx8J5NCo (also with 15,000 edges) and YRUkbU5xsYj.  Defects found and fixed on the way:
+  * manoeuvre starvation: extra fixed progress variants left K=10 too few slots for exact manoeuvres
+    (vd3HHTEpmyA / yZME6UR9dUN regressed) -> manoeuvre mode keeps only continue/goal/stop;
+  * persistent manoeuvre mode: rotate/creep chains continued anywhere while the last decision was a
+    manoeuvre (YRUkbU5xsYj 88% of expansions) -> only near the start or the goal;
+  * `Query.signature` ignored execution meta, so compact K=6 de-duplicated `st_goal_tc` away;
+  * escape penalty extended to every edge from spawn nodes once a branch escaped.
+  `tc_variants=(st_goal,)` alone loses LEFTm3JecaC and 3t8DB4Uzvkt (both solutions use `goal_tc`).
+- **Nfvxx8J5NCo (open)**: the passage opening lies at the end of the inflated south-wall band and is
+  unobserved while the robot drives past; neither the normal nor an optimistic (UNKNOWN = FREE) legal route
+  enters it; every branch reaches the junction 10-20 steps after the witness and meets a returning human.
+- **DWA x inertia (pre-freeze code)**: 14/16 feasible DEV episodes completed so far pass (Nfvxx8J5NCo,
+  TEEsavR23oF fail).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
