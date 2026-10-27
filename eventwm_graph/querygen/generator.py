@@ -56,6 +56,7 @@ class GeneratorConfig:
     maneuver_creeps: tuple = (1, 3)
     maneuver_start_m: float = 1.0    # exact manoeuvres only within this distance of the start pose
     maneuver_goal_m: float = 1.0     # ... or of the goal
+    root_probes: bool = True         # v7: 1-step creep/rotations at the reset state (False = frozen v6)
     stall_window: int = 16           # ... and only after this many steps without translation or turning
     stall_min: int = 6
     stall_disp_m: float = 0.15
@@ -278,6 +279,17 @@ class QueryGenerator:
         stuck = in_mode or ((near_start or near_goal) and self._stalled(legal))
         diag['stuck'] = stuck
         diag['maneuver_mode'] = in_mode
+        # v7: with no motion history yet (reset state) also offer the finest
+        # probes - a single forward creep and single-step rotations - because in
+        # a tight spawn every ordinary query (and even waiting, which alternates
+        # in-place turns) can collide, leaving no child from which manoeuvre mode
+        # could be entered.
+        if cfg.root_probes and len(legal.poses) <= 1 and not stuck:
+            cats['maneuver'] += [Query('creep', duration=1, label='creep1'),
+                                 Query('rotate', heading=wrap(float(pose[3])+self.dyn.turn_rad), duration=2,
+                                       label='rot_left1', meta=dict(direction='left')),
+                                 Query('rotate', heading=wrap(float(pose[3])-self.dyn.turn_rad), duration=2,
+                                       label='rot_right1', meta=dict(direction='right'))]
         if stuck:
             # Exact primitive-count manoeuvres: in-place rotations of k turn
             # steps each way and k-step forward creeps.  Composed by the

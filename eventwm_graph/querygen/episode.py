@@ -58,7 +58,7 @@ class EpisodeRuntime:
     """One benchmark episode with a fixed planner and dynamics model."""
 
     def __init__(self, spec, planner_name, dyn, planner_kw=None, tape_steps=MAX_EPISODE_STEPS,
-                 strict=True, trace=False, velocity_action=None):
+                 strict=True, trace=False, velocity_action=None, pure_caches=True):
         t0 = time.perf_counter()
         self.spec = spec
         self.dyn = dyn
@@ -70,7 +70,8 @@ class EpisodeRuntime:
             velocity_action = not dyn.native_actions
         self.task = NativeTask(spec, velocity_action=velocity_action)
         self.private_cache = {}
-        self.sensor = LegalSensor(self.task, private_cache=self.private_cache)
+        # v7: branch-pure private sensor caches (False = frozen v6 / accepted observer)
+        self.sensor = LegalSensor(self.task, private_cache=self.private_cache, pure_caches=pure_caches)
         self.sim = BranchSimulator(self.task, None)
         root_robot = self.sim.root()
         row = self.sensor.observe(self.task.world_time())
@@ -194,7 +195,7 @@ class EpisodeRuntime:
         self.task.close()
 
 
-def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
+def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, pure_caches=True):
     """Authoritative continuous replay with the unchanged ``habitat.Env.step``.
 
     Re-executes the recorded *query sequence* through the live executor from
@@ -206,7 +207,7 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False):
     task = NativeTask(spec, velocity_action=not dyn.native_actions)
     shadow = NativeTask(spec, velocity_action=not dyn.native_actions)
     try:
-        sensor = LegalSensor(task)
+        sensor = LegalSensor(task, pure_caches=pure_caches)     # same sensor semantics as the branches
         row = sensor.observe(task.world_time())
         legal = LegalState(task.goal, row['robot_pose'], row['timestamp'])
         legal.map.apply(row)

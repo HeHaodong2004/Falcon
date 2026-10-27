@@ -93,8 +93,9 @@ def summarize_run(d, certs=None):
             replay_s.append(rep['seconds'])
         if st.get('expansions'):
             raw.append(st.get('raw_candidates', 0)/st['expansions']); kept.append(st.get('kept_candidates', 0)/st['expansions'])
-        for dec in r.get('decisions', []):
-            labels[dec.get('label', dec.get('kind'))] += 1
+        if r.get('verdict') == 'PASS':
+            for dec in r.get('decisions', []):
+                labels[dec.get('label', dec.get('kind')).rstrip('0123456789')] += 1
         m = rep.get('metrics', {})
         b = behaviour(r)
         cert = (certs or {}).get(r['key'])
@@ -153,7 +154,8 @@ def markdown(summ):
     f = lambda v, k=2: '-' if v is None else (f'{v:.{k}f}' if isinstance(v, float) else str(v))
     for x in summ['episodes']:
         b = x['behaviour'] or {}
-        L.append(f"| {x['key']} | {x['verdict']}{' (cert. infeasible)' if x['certified_infeasible'] else ''} | {f(x['steps'])} | "
+        cert = f" (cert. infeasible: {'+'.join(x['certified_by'])})" if x['certified_infeasible'] else ''
+        L.append(f"| {x['key']} | {x['verdict']}{cert} | {f(x['steps'])} | "
                  f"{f(x['spl'])} | {f(x['psc'])} | {f(x['min_rect'])} | {f(x['static_steps'])} | {f(x['escape_steps'])} | "
                  f"{f(x['overlap_steps'])} | {x['decisions']} | {f(x['oracle_s'], 0)} | {f(b.get('wait_steps'))} | "
                  f"{f(b.get('oscillations_per_100'), 1)} | {f(b.get('retreat_m'))} | {f(b.get('deadlock'))} |")
@@ -162,7 +164,7 @@ def markdown(summ):
           f"oracle edge {f(rt['edge_ms_p50'], 1)}/{f(rt['edge_ms_p95'], 1)} ms ({rt['n_edges']} edges); "
           f"oracle per episode {f(rt['oracle_s_p50'], 0)}/{f(rt['oracle_s_p95'], 0)} s; replay {f(rt['replay_s_p50'], 0)}/{f(rt['replay_s_p95'], 0)} s",
           f"queries: raw/node {f(summ['queries']['raw_per_node_mean'], 1)}, kept/node {f(summ['queries']['kept_per_node_mean'], 1)}",
-          f"selected labels: {summ['queries']['selected_label_counts']}"]
+          f"selected query labels in PASS branches: {summ['queries']['selected_label_counts']}"]
     if summ['behaviour_pass']:
         b = summ['behaviour_pass']
         L.append(f"behaviour (PASS episodes with trace, n={b['n']}): wait {b['wait_steps_mean']:.1f} steps, "
