@@ -24,7 +24,7 @@ from .native import MAX_EPISODE_STEPS
 class OracleConfig:
     horizon: int = 16                 # max control steps per movement decision
     max_expansions: int = 500
-    max_seconds: float = 1800.
+    max_seconds: float = 9000.      # safety cap only; the binding budget is max_edges (deterministic)
     weight: float = 2.0               # weighted A*: f = g + w * h
     speed_est: float = 0.17           # m per step for the remaining-time estimate
     clearance_soft: float = 0.6       # m rectangle-to-human clearance below which f is penalised
@@ -38,19 +38,19 @@ class OracleConfig:
     danger_m: float = 0.8             # rectangle clearance below which a held pose is 'doomed'
     danger_cost: float = 60.          # f penalty per metre below danger_m
     lazy: bool = True                 # deferred edge evaluation (simulate an edge when popped)
-    max_edges: int = 4000             # simulated edges budget in lazy mode
+    max_edges: int = 6000             # simulated edges budget in lazy mode (deterministic, load-independent)
     fine_cell: float = 0.05           # de-duplication at nodes where the generator's legal stuck test fires
     fine_heading_bins: int = 75       # (multi-point turns need cm / single-turn-step resolution)
     predict_dups: bool = False        # sandbox-predict an edge's end signature (true human future) and
     dup_penalty: float = 25.          # defer predicted duplicates by this f penalty instead of simulating
     maneuver_prior: float = 10.       # extra f for exact manoeuvre edges (used when ordinary queries do not help)
     maneuver_pad: bool = True         # also charge short manoeuvres up to a full decision interval
-    maneuver_gate: float = 0.         # >0: entering manoeuvre mode costs this much extra unless every ordinary
+    maneuver_gate: float = 120.       # >0: entering manoeuvre mode costs this much extra unless every ordinary
                                       # movement query tried from the parent failed natively (privileged gate)
     fine_by_edge: bool = True         # fine de-duplication for states reached by manoeuvre edges (else: stuck nodes)
     tie_bucket: float = 0.            # >0: f is bucketed and ties prefer the later node (cross waiting plateaus forward in time)
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
-    st_heuristic: bool = False        # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
+    st_heuristic: bool = True         # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
     st_fallback: float = 300.         # extra steps when the space-time model finds no arrival
     block_dist: float = 0.5           # centre distance to the geodesic path that blocks it (> half-width + body proxy)
     block_horizon_m: float = 8.0      # path length checked ahead

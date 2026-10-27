@@ -133,6 +133,22 @@ planner/dynamics regret; `sandbox.py`/`sandbox_study.py` nominal vs closed-loop 
 - The Oracle's wall-clock budget makes results load-dependent (the machine reached load 36/36);
   final runs will bind on a deterministic edge budget (max_edges) with a generous wall-clock cap.
 
+- DEV v4 (manoeuvres offered anywhere on lattice-or-stall, prior 10): regression - HMkoS756sz6 (124 s
+  without manoeuvres) failed with zero progress; stopped after 5 failures.
+- Generator v6 (commit 154135f3): explicit manoeuvre mode (entered after a strict legal stall near
+  the start/goal; persists while the last decision was a manoeuvre). vd3HHTEpmyA PASS, XNeHsjL6nBB
+  PASS, HMkoS756sz6 PASS (710 exp); YRUkbU5xsYj escape found (r8 f l24 then goal x3 to 5.5 m) but the
+  budget went to start-region manoeuvres (weight 2 favours cheap early states).
+  DEV v5 = v6 + block term + deterministic 6000-edge budget (running).
+- **Space-time heuristic** (commit 9fd6298f, `st_heuristic`): backward DP over 0.2 m navmesh cells x
+  500 steps with the true human tape (unsafe within 0.6 m), unit moves + waits -> earliest arrival.
+  Built in 0.3-0.5 s. Waiting on the optimal schedule lowers h one-for-one, so the search dives
+  forward in time. **AWUFxHEyV3T/0 PASS** (284 steps, 636 expansions, 3540 edges; failed in v0-v5).
+- auFeVz9Go4m regressed in DEV v5 (84% of 1,685 expansions in start-region manoeuvres after a
+  wait-induced stall; DEV v3 solved it in 91 expansions with an ordinary turn) -> privileged Oracle
+  gate (`maneuver_gate`): entering manoeuvre mode costs +120 unless every ordinary movement query
+  tried from the parent failed natively.
+
 ## Important failed hypotheses / lessons
 - Velocity-tracking alone cannot handle Spot's 1.23 m body in tight spaces -> body-aware lattice.
 - ORCA static horizon 0.4 s at native speed forbade all motion near walls (now 0.15 s).

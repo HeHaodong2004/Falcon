@@ -4,7 +4,16 @@ Suites are frozen in `docs/querygen/suites.json` (sha256 recorded in `suites.py`
 episodes (used for all iteration), HOLDOUT = 28 HM3D + 11 MP3D episodes (never run, never inspected,
 no certificates computed before the generator is frozen).
 
-## Frozen system
+## Frozen system (tag `querygen-freeze-v1`)
+- Generator v6 (`GeneratorConfig()` defaults: budget 10; manoeuvre mode after a legal stall near
+  the start/goal), executor with the fixed body-aware lattice, full-responsibility ORCA, native
+  dynamics.
+- Oracle (`OracleConfig()` defaults): lazy weighted best-first (w = 2) over generator queries,
+  privileged space-time cost-to-go heuristic, privileged manoeuvre-mode gate (+120), manoeuvre
+  prior 10 + pad to a full 16-step interval, fine de-duplication for manoeuvre edges,
+  **budget 6000 simulated edges** (deterministic; wall-clock cap 9000 s as a safety net only).
+- Both suites run with exactly these defaults (`--oracle '{}'`), 9 worker processes, frozen code
+  snapshot per run.
 - Generator: `eventwm_graph/querygen/generator.py` at the freeze commit (tag `querygen-freeze-*`),
   default `GeneratorConfig` (budget 10). Planner: full-responsibility ORCA (`planners.py`).
   Dynamics: benchmark-native discrete actions. Oracle: lazy weighted best-first over generator
