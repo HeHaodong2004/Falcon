@@ -141,22 +141,23 @@ is material in 36-44% of states and a borrowed choice fails in 8-10%: a query se
 conditioned on the executing planner and dynamics, or use per-executor consequence features.
 
 **Single nominal rollout + vectorised scoring vs multi-future closed loop** (`sandbox_study.py`,
-`output/runs/sb_dev_v3`; 25 decision states with tracked humans, 7 DEV episodes, 238 queries, M = 16
-legal constant-velocity futures). One nominal rollout of the real executor in the kinematic sandbox,
-scored against all 16 futures with `score_vec` (identical to the loop reference to 4e-16, 75x faster),
-versus 16 closed-loop rollouts (planner reacting to each future):
+`output/runs/sb_final`; 71 decision states with tracked humans from all 14 DEV-final PASS episodes,
+683 queries, M = 16 legal constant-velocity futures; executor/planner code identical to the frozen
+system). One nominal rollout of the real executor in the kinematic sandbox, scored against all 16
+futures with `score_vec` (identical to the loop reference to 4e-16, 75x faster than the loop), versus
+16 closed-loop rollouts (planner reacting to each future):
 
 | metric | value |
 |---|---|
-| overlap-probability MAE / correlation | 0.037 / 0.69 (nominal is conservative: 0.045 vs 0.012) |
-| median min-clearance MAE | 0.036 m |
-| top-choice agreement | 96% |
-| time per query, nominal+vectorised vs closed loop | 190 ms vs 2,894 ms (15.2x) |
-| sandbox vs native with the true future: mean deviation / overlap agreement | 0.16 m / 97.5% |
-| sandbox vs native time per query | 220 ms vs 1,277 ms (5.8x) |
+| overlap-probability MAE / correlation | 0.037 / 0.67 (nominal is conservative: 0.045 vs 0.012) |
+| median min-clearance MAE | 0.032 m |
+| top-choice agreement (lowest risk, then largest clearance) | 93% |
+| time per query, nominal + vectorised vs closed loop | 88 ms vs 1,440 ms (16.4x) |
+| sandbox vs native with the true future: mean deviation / overlap agreement | 0.19 m / 97.2% |
+| sandbox vs native time per query | 112 ms vs 1,542 ms (13.8x) |
 
-The approximation is adequate for ranking (96% agreement) and conservative for risk; the measured
-speed-up is real (end-to-end, same executor code).
+The approximation is adequate for ranking (93% agreement) and conservative for risk; the speed-ups
+are measured end to end with the same executor code. (An earlier 25-state sample gave 96% / 15x.)
 
 ## 7. Frozen-system results: DEV final and untouched HOLDOUT (deliverable 8)
 Frozen system `querygen-freeze-v1`, Oracle defaults (`--oracle '{}'`), 6000 simulated edges per
@@ -233,13 +234,19 @@ traces, `report.md`, `code_snapshot/`), `output/runs/feasibility_v2` (DEV certif
 receive (all legal): query descriptors (kind, category, via distance/bearing, duration), sandbox
 progress on the legal cost-to-go, completion / STOP, effort (steps, path, in-place turns), social risk
 over M predicted futures (P[overlap], P5/P50 of the minimum rectangle clearance, PSC exposure) and
-static risk on the legal map (max body cost and its increase, share of poses touching UNKNOWN). One
-nominal sandbox rollout per query plus vectorised scoring costs ~0.2 s per query (section 6). The
-feature validation against native outcomes was started but stopped to free CPU for the final runs; the
-only completed sample (5 states of one episode, no humans tracked at those states) shows the obvious
-limit of legal features: native failures there involved humans or obstacles that were not yet
-observed, so legal risk features cannot predict them (AUC 0.5) - Layer 3 must be trained with that
-partial observability in mind.
+static risk on the legal map (max body cost and its increase, share of poses touching UNKNOWN).
+
+**Validation against native outcomes** (`output/runs/l3_final`; 101 decision states of the 14 DEV-final
+PASS episodes, 949 candidate queries, each executed natively from the same state; label = failure of
+the query's own execution): 29% of candidates fail natively (5.7% human/overlap, 15.2% static).
+Legal features carry real but partial signal: AUC of P[overlap] for human failures 0.68 (0.71 at
+states with tracked humans), of the P5 minimum clearance 0.71 (0.78 tracked); AUC of the maximum
+legal body cost for static failures 0.78. Rank correlation of sandbox progress with the native
+equal-horizon value is only 0.15, and a fixed hand rule ("safest by legal risk, then most progress")
+still picks a natively failing query in 16% of states (mean regret 0.61 m otherwise). Human failures
+are 2.6x more frequent where humans are already tracked (8.4% vs 3.2%); the rest come from humans or
+obstacles not yet observed, which no legal feature can predict. Cost: sandbox features 31 / 339 ms per
+query (P50/P95) vs 1,786 / 4,251 ms for native execution.
 
 **What is ready.** (1) A legal, deterministic generator whose candidate sets contain a complete,
 replay-verified successful sequence for 14/24 feasible DEV episodes and the HOLDOUT passes (section 7);
