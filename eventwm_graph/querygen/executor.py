@@ -80,6 +80,7 @@ class QueryExecution:
         self.plan_age = 0
         self.lattice_calls = 0
         self.realizer = MotionRealizer(dyn)
+        self.speed_debt = 0.
         self.planner.reset()
 
     def copy(self):
@@ -148,8 +149,18 @@ class QueryExecution:
             return prim[0], prim[1]          # planner already realised the command under the dynamics
         P = to_plane([legal.pose[0], legal.pose[2]])
         humans = human_estimates(legal.tracks, legal.time)
+        speed = float(self.query.speed)
+        if speed < 1. and prim == 'forward' and not self.dyn.stateful:
+            # reduced query speed for instant-speed robots: duty-cycled advances
+            self.speed_debt += speed
+            if self.speed_debt >= 1.-1e-9:
+                self.speed_debt -= 1.
+            else:
+                prim = self.adapter.wait_action(P, float(legal.pose[3]), legal.map)
+                self.plan = None
+        cap = None if speed >= 1. else max(1, int(round((len(self.dyn.levels)-1)*speed)))
         return self.realizer.realize(prim, int(level), P, float(legal.pose[3]), legal.map, humans,
-                                     self._plan_now)
+                                     self._plan_now, cap)
 
     def _step_kin(self, legal, dyn_state=0):
         """Next kinematic primitive, or 'stop'; updates completion status first."""

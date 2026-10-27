@@ -10,7 +10,8 @@ from eventwm_graph.querygen.control import to_plane
 key = sys.argv[1] if len(sys.argv) > 1 else 'hm3d/val/3t8DB4Uzvkt/2'
 n = int(sys.argv[2]) if len(sys.argv) > 2 else 40
 ds, sp, sc, ep = key.split('/')
-rt = EpisodeRuntime(EpisodeSpec(ds, sp, sc, ep, 102), 'orca', NATIVE, strict=False, trace=True)
+seed = int(next((a.split('=')[1] for a in sys.argv if a.startswith('--seed=')), 102))
+rt = EpisodeRuntime(EpisodeSpec(ds, sp, sc, ep, seed), 'orca', NATIVE, strict=False, trace=True)
 st = rt.root
 print('start pose', np.round(st.legal.pose, 3), 'goal', np.round(rt.task.goal, 3), 'geo', round(rt.start_geodesic, 3))
 q = Query('goal', label='goal')

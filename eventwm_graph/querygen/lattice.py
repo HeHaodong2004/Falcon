@@ -44,7 +44,8 @@ def _body_count(blocked, unknown, kx0, kz0, res, x, z, psi, x_lo, x_hi, spacing)
 @njit(cache=True)
 def _search(blocked, unknown, cost, field, kx0, kz0, res,
             sx, sz, spsi, gx, gz, goal_tol, goal_field, step_m, turn_rad,
-            max_expand, unknown_pen, start_budget, field_scale, body_lo, body_hi, nose_hi, n_bins):
+            max_expand, unknown_pen, start_budget, field_scale, body_lo, body_hi, nose_hi, n_bins,
+            unknown_turn_pen):
     n0, n1 = blocked.shape
     cap = max_expand*3+8
     X = np.empty(cap); Z = np.empty(cap); PSI = np.empty(cap); G = np.empty(cap)
@@ -108,7 +109,7 @@ def _search(blocked, unknown, cost, field, kx0, kz0, res,
             if closed[ni, nj, nhb]:
                 continue
             step_cost = cost[ni, nj] if prim == 0 else 1.
-            g = G[k]+step_cost+unknown_pen*nu+5.*nb
+            g = G[k]+step_cost+(unknown_pen if prim == 0 else unknown_turn_pen)*nu+5.*nb
             if field[ni, nj] > 1e17:
                 continue
             f = g+field[ni, nj]*field_scale
@@ -142,7 +143,11 @@ def _crop(view, field, x, z, half):
 
 
 def plan(view, field, start_pose, goal_xz, step_m, turn_rad, goal_tol=0.3, goal_field=-1.,
-         max_expand=40000, unknown_pen=0.15, start_budget=0, half_window=48, nose_margin=None):
+         max_expand=40000, unknown_pen=0.15, start_budget=0, half_window=48, nose_margin=None,
+         unknown_turn_pen=0.6):
+    """Rotations sweeping unobserved cells cost more than translations over
+    them: the near field is never observed, so turning where the body sweep is
+    unknown risks unseen obstacles; the plan prefers observed space first."""
     """Return dict(prims, poses, reached, expanded) in world (x, z, psi)."""
     sx, sz, spsi = float(start_pose[0]), float(start_pose[2]), float(start_pose[3])
     field_scale = view.res/step_m      # cell-cost units -> forward steps
@@ -152,7 +157,7 @@ def plan(view, field, start_pose, goal_xz, step_m, turn_rad, goal_tol=0.3, goal_
         sx, sz, spsi, float(goal_xz[0]), float(goal_xz[1]), float(goal_tol), float(goal_field),
         float(step_m), float(turn_rad), int(max_expand), float(unknown_pen), int(start_budget),
         float(field_scale), float(BODY_X[0]), float(BODY_X[1]),
-        float(BODY_X[1]+(FRONT_MARGIN if nose_margin is None else nose_margin)), N_BINS)
+        float(BODY_X[1]+(FRONT_MARGIN if nose_margin is None else nose_margin)), N_BINS, float(unknown_turn_pen))
     prims, poses = [], []
     k = node
     while k > 0:

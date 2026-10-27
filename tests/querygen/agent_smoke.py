@@ -23,7 +23,7 @@ def main():
     ok_all = True
     for k, key in enumerate(keys):
         ds, split, scene, ep = key.split('/')
-        spec = EpisodeSpec(ds, split, scene, ep, 100+k)
+        spec = EpisodeSpec(ds, split, scene, ep, int(next((a.split('=')[1] for a in sys.argv if a.startswith('--seed=')), 100+k)))
         t0 = time.perf_counter()
         rt = EpisodeRuntime(spec, planner, dyn, strict=False, trace=True)
         st = rt.root

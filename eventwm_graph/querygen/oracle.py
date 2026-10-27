@@ -55,7 +55,7 @@ class Oracle:
         self.gen = generator
         self.cfg = config or OracleConfig()
         self.stats = dict(expansions=0, children=0, outcomes={}, by_label={}, gen_s=0., run_s=0.,
-                          raw_candidates=0, kept_candidates=0)
+                          raw_candidates=0, kept_candidates=0, gen_ms=[], edge_ms=[], edge_steps=[])
 
     def _danger(self, st):
         """Privileged: closest approach of any human's true future to the held pose."""
@@ -78,15 +78,14 @@ class Oracle:
         cfg = self.cfg
         p = st.legal.pose
         hb = int(((p[3] % (2*math.pi))/(2*math.pi))*cfg.dedup_heading_bins)
-        running = st.execution.query.label if (st.execution is not None and st.execution.status == 'running') else ''
         hp = self.rt.tape.positions[st.index]
         near = len(hp) and float(np.min(np.hypot(hp[:, 0]-p[0], hp[:, 2]-p[2]))) < cfg.human_near_m
         tb = st.index//cfg.dedup_time if near else -1
-        return (int(math.floor(p[0]/cfg.dedup_cell)), int(math.floor(p[2]/cfg.dedup_cell)), hb, tb, running)
+        return (int(math.floor(p[0]/cfg.dedup_cell)), int(math.floor(p[2]/cfg.dedup_cell)), hb, tb)
 
     # Generic (episode-independent) edge priors in steps for lazy ordering.
-    PRIOR = dict(continue_=0., goal=0., stop=0., approach=1., pass_=2., sidestep=3., yield_=3., wait_short=2.,
-                 wait_long=4., retreat=5., turn=2., advance=2., alt_route=3., frontier=5., look=5., rot_=2.)
+    PRIOR = dict(continue_=0., goal_slow=1., goal=0., stop=0., approach=1., pass_=2., sidestep=3., yield_=3., wait_short=2.,
+                 wait_long=4., retreat=5., turn=2., advance=2., alt_route=3., frontier=5., look=5., rot_=3.)
 
     def _prior(self, q):
         lab = q.label
@@ -114,7 +113,9 @@ class Oracle:
             nonlocal counter
             t = time.perf_counter()
             queries, diag = self.gen.propose(node.legal, node.execution)
-            self.stats['gen_s'] += time.perf_counter()-t
+            dt = time.perf_counter()-t
+            self.stats['gen_s'] += dt
+            self.stats['gen_ms'].append(round(1000*dt, 2))
             self.stats['raw_candidates'] += sum(diag.get('raw', {}).values())+diag.get('fixed', 0)
             self.stats['kept_candidates'] += len(queries)
             self.stats['expansions'] += 1
@@ -129,7 +130,10 @@ class Oracle:
                 continue
             t = time.perf_counter()
             child = self.rt.run(node, q, horizon=min(horizon_for(q, cfg), MAX_EPISODE_STEPS-node.index))
-            self.stats['run_s'] += time.perf_counter()-t
+            dt = time.perf_counter()-t
+            self.stats['run_s'] += dt
+            self.stats['edge_ms'].append(round(1000*dt, 1))
+            self.stats['edge_steps'].append(child.index-node.index)
             self.stats['children'] += 1
             lab = self.stats['by_label'].setdefault(q.label.rstrip('0123456789'), dict(n=0, fail=0))
             lab['n'] += 1

@@ -182,6 +182,20 @@ class QueryGenerator:
         if back is not None:
             cats['retreat'].append(Query('goto', via=(back,), label='retreat'))
 
+        # ---- following: a tracked human ahead moves along the route direction
+        if route_dir is not None:
+            for h in humans:
+                rel = h.position-to_plane(robot_xz)
+                dist = float(np.hypot(*rel))
+                sp = float(np.hypot(*h.velocity))
+                if dist < 4.0 and sp > 0.2:
+                    ahead = math.cos(math.atan2(rel[1], rel[0])-route_dir) > 0.5
+                    same = math.cos(math.atan2(h.velocity[1], h.velocity[0])-route_dir) > 0.5
+                    if ahead and same:
+                        cats['wait'].insert(0, Query('goal', speed=0.4, label='goal_slow',
+                                                     meta=dict(track=h.track_id)))
+                        break
+
         # ---- temporal alternatives
         # Holding alternates small in-place turns (no native pause action);
         # it deliberately does not rotate toward the route (a sweep choice).
@@ -222,9 +236,12 @@ class QueryGenerator:
             if abs(wrap(ldir-pose[3])) > math.radians(35):
                 cats['observe'].append(Query('rotate', heading=ldir, duration=40, label='look_lost_human'))
 
-        # ---- boxed in (legal test): forward or both 90 deg rotation sweeps reach
-        # observed wall bands -> fine partial rotations to compose an escape
-        if self._boxed_in(legal):
+        # ---- stuck (legal test): the executor's own body-aware lattice finds no
+        # progressing plan toward the goal -> fine partial rotations to compose
+        # an escape (the Oracle chains them with advances/continuations)
+        stuck = self._stuck(view, gfield, legal, goal_xz)
+        diag['stuck'] = stuck
+        if stuck:
             for ang in (20., 45.):
                 for side, sgn in (('left', 1.), ('right', -1.)):
                     cats['maneuver'].append(Query('rotate', heading=wrap(float(pose[3])+sgn*math.radians(ang)),
@@ -268,6 +285,20 @@ class QueryGenerator:
                 out.append((h, best[1], best[2], best[3], best[0]))
         out.sort(key=lambda r: (r[4], r[1]))
         return [r[:4] for r in out]
+
+    def _stuck(self, view, gfield, legal, goal_xz):
+        from . import lattice
+        pose = legal.pose
+        i, j = view.to_local(float(pose[0]), float(pose[2]))
+        if not view.inside(i, j) or gfield[i, j] >= INF/2:
+            return True
+        here = gfield[i, j]
+        goal_field = max(here-1.0/view.res, 0.)
+        P = to_plane([pose[0], pose[2]])
+        plan = lattice.plan(view, gfield, pose, goal_xz, self.dyn.step_m, self.dyn.turn_rad,
+                            goal_tol=0.12, goal_field=goal_field, start_budget=body_cost(legal.map, P, float(pose[3])),
+                            max_expand=15000)
+        return not plan['prims']
 
     def _boxed_in(self, legal):
         from .control import turn_ok, FORWARD_X

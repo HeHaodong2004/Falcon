@@ -48,7 +48,7 @@ class MotionRealizer:
         self.dyn = dyn
         self.clearance = clearance
 
-    def realize(self, prim, level, P, psi, gmap, humans, plan_prims=None):
+    def realize(self, prim, level, P, psi, gmap, humans, plan_prims=None, cap=None):
         """Return (command primitive, new level).
 
         Command primitives: 'forward' | 'left' | 'right' (native/instant) or
@@ -77,7 +77,7 @@ class MotionRealizer:
                 budget += 0.5*dyn.step_m    # plan end: arrive within half a step
         h = heading_vec(psi)
         for l2 in sorted(dyn.next_levels(level), reverse=True):
-            if l2 == 0:
+            if l2 == 0 or (cap is not None and l2 > cap):
                 continue
             if dyn.levels[l2]+dyn.stop_distance(l2) > budget+1e-9:
                 continue

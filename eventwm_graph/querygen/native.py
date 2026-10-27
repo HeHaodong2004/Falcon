@@ -52,11 +52,23 @@ CONTACT_GATE_M = 1.0
 BODY_PROXY_M = 0.25
 SAME_FLOOR_M = 0.5
 # Declared static-collision rule.  The benchmark sometimes spawns the robot
-# already touching static geometry (e.g. the arm wrist 0.6 m ahead).  Then,
-# and only then, static contacts are exempt during an escape phase that ends
-# at the first contact-free step and must end within ESCAPE_STEPS steps; every
-# later static contact (and any contact in episodes spawned clear) counts.
+# already touching static geometry (e.g. the arm wrist 0.6 m ahead).  Let C0 be
+# the robot links in non-support static contact at reset.  Within the escape
+# window (step <= ESCAPE_STEPS and translation since reset <=
+# ESCAPE_TRANSLATION_M) a contact step is exempt iff all contacting links are
+# in C0 (the initial overlap may scrape while being undone); any other link
+# touching static geometry, and any contact after the window or in episodes
+# spawned clear, is a static collision.
 ESCAPE_STEPS = 24
+ESCAPE_TRANSLATION_M = 0.3
+
+
+def contact_links(c):
+    return frozenset(w['robot_link'] for w in c.get('static_witnesses', []))
+
+
+def escape_exempt(links, c0, step, travelled):
+    return bool(c0) and step <= ESCAPE_STEPS and travelled <= ESCAPE_TRANSLATION_M and links <= c0
 
 
 @dataclass(frozen=True)
@@ -403,6 +415,7 @@ class StepResult:
     human_collision: bool
     static_contact: object
     body_overlap: bool
+    static_links: frozenset
     stop: bool
     success: bool
     episode_over: bool
@@ -410,13 +423,26 @@ class StepResult:
     geodesic: float = math.nan
 
 
-class BranchSimulator:
-    """Robot-only native stepping against a recorded human tape (Oracle only)."""
+FAR_AWAY = (500., 500., 500.)
 
-    def __init__(self, task, tape, check_static=True):
+
+class BranchSimulator:
+    """Robot-only native stepping against a recorded human tape (Oracle only).
+
+    Contacts are evaluated *canonically*: Bullet's persistent manifolds keep
+    stale points from previously evaluated branches (measured: a base-link
+    contact from another branch survived reloads), so before each detection the
+    robot's manifolds are destroyed (robot moved far away, one detection) and
+    the exact setter-input transform restored.  Outcomes are therefore
+    independent of evaluation order; replay uses the same procedure in a
+    lockstep shadow simulator.
+    """
+
+    def __init__(self, task, tape, check_static=True, canonical=True):
         self.task = task
         self.tape = tape
         self.check_static = check_static
+        self.canonical = canonical
         self.state = None
         self.index = None
         forward = task.task.actions[ACTION_NAMES['forward']]
@@ -449,6 +475,15 @@ class BranchSimulator:
         self.task.robot.update()
         self.state, self.index = state, index
         self.performance['restore_s'] += time.perf_counter()-t
+
+    def clear_robot_manifolds(self):
+        import magnum as mn
+        obj = self.task.robot.sim_obj
+        st = self.state
+        obj.transformation = mn.Matrix4.translation(mn.Vector3(*FAR_AWAY))
+        self.task.sim.perform_discrete_collision_detection()
+        obj.transformation = mn.Matrix4(st.target if st.target is not None else st.matrix)
+        self.task.robot.update()
 
     def _base_velocity(self, action_obj, lin, ang):
         """Exact replica of ``BaseVelAction.update_base`` (dyn-slide enabled)."""
@@ -520,6 +555,8 @@ class BranchSimulator:
         self.index = index
         t = time.perf_counter()
         pose = task.robot_pose()
+        if self.canonical:
+            self.clear_robot_manifolds()
         c = classify_contacts(task, gate_humans=True, need_static=self.check_static, pose=pose)
         self.performance['contact_s'] += time.perf_counter()-t
         self.performance['contact_checks'] += int(c['checked'])
@@ -529,4 +566,4 @@ class BranchSimulator:
         over = bool(stop or c['human'] or index >= MAX_EPISODE_STEPS)
         overlap = bool(c['min_rect_distance'] < BODY_PROXY_M)
         return StepResult(index, float(self.tape.times[index]), pose, action, bool(c['human']),
-                          c['static'], overlap, stop, success, over, c['min_rect_distance'], geodesic)
+                          c['static'], overlap, contact_links(c), stop, success, over, c['min_rect_distance'], geodesic)

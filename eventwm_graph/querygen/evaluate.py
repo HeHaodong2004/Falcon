@@ -91,17 +91,56 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
         m = rep['metrics']
         identical = rep['actions'] == st.actions
         ok = (identical and m.get('success') == 1.0 and m.get('human_collision') == 0.0 and
-              rep['static_contact_steps'] == 0 and rep['body_overlap_steps'] == 0)
+              rep['static_contact_steps'] == 0 and rep['body_overlap_steps'] == 0 and
+              rep['shadow_pose_mismatch_steps'] == 0 and not rep['canonical_human_collision'])
         verdict = 'PASS' if ok else 'FAIL_REPLAY'
         record['replay'] = dict(metrics=m, actions_identical=identical, steps=rep['steps'],
                                 static_contact_steps=rep['static_contact_steps'],
                                 spawn_contact=rep['spawn_contact'], escape_contact_steps=rep['escape_contact_steps'],
                                 body_overlap_steps=rep['body_overlap_steps'],
                                 min_rect_distance=rep['min_rect_distance'],
+                                shadow_pose_mismatch_steps=rep['shadow_pose_mismatch_steps'],
+                                official_vs_canonical_human_mismatch_steps=rep['official_vs_canonical_human_mismatch_steps'],
                                 final_geodesic=rep['final_geodesic'], seconds=time.perf_counter()-t)
     record['verdict'] = verdict
     record['wall_seconds'] = time.perf_counter()-t0
     (out_dir/f'{key}.json').write_text(json.dumps(record, indent=1, default=float))
+    return record
+
+
+def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=16):
+    """No high-level selection: the legal goal query, continued every decision."""
+    from .episode import EpisodeRuntime, replay
+    from .executor import Query
+    from .dynamics import FAMILIES
+    out_dir = Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
+    dyn = FAMILIES[dynamics]
+    t0 = time.perf_counter()
+    rt = EpisodeRuntime(spec, planner, dyn, strict=False)
+    st = rt.root
+    q = Query('goal', label='goal')
+    while not st.terminal:
+        cont = st.execution is not None and st.execution.status == 'running'
+        st = rt.run(st, None if cont else q, horizon=horizon, cont=cont)
+    search_s = time.perf_counter()-t0
+    record = dict(spec=spec.asdict(), key=spec.key, planner=planner, dynamics=dynamics, mode='executor_only',
+                  code=git_identity(), code_snapshot=snapshot_identity(), start_geodesic=rt.start_geodesic,
+                  spawn_contact=rt.spawn_contact,
+                  branch=dict(outcome=st.outcome, steps=st.index, static_contacts=st.static_contacts,
+                              escape_contacts=st.escape_contacts, body_overlaps=st.body_overlaps,
+                              min_rect=st.min_rect_dist, path_length=st.path_length, seconds=search_s,
+                              runtime_perf=rt.perf))
+    rt.close()
+    rep = replay(spec, planner, dyn, st.decisions)
+    m = rep['metrics']
+    record['replay'] = dict(metrics=m, actions_identical=rep['actions'] == st.actions, steps=rep['steps'],
+                            static_contact_steps=rep['static_contact_steps'], body_overlap_steps=rep['body_overlap_steps'],
+                            min_rect_distance=rep['min_rect_distance'], final_geodesic=rep['final_geodesic'])
+    strict_ok = (m.get('success') == 1.0 and m.get('human_collision') == 0.0 and rep['static_contact_steps'] == 0
+                 and rep['body_overlap_steps'] == 0)
+    record['verdict'] = 'PASS' if strict_ok else ('NATIVE_SUCCESS_ONLY' if m.get('success') == 1.0 else 'FAIL')
+    record['wall_seconds'] = time.perf_counter()-t0
+    (out_dir/f"{spec.key.replace('/', '_')}.json").write_text(json.dumps(record, indent=1, default=float))
     return record
 
 
@@ -113,20 +152,26 @@ def summarize(out_dir):
     passed = [r for r in rows if r['verdict'] == 'PASS']
     summ = dict(n=n, passed=len(passed), pass_rate=len(passed)/max(n, 1),
                 verdicts={v: sum(r['verdict'] == v for r in rows) for v in sorted({r['verdict'] for r in rows})},
-                search_outcomes={k: sum(r['oracle']['outcome'] == k for r in rows if not r['oracle']['success'])
-                                 for k in sorted({str(r['oracle']['outcome']) for r in rows})},
+                search_outcomes={k: sum(str(r.get('oracle', r.get('branch'))['outcome']) == k for r in rows)
+                                 for k in sorted({str(r.get('oracle', r.get('branch'))['outcome']) for r in rows})},
                 mean_spl=sum(r.get('replay', {}).get('metrics', {}).get('spl', 0.) for r in rows)/max(n, 1),
                 mean_steps_pass=(sum(r['replay']['steps'] for r in passed)/len(passed)) if passed else None,
-                mean_oracle_seconds=sum(r['oracle']['seconds'] for r in rows)/max(n, 1),
-                failures=[dict(key=r['key'], verdict=r['verdict'], outcome=r['oracle']['outcome'],
-                               final_geodesic=r['oracle']['final_geodesic']) for r in rows if r['verdict'] != 'PASS'])
+                native_success=sum(r.get('replay', {}).get('metrics', {}).get('success', 0.) for r in rows),
+                human_collision_eps=sum(r.get('replay', {}).get('metrics', {}).get('human_collision', 0.) for r in rows),
+                mean_psc=(sum(r['replay']['metrics'].get('psc', 0.) for r in rows if 'replay' in r)/
+                          max(1, sum('replay' in r for r in rows))),
+                mean_oracle_seconds=sum(r.get('oracle', r.get('branch'))['seconds'] for r in rows)/max(n, 1),
+                failures=[dict(key=r['key'], verdict=r['verdict'], outcome=r.get('oracle', r.get('branch'))['outcome'],
+                               final_geodesic=r.get('oracle', {}).get('final_geodesic', r.get('replay', {}).get('final_geodesic')))
+                          for r in rows if r['verdict'] != 'PASS'])
     (Path(out_dir)/'summary.json').write_text(json.dumps(summ, indent=1))
     return summ
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['one', 'suite', 'summarize'])
+    ap.add_argument('mode', choices=['one', 'suite', 'summarize', 'exec_one'])
+    ap.add_argument('--policy', default='oracle', choices=['oracle', 'executor'])
     ap.add_argument('args', nargs='*')
     ap.add_argument('--out', required=True)
     ap.add_argument('--planner', default='orca')
@@ -144,6 +189,12 @@ def main():
                     json.loads(a.oracle), json.loads(a.gen))
         print(json.dumps(dict(key=r['key'], verdict=r['verdict'], oracle=r['oracle']['outcome'],
                               steps=r['oracle']['steps'], seconds=round(r['wall_seconds'], 1))))
+        return
+    if a.mode == 'exec_one':
+        key, seed = a.args
+        ds, split, scene, ep = key.split('/')
+        r = run_executor_only(EpisodeSpec(ds, split, scene, ep, int(seed)), out, a.planner, a.dynamics)
+        print(json.dumps(dict(key=r['key'], verdict=r['verdict'], steps=r['replay']['steps'])))
         return
     if a.mode == 'summarize':
         print(json.dumps(summarize(out), indent=1))
@@ -171,7 +222,8 @@ def main():
     while pending or procs:
         while pending and len(procs) < a.workers:
             s = pending.pop(0)
-            cmd = ['nice', '-n', '10', py, runner, 'eventwm_graph.querygen.evaluate', 'one', s.key, str(s.seed),
+            cmd = ['nice', '-n', '10', py, runner, 'eventwm_graph.querygen.evaluate',
+                   'one' if a.policy == 'oracle' else 'exec_one', s.key, str(s.seed),
                    '--out', str(out), '--planner', a.planner, '--dynamics', a.dynamics,
                    '--oracle', a.oracle, '--gen', a.gen]
             f = open(logs/f"{s.key.replace('/', '_')}.log", 'w')
