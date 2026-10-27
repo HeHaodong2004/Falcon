@@ -384,9 +384,21 @@ class QueryExecution:
                 return self.planner.act(ctx, self.adapter)
             P = to_plane([pose[0], pose[2]])
             humans = [h for h in ctx.humans if float(np.hypot(*(h.position-P))) <= ST_HUMAN_RANGE]
+            kw = dict(horizon=ST_HORIZON, goal_tol=STOP_M*0.8 if not q.via else ARRIVE_M*0.8, margin=ST_MARGIN,
+                      growth=ST_GROWTH, start_budget=body_cost(legal.map, P, pose[3]))
             self.st = stplan.plan(self.view, self.field, pose, target, self.dyn.step_m, self.dyn.turn_rad, humans,
-                                  STEP_SECONDS, horizon=ST_HORIZON, goal_tol=STOP_M*0.8 if not q.via else ARRIVE_M*0.8,
-                                  margin=ST_MARGIN, growth=ST_GROWTH, start_budget=body_cost(legal.map, P, pose[3]))
+                                  STEP_SECONDS, **kw)
+            if not self.st['reached'] and not self._st_progress(self.st, pose):
+                # No progress within the horizon: if the static problem alone also makes none (a long
+                # in-place turn / multi-point manoeuvre longer than the horizon), follow the full static
+                # lattice plan (as 'goal'); otherwise the humans force the hold and the plan stands.
+                free = stplan.plan(self.view, self.field, pose, target, self.dyn.step_m, self.dyn.turn_rad, [],
+                                   STEP_SECONDS, **kw) if humans else self.st
+                if not free['reached'] and not self._st_progress(free, pose):
+                    self.plan = None
+                    final = not q.via
+                    prims_s, poses_s = self._static_plan(legal, target, final)
+                    self.st = dict(prims=list(prims_s), poses=list(poses_s), reached=False, static=True)
             self.st_i = 0
             self.st_age = 0
             self.lattice_calls += 1
@@ -402,6 +414,13 @@ class QueryExecution:
                 return prim
             self.st = None
         return self.planner.act(ctx, self.adapter)
+
+    def _st_progress(self, st, pose, min_m=0.2):
+        """Does a space-time plan end at least ``min_m`` closer (static legal cost-to-go) than it starts?"""
+        if not st['poses']:
+            return False
+        x, z = st['poses'][-1][0], st['poses'][-1][1]
+        return self.view.cost_to_go(self.field, (x, z)) < self.view.cost_to_go(self.field, (pose[0], pose[2]))-min_m
 
     def _route_clear(self, legal, horizon_m=3.0, robot_speed=2.0, conflict_dist=1.3, human_range=5.0):
         """Legal: no tracked human (constant velocity) meets the next metres of the goal route."""
