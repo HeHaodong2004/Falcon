@@ -190,6 +190,24 @@ planner/dynamics regret; `sandbox.py`/`sandbox_study.py` nominal vs closed-loop 
   19 steps); handled at query level (wait/yield before entering) + Oracle danger term.
 - Over-triggered boxed-in maneuvers regressed rsggHU7g7dh/12 -> lattice-based stuck test.
 
+## Clarified objective (user, 2026-10-27)
+Evaluate and improve the Query Generator's *induced search space* via privileged Oracle tree search:
+does it contain safe successful routes, how efficiently can the Oracle find them, how good are they;
+compare simpler generators under identical budgets and other planners/dynamics; separate generator
+limitations from search-budget failures and certified infeasibility. Not Layer 3 / RL (the
+`l3_interface.py` study is a finished side artefact, not pursued further).
+
+Search-tree metrics (report.py): DEV frozen 14/28 solved, success@edges 500:6 1000:9 2000:13
+3000:13 6000:14; median 603 edges / 218 nodes / 8 decisions to a solution; effective branching
+factor 1.52; 63% of non-failing edges land in already-seen states; 20% of simulated edges end in a
+static contact, 3% in human contact/overlap. HOLDOUT frozen: Oracle solved 21/39 (19 replay-verified);
+17 budget-limited, 1 exhausted (vBMLrTe4uLA generator gap). Executor-only (goal query, no search,
+frozen code): 3/24 feasible DEV pass (7 official successes, 8 human-collision episodes, 13 timeouts).
+
+Running: generator ablations at an identical 3000-edge budget on DEV (goal-only; goal + waits; then
+spatial-only; full minus manoeuvres), then planners/dynamics (SFM, DWA, ORCA x inertia/slowturn),
+then budget scaling of representative DEV failures.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
