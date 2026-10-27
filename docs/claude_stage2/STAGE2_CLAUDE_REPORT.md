@@ -53,6 +53,8 @@ optimization, more TRAIN Roots).
 range identity hashed on a helper thread when no cached map can match, sliced pinned upload, merged
 hypothetical-graph materialization; per-query batch-1 CUDA graphs on 3 lanes; BatchNorm-folded F16 network.
 
+**Query-ranking benchmark** (`QUERY_BENCH_REPORT.md`, diagnostic): on recorded alternative Query Outcomes of the same Root at a common 1.0 s horizon (885 development Roots, 93 scenes), v16_b orders information gain correctly for 92.8 % [91.0, 94.3] of decisive pairs, picks the best outcome 81.2 % of the time and loses 17.9 cells on average, against 80.2 % / 68.5 % / 49.3 cells for the best legal-map heuristic. Ranking does not change measurably from v7 to v16_b, while the gain magnitude error halves.
+
 ## 1. Results
 
 ### 1.0 Current best: frozen model `final/v15.pt` (checkpoint `training/v15_chain/final.pt` + frozen operating point), 256 px sensing

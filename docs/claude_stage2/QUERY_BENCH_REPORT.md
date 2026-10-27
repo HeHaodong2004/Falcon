@@ -31,9 +31,10 @@ every deterministic baseline:
   [9.2, 16.1].
 * The same holds at 0.5 s (93.0 % vs 77.1 %), 2.0 s (92.3 % vs 82.9 %) and for full outcomes on non-nested pairs
   (95.1 % vs 84.0 %).
-* Why the ranking works despite the low cell IoU: it depends on aggregate gains. Within a Root, errors are shared by
-  the alternatives (over-prediction in the same unseen space), so they largely cancel in the comparison; within-Root
-  Spearman correlation between predicted and actual gain is 0.79.
+* A plausible reason the ranking works despite the low cell IoU (an interpretation, not separately tested): it
+  depends on aggregate gains, and much of the cell-level error (e.g. systematic over-prediction in unseen space) is
+  shared by the alternatives of a Root and cancels in the comparison. Within-Root Spearman correlation between
+  predicted and actual gain is 0.79.
 * What this does not show: hypothetical Sandbox trajectories, gains far beyond the recorded executions, or navigation
   utility (section 4).
 

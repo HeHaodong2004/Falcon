@@ -95,6 +95,8 @@ results do not depend on cache state or on the number of lanes (`lanes=3` is che
 
 See `docs/claude_stage2/STAGE2_CLAUDE_REPORT.md` for protocols, receipts and the full experiment log.
 
+Query-ranking diagnostic benchmark (recorded Query Outcomes of the same Root; information-gain prediction, within-Root ranking, top-1 regret, false FREE, calibration, regimes, legal baselines): `query_audit.py`, `query_bench.py`, `query_report.py`; results in `docs/claude_stage2/QUERY_BENCH_REPORT.md`.
+
 ## Files
 
 `api.py` predictor (`materialize.py`: hypothetical graphs); `features.py`/`geometry.py`/`kernels.py` legal features; `model.py` network and CUDA
