@@ -54,6 +54,7 @@ class GeneratorConfig:
     wait_clear_max: int = 48
     maneuver_turns: tuple = (1, 4, 10)
     maneuver_creeps: tuple = (1, 3)
+    maneuver_spawn_only: bool = True # v8: manoeuvre mode only before the robot first leaves the spawn region
     maneuver_start_m: float = 1.0    # exact manoeuvres only within this distance of the start pose
     maneuver_goal_m: float = 1.0     # ... or of the goal
     root_probes: bool = True         # v7: 1-step creep/rotations at the reset state (False = frozen v6)
@@ -271,6 +272,10 @@ class QueryGenerator:
         P0 = np.asarray(legal.poses[0], dtype=float)
         near_start = math.hypot(float(pose[0])-P0[0], float(pose[2])-P0[2]) < cfg.maneuver_start_m
         near_goal = gd < cfg.maneuver_goal_m
+        # v8: manoeuvres only while the robot has never left the spawn region (own legal pose history);
+        # every manoeuvre used by a solution in all runs so far occurred there
+        PH = np.asarray(legal.poses, dtype=float)
+        in_spawn = float(np.max(np.hypot(PH[:, 0]-P0[0], PH[:, 2]-P0[2]))) < cfg.maneuver_start_m
         # The stall itself is the signal: obstacles that block the body may be
         # absent from the legal map (e.g. at arm height), so the legal lattice
         # cannot be required to agree.
@@ -279,7 +284,10 @@ class QueryGenerator:
         # generator knows its own last query) and ends with an ordinary query.
         prev = execution.query if execution is not None else None
         in_mode = prev is not None and is_maneuver(prev)
-        stuck = in_mode or ((near_start or near_goal) and self._stalled(legal))
+        if cfg.maneuver_spawn_only:
+            stuck = in_spawn and (in_mode or self._stalled(legal))
+        else:
+            stuck = in_mode or ((near_start or near_goal) and self._stalled(legal))
         diag['stuck'] = stuck
         diag['maneuver_mode'] = in_mode
         # v7: with no motion history yet (reset state) also offer the finest

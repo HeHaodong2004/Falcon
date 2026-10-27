@@ -51,6 +51,7 @@ class OracleConfig:
     tie_bucket: float = 0.            # >0: f is bucketed and ties prefer the later node (cross waiting plateaus forward in time)
     witness_dir: str = ''             # privileged witness guidance: directory with witness.py results (by episode)
     witness_late_cost: float = 0.5    # steps of penalty per step of arriving later than the witness at a join point
+    witness_heading: bool = True      # near a witness pose also charge the heading mismatch (turn steps)
     goal_test: bool = True            # v7b: try the generator's STOP at once on any new state inside the success radius
     goal_fine_m: float = 1.0          # v7b: fine de-duplication for states this close to the goal (geodesic)
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
@@ -247,7 +248,7 @@ class Oracle:
                         w.get('dynamics', 'native') == self.rt.dyn.name:
                     from .witness import load_witness_poses
                     P = load_witness_poses(self.rt.spec, w['actions'], w.get('dynamics', 'native'))
-                    self._witness = P[:, [0, 2]]
+                    self._witness = P[:, [0, 2, 3]]
                     self.stats['witness_steps'] = len(P)-1
         if self._witness is False:
             return None
@@ -255,7 +256,12 @@ class Oracle:
         T = len(W)-1
         p = st.legal.pose
         t = st.index
-        d = np.hypot(W[:, 0]-p[0], W[:, 1]-p[2])/0.208
+        dist = np.hypot(W[:, 0]-p[0], W[:, 1]-p[2])
+        d = dist/0.208
+        if cfg.witness_heading:
+            # near a witness pose the heading must match too (turn steps; fades out by 0.6 m)
+            dyaw = np.abs(np.arctan2(np.sin(W[:, 2]-p[3]), np.cos(W[:, 2]-p[3])))
+            d = d+dyaw/self.rt.dyn.turn_rad*np.clip(1.-dist/0.6, 0., 1.)
         k = np.arange(T+1)
         total = np.maximum(T-t, d+(T-k))+cfg.witness_late_cost*np.maximum(0., t+d-k)
         return float(total.min())
