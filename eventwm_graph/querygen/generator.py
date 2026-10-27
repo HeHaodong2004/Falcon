@@ -141,7 +141,11 @@ class QueryGenerator:
         if cfg.tight or cfg.close or cfg.commit:
             from .executor import tight_legal
             queries, diag = self._propose(tight_legal(legal, cfg.tight), execution)
-            extra = {k: int(v) for k, v in (('tight', cfg.tight), ('close', cfg.close), ('commit', cfg.commit)) if v}
+            # close passes and plan commitment rely on stopping within one step (one-step rectangle check);
+            # robots with momentum (stateful dynamics: braking takes several steps) never get them
+            stop_now = not self.dyn.stateful
+            extra = {k: int(v) for k, v in (('tight', cfg.tight), ('close', cfg.close if stop_now else 0),
+                                             ('commit', cfg.commit if stop_now else 0)) if v}
             for q in queries:
                 if q.kind != 'continue':
                     q.meta = dict(q.meta, **extra)
