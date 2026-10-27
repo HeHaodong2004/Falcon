@@ -58,6 +58,9 @@ class OracleConfig:
                                       # edges from nodes still inside it cost this much extra (the spawn manoeuvre space
                                       # otherwise absorbed 72-79% of the edge budget in YRUkbU5xsYj / 3t8DB4Uzvkt)
     escape_m: float = 1.5
+    escape_h: bool = False            # v9: privileged spawn-escape heuristic (exact primitive BFS around the spawn;
+                                      # steps-to-escape per 2 cm cell x turn index); only for tight spawns
+    escape_h_sims: int = 12000        # simulated primitive steps for that BFS (one-off, ~6 ms each)
     prefix_cache: int = 0             # v9: exact prefix sharing among sibling edges (runtime keeps caches of this many
                                       # most recent parents; 0 = off).  Search results are identical with or without.
     heading_h: bool = False           # v9: add the in-place turn steps needed to face the true geodesic path
@@ -162,6 +165,100 @@ def horizon_for(query, cfg):
     return cfg.horizon          # movement and rotation: one decision interval, continuable
 
 
+class EscapeMap:
+    """Privileged (Oracle-only) exact steps-to-escape around the spawn.
+
+    Breadth-first search over the native primitives from the reset with the branch simulator (true
+    static contacts, the declared spawn-escape rule; humans ignored -- this is a static ranking aid),
+    keyed on 2 cm cells x exact turn index x escape-window flag.  Escape states are >= ``escape_m``
+    from the start.  A reverse BFS gives every recorded state's primitive steps to the nearest escape.
+    Built only when the first escape needs more than ``open_depth`` primitives (a tight spawn).
+    """
+
+    def __init__(self, rt, escape_m=1.0, extra_depth=8, open_depth=4, max_sims=12000):
+        from collections import deque
+        from .native import classify_contacts, contact_links, escape_exempt
+        t0 = time.perf_counter()
+        task, sim = rt.task, rt.sim
+        dyn = rt.dyn
+        self.n_turn = int(round(2*math.pi/dyn.turn_rad))
+        self.turn = dyn.turn_rad
+        root = rt.root
+        p0 = root.legal.pose
+        self.p0 = (float(p0[0]), float(p0[2]), float(p0[3]))
+        C0 = rt.spawn_links
+        k0 = self._key(p0[0], p0[2], 0, bool(C0))
+        depth = {k0: 0}
+        preds = {k0: set()}
+        q = deque([(root.robot, 0, 0, (float(p0[0]), float(p0[2])), bool(C0), 0., k0)])
+        escapes = set()
+        first = None
+        sims = 0
+        acts = ('forward', 'left', 'right')
+        while q and sims < max_sims:
+            st, d, ti, xz, esc, trav, kp = q.popleft()
+            if first is not None and d >= first+extra_depth:
+                break
+            for a in acts:
+                sim.load(st, d)
+                r = sim.step(a, compute_geodesic=False)
+                sims += 1
+                trav2 = trav+math.hypot(r.pose[0]-xz[0], r.pose[2]-xz[1])
+                if r.static_contact and not escape_exempt(r.static_links, C0, d+1, trav2):
+                    continue
+                esc2 = esc and bool(r.static_contact)
+                ti2 = ti+(1 if a == 'left' else -1 if a == 'right' else 0)
+                k = self._key(r.pose[0], r.pose[2], ti2, esc2)
+                preds.setdefault(k, set()).add(kp)
+                if k in depth:
+                    continue
+                depth[k] = d+1
+                if not esc2 and math.hypot(r.pose[0]-p0[0], r.pose[2]-p0[2]) >= escape_m:
+                    escapes.add(k)
+                    if first is None:
+                        first = d+1
+                    continue
+                q.append((sim.state, d+1, ti2, (float(r.pose[0]), float(r.pose[2])), esc2, trav2, k))
+            if first is not None and first <= open_depth:
+                break
+        rt._loaded = None
+        self.first = first
+        self.sims = sims
+        self.states = len(depth)
+        self.active = first is not None and first > open_depth
+        self.steps = {}
+        self.known = set(depth) if first is not None else set()
+        if self.active:
+            dq = deque()
+            for k in escapes:
+                self.steps[k] = 0
+                dq.append(k)
+            while dq:
+                k = dq.popleft()
+                for kp in preds.get(k, ()):
+                    if kp not in self.steps:
+                        self.steps[kp] = self.steps[k]+1
+                        dq.append(kp)
+        self.seconds = time.perf_counter()-t0
+
+    def _key(self, x, z, ti, esc):
+        return (round(float(x)/0.02), round(float(z)/0.02), int(ti) % self.n_turn, bool(esc))
+
+    DEAD = 120          # recorded spawn state from which no escape was found within the BFS
+
+    def lookup(self, pose, escape_open):
+        """Steps to escape for a node pose (DEAD for recorded dead ends, None: not a recorded spawn state)."""
+        dyaw = math.atan2(math.sin(float(pose[3])-self.p0[2]), math.cos(float(pose[3])-self.p0[2]))
+        ti = int(round(dyaw/self.turn))
+        dead = False
+        for esc in (bool(escape_open), not escape_open):
+            k = self._key(pose[0], pose[2], ti, esc)
+            if k in self.steps:
+                return self.steps[k]
+            dead = dead or k in self.known
+        return self.DEAD if dead else None
+
+
 class Oracle:
     def __init__(self, runtime, generator, config=None):
         self.rt = runtime
@@ -170,6 +267,7 @@ class Oracle:
         self._st = None
         self._witness = None
         self._escaped = False
+        self._escmap = None
         runtime.prefix_cache = int(self.cfg.prefix_cache)
         p0 = runtime.root.legal.pose
         self._start_xz = (float(p0[0]), float(p0[2]))
@@ -226,6 +324,17 @@ class Oracle:
         hw = self._witness_h(st)
         if hw is not None:
             h = max(h, hw)
+        if cfg.escape_h:
+            if self._escmap is None:
+                self._escmap = EscapeMap(self.rt, max_sims=cfg.escape_h_sims)
+                em = self._escmap
+                self.stats['escape_map'] = dict(active=em.active, first_escape=em.first, states=em.states,
+                                                sims=em.sims, seconds=round(em.seconds, 1))
+            if self._escmap.active and self._in_spawn(st, 1.2):
+                k = self._escmap.lookup(st.legal.pose, st.escape_open)
+                if k is not None:
+                    # remaining exact primitive steps to leave the spawn, then the usual estimate
+                    h = h+k
         hs = 0.
         if cfg.heading_h and st.geodesic == st.geodesic and st.geodesic > 0.3:
             hs = self._heading_steps(st.legal.pose)
@@ -337,7 +446,7 @@ class Oracle:
         return (bool(fine), int(math.floor(p[0]/cell)), int(math.floor(p[2]/cell)), hb, tb)
 
     # Generic (episode-independent) edge priors in steps for lazy ordering.
-    PRIOR = dict(continue_=0., goal_slow=1., goal=0., st_goal=0., stop=0., approach=1., pass_=2., sidestep=3., yield_=3., wait_short=2.,
+    PRIOR = dict(continue_=0., goal_slow=1., goal_tc=1., goal=0., st_goal_tc=1., st_goal=0., stop=0., approach=1., pass_=2., sidestep=3., yield_=3., wait_short=2.,
                  wait_long=4., wait_clear=3., retreat=5., turn=2., advance=2., alt_route=3., frontier=5., look=5., rot_=3.,
                  creep=2.)
 

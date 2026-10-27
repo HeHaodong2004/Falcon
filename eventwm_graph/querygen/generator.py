@@ -85,6 +85,8 @@ class GeneratorConfig:
                                      # (executor.CLOSE_ORCA, rectangle hard check 0.27 m); 0 = off
     commit: int = 0                  # v9 ablation: every query follows its static plan under the hard
                                      # rectangle check only (ORCA soft avoidance suspended); 0 = off
+    tc_variants: tuple = ()          # v9 mixed mode: also offer tight(1)+close copies of these fixed queries
+                                     # (labels + '_tc'), e.g. ('goal', 'st_goal'); the rest stays conservative
     st_goal: bool = False            # v9: also offer 'st_goal' (legal space-time lattice plan to the goal,
                                      # stplan.py) as a fixed candidate (native-like discrete robots only)
     v9_select: bool = True           # v9: approach gated by legal *route* length; K=10 quotas from solution usage
@@ -174,6 +176,14 @@ class QueryGenerator:
         fixed.append(Query('goal', label='goal'))
         if cfg.st_goal and not self.dyn.stateful:
             fixed.append(Query('stgoal', label='st_goal'))
+        if cfg.tc_variants:
+            # mixed mode: explicit squeeze variants (tight wall band + close passes for robots that stop
+            # within one step); tight-only for robots with momentum
+            tc_meta = dict(tight=1) if self.dyn.stateful else dict(tight=1, close=1)
+            for q in list(fixed):
+                if q.label in cfg.tc_variants:
+                    fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
+                                       label=q.label+'_tc', meta=dict(q.meta, **tc_meta)))
         if gd < cfg.stop_radius:
             fixed.append(Query('stop', label='stop', meta=dict(legal_goal_distance=gd)))
 
@@ -603,10 +613,13 @@ class QueryGenerator:
         by_kind = {q.kind: q for q in fixed}
         take(by_kind.get('stop'))
         cont = by_kind.get('continue')
-        if cont is not None and cont.meta.get('of') not in ('goal', 'st_goal', None):
+        if cont is not None and cont.meta.get('of') not in ('goal', 'st_goal', 'goal_tc', 'st_goal_tc', None):
             take(cont)
-        take(by_kind.get('goal'))
-        take(by_kind.get('stgoal'))
+        by_label = {q.label: q for q in fixed}
+        take(by_label.get('goal'))
+        take(by_label.get('st_goal'))
+        for lab in ('goal_tc', 'st_goal_tc'):
+            take(by_label.get(lab))
         if diag.get('stuck'):
             want = ('creep1', 'rot_left1', 'rot_right1', 'rot_left4', 'rot_right4', 'rot_left10', 'rot_right10',
                     'creep3')
