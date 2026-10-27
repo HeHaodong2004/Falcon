@@ -57,6 +57,7 @@ class GeneratorConfig:
     maneuver_start_m: float = 1.0    # exact manoeuvres only within this distance of the start pose
     maneuver_goal_m: float = 1.0     # ... or of the goal
     root_probes: bool = True         # v7: 1-step creep/rotations at the reset state (False = frozen v6)
+    select: str = 'quota'            # 'quota' (v6/v7: priority quotas) | 'compact' (slots by situation, for K ~ 6)
     categories: tuple = ()           # ablation: keep only these candidate categories (() = all); the fixed
                                      # goal / continue / stop queries are always offered
     stall_window: int = 16           # ... and only after this many steps without translation or turning
@@ -315,7 +316,8 @@ class QueryGenerator:
             for k in cats:
                 if k not in cfg.categories:
                     cats[k] = []
-        queries = self._select(fixed, cats)
+        diag['conflicts'] = len(conflicts)
+        queries = self._select_compact(fixed, cats, diag) if cfg.select == 'compact' else self._select(fixed, cats)
         diag.update(raw={k: len(v) for k, v in cats.items()}, fixed=len(fixed), kept=len(queries),
                     conflicts=len(conflicts))
         return queries, diag
@@ -498,6 +500,67 @@ class QueryGenerator:
             out.append((tuple(xz), float(score[k])*view.res))
         out.sort(key=lambda r: r[1])
         return out[:cfg.frontiers]
+
+    def _select_compact(self, fixed, cats, diag):
+        """Compact candidate set for small budgets (K ~ 6): slots by situation.
+
+        progress: STOP (near goal), CONTINUE (only for a running non-goal query: a running goal
+        query is equivalent to a fresh GOAL), GOAL;  timing: one hold (follow-slowly, hold until
+        the route conflict clears, or a short wait);  situational: manoeuvres when in manoeuvre
+        mode (1- and 4-step turns both ways, 1-step creep), else human pass/yield options on a
+        conflict, approach headings near the goal, the shorter turn toward the route, then
+        advance / alternative route / frontier / retreat.
+        """
+        cfg = self.cfg
+        K = cfg.budget
+        chosen = []
+
+        def dup(q):
+            for c in chosen:
+                if c.kind != q.kind or not q.via or not c.via:
+                    if c.signature() == q.signature():
+                        return True
+                    continue
+                if math.hypot(c.via[0][0]-q.via[0][0], c.via[0][1]-q.via[0][1]) < cfg.dedup_m:
+                    return True
+            return False
+
+        def take(q):
+            if q is not None and len(chosen) < K and not dup(q):
+                chosen.append(q)
+        by_kind = {q.kind: q for q in fixed}
+        take(by_kind.get('stop'))
+        cont = by_kind.get('continue')
+        if cont is not None and cont.meta.get('of') not in ('goal', None):
+            take(cont)
+        take(by_kind.get('goal'))
+        if diag.get('stuck'):
+            want = ('creep1', 'rot_left1', 'rot_right1', 'rot_left4', 'rot_right4', 'rot_left10', 'rot_right10',
+                    'creep3')
+            pool = {q.label: q for q in cats.get('maneuver', [])}
+            for lab in want:
+                take(pool.get(lab))
+            return chosen[:K]
+        waits = cats.get('wait', [])
+        take(waits[0] if waits else None)
+        # reset state: keep the single forward probe (a creep starts manoeuvre mode)
+        take(next((q for q in cats.get('maneuver', []) if q.label == 'creep1'), None))
+        order = []
+        if diag.get('conflicts'):
+            order += [cats.get('yield', []), cats.get('human', [])]
+        if cats.get('approach'):
+            order += [cats.get('approach', [])]
+        if cats.get('turn'):
+            order += [cats['turn'][:1]]
+        order += [cats.get('advance', []), cats.get('alt', [])[:1], cats.get('frontier', [])[:1],
+                  cats.get('retreat', []), cats.get('turn', [])[1:], cats.get('observe', []),
+                  cats.get('human', []), cats.get('yield', []), waits[1:]]
+        for pool in order:
+            for q in pool:
+                take(q)
+                if len(chosen) >= K:
+                    return chosen
+        return chosen[:K]
 
     def _select(self, fixed, cats):
         """Situation-aware quotas in priority order, then round-robin leftovers.
