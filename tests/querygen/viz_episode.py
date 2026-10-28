@@ -91,7 +91,7 @@ def main():
         end = traj[-1]
         mk = 'X' if 'collision' in outcome else ('o' if outcome == 'success' else 's')
         ax.plot(end[0], end[1], mk, ms=9, color=c, mec='white', mew=1.5, zorder=5)
-        txt = f"{label}: {outcome}, {steps} steps" + (f", SPL {m.get('spl', 0):.2f}" if outcome == 'success' else '')
+        txt = f"{label}: {outcome.replace('_', ' ')}, {steps} steps" + (f", SPL {m.get('spl', 0):.2f}" if outcome == 'success' else '')
         ax.plot([], [], color=c, lw=2.0, label=txt)
     ax.plot(p0[0], p0[2], 's', ms=10, color=TEXT, mec='white', mew=1.5, zorder=6, label='start')
     ax.plot(goal[0], goal[2], '*', ms=16, color=TEXT, mec='white', mew=1.0, zorder=6, label='goal')

@@ -34,8 +34,7 @@ def capability_svg(cap, finished_only=False):
     for v in (0, .25, .5, .75, 1.):
         out.append(f'<line x1="{L}" x2="{W-10}" y1="{y(v):.1f}" y2="{y(v):.1f}" class="grid"/>'
                    f'<text x="{L-6}" y="{y(v)+4:.1f}" class="tick" text-anchor="end">{int(v*100)}%</text>')
-    out.append(f'<line x1="{L}" x2="{W-10}" y1="{y(.95):.1f}" y2="{y(.95):.1f}" class="target"/>'
-               f'<text x="{W-12}" y="{y(.95)-5:.1f}" class="tick" text-anchor="end">95% target</text>')
+    out.append(f'<line x1="{L}" x2="{W-10}" y1="{y(.95):.1f}" y2="{y(.95):.1f}" class="target"/>')
     for gi, s in enumerate(groups):
         x0 = L+gi*gw+(gw-len(cfgs)*(bw+4)+4)/2
         for ci, (c, name, color) in enumerate(cfgs):
@@ -185,8 +184,9 @@ def main():
             steps = '' if d['steps_p50'] is None else '%.0f' % d['steps_p50']
             edges = '' if d['edges_p50'] is None else '%.0f / %.0f' % (d['edges_p50'], d['edges_p95'])
             rows.append(f'<tr><td><span class="sw" style="background:{color}"></span>{esc(name)}</td><td>{esc(sname)}</td>'
-                        f'<td class="num">{d["passed"]} / {d["denominator"]}</td><td class="num">{100*d["sr"]:.1f}%</td>'
-                        f'<td class="num">{d["finished"]}</td><td class="num">{spl}</td><td class="num">{psc}</td>'
+                        f'<td class="num">{d["passed"]} / {d["finished"]}</td>'
+                        f'<td class="num">{(100*d["passed"]/d["finished"]) if d["finished"] else 0:.1f}%</td>'
+                        f'<td class="num">{100*d["sr"]:.1f}% of {d["denominator"]}</td><td class="num">{spl}</td><td class="num">{psc}</td>'
                         f'<td class="num">{d["hcoll_among_solved"]:.0f}</td><td class="num">{steps}</td>'
                         f'<td class="num">{edges}</td><td class="wrap">{esc(fails)}</td></tr>')
     tiles = extra.get('tiles', [])
@@ -252,7 +252,7 @@ figcaption {{ color:var(--ink2); font-size:13px; }} ul {{ margin:0; padding-left
 <section class="tiles">{tile_html}</section>
 <section class="card"><h2>Oracle capability ceiling</h2>
 <p>{'Interim: share of FINISHED episodes' if a.finished_only else 'Share of episodes'} solved by the privileged Oracle selecting among the generator's legal queries{', excluding only episodes proven natively infeasible; the runs are still in progress' if a.finished_only else ', over every episode not proven natively infeasible (unfinished and unresolved episodes count as failures)'}. Hover a bar for counts.</p>
-<div style="display:flex;gap:16px;flex-wrap:wrap">{''.join(f'<span><span class="sw" style="background:{c}"></span>{esc(n)}</span>' for _, n, c in CFG)}</div>
+<div style="display:flex;gap:16px;flex-wrap:wrap">{''.join(f'<span><span class="sw" style="background:{c}"></span>{esc(n)}</span>' for k, n, c in CFG if any(f'{s_}_{k}' in cap for s_, _ in SUITES))}<span><svg width="22" height="10" style="vertical-align:middle"><line x1="0" x2="22" y1="5" y2="5" stroke="var(--ink2)" stroke-dasharray="4 4"/></svg> 95% target</span></div>
 {capability_svg(cap, a.finished_only)}</section>
 <section class="card"><h2>Default policy without selection</h2><p>Keep the running query, else the goal query; no Layer 3. Outcomes per foundation variant and planner (hover for counts).</p>{floor_svg(rep['floor'])}</section>
 {readiness_html}
@@ -261,7 +261,7 @@ figcaption {{ color:var(--ink2); font-size:13px; }} ul {{ margin:0; padding-left
 {good_html}
 </section>
 <section class="card"><h2>Official metrics on solved episodes</h2><div class="tablewrap"><table>
-<thead><tr><th>Configuration</th><th>Suite</th><th class="num">Solved</th><th class="num">SR</th><th class="num">Finished</th><th class="num">SPL</th><th class="num">PSC</th><th class="num">H-Coll</th><th class="num">Steps P50</th><th class="num">Oracle edges P50 / P95</th><th>Failures</th></tr></thead>
+<thead><tr><th>Configuration</th><th>Suite</th><th class="num">Solved / finished</th><th class="num">SR finished</th><th class="num">SR overall</th><th class="num">SPL</th><th class="num">PSC</th><th class="num">H-Coll</th><th class="num">Steps P50</th><th class="num">Oracle edges P50 / P95</th><th>Failures</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div></section>
 <section class="card"><h2>Navigation recordings</h2><div class="media">{media_html}</div></section>
 <section class="card"><h2>Notes</h2><ul>{notes}</ul></section>
