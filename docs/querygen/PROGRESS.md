@@ -486,6 +486,27 @@ turn step.  K=10's solution: rot_left1, rot_left10, goal_tc.  The K=6 tree was e
 branch caught by a human within ~21 steps).  v12 candidate: one long-rotation slot (rot_*10 toward the freer side)
 in stuck mode.  Not applicable to the frozen gate system.
 
+## 2026-10-28 evening: v12, throughput, robustness tooling
+- Frozen v10 gate test (unseen3) cannot reach 95% in any configuration (ORCA K=10 <= 54/57): genuine failures
+  VqCaAuuoeWk, p32JzpQyhPk (native witnesses squeeze past humans: 20-25 steps < 0.25 m, PSC 0.62-0.65) and
+  s8pcmisQ38h (generator STOP rule: the goal lies 0.72 m off the navmesh; official success snaps it -- replaying the
+  best branch + STOP gives official success 1.0).  Proven infeasible: sWAdxSLVPQC, q28T9C3q2dv, 2n8kARJN3HM.
+- v12 candidates (generator flags): `vc_variants` (contact-level goal / st_goal copies: tight=2 + 0.20 m hard
+  clearance), `stop_closest_m` (legal closest-approach STOP), `compact_long_turns` / `compact_human_first` (K=6),
+  `maneuver_vclose`.  Verified on hard cases: PFLHHbjscNN 12,000-edge failure -> 233 edges; s8pcmisQ38h -> 607;
+  s19Uyn7AWwv ORCA and DWA solved (~10k edges, SPL 0.37-0.49: crowded spawn); gTV8FGcVJC9 K=6 -> 153.
+  v12 dev run (`output/runs/official/v12`, ORCA K=10, 188 episodes incl. unseen3): 112/112 solved at 17:15;
+  mean edges 232 vs v10 397 on common episodes, SPL equal (0.92), fewer turn reversals (1.5-2.3 vs 2.0-3.2 per 100).
+- Throughput: profile -> legal sensor 64% of search time, executor planning 19%; tape recording 28 s per episode
+  (cached exactly); official Env.step up to ~1 s/step in physics-heavy scenes.  Exact fast paths (cached benchmark
+  config, warm pure sensor caches + cached tape in the replay, lean replay) verified identical
+  (`tests/querygen/test_fast_paths.py`).  Expert worker `querygen/expert.py`: training records from a branch
+  re-run (~1.5 s), sampled official verification, 2:1 portfolio split (member 0 wins 90%), resumable two-phase
+  search (`tests/querygen/test_resumable_portfolio.py`).  An exact static-ray cache in the sensor was correct but
+  slower (Python overhead > saved casts; reverted).
+- Robustness: `querygen/robust.py` (lost-step perturbations: start +1/+2, middle +1, late +1).  Route quality in
+  `report_official.py`: turn reversals per 100 steps, in-place turn share, backtracking.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
