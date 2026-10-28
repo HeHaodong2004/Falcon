@@ -99,6 +99,9 @@ class GeneratorConfig:
                                      # robot, which moves kinematically on the navmesh and may scrape walls (official
                                      # rules): p32JzpQyhPk's witness crosses band cells even at tight=2, with static
                                      # contact in 9 of 35 steps; 3 = the whole band (bump memory still learns obstacles)
+    th_variants: tuple = ()          # v15 candidate: contact-tolerant copies of these fixed queries (labels + '_th'; meta
+                                     # thru + vclose: seen obstacles are soft -- routed at a high cost, not body-checked --
+                                     # except bump-memory discs; see executor._ThruLegal)
     xc_variants: tuple = ()          # v14 candidate: committed contact-level copies of these fixed queries (labels + '_xc';
                                      # meta tight=2 + vclose + commit: the planner follows the body-aware static plan
                                      # whenever the next pose keeps the 0.20 m one-step clearance to predicted human
@@ -370,6 +373,10 @@ class QueryGenerator:
             for q in [x for x in fixed if x.label in cfg.vc_variants]:
                 fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
                                    label=q.label+'_vc', meta=dict(q.meta, tight=int(cfg.vc_tight), vclose=1)))
+        if cfg.th_variants and variants_on and not self.dyn.stateful:
+            for q in [x for x in fixed if x.label in cfg.th_variants]:
+                fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
+                                   label=q.label+'_th', meta=dict(q.meta, thru=1, vclose=1)))
         if cfg.xc_variants and variants_on and not self.dyn.stateful:
             for q in [x for x in fixed if x.label in cfg.xc_variants]:
                 fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,

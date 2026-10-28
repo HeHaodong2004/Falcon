@@ -104,6 +104,45 @@ def tight_legal(legal, cells):
     return _TightLegal(legal, cells) if cells else legal
 
 
+SOFT_COST = 6.0     # v15 candidate 'thru' queries: route cost factor of soft (seen-but-unproven) obstacle cells
+
+
+class _ThruLegal:
+    """v15 candidate (meta 'thru'): every observed BLOCKED cell becomes a *soft* obstacle -- UNKNOWN for the body
+    checks, routed at SOFT_COST -- except the proprioceptive bump-memory discs (a forward step there did not move the
+    base), which stay BLOCKED.  The legal map's band is visual (wall hits 0.2-1.4 m above the base, dilated 0.25 m);
+    the native robot moves kinematically on the navmesh and may scrape geometry (static contact is not a failure under
+    the official rules): every hard development witness crosses band cells at body height (p32JzpQyhPk, VqCaAuuoeWk,
+    ANmWrL7Kz7h, FXuXGH9YQTW, kdFEfVoT1WE: 115-505 hits within 0.25 m of the path, contact in 18-24% of steps).  A
+    'thru' query tries such passages and learns real obstacles from its own motion (bump memory)."""
+
+    def __init__(self, legal):
+        from .legal import GridMap, BLOCKED, UNKNOWN, LegalState
+        g0 = legal.map
+        g = GridMap.__new__(GridMap)
+        g.__dict__.update(g0.__dict__)
+        st = g0.state.copy()
+        soft = st == BLOCKED
+        st[soft] = UNKNOWN
+        r = float(LegalState.BUMP_MEMORY)
+        if r > 0:
+            n = int(math.ceil(r/g0.res))
+            for x, z in getattr(legal, 'bumps', []) or []:
+                ci, cj = g0.index(x, z)
+                for a in range(-n, n+1):
+                    for b in range(-n, n+1):
+                        i, j = ci+a, cj+b
+                        if math.hypot(a*g0.res, b*g0.res) <= r and 0 <= i < st.shape[0] and 0 <= j < st.shape[1]:
+                            st[i, j] = BLOCKED; soft[i, j] = False
+        g.state = st
+        g.soft = soft
+        self._legal = legal
+        self.map = g
+
+    def __getattr__(self, k):
+        return getattr(self._legal, k)
+
+
 STATIC_HUMAN_SPEED = 0.05    # m/s: a tracked human with a valid velocity estimate below this is standing still
 STATIC_HUMAN_R = 0.35        # m: BLOCKED disc around a standing human for escalated plans (body ~0.25 m + 0.1 m)
 
@@ -161,7 +200,7 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog', 'vclose', 'action')    # meta that change execution
+                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog', 'vclose', 'action', 'thru')  # meta changing execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -405,7 +444,10 @@ class QueryExecution:
         self._plan_now = None
         self._update_unstick(legal)
         raw_legal = legal
-        legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)) or (1 if self.escalated else 0))
+        if (self.query.meta or {}).get('thru'):
+            legal = _ThruLegal(legal)
+        else:
+            legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)) or (1 if self.escalated else 0))
         if self.escalated and (self.query.meta or {}).get('shum'):
             sh = static_humans(raw_legal)
             if sh:

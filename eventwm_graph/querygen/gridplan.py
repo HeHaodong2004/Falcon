@@ -169,6 +169,14 @@ class PlanningView:
         pen = np.clip(clearance_pref_m-self.clearance, 0., None)/clearance_pref_m
         cost = 1.+clearance_weight*pen*pen
         cost = np.where(self.unknown, cost*unknown_cost, cost)
+        soft = getattr(gmap, 'soft', None)
+        if soft is not None:
+            # v15 candidate 'thru' maps: seen-but-unproven obstacle cells (UNKNOWN in the state) cost SOFT_COST
+            from .executor import SOFT_COST
+            sc = np.zeros(shape, dtype=bool)
+            if a1 > a0 and b1 > b0:
+                sc[a0-self.i0:a1-self.i0, b0-self.j0:b1-self.j0] = soft[a0:a1, b0:b1]
+            cost = np.where(sc, (1.+clearance_weight*pen*pen)*SOFT_COST, cost)
         self.cost = np.ascontiguousarray(cost)
         self.unknown_cost = unknown_cost
         self.smooth_clearance = clearance_pref_m
