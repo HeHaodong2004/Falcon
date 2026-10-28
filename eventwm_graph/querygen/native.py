@@ -98,10 +98,19 @@ def matrix_yaw(m):
     return math.atan2(-float(m[2][0]), float(m[0][0]))
 
 
+_BASE_CONFIGS = {}
+
+
 def benchmark_config(spec, velocity_action=False):
+    import copy
     from habitat.config import read_write
     from habitat_baselines.config.default import get_config
-    cfg = get_config(CONFIGS[spec.dataset])
+    # Hydra composition of the unchanged benchmark yaml costs ~2.5 s per call and is a pure function of the dataset:
+    # compose once per process, then deep-copy (identical values and flags; tested in tests/querygen/test_fast_paths.py)
+    base = _BASE_CONFIGS.get(spec.dataset)
+    if base is None:
+        base = _BASE_CONFIGS[spec.dataset] = get_config(CONFIGS[spec.dataset])
+    cfg = copy.deepcopy(base)
     with read_write(cfg):
         cfg.habitat.dataset.split = spec.split
         cfg.habitat.dataset.content_scenes = [spec.scene]

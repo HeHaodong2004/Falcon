@@ -260,7 +260,8 @@ class EpisodeRuntime:
         self.task.close()
 
 
-def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, pure_caches=True):
+def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, pure_caches=True, private_cache=None,
+           lean=False, on_decision=None):
     """Authoritative continuous replay with the unchanged ``habitat.Env.step``.
 
     Re-executes the recorded *query sequence* through the live executor from
@@ -268,21 +269,34 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, p
     metrics.  A lockstep shadow ``BranchSimulator`` (separate simulator, same
     commands) evaluates contacts canonically exactly as the Oracle does; its
     robot pose must equal the real robot pose bitwise at every step.
+
+    ``private_cache``: the legal sensor's static-geometry certificate cache of the search runtime (pure caches are
+    branch- and history-independent, so sharing it is exact and skips the cold-cache cost).  The shadow's human tape
+    comes from ``QG_TAPE_CACHE`` when set (exact).  ``lean``: no shadow simulator (expert generation; the official
+    verdict -- identical actions and official success -- does not need it); shadow-derived fields are None.
+    ``on_decision(i, legal, execution, record, step)``: called at every decision boundary with the replay's legal
+    state (bitwise the branch's) and the running execution before decision ``i`` -- read-only (training data).
     """
+    import os
     task = NativeTask(spec, velocity_action=not dyn.native_actions)
-    shadow = NativeTask(spec, velocity_action=not dyn.native_actions)
+    shadow = None if lean else NativeTask(spec, velocity_action=not dyn.native_actions)
     try:
-        sensor = LegalSensor(task, pure_caches=pure_caches)     # same sensor semantics as the branches
+        sensor = LegalSensor(task, private_cache=private_cache, pure_caches=pure_caches)   # same semantics as branches
         row = sensor.observe(task.world_time())
         legal = LegalState(task.goal, row['robot_pose'], row['timestamp'])
         legal.map.apply(row)
         legal.tracks = row['tracks']
-        ssim = BranchSimulator(shadow, None)
-        sroot = ssim.root()
-        c0 = classify_contacts(shadow, gate_humans=False)
-        ssim.tape = HumanTape.record(shadow, MAX_EPISODE_STEPS)
-        ssim.load(sroot, 0)
-        spawn_contact, spawn_links, escape_contacts = bool(c0['static']), contact_links(c0), 0
+        if shadow is not None:
+            ssim = BranchSimulator(shadow, None)
+            sroot = ssim.root()
+            c0 = classify_contacts(shadow, gate_humans=False)
+            cache_dir = os.environ.get('QG_TAPE_CACHE')
+            ssim.tape = HumanTape.cached(shadow, spec, MAX_EPISODE_STEPS, cache_dir) if cache_dir else \
+                HumanTape.record(shadow, MAX_EPISODE_STEPS)
+            ssim.load(sroot, 0)
+            spawn_contact, spawn_links, escape_contacts = bool(c0['static']), contact_links(c0), 0
+        else:
+            ssim, spawn_contact, spawn_links, escape_contacts = None, None, None, None
         dyn_state = 0
         actions, statics, per_decision = [], 0, []
         p0 = task.robot_pose()
@@ -292,7 +306,9 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, p
         pose_mismatch, official_vs_canonical = 0, 0
         canonical_human = False
         ex = None
-        for rec in decisions:
+        for i, rec in enumerate(decisions):
+            if on_decision is not None and not task.episode_over:
+                on_decision(i, legal, ex, rec, task.steps)
             if rec['cont']:
                 if ex is None or ex.status != 'running':
                     raise RuntimeError('Replay cannot continue a finished execution')
@@ -307,24 +323,26 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, p
                 cmd = command_for(dyn, prim)
                 prev = task.robot_pose()
                 task.step(cmd)
-                res = ssim.step(cmd)
                 n += 1
                 actions.append(cmd if isinstance(cmd, str) else tuple(map(float, cmd)))
                 real_pose = task.robot_pose()
-                pose_mismatch += int(not np.array_equal(real_pose, res.pose))
-                official = bool(task.metrics().get('human_collision'))
-                canonical_human = canonical_human or res.human_collision
-                official_vs_canonical += int(official != res.human_collision)
                 travelled += float(math.hypot(real_pose[0]-prev[0], real_pose[2]-prev[2]))
-                overlaps += int(res.body_overlap)
-                min_rect = min(min_rect, res.min_rect_distance)
+                if ssim is not None:
+                    res = ssim.step(cmd)
+                    pose_mismatch += int(not np.array_equal(real_pose, res.pose))
+                    official = bool(task.metrics().get('human_collision'))
+                    canonical_human = canonical_human or res.human_collision
+                    official_vs_canonical += int(official != res.human_collision)
+                    overlaps += int(res.body_overlap)
+                    min_rect = min(min_rect, res.min_rect_distance)
+                    if res.static_contact:
+                        if escape_exempt(res.static_links, spawn_links, task.steps, travelled):
+                            escape_contacts += 1
+                        else:
+                            statics += 1
                 trajectory.append((float(real_pose[0]), float(real_pose[2]), float(real_pose[3]),
-                                   float(task.geodesic_to_goal()), float(res.min_rect_distance)))
-                if res.static_contact:
-                    if escape_exempt(res.static_links, spawn_links, task.steps, travelled):
-                        escape_contacts += 1
-                    else:
-                        statics += 1
+                                   float(task.geodesic_to_goal()),
+                                   float(res.min_rect_distance) if ssim is not None else math.inf))
                 if task.episode_over:
                     break
                 row = sensor.observe(task.world_time())
@@ -336,6 +354,8 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, p
             ex.decision_boundary()
         metrics = task.metrics()
         from .dynamics import dynamics_violations
+        if ssim is None:
+            statics = overlaps = min_rect = pose_mismatch = official_vs_canonical = canonical_human = None
         return dict(metrics=metrics, actions=actions, static_contact_steps=statics,
                     dynamics_violation_steps=dynamics_violations(dyn, actions),
                     spawn_contact=spawn_contact, escape_contact_steps=escape_contacts,
@@ -348,4 +368,5 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, p
                     final_geodesic=task.geodesic_to_goal())
     finally:
         task.close()
-        shadow.close()
+        if shadow is not None:
+            shadow.close()

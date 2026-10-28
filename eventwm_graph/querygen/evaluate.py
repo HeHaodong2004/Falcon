@@ -107,7 +107,8 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
     if res['success']:
         t = time.perf_counter()
         try:
-            rep = replay(spec, planner, dyn, st.decisions)
+            # the search runtime's pure static-geometry caches make the replay's legal sensor warm (exact)
+            rep = replay(spec, planner, dyn, st.decisions, private_cache=rt.private_cache)
         except RuntimeError as exc:
             # the authoritative replay could not follow the Oracle branch (divergence)
             record['replay'] = dict(error=str(exc), seconds=time.perf_counter()-t)
