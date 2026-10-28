@@ -711,7 +711,7 @@ class Oracle:
         for i, m in enumerate(members):
             s = m.stats
             for k in ('expansions', 'children', 'gen_s', 'run_s', 'raw_candidates', 'kept_candidates', 'duplicates',
-                      'goal_tests', 'deferred', 'predict_s'):
+                      'goal_tests', 'deferred', 'predict_s', 'trims'):
                 if k in s:
                     S[k] = S.get(k, 0)+s[k]
             for k in ('gen_ms', 'edge_ms', 'edge_steps'):
@@ -878,6 +878,9 @@ class Oracle:
             push_children(child, queries, diag)
             if len(heap) > cfg.max_open*4:
                 heap = heapq.nsmallest(cfg.max_open*2, heap)
+                # diagnostics only: how often the open list is cut and the priority at the cut
+                self.stats['trims'] = self.stats.get('trims', 0)+1
+                self.stats['trim_key'] = round(float(heap[-1][0][0]), 1) if heap else None
                 heapq.heapify(heap)
         return self._result(best, t0, False)
 
