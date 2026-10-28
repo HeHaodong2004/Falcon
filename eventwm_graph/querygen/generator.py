@@ -110,6 +110,13 @@ class GeneratorConfig:
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
                                      # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
+    creep_blind: bool = False        # v11: exact creeps of robots with momentum skip the legal-map body gate (like the
+                                     # native robot's creep, which is an exact primitive verified by the simulator);
+                                     # human braking safety still applies.  The conservative (inflated) gate made a
+                                     # spawn-contact creep 'idle' (rmDFTEWfNcz: C2 tree exhausted after 40 edges,
+                                     # C1 escapes with one forward step).  Not sufficient there: the momentum robot's
+                                     # first step (level 2 = 3.5 cm) meets a new contact link, which the declared
+                                     # spawn-escape rule does not exempt -- the 0.21 m native step clears it
     root_fine: bool = False          # v11 compact selection at the reset state: the single-step rotations (rot_left1,
                                      # rot_right1) instead of the two long route turns (a manoeuvre puts the next state
                                      # into manoeuvre mode, which offers the 4/10-step rotations).  Spawns in static
@@ -183,6 +190,10 @@ class QueryGenerator:
             for q in queries:
                 if q.kind == 'goto' and q.heading is None:
                     q.meta = dict(q.meta, arrive_exact=1)
+        if self.cfg.creep_blind and self.dyn.stateful:
+            for q in queries:
+                if q.kind == 'creep':
+                    q.meta = dict(q.meta, blind=1)
         return queries, diag
 
     def _propose_all(self, legal, execution=None):

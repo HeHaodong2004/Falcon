@@ -103,7 +103,7 @@ class Query:
     label: str = ''
     meta: dict = field(default_factory=dict)
 
-    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact')    # meta flags that change the execution
+    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -251,7 +251,9 @@ class QueryExecution:
                 prim = self.adapter.wait_action(P, float(legal.pose[3]), legal.map)
                 self.plan = None
         cap = None if speed >= 1. else max(1, int(round((len(self.dyn.levels)-1)*speed)))
-        return self._arrive_check(legal, self.realizer.realize(prim, int(level), P, float(legal.pose[3]), legal.map,
+        # v11 meta 'blind': an exact creep is not gated by the (inflated) legal wall band -- as for the native robot
+        gmap = None if (self.query.kind == 'creep' and (self.query.meta or {}).get('blind')) else legal.map
+        return self._arrive_check(legal, self.realizer.realize(prim, int(level), P, float(legal.pose[3]), gmap,
                                                                humans, self._plan_now, cap))
 
     def _arrive_check(self, legal, out):
