@@ -99,6 +99,10 @@ class GeneratorConfig:
                                      # robot, which moves kinematically on the navmesh and may scrape walls (official
                                      # rules): p32JzpQyhPk's witness crosses band cells even at tight=2, with static
                                      # contact in 9 of 35 steps; 3 = the whole band (bump memory still learns obstacles)
+    maneuver_thru: bool = False      # v15 candidate: exact manoeuvres (k-step rotations, creeps) carry meta 'thru' (their
+                                     # legal-map body gate sees soft obstacles, bump memory stays hard).  VqCaAuuoeWk's
+                                     # witness weaves out of a crowded spawn with single turns and steps through wall-band
+                                     # cells; with hard band gates no branch left the spawn in 3,000 edges
     th_variants: tuple = ()          # v15 candidate: contact-tolerant copies of these fixed queries (labels + '_th'; meta
                                      # thru + vclose: seen obstacles are soft -- routed at a high cost, not body-checked --
                                      # except bump-memory discs; see executor._ThruLegal)
@@ -296,6 +300,10 @@ class QueryGenerator:
             for q in queries:
                 if is_maneuver(q) or (q.kind == 'rotate' and q.label.startswith('turn_')):
                     q.meta = dict(q.meta, vclose=1)
+        if self.cfg.maneuver_thru and not self.dyn.stateful:
+            for q in queries:
+                if is_maneuver(q):
+                    q.meta = dict(q.meta, thru=1)
         if self.cfg.stop_strict:
             for q in queries:
                 if q.kind in ('goal', 'stgoal'):
