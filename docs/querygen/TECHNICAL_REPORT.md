@@ -628,20 +628,26 @@ SPL unchanged (0.92), fewer turn reversals (1.5-2.3 vs 2.0-3.2 per 100 steps).
   A takeover option (hand control back to the default policy as early as possible) exists but is off: on
   VqCaAuuoeWk it saved 30 of 94 primitive decisions for SPL 0.989 -> 0.909.
 
-### 16.3 Gate tests of v12 and v13 [gate met; last episodes in progress]
-* **Gate met at the query level (no privileged fallback):** frozen v12, ORCA K=10, fourth unseen suite: 57 / 60
-  official PASS (95.0%) with 3 episodes still running; SPL 0.910, PSC 0.945, no human collision among solved.
-* Fifth unseen suite (v13 test; its ordinary search is v12's, the fallback was never used): ORCA K=10 56 / 58
-  (96.6%), ORCA K=6 56 / 58 (96.6%); 2 episodes certified natively infeasible (wrq3kiEU4VR, Uxmj2M2itWa).
-* Frozen v10 (third unseen suite, final): ORCA K=10 53/57 (93.0%), DWA K=10 53/57 (93.0%), ORCA K=6 51-52/57 -- gate
-  missed (VqCaAuuoeWk, p32JzpQyhPk: native witnesses weave past humans; s8pcmisQ38h: STOP rule; tEafuWwhhwr).
-* Frozen v12 on the fourth unseen suite (`output/runs/official/test_v12/`), ORCA K=10 primary: running.
-* Frozen v13 on the fifth unseen suite (`output/runs/official/test_v13/`), ORCA K=10 and K=6: running.
-  wrq3kiEU4VR is certified natively infeasible (every first action meets a human at step 1; official verification
-  of all 3 sequences).
+### 16.3 Gate tests of v12 and v13 [verified, final]
+Untouched suites, frozen code snapshots, official rules, query level (the v13 witness fallback never fired):
+
+| test | configuration | PASS | certified infeasible | PASS rate over the denominator | SPL (passes) | PSC | human collisions | Oracle edges P50 / P95 |
+|---|---|---|---|---|---|---|---|---|
+| v12, fourth unseen suite (60) | ORCA K=10 (primary) | 58 | 0 | **58 / 60 = 96.7%** | 0.906 | 0.941 | 0 | 91 / 5,000 |
+| v13, fifth unseen suite (60) | ORCA K=10 | 58 | 2 | **58 / 58 = 100%** | 0.904 | 0.934 | 0 | 94 / 2,526 |
+| v13, fifth unseen suite | ORCA K=6 | 58 | 2 | **58 / 58 = 100%** | 0.894 | 0.933 | 0 | 80 / 2,659 |
+| v13, fifth unseen suite | DWA K=10 | 58 | 2 | **58 / 58 = 100%** | 0.950 | 0.921 | 0 | 81 / 2,831 |
+
+* v12 failures, both FAIL_SEARCH, both kept in the denominator. yqNxxJnA3iL (closest 0.48 m) is natively feasible:
+  the witness search found and officially verified a 135-step solution (SPL 0.956). For oKFJo8jpzRW the native
+  witness search was inconclusive (400,000 simulations; best geodesic 6.23 m).
+* v13's infeasible episodes are wrq3kiEU4VR and Uxmj2M2itWa. Both carry exact native certificates with official
+  verification.
+* Earlier: frozen v10 on the third unseen suite reached 53/57 (93.0%) with ORCA K=10 and DWA K=10, and 51-52/57 with
+  ORCA K=6. The gate was missed.
 * v13 fallback on v12's development failures (`output/runs/official/v13fb`, ordinary search skipped -- it is the
   v12 search): VqCaAuuoeWk SPL 0.989, p32JzpQyhPk 0.975, ANmWrL7Kz7h 0.959, Nfvxx8J5NCo 1.0, FXuXGH9YQTW 0.98 -- all
-  official PASS; 94-159 primitive decisions each.
+  official PASS; 94-159 primitive decisions each.  Not used for any gate claim (user, 19:10: last resort).
 
 ### 16.4 Decision robustness of the v12 solutions [in progress, 28 of 35 episodes]
 `querygen/decision_robustness.py` (`output/runs/official/decision_v12`): at every decision state of an Oracle
