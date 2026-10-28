@@ -141,7 +141,7 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
     return record
 
 
-def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=16, rules='official'):
+def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=16, rules='official', gen_kw=None):
     """No high-level selection: the legal goal query, continued every decision."""
     from .episode import EpisodeRuntime, replay
     from .executor import Query
@@ -151,7 +151,8 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
     t0 = time.perf_counter()
     rt = EpisodeRuntime(spec, planner, dyn, strict=False)
     st = rt.root
-    q = Query('goal', label='goal')
+    n = int((gen_kw or {}).get('goal_unstick', 0))
+    q = Query('goal', label='goal', meta=dict(unstick=n) if n else {})
     while not st.terminal:
         cont = st.execution is not None and st.execution.status == 'running'
         st = rt.run(st, None if cont else q, horizon=horizon, cont=cont)
@@ -232,7 +233,8 @@ def main():
     if a.mode == 'exec_one':
         key, seed = a.args
         ds, split, scene, ep = key.split('/')
-        r = run_executor_only(EpisodeSpec(ds, split, scene, ep, int(seed)), out, a.planner, a.dynamics, rules=a.rules)
+        r = run_executor_only(EpisodeSpec(ds, split, scene, ep, int(seed)), out, a.planner, a.dynamics, rules=a.rules,
+                              gen_kw=json.loads(a.gen))
         print(json.dumps(dict(key=r['key'], verdict=r['verdict'], steps=r['replay']['steps'])))
         return
     if a.mode == 'summarize':

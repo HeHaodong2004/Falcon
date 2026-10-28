@@ -102,6 +102,13 @@ class OracleConfig:
                                       # episodes between 30 and 12,000 edges), which differently ordered
                                       # searches cut
     portfolio_shares: list = field(default_factory=list)   # relative edge shares of the members (default equal)
+    improve_edges: int = 0            # anytime refinement: after the first success, a second bounded search (weight
+    improve_weight: float = 1.5       # improve_weight) spends up to this many extra edges looking for a branch with
+                                      # fewer steps (nodes whose step lower bound -- index + geodesic / step + 1 --
+                                      # cannot beat the incumbent are pruned).  SR and edges-to-first-success unchanged
+    intervention_cost: float = 0.     # learnability diagnostic: f penalty (steps) per decision that deviates from the
+                                      # default policy (Oracle.is_default: continue, 'goal' or the final STOP); large
+                                      # values give the solution with the fewest non-default ("critical") decisions
     noise: float = 0.                 # v10: deterministic pseudo-random edge priority offset in [0, noise) steps (a
     noise_seed: int = 0               # randomised tie-break / restart member of a portfolio; 0 = off)
 
@@ -396,6 +403,9 @@ class Oracle:
         self._ord_attr = '_qg_ordinary' if not self.member else f'_qg_ordinary{self.member}'
         self._org_attr = '_qg_origin' if not self.member else f'_qg_origin{self.member}'
         self._best = None
+        self._bound = None          # anytime refinement: incumbent step count (prune nodes that cannot beat it)
+        self._incumbent = None
+        self._improvements = 0
         self._st = None
         self._st_opt = None
         self._witness = None
@@ -627,6 +637,11 @@ class Oracle:
         return (key[0]+round(penalty/b), key[1]) if b > 0 else (key[0]+penalty, key[1])
 
     @staticmethod
+    def is_default(q):
+        """The no-selection default policy: keep the running query, (re)start the goal query, STOP at the goal."""
+        return q.kind in ('continue', 'stop') or q.label == 'goal'
+
+    @staticmethod
     def is_maneuver(q):
         from .generator import is_maneuver
         return is_maneuver(q)
@@ -645,10 +660,44 @@ class Oracle:
 
     def search(self):
         if self.cfg.portfolio:
-            return self._search_portfolio()
-        if self.cfg.lazy:
-            return self._search_lazy()
-        return self._search_eager()
+            res = self._search_portfolio()
+        elif self.cfg.lazy:
+            res = self._search_lazy()
+        else:
+            return self._search_eager()
+        if res['success'] and self.cfg.improve_edges > 0:
+            res = self._improve(res)
+        return res
+
+    def _improve(self, res):
+        """Anytime refinement: bounded search for a branch with fewer steps than the first solution."""
+        from dataclasses import replace
+        base = self.cfg
+        t0 = time.perf_counter()
+        first = res['state']
+        cfg = replace(base, portfolio=[], portfolio_shares=[], lazy=True, weight=base.improve_weight,
+                      max_edges=base.improve_edges, improve_edges=0)
+        m = Oracle(self.rt, self.gen, cfg, shared=self._shared, member=99)
+        m._member_over = dict(improve=True)
+        m._bound = first.index
+        it = m._lazy_iter()
+        while True:
+            try:
+                next(it)
+            except StopIteration:
+                break
+        stats = res['stats']
+        stats['edges_first_success'] = stats['children']
+        stats['improve'] = dict(edges=m.stats['children'], steps_first=int(first.index),
+                                steps_best=int(m._incumbent.index) if m._incumbent is not None else int(first.index),
+                                improvements=m._improvements, seconds=round(time.perf_counter()-t0, 1))
+        stats['children'] += m.stats['children']
+        if m._incumbent is not None and m._incumbent.index < first.index:
+            st = m._incumbent
+            return dict(success=True, state=st, steps=st.index, outcome=st.outcome, final_geodesic=st.geodesic,
+                        decisions=st.decisions, seconds=res['seconds']+time.perf_counter()-t0, stats=stats)
+        res['seconds'] += time.perf_counter()-t0
+        return res
 
     def _search_lazy(self):
         it = self._lazy_iter()
@@ -785,17 +834,23 @@ class Oracle:
             # spawn edge lost it, and did not help YRUkbU5xsYj).
             if cfg.escape_penalty and self._escaped and self._in_spawn(node):
                 gate += cfg.escape_penalty
+            n_int = getattr(node, '_qg_interv', 0)
             for q in queries:
                 counter += 1
                 extra = gate if self.is_maneuver(q) else 0.
+                if cfg.intervention_cost:
+                    extra += cfg.intervention_cost*(n_int+(0 if self.is_default(q) else 1))
                 if cfg.noise > 0:
                     extra += cfg.noise*self._noise(node, q)
                 heapq.heappush(heap, (self._key(fn+self._prior(q)+extra, node), counter, node, q, False, fine))
         push_children(root, *propose(root))
+        step_m = float(self.rt.dyn.step_m)
         while heap and self.stats['children'] < cfg.max_edges and time.perf_counter()-t0 < cfg.max_seconds:
             yield
             prio, _, node, q, deferred, node_fine = heapq.heappop(heap)
             if MAX_EPISODE_STEPS-node.index <= 0:
+                continue
+            if self._bound is not None and node.index+node.geodesic/step_m+1 >= self._bound:
                 continue
             if cfg.predict_dups and not deferred:
                 t = time.perf_counter()
@@ -810,6 +865,7 @@ class Oracle:
             child = self.rt.run(node, q, horizon=min(horizon_for(q, cfg), MAX_EPISODE_STEPS-node.index))
             dt = time.perf_counter()-t
             self.stats['run_s'] += dt
+            child._qg_interv = getattr(node, '_qg_interv', 0)+int(not self.is_default(q))
             self.stats['edge_ms'].append(round(1000*dt, 1))
             self.stats['edge_steps'].append(child.index-node.index)
             self.stats['children'] += 1
@@ -826,7 +882,12 @@ class Oracle:
             if child.outcome is not None:
                 self.stats['outcomes'][child.outcome] = self.stats['outcomes'].get(child.outcome, 0)+1
                 if child.outcome == 'success':
-                    return self._result(child, t0, True)
+                    if self._bound is None:
+                        return self._result(child, t0, True)
+                    if child.index < self._bound:
+                        self._incumbent, self._bound = child, child.index
+                        self._improvements += 1
+                    continue
                 lab['fail'] += 1
                 continue
             if child.geodesic < best.geodesic:
@@ -863,7 +924,11 @@ class Oracle:
                     self.stats['goal_tests'] = self.stats.get('goal_tests', 0)+1
                     if done.outcome == 'success':
                         self.stats['outcomes']['success'] = self.stats['outcomes'].get('success', 0)+1
-                        return self._result(done, t0, True)
+                        if self._bound is None:
+                            return self._result(done, t0, True)
+                        if done.index < self._bound:
+                            self._incumbent, self._bound = done, done.index
+                            self._improvements += 1
             # cm/turn-step resolution only for states reached by an exact manoeuvre
             # (multi-point turns) or close to the goal; ordinary exploration keeps the coarse key
             fine = (self.is_maneuver(q) if cfg.fine_by_edge else bool(diag.get('stuck'))) or \

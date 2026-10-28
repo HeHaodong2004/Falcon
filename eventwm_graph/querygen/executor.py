@@ -103,7 +103,7 @@ class Query:
     label: str = ''
     meta: dict = field(default_factory=dict)
 
-    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind')    # meta flags that change the execution
+    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -144,11 +144,37 @@ class QueryExecution:
         self.st_i = 0
         self.st_age = 0
         self.hard_clearance = HARD_CLEARANCE
+        self.escalated = False      # v11 'unstick': static deadlock -> tight map + plan following (hard check only)
+        self._still = 0
+        self._last_xz = None
         if (query.meta or {}).get('close'):
             self._make_close()
         if (query.meta or {}).get('commit') and hasattr(self.planner, 'commit'):
             self.planner.commit = True
         self.planner.reset()
+
+    def _update_unstick(self, legal):
+        """v11 meta 'unstick' (= N steps): a goal query whose robot has not translated for N steps while no
+        legally tracked human is within 2 m (a static deadlock, not a yield) escalates for the rest of its life to
+        the tight legal map and plan following under the one-step hard human check only.  Static contact is not a
+        failure in the official benchmark, so the default behaviour must never freeze for static reasons alone
+        (DWA on auFeVz9Go4m held in place for 470 steps: every advance was cut by the inflated wall band)."""
+        n = int((self.query.meta or {}).get('unstick', 0))
+        if not n or self.escalated or self.query.kind != 'goal' or self.query.via or not self.dyn.discrete:
+            return
+        xz = (float(legal.pose[0]), float(legal.pose[2]))
+        if self._last_xz is not None and math.hypot(xz[0]-self._last_xz[0], xz[1]-self._last_xz[1]) < 0.02:
+            self._still += 1
+        else:
+            self._still = 0
+        self._last_xz = xz
+        if self._still >= n:
+            P = to_plane(xz)
+            near = any(float(np.hypot(*(h.position-P))) < 2.0 for h in human_estimates(legal.tracks, legal.time))
+            if not near:
+                self.escalated = True
+                self.plan = None
+                self.reason = 'unstick'
 
     def _make_close(self):
         """Close-pass variant: smaller human-avoidance proxies, rectangle hard check at 0.27 m."""
@@ -226,7 +252,8 @@ class QueryExecution:
     def step(self, legal, level=0):
         """Next (command primitive, new speed level) under the dynamics family."""
         self._plan_now = None
-        legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)))
+        self._update_unstick(legal)
+        legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)) or (1 if self.escalated else 0))
         prim = self._step_kin(legal, level)
         if prim == 'stop':
             if self.dyn.stateful and int(level) > 0:
@@ -393,6 +420,14 @@ class QueryExecution:
         ctx.plan_prims = prims
         ctx.plan_poses = plan_poses
         self._plan_now = prims
+        if self.escalated and prims and self.dyn.discrete:
+            # unstick: follow the (tight-map) static plan whenever its next pose keeps the one-step human clearance
+            from .planners import one_step_hard_ok
+            hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
+            P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, prims[0])
+            if hard is None or hard(P1, psi1):
+                self.plan_i += 1
+                return prims[0]
         prim = self.planner.act(ctx, self.adapter)
         if prims and prim == prims[0]:
             self.plan_i += 1
