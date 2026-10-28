@@ -36,12 +36,15 @@ C2 DWA x native); the earlier inertia velocity action is outside the official be
 Declared-rule certificates (start escape, exact-gait progress, goal region) are void: they assumed the static
 contact / body-proxy rules.  Headline SR = PASS / (episodes - natively infeasible).
 
-## Status (2026-10-28 11:00)
+## Status (2026-10-28, updated 12:40)
 | suite | episodes | confirmed feasible | natively infeasible | unresolved |
 |---|---|---|---|---|
 | DEV | 28 | 28 | 0 | 0 |
-| first unseen | 40 | 38 | 0 | 2 (nMeXfQU4PMS, sT4fr6TAbpF) |
-| second unseen | 60 | 56 | 3 (5Poh4Qz68hd, sKLMLpTHeUy: every first action -> official contact at step 1; AMEM2eWycTq: every sequence by step 6) | 1 (Wo6kuutE9i7) |
+| first unseen | 40 | 39 | 0 | 1 (nMeXfQU4PMS) |
+| second unseen | 60 | 57 | 3 (5Poh4Qz68hd, sKLMLpTHeUy: every first action -> official contact at step 1; AMEM2eWycTq: every sequence by step 6) | 0 |
+
+(Updated 12:40: 2-hour native witness searches found sT4fr6TAbpF -- formerly "goal region unreachable for Spot's
+body" under the declared rules -- in 146 steps and Wo6kuutE9i7 in 131 steps.)
 
 All 18 episodes previously reported as "certified infeasible" under the declared rules that have since been
 searched natively are natively feasible except the three certified above.
