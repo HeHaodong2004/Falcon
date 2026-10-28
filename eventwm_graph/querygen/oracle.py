@@ -71,10 +71,19 @@ class OracleConfig:
                                       # primitives over cell x heading): 'heading' = its heading cost replaces the
                                       # geodesic-facing turn term; 'full' = also h >= body_scale * cost-to-go
     body_band_cost: float = 1.0       # price per body-axis sample off the navmesh (dilated-wall band)
+    time_key_slack: float = 0.        # v10: also key states on time when the privileged space-time table shows at
+                                      # least this much forced waiting ahead (0 = only when a human is within
+                                      # human_near_m; v9).  Without it, waiting where no human is near returns to
+                                      # an already-seen state and is pruned, so time can only be spent by
+                                      # pose-changing manoeuvres (TEEsavR23oF: 1,763 spawn expansions)
     body_scale: float = 1.0
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
     st_heuristic: bool = True         # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
     st_fallback: float = 300.         # extra steps when the space-time model finds no arrival
+    st_radius: float = 0.6            # human radius (m) of the space-time model.  v10: 0.5 = the strict rule's lateral
+                                      # bound (0.25 m rectangle clearance + 0.243 m half width); 0.6 declared corridors
+                                      # the witnesses pass through unreachable, and st_fallback then pushed every later
+                                      # state behind all earlier ones (TEEsavR23oF: unreachable from t=20)
     block_dist: float = 0.5           # centre distance to the geodesic path that blocks it (> half-width + body proxy)
     block_horizon_m: float = 8.0      # path length checked ahead
     block_step: int = 4               # departure-delay resolution (steps)
@@ -142,6 +151,23 @@ class SpaceTimeHeuristic:
             T = np.where(goal & ~unsafe, 0., T)
             self.table[t] = T
         self.INF = float(INF)
+        # human-free cost-to-go (same moves): slack = table - free > 0 where the human schedule forces waits
+        from collections import deque
+        free = np.full(nav.shape, INF, dtype=np.float32)
+        dq = deque()
+        for iz, ix in zip(*np.nonzero(goal)):
+            free[iz, ix] = 0.
+            dq.append((iz, ix))
+        while dq:
+            iz, ix = dq.popleft()
+            d = free[iz, ix]+1.
+            for dz in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    a, b = iz+dz, ix+dx
+                    if (dz or dx) and 0 <= a < nz and 0 <= b < nx and nav[a, b] and free[a, b] > d:
+                        free[a, b] = d
+                        dq.append((a, b))
+        self.free = free
 
     def _nearest_nav(self, iz, ix, r=3):
         nz, nx = self.nav.shape
@@ -162,6 +188,17 @@ class SpaceTimeHeuristic:
             iz, ix = self._nearest_nav(min(max(iz, 0), nz-1), min(max(ix, 0), nx-1))
         v = float(self.table[min(t, len(self.table)-1), iz, ix])
         return None if v >= self.INF/2 else v
+
+    def slack(self, x, z, t):
+        """Forced waiting (steps) on the best schedule from (x, z) at step t: time-indexed minus human-free
+        cost-to-go; None if unreachable in the model."""
+        iz, ix = int((z-self.z0)/self.cell), int((x-self.x0)/self.cell)
+        nz, nx = self.nav.shape
+        if not (0 <= iz < nz and 0 <= ix < nx) or not self.nav[iz, ix]:
+            iz, ix = self._nearest_nav(min(max(iz, 0), nz-1), min(max(ix, 0), nx-1))
+        v = float(self.table[min(t, len(self.table)-1), iz, ix])
+        f = float(self.free[iz, ix])
+        return None if v >= self.INF/2 or f >= self.INF/2 else v-f
 
 
 def horizon_for(query, cfg):
@@ -426,7 +463,7 @@ class Oracle:
         if cfg.st_heuristic:
             if self._st is None:
                 t = time.perf_counter()
-                self._st = SpaceTimeHeuristic(self.rt)
+                self._st = SpaceTimeHeuristic(self.rt, radius=cfg.st_radius)
                 self.stats['st_build_s'] = time.perf_counter()-t
             p = st.legal.pose
             v = self._st.value(float(p[0]), float(p[2]), st.index)
@@ -526,6 +563,9 @@ class Oracle:
             int(((p[3] % (2*math.pi))/(2*math.pi))*bins)
         hp = self.rt.tape.positions[min(index, len(self.rt.tape)-1)]
         near = len(hp) and float(np.min(np.hypot(hp[:, 0]-p[0], hp[:, 2]-p[2]))) < cfg.human_near_m
+        if not near and cfg.time_key_slack > 0 and self._st is not None:
+            sl = self._st.slack(float(p[0]), float(p[2]), index)
+            near = sl is not None and sl >= cfg.time_key_slack
         tb = index//cfg.dedup_time if near else -1
         return (bool(fine), int(math.floor(p[0]/cell)), int(math.floor(p[2]/cell)), hb, tb)
 
