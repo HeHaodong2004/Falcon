@@ -3,7 +3,8 @@
 # run it here only after that test has finished).  v14 = the v12 query-level system (fast exact sensor; NO privileged
 # witness fallback -- user, 2026-10-28 19:10: the fallback is the last resort, used only if every other approach fails)
 # + goal-route UNKNOWN cost 1.25 (generator goal_unknown_cost: the default policy no longer drives away from a goal
-# behind the spawn) + the path-aware SPL refinement (Oracle improve_edges 300, improve_lambda 1, improve_below_spl 0.85).
+# behind the spawn) + the path-aware SPL refinement (Oracle improve_edges 300, improve_lambda 1, improve_below_spl 0.85)
+# + contact-tolerant '_th' goal copies replacing the '_vc' copies in the K=10 configurations (executor._ThruLegal).
 #   scripts/querygen_dev_v14.sh CONFIG OUT_ROOT [GEN_OVERRIDES_JSON] [ORACLE_OVERRIDES_JSON]
 #   CONFIG = c1k10 | c1k6 | c2k10
 #   W_DEV / W_UNSEEN / W_UNSEEN2 / W_UNSEEN3 / W_UNSEEN4 / W_UNSEEN5 (env) worker counts (default 4 / 5 / 5 / 6 / 6 / 6)
@@ -24,9 +25,9 @@ ORACLE='{"heading_h": true, "escape_penalty": 80, "prefix_cache": 48, "max_edges
 # v12 foundation (legal-only): default-policy options + capability fixes
 F='"goal_unstick": 6, "bump_memory_m": 0.25, "evade": true, "unstick_keep": true, "bump_front": true, "static_humans": true, "stop_strict": true, "unstick_progress": true, "goal_relax_m": 0.5, "stop_closest_m": 1.2, "goal_unknown_cost": 1.25'
 case "$CFG" in
-  c1k10) PL=orca; GEN="{\"tc_variants\": [\"goal\", \"st_goal\"], \"vc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, $F}" ;;
+  c1k10) PL=orca; GEN="{\"tc_variants\": [\"goal\", \"st_goal\"], \"th_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, $F}" ;;
   c1k6)  PL=orca; GEN="{\"select\": \"compact\", \"budget\": 6, \"tc_variants\": [\"goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, \"compact_long_turns\": true, \"compact_human_first\": true, $F}" ;;
-  c2k10) PL=dwa;  GEN="{\"tc_variants\": [\"goal\", \"st_goal\"], \"vc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, $F}" ;;
+  c2k10) PL=dwa;  GEN="{\"tc_variants\": [\"goal\", \"st_goal\"], \"th_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, $F}" ;;
   *) echo "unknown config $CFG" >&2; exit 1 ;;
 esac
 merge() { $PY -c 'import json,sys; a=json.loads(sys.argv[1]); a.update(json.loads(sys.argv[2])); print(json.dumps(a))' "$1" "$2"; }
