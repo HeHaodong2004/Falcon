@@ -395,6 +395,20 @@ then budget scaling of representative DEV failures.
   * 3t8DB4Uzvkt (r2): 2,119 of 2,624 expansions at t = 25-50 near the spawn; waiting far from humans is
     pruned (time enters the duplicate key only within 4 m of a human) -- `time_key_slack` under test.
 
+- **Portfolio members on the development set** (single-member runs capped at 6,000 edges, `output/runs/v10dev/pf/`):
+  weight 3.5 (0.5 m space-time model + fallback) is the strongest single ordering (iePHCSf119p 116 vs r2 1,375
+  edges, SByzJLxpRGn 723 vs 3,382, zUG6FL9TYeR 1,082 vs 3,739, TEEsavR23oF 3,147 vs 6,923, LEFTm3JecaC 2,091 vs
+  r2 failure) but misses iigzG1rtanx; the v9 heuristic (radius 0.6, no fallback, weight 2) solves
+  LT9Jq6dN3Ea in 253 edges (r2: failure at 12,000) and iigzG1rtanx (3,036).  `time_key_slack=20` did not help
+  3t8DB4Uzvkt (expansions still end before t=100; the witness waits 80 + 130 steps).
+- **Goal relaxation** (`goal_relax_m=0.5`, v10 default, commit f6d08023): on the 14 near-edge-goal episodes
+  LEFTm3JecaC 2,091 -> 1,782 edges and 205 -> 144 steps with no 'unreachable' goal decisions, eF36g7L6Z9M
+  401 -> 306, the rest identical.
+- **v10 FROZEN** (tag `querygen-freeze-v10`, commit aa09bf88; `FINAL_PROTOCOL_V10.md`): Oracle portfolio
+  [weight 3.5 | v9 heuristic] with equal shares under 12,000 edges; generator with goal relaxation.  Test runs on
+  the second unseen suite (`output/runs/final_v10/unseen2_*`), its certificates and the frozen system's
+  development numbers (`output/runs/final_v10_devset/`) launched 2026-10-28 07:17.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
