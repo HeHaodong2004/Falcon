@@ -148,6 +148,12 @@ class GeneratorConfig:
                                      # (their one-step human check uses the 0.20 m contact-level clearance): spawn
                                      # turn-aways next to a human (s19Uyn7AWwv's native solution turns 23 steps in place
                                      # with humans within 1 m for 58% of its steps)
+    stop_closest_m: float = 0.0      # v12: also offer 'stop' within this legal goal distance when the goal point is not
+                                     # legally reachable (no legal route, or the goal cell is observed BLOCKED): the closest
+                                     # approach.  Official success measures the geodesic distance to the goal *snapped to
+                                     # the navmesh*; s8pcmisQ38h's goal lies 0.72 m off it -- the Oracle stood 0.0006 m
+                                     # (official) from the goal for 12,000 edges because 'stop' needed < stop_radius
+                                     # (0.40 m) to the raw PointGoal.  0 = off
     stop_strict: bool = False        # v12: goal / stgoal queries carry meta 'stop19' (a stuck STOP is declared only within
                                      # 0.19 m: official success needs geodesic < 0.2 m; YM4nG4pSAEJ stopped at 0.21 m)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
@@ -317,8 +323,13 @@ class QueryGenerator:
             for q in [x for x in fixed if x.label in cfg.vc_variants]:
                 fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
                                    label=q.label+'_vc', meta=dict(q.meta, tight=2, vclose=1)))
-        if gd < cfg.stop_radius:
-            fixed.append(Query('stop', label='stop', meta=dict(legal_goal_distance=gd)))
+        closest = False
+        if cfg.stop_closest_m > 0 and cfg.stop_radius <= gd < cfg.stop_closest_m:
+            gi, gj = view.to_local(*goal_xz)
+            goal_blocked = view.inside(gi, gj) and bool(view.blocked[gi, gj])
+            closest = route is None or goal_blocked
+        if gd < cfg.stop_radius or closest:
+            fixed.append(Query('stop', label='stop', meta=dict(legal_goal_distance=gd, closest=int(closest))))
 
         route_dir = None
         if route is not None and len(route) >= 2:
