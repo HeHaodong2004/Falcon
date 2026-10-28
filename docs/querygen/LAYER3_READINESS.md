@@ -23,12 +23,27 @@ toward the route when no body-feasible plan exists -- in-place rotation is alway
 simulator), `bump_memory_m` (a forward step that does not move marks the front contact as BLOCKED --
 proprioception), `evade` (human-threat reflex from constant-velocity predictions of tracked humans).
 
-## 3. Learnability (TBD)
-* critical decisions per episode -- minimum-intervention Oracle (`OracleConfig.intervention_cost`):
-  first checks KsD3yx9nZCv 1 of 7 decisions, HMkoS756sz6 1 of 5, LEFTm3JecaC 1 of 17; 8B43pG641ff 11 of 17;
-* candidates that keep success reachable per state, recovery after a non-chosen candidate, legal identifiability
-  (AUC of sandbox features) -- `tests/querygen/l3_readiness.py`;
-* K=6 vs K=10 coverage.
+## 3. Learnability
+* Critical decisions per episode -- minimum-intervention Oracle (`OracleConfig.intervention_cost`, lambda = 300
+  steps per non-default decision): the solution with the fewest decisions that differ from the default policy.
+  First checks KsD3yx9nZCv 1 of 7 decisions, HMkoS756sz6 1 of 5, LEFTm3JecaC 1 of 17; 8B43pG641ff 11 of 17.
+* Readiness study (`tests/querygen/l3_readiness.py`; labels privileged and offline, features legal).  At up to 4
+  decision states along each replay-verified Oracle solution (its critical states first, then evenly spaced
+  others), every candidate the generator offers is executed for one decision interval and then handed to the
+  default policy until the official episode end.  Per state:
+  - *good candidates* = candidates whose default continuation succeeds (0 = only a longer sequence of
+    non-default decisions saves the episode from here; 1 = brittle; >= 2 = several reasonable choices);
+  - *top-1 success* of selection rules: random, default, the Oracle's own choice, single legal features
+    (sandbox progress, predicted overlap probability, ...), and a leave-one-episode-out logistic regression on the
+    legal consequence features (+ their within-state deviations) -- a first identifiability probe of what a
+    learned Layer 3 could achieve from legal information, against the upper bound "some candidate is good";
+  - *within-state AUC*: P(a good candidate outranks a bad one at the same state);
+  - *one-decision recovery* (`--recovery N`): for up to N bad candidates per state (the default first), can ONE
+    later decision still save the episode -- at the next decision state, does any candidate followed by the
+    default policy succeed?
+  The default policy uses the foundation of the Oracle run (`--default-meta auto`: v11 unstick / evade; bump
+  memory is process-wide via the generator configuration).
+* K=6 vs K=10 coverage: Oracle capability per configuration (section 1) and good-candidate counts per state.
 
 ## 4. Interfaces for integration
 * `eventwm_graph/querygen/l3_env.py` -- `QueryEnv`: decision-level MDP.  `reset()` -> legal observation (pose,

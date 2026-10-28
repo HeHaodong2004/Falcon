@@ -12,7 +12,8 @@ import json
 import os
 import shutil
 
-CFG = [('c1k10', 'C1 ORCA K=10', 'var(--s1)'), ('c1k6', 'C1 ORCA K=6', 'var(--s2)'), ('c2k10', 'C2 DWA K=10', 'var(--s3)')]
+CFG = [('c1k10', 'v10 C1 ORCA K=10', 'var(--s1)'), ('c1k6', 'v10 C1 ORCA K=6', 'var(--s2)'),
+       ('c2k10', 'v10 C2 DWA K=10', 'var(--s3)'), ('c1k10@v11', 'v11 C1 ORCA K=10', 'var(--s4)')]
 SUITES = [('dev', 'DEV'), ('unseen', 'Unseen 1'), ('unseen2', 'Unseen 2')]
 OUTCOMES = [('success', 'success', 'var(--good)'), ('human_collision', 'human collision', 'var(--critical)'),
             ('timeout', 'timeout', 'var(--warning)'), ('other', 'other', 'var(--muted)')]
@@ -25,8 +26,9 @@ def esc(s):
 def capability_svg(cap):
     W, H, L, B, T = 640, 300, 44, 40, 16
     groups = [s for s, _ in SUITES if any(f'{s}_{c}' in cap for c, _, _ in CFG)]
+    cfgs = [c for c in CFG if any(f'{s}_{c[0]}' in cap for s in groups)]
     gw = (W-L-10)/max(1, len(groups))
-    bw = min(44, (gw-24)/3)
+    bw = min(44, (gw-24)/max(1, len(cfgs)))
     y = lambda v: T+(H-T-B)*(1-v)
     out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Oracle success rate by suite and configuration">']
     for v in (0, .25, .5, .75, 1.):
@@ -35,8 +37,8 @@ def capability_svg(cap):
     out.append(f'<line x1="{L}" x2="{W-10}" y1="{y(.95):.1f}" y2="{y(.95):.1f}" class="target"/>'
                f'<text x="{W-12}" y="{y(.95)-5:.1f}" class="tick" text-anchor="end">95% target</text>')
     for gi, s in enumerate(groups):
-        x0 = L+gi*gw+(gw-3*bw-8)/2
-        for ci, (c, name, color) in enumerate(CFG):
+        x0 = L+gi*gw+(gw-len(cfgs)*(bw+4)+4)/2
+        for ci, (c, name, color) in enumerate(cfgs):
             d = cap.get(f'{s}_{c}')
             if not d:
                 continue
@@ -55,7 +57,7 @@ def capability_svg(cap):
 
 def floor_svg(floor):
     arms = [a for a in ('exec', 'exec_ub', 'exec_ube') if a in floor]
-    names = {'exec': 'baseline', 'exec_ub': 'deadlock breaker + bump memory', 'exec_ube': '+ evasion reflex'}
+    names = {'exec': 'v10 baseline', 'exec_ub': 'deadlock breaker + bump memory', 'exec_ube': 'v11: + evasion reflex'}
     rows = [(a, p) for a in arms for p in ('orca', 'dwa') if p in floor[a]]
     W, rh, L = 640, 30, 250
     H = 20+len(rows)*rh+30
@@ -106,6 +108,48 @@ def crit_svg(m):
     return '\n'.join(out)
 
 
+def readiness_svg(rd):
+    order = [('any_good_upper_bound', 'some candidate is good (upper bound)'), ('oracle_choice', "Oracle's choice"),
+             ('legal_logreg_loeo', 'legal features, logistic regression (held-out episodes)'),
+             ('legal_progress_minus_risk', 'legal: progress - 3 x overlap probability'),
+             ('legal_progress', 'legal: sandbox progress'), ('legal_neg_p_overlap', 'legal: lowest overlap probability'),
+             ('default', 'default (continue / goal)'), ('random', 'random candidate (expected)')]
+    rows = [(k, lab, rd['top1_success'][k]) for k, lab in order if rd['top1_success'].get(k) is not None]
+    nst = rd['states']
+    W, rh, L = 640, 26, 330
+    H = 10+len(rows)*rh+10
+    out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Share of decision states where each selection rule picks a good candidate">']
+    for i, (k, lab, v) in enumerate(rows):
+        yy = 8+i*rh
+        w = (W-L-60)*v
+        out.append(f'<text x="{L-8}" y="{yy+14}" class="lab" text-anchor="end">{esc(lab)}</text>'
+                   f'<g><title>{esc(f"{lab}: good candidate chosen at {100*v:.0f}% of {nst} states")}</title>'
+                   f'<rect x="{L}" y="{yy}" width="{max(1, w):.1f}" height="{rh-8}" rx="3" '
+                   f'fill="{"var(--muted)" if k in ("any_good_upper_bound", "random") else "var(--s1)"}"/></g>'
+                   f'<text x="{L+w+6:.1f}" y="{yy+14}" class="val">{100*v:.0f}%</text>')
+    out.append('</svg>')
+    return '\n'.join(out)
+
+
+def good_hist_svg(rd):
+    hist = {int(k): v for k, v in rd['good_candidates_hist'].items()}
+    keys = sorted(hist)
+    W, H, L, B, T = 420, 220, 36, 34, 14
+    mx = max([hist[k] for k in keys]+[1])
+    bw = (W-L-10)/len(keys)-6
+    y = lambda v: T+(H-T-B)*(1-v/mx)
+    out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Good candidates per decision state">']
+    for i, k in enumerate(keys):
+        x = L+i*(bw+6)
+        v = hist[k]
+        out.append(f'<g><title>{esc(f"{v} states with {k} good candidates")}</title>'
+                   f'<rect x="{x:.1f}" y="{y(v):.1f}" width="{bw:.1f}" height="{max(0, y(0)-y(v)):.1f}" rx="3" fill="var(--s1)"/></g>'
+                   f'<text x="{x+bw/2:.1f}" y="{y(v)-5:.1f}" class="val" text-anchor="middle">{v}</text>'
+                   f'<text x="{x+bw/2:.1f}" y="{H-16}" class="lab" text-anchor="middle">{k}</text>')
+    out.append(f'<line x1="{L}" x2="{W-10}" y1="{y(0):.1f}" y2="{y(0):.1f}" class="axis"/></svg>')
+    return '\n'.join(out)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--report', required=True)
@@ -150,6 +194,17 @@ def main():
          if k == 'video' else f'<figure><img src="{esc(p)}" alt="{esc(c)}"><figcaption>{esc(c)}</figcaption></figure>')
         for k, p, c in media)
     m = rep['minint']
+    rd = rep.get('readiness')
+    readiness_html = ''
+    if rd:
+        rc = rd.get('recovery') or {}
+        rec_txt = (f"One-decision recovery: after a candidate whose default continuation fails, one later decision "
+                   f"still saves the episode in {100*rc['recovered']:.0f}% of {rc['tested']} tested cases"
+                   if rc.get('recovered') is not None else '')
+        readiness_html = f"""<section class="two">
+<div class="card"><h2>Can legal information pick a good query?</h2><p>Share of {rd['states']} decision states ({rd['episodes']} solved episodes) where each selection rule picks a candidate that the default policy then carries to an official success. Grey bars are references.</p>{readiness_svg(rd)}</div>
+<div class="card"><h2>Good candidates per decision state</h2><p>Candidates (of {rd['K_mean']:.1f} on average) after which the default policy succeeds; 1 means a single right answer, 2 or more means several reasonable choices. {esc(rec_txt)}.</p>{good_hist_svg(rd)}</div>
+</section>"""
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Falcon Query-Space Foundation</title>
@@ -157,17 +212,17 @@ def main():
 :root {{
   /* layout: one reading column, summary tiles first, then charts, tables, recordings */
   --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781; --grid:#e1e0d9; --axis:#c3c2b7;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
   --good:#0ca30c; --warning:#fab219; --critical:#d03b3b; --ring:rgba(11,11,11,0.10);
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
 }}
 @media (prefers-color-scheme: dark) {{
   :root:not([data-theme="light"]) {{ --plane:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2c2a;
-    --axis:#383835; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --ring:rgba(255,255,255,0.10); color-scheme: dark; }}
+    --axis:#383835; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --ring:rgba(255,255,255,0.10); color-scheme: dark; }}
 }}
 :root[data-theme="dark"] {{ --plane:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2c2a;
-  --axis:#383835; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --ring:rgba(255,255,255,0.10); color-scheme: dark; }}
+  --axis:#383835; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --ring:rgba(255,255,255,0.10); color-scheme: dark; }}
 body {{ margin:0; background:var(--plane); color:var(--ink); font:15px/1.5 var(--font); }}
 main {{ max-width:1080px; margin:0 auto; padding:28px 20px 60px; display:grid; gap:28px; }}
 h1 {{ font-size:26px; margin:0; text-wrap:balance; }} h2 {{ font-size:18px; margin:0 0 10px; text-wrap:balance; }}
@@ -201,6 +256,7 @@ figcaption {{ color:var(--ink2); font-size:13px; }} ul {{ margin:0; padding-left
 <div class="card"><h2>Default policy without selection</h2><p>Keep the running query, else the goal query; no Layer 3. Outcomes per foundation variant and planner.</p>{floor_svg(rep['floor'])}</div>
 <div class="card"><h2>Critical decisions per solved episode</h2><p>Minimum number of non-default queries the Oracle needs (C1 ORCA, K=10; {m['episodes']} episodes so far, median {m['critical_median']}).</p>{crit_svg(m)}</div>
 </section>
+{readiness_html}
 <section class="card"><h2>Official metrics on solved episodes</h2><div class="tablewrap"><table>
 <thead><tr><th>Configuration</th><th>Suite</th><th class="num">Solved</th><th class="num">SR</th><th class="num">Finished</th><th class="num">SPL</th><th class="num">PSC</th><th class="num">H-Coll</th><th class="num">Steps P50</th><th class="num">Oracle edges P50 / P95</th><th>Failures</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div></section>

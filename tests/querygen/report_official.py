@@ -46,7 +46,7 @@ def runs(d):
     return rows
 
 
-def capability(root):
+def capability(root, tag=''):
     inf = native_infeasible()
     out = {}
     for cfg in ('c1k10', 'c1k6', 'c2k10'):
@@ -60,7 +60,7 @@ def capability(root):
             done = [k for k in denom if k in R]
             met = [R[k]['replay']['metrics'] for k in ok]
             edges = [R[k]['oracle']['stats']['children'] for k in ok]
-            out[f'{suite}_{cfg}'] = dict(
+            out[f'{suite}_{cfg}{tag}'] = dict(
                 episodes=len(suite_keys(suite)), proven_infeasible=len(suite_keys(suite))-len(denom), denominator=len(denom),
                 finished=len(done), passed=len(ok), sr=len(ok)/len(denom) if denom else None,
                 sr_finished=len(ok)/len(done) if done else None,
@@ -114,12 +114,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', required=True)
     ap.add_argument('--oracle-root', default='output/runs/official/base')
+    ap.add_argument('--oracle-extra', nargs='*', default=['output/runs/official/v11:@v11'],
+                    help='ROOT:TAG -- further Oracle runs (e.g. a foundation variant); keys get the tag suffix')
     ap.add_argument('--floor', nargs='*', default=['output/runs/official/exec', 'output/runs/official/exec_ub',
                                                    'output/runs/official/exec_ube'])
     ap.add_argument('--minint', default='output/runs/official/minint')
     ap.add_argument('--readiness', default='')
     a = ap.parse_args()
-    rep = dict(capability=capability(a.oracle_root), floor=floor(a.floor), minint=minint(a.minint),
+    cap = capability(a.oracle_root)
+    for item in a.oracle_extra:
+        root, tag = item.rsplit(':', 1)
+        if os.path.isdir(root):
+            cap.update(capability(root, tag))
+    rep = dict(capability=cap, floor=floor(a.floor), minint=minint(a.minint),
                native_infeasible=sorted(native_infeasible()))
     if a.readiness and os.path.exists(os.path.join(a.readiness, 'summary.json')):
         rep['readiness'] = json.load(open(os.path.join(a.readiness, 'summary.json')))

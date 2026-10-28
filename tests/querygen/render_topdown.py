@@ -48,12 +48,27 @@ def main():
     for item in a.runs:
         path, label = (item.rsplit(':', 1) + [''])[:2] if ':' in item else (item, '')
         r = json.load(open(path))
-        tr = r['replay']['trace']
-        traj = np.asarray([row[:4] for row in tr['trajectory']], dtype=float)      # x, z, yaw, geodesic
-        m = r['replay']['metrics']
+        if 'replay' in r:
+            tr = r['replay']['trace']
+            rows, actions, m = tr['trajectory'], tr['actions'], r['replay']['metrics']
+        else:                                   # failed search: replay the best branch's decisions
+            from eventwm_graph.querygen.episode import replay
+            from eventwm_graph.querygen.executor import Query
+            from eventwm_graph.querygen.dynamics import FAMILIES
+            dec = [dict(query=Query(x['kind'], via=tuple(tuple(v) for v in x['via']), heading=x['heading'],
+                                    duration=x['duration'], speed=x['speed'], label=x['label'], meta=x['meta'] or {}),
+                        cont=x['cont'], horizon=x['horizon']) for x in r['decisions']]
+            if r.get('generator'):              # process-wide legal-map options of the recorded run
+                from eventwm_graph.querygen.generator import QueryGenerator, GeneratorConfig
+                QueryGenerator(FAMILIES[r['dynamics']], GeneratorConfig(**r['generator']))
+            rp = replay(EpisodeSpec(**r['spec']), r['planner'], FAMILIES[r['dynamics']], dec)
+            rows, m = rp['trajectory'], rp['metrics']
+            actions = ''.join(x[0] if isinstance(x, str) else 'v' for x in rp['actions'])   # as compact_trace
+        traj = np.asarray([row[:4] for row in rows], dtype=float)      # x, z, yaw, geodesic
         outcome = 'success' if m.get('success') == 1.0 else ('human collision' if m.get('human_collision') else
-                                                              r.get('branch', {}).get('outcome') or 'failure')
-        runs.append(dict(label=label or r.get('planner', ''), traj=traj, actions=tr['actions'], outcome=outcome,
+                                                              r.get('branch', {}).get('outcome') or
+                                                              ('best branch, no success' if 'oracle' in r else 'failure'))
+        runs.append(dict(label=label or r.get('planner', ''), traj=traj, actions=actions, outcome=outcome,
                          metrics=m, spec=EpisodeSpec(**r['spec'])))
     spec = runs[0]['spec']
     task = NativeTask(spec)
@@ -76,8 +91,14 @@ def main():
     ext = (lo[0], lo[0]+top.shape[1]*mpp, lo[2]+top.shape[0]*mpp, lo[2])
     n = len(runs)
     frames = []
+    # panel size follows the plotted region's aspect ratio (wide corridors are not padded into squares)
+    aspect = (ylim[0]-ylim[1])/max(1e-6, xlim[1]-xlim[0])
+    pw = 5.4
+    ph = min(7.0, max(2.8, pw*aspect))+0.75+(0.35 if a.title else 0.)
+    import textwrap
+    title = '\n'.join(textwrap.wrap(a.title, width=int(13*pw*n))) if a.title else ''
     for t in list(range(0, T, a.every))+[T-1]:
-        fig, axes = plt.subplots(1, n, figsize=(5.4*n, 5.6), dpi=100, squeeze=False)
+        fig, axes = plt.subplots(1, n, figsize=(pw*n, ph), dpi=100, squeeze=False)
         for k, (ax, r) in enumerate(zip(axes[0], runs)):
             c = SERIES[k % len(SERIES)]
             tt = min(t, len(r['traj'])-1)
@@ -104,11 +125,15 @@ def main():
             status = r['outcome'] if done else f'{act}'
             ax.set_title(f"{r['label']}\nstep {tt:3d}   distance {r['traj'][tt][3]:5.2f} m   {status}", fontsize=9,
                          color='#0b0b0b', loc='left')
-        if a.title:
-            fig.suptitle(a.title, fontsize=10, color='#0b0b0b', x=0.01, ha='left')
+        if title:
+            fig.suptitle(title, fontsize=10, color='#0b0b0b', x=0.01, ha='left')
         fig.tight_layout()
         fig.canvas.draw()
-        frames.append(np.asarray(fig.canvas.buffer_rgba())[..., :3].copy())
+        img = np.asarray(fig.canvas.buffer_rgba())[..., :3]
+        H16, W16 = -(-img.shape[0]//16)*16, -(-img.shape[1]//16)*16     # pad to the codec's block size
+        pad = np.full((H16, W16, 3), 255, dtype=np.uint8)
+        pad[:img.shape[0], :img.shape[1]] = img
+        frames.append(pad)
         plt.close(fig)
     frames += [frames[-1]]*a.fps
     imageio.mimsave(a.out, frames, fps=a.fps, codec='libx264', quality=7, macro_block_size=8)
