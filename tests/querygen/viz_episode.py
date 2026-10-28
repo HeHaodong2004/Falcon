@@ -47,11 +47,29 @@ def main():
     for item in a.runs:
         path, label = item.rsplit(':', 1)
         r = json.load(open(path))
+        if 'actions' in r and 'found' in r:                      # a witness JSON (privileged search)
+            from eventwm_graph.querygen.witness import load_witness_poses
+            P = load_witness_poses(spec, r['actions'], r.get('dynamics') or 'native')
+            traj = np.asarray([[p[0], p[2], p[3], 0.] for p in P], dtype=float)
+            runs.append((label, traj, 'success (witness)', len(traj)-1, {}))
+            continue
         rep = r.get('replay', {})
-        traj = np.asarray([row[:4] for row in rep.get('trace', {}).get('trajectory', [])], dtype=float)
+        rows = rep.get('trace', {}).get('trajectory', [])
+        if not rows and r.get('decisions'):                      # failed branch: replay its decisions
+            from eventwm_graph.querygen.episode import replay
+            from eventwm_graph.querygen.executor import Query
+            from eventwm_graph.querygen.dynamics import FAMILIES
+            dec = [dict(query=Query(x['kind'], via=tuple(tuple(v) for v in x['via']), heading=x['heading'],
+                                    duration=x['duration'], speed=x['speed'], label=x['label'], meta=x['meta'] or {}),
+                        cont=x['cont'], horizon=x['horizon']) for x in r['decisions']]
+            rp = replay(spec, r['planner'], FAMILIES[r['dynamics']], dec)
+            rows = rp['trajectory']
+            rep = dict(metrics=rp['metrics'], steps=rp['steps'])
+        traj = np.asarray([row[:4] for row in rows], dtype=float)
         m = rep.get('metrics', {})
         outcome = r.get('branch', {}).get('outcome') or ('success' if m.get('success') == 1.0 else
-                                                          'human collision' if m.get('human_collision') else 'failure')
+                                                          'human collision' if m.get('human_collision') else
+                                                          'best branch (no success)')
         runs.append((label, traj, outcome, int(rep.get('steps', len(traj)-1)), m))
     T = max([len(t) for _, t, _, _, _ in runs]+[2])
     fig, ax = plt.subplots(figsize=(7.2, 7.2), dpi=150)
