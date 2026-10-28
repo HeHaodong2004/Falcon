@@ -409,6 +409,18 @@ then budget scaling of representative DEV failures.
   the second unseen suite (`output/runs/final_v10/unseen2_*`), its certificates and the frozen system's
   development numbers (`output/runs/final_v10_devset/`) launched 2026-10-28 07:17.
 
+- **Test-set observations while the v10 test runs** (recorded for v11; v10 is unchanged):
+  * K=6 reset state without single-step rotations: 5737gQA9p2T and tJ7XVoEN82a spawn in static contact; K=10
+    solves both starting `rot_left1 -> rot_left4/rot_left10 -> creep` (113 / 177 edges), K=6's root set
+    (goal, st_goal, wait, creep1, both long route turns) has every movement child colliding and the tree is
+    exhausted after 24 edges.  Candidate v11 fix: the K=6 reset set offers rot_left1 / rot_right1 (a manoeuvre
+    puts the next state into manoeuvre mode, which then offers the finer rotations).
+  * Narrow-corridor spawns facing away (BCWtGkh8CHv, PFLHHbjscNN, no humans): witnesses drive 1-1.6 m away to a
+    wider spot and turn there; manoeuvre mode only exists within 1 m of the start and the legal map at reset holds
+    none of the walls that stop an in-place turn -> trees exhausted (C1) / budget (C2).  Candidate v11 fix:
+    manoeuvre mode within a larger spawn radius (needs a regression check against the v8 search explosion).
+- **Third unseen suite frozen** (`suites_unseen3.json`, commit 4a40ed00) for the post-v10 version.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
