@@ -152,6 +152,29 @@ def good_hist_svg(rd):
     return '\n'.join(out)
 
 
+def gate_svg(cap, tag='@test', suite='unseen3'):
+    """Held-out gate test: SR per configuration over every episode not proven natively infeasible."""
+    rows = [(name, color, cap[f'{suite}_{c}{tag}']) for c, name, color in CFG if f'{suite}_{c}{tag}' in cap]
+    W, rh, L = 640, 34, 170
+    H = 16+len(rows)*rh+28
+    x = lambda v: L+(W-L-70)*v
+    out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Held-out gate test: Oracle success rate per configuration">']
+    for v in (0, .5, 1.):
+        out.append(f'<line x1="{x(v):.1f}" x2="{x(v):.1f}" y1="8" y2="{H-22}" class="grid"/>'
+                   f'<text x="{x(v):.1f}" y="{H-6}" class="tick" text-anchor="middle">{int(v*100)}%</text>')
+    for i, (name, color, d) in enumerate(rows):
+        v = d['passed']/d['denominator'] if d['denominator'] else 0
+        yy = 12+i*rh
+        tip = (f"{name}: {d['passed']} of {d['denominator']} test episodes not proven infeasible ({100*v:.1f}%); "
+               f"finished {d['finished']}; proven infeasible {d['proven_infeasible']}")
+        out.append(f'<text x="{L-8}" y="{yy+16}" class="lab" text-anchor="end">{esc(name.replace("v10 ", ""))}</text>'
+                   f'<g><title>{esc(tip)}</title><rect x="{L}" y="{yy}" width="{max(1, x(v)-L):.1f}" height="{rh-12}" '
+                   f'rx="3" fill="{color}"/></g>'
+                   f'<text x="{x(v)+6:.1f}" y="{yy+16}" class="val">{100*v:.1f}%</text>')
+    out.append(f'<line x1="{x(.95):.1f}" x2="{x(.95):.1f}" y1="6" y2="{H-22}" class="target"/></svg>')
+    return '\n'.join(out)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--report', required=True)
@@ -200,6 +223,25 @@ def main():
     m = rep['minint']
     rd = rep.get('readiness')
     readiness_html = good_html = ''
+    gate_html = ''
+    test = {k: v for k, v in cap.items() if k.endswith('@test')}
+    if test:
+        trs = []
+        for c, name, color in CFG:
+            d = cap.get(f'unseen3_{c}@test')
+            if not d:
+                continue
+            trs.append(f'<tr><td><span class="sw" style="background:{color}"></span>{esc(name.replace("v10 ", ""))}</td>'
+                       f'<td class="num">{d["passed"]} / {d["denominator"]}</td><td class="num">{100*d["sr"]:.1f}%</td>'
+                       f'<td class="num">{d["finished"]}</td><td class="num">{d["proven_infeasible"]}</td>'
+                       f'<td class="num">{"" if d["spl"] is None else "%.3f" % d["spl"]}</td>'
+                       f'<td class="num">{"" if d["psc"] is None else "%.3f" % d["psc"]}</td>'
+                       f'<td class="num">{d["hcoll_among_solved"]:.0f}</td><td class="wrap">{esc(", ".join(d["failures"]) or "none")}</td></tr>')
+        gate_html = f"""<section class="card"><h2>Held-out gate test (third unseen suite)</h2>
+<p>{esc(extra.get('gate_text', 'Frozen system (tag querygen-freeze-v10-official), 60 episodes never used in development. Success rate over every test episode not proven natively infeasible; unfinished and unresolved episodes count as failures. Dashed line: the 95% gate.'))}</p>
+{gate_svg(cap)}
+<div class="tablewrap"><table><thead><tr><th>Configuration</th><th class="num">Solved</th><th class="num">SR</th><th class="num">Finished</th><th class="num">Proven infeasible</th><th class="num">SPL</th><th class="num">PSC</th><th class="num">H-Coll</th><th>Failures</th></tr></thead>
+<tbody>{''.join(trs)}</tbody></table></div></section>"""
     if rd:
         rc = rd.get('recovery') or {}
         rec_txt = (f"One-decision recovery: after a candidate whose default continuation fails, one later decision "
@@ -250,6 +292,7 @@ figcaption {{ color:var(--ink2); font-size:13px; }} ul {{ margin:0; padding-left
 <header style="display:grid;gap:8px"><h1>Falcon query-space foundation, official benchmark rules</h1>
 <p>{esc(extra.get('lead', ''))}</p></header>
 <section class="tiles">{tile_html}</section>
+{gate_html}
 <section class="card"><h2>Oracle capability ceiling</h2>
 <p>{'Interim: share of FINISHED episodes' if a.finished_only else 'Share of episodes'} solved by the privileged Oracle selecting among the generator's legal queries{', excluding only episodes proven natively infeasible; the runs are still in progress' if a.finished_only else ', over every episode not proven natively infeasible (unfinished and unresolved episodes count as failures)'}. Hover a bar for counts.</p>
 <div style="display:flex;gap:16px;flex-wrap:wrap">{''.join(f'<span><span class="sw" style="background:{c}"></span>{esc(n)}</span>' for k, n, c in CFG if any(f'{s_}_{k}' in cap for s_, _ in SUITES))}<span><svg width="22" height="10" style="vertical-align:middle"><line x1="0" x2="22" y1="5" y2="5" stroke="var(--ink2)" stroke-dasharray="4 4"/></svg> 95% target</span></div>
