@@ -308,6 +308,32 @@ def test_one_shared_stage1_bank_per_decision():
     assert set(res.nominal.ids) <= set(t['track_id'] for t in it['legal'].tracks)
 
 
+def test_imagined_planner_perceives_the_tracked_people():
+    """Every perceivable legal track appears in the nominal future, at its Stage 1 (present-weighted mean) position."""
+    from eventwm_graph.querygen.control import human_estimates
+    c = contexts(); sb = sandbox()
+    seen = 0
+    for it in c['items']:
+        legal = it['legal']
+        est = human_estimates(legal.tracks, legal.time)
+        bank = sb.l2.predict_humans(it['state'])
+        nh = NominalHumans(legal.tracks, legal.time, 16, bank=bank)
+        keys = [str(k) for k in bank.track_keys]
+        for h in est:
+            k = 'track:'+str(h.track_id)
+            if k in keys and np.asarray(bank.present)[:, keys.index(k)].mean() >= 0.5:
+                assert h.track_id in nh.ids
+                seen += 1
+        assert nh.fallback == 0
+        for m, tid in enumerate(nh.ids):
+            p0 = nh.positions[0, m, [0, 2]]
+            n = keys.index('track:'+str(tid))
+            ref = np.asarray(bank.sandbox_positions(np.array([0.])))[:, 0, n, :]
+            w = np.asarray(bank.weights)*np.asarray(bank.present)[:, n]
+            assert np.allclose(p0, (ref[np.isfinite(ref).all(1)]*(w[np.isfinite(ref).all(1)]/w.sum())[:, None]).sum(0), atol=1e-9)
+    assert seen > 0
+
+
 def test_failure_handling():
     c = contexts(); sb = sandbox()
     it = c['items'][0]
@@ -332,6 +358,27 @@ def test_failure_handling():
         raise AssertionError('mismatched legal state accepted')
     except SandboxError:
         pass
+
+
+def test_summary_without_people():
+    """A decision with no person in any Stage 1 world: undefined distance statistics are NaN, not an error."""
+    c = contexts(); sb = sandbox()
+    it = c['items'][0]
+    res = sb.evaluate(it['state'], it['legal'], candidates(it)[:2])
+    for o in res.candidates:
+        h = dict(o.humans)
+        h['minimum_quantiles'] = [None, None, None]
+        s = type(o)(o.index, o.candidate, o.rollout, o.map, h).summary()
+        assert s['min_distance_q10'] != s['min_distance_q10']
+
+
+def test_record_is_json_ready():
+    c = contexts(); sb = sandbox()
+    it = c['items'][1]
+    res = sb.evaluate(it['state'], it['legal'], candidates(it)[:3])
+    rec = json.loads(json.dumps(res.record(maps=True)))
+    assert rec['hypothetical'] and rec['schema'] == 'wm_sandbox_record_1' and len(rec['candidates']) == 3
+    assert np.allclose(np.asarray(rec['candidates'][0]['trajectory']), res.candidates[0].trajectory, atol=1e-6)
 
 
 def test_maps_off_keeps_risk():

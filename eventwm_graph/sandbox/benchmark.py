@@ -27,12 +27,12 @@ def parse_items(text):
     return out
 
 
-def run_episode(sb, spec, config, planner, dynamics, decisions, range_sensor, interval=16, gc_freeze=True):
-    from .episode import RealEpisode, generator, default_query
+def run_episode(sb, spec, config, planner, dynamics, decisions, range_sensor, interval=16, gc_freeze=True, env='real'):
+    from .episode import RealEpisode, BranchEpisode, generator, default_query
     from .core import Candidate
     gen = generator(config, dynamics)
     t0 = time.perf_counter()
-    ep = RealEpisode(spec, planner, dynamics, range_sensor=range_sensor, gc_freeze=gc_freeze)
+    ep = (BranchEpisode if env == 'branch' else RealEpisode)(spec, planner, dynamics, range_sensor=range_sensor, gc_freeze=gc_freeze)
     setup_s = time.perf_counter()-t0
     q = default_query()
     rows = []
@@ -62,7 +62,7 @@ def run_episode(sb, spec, config, planner, dynamics, decisions, range_sensor, in
         prof = res.profile
         s2 = (sb.l2.last_profile or {}).get('stage2', {}) if sb.l2 is not None else {}
         rows.append(dict(
-            decision=d, steps=ep.task.steps, frames=len(ep.stream), cells=len(state.partial_graph['cells']),
+            decision=d, steps=ep.steps, frames=len(ep.stream), cells=len(state.partial_graph['cells']),
             tracks=len(ep.legal.tracks), candidates=len(cands), first=first,
             env_step_ms=1000*(p1['env_s']-p0['env_s']), sensor_ms=1000*(p1['sensor_s']-p0['sensor_s']),
             range_ms=1000*(p1['range_s']-p0['range_s']), stream_ms=1000*(p1['stream_s']-p0['stream_s']),
@@ -71,12 +71,13 @@ def run_episode(sb, spec, config, planner, dynamics, decisions, range_sensor, in
             sandbox_ms=1000*eval_s, stage1_ms=prof['stage1_ms'], imagine_ms=prof['imagine_ms'], layer2_ms=prof['layer2_ms'],
             stage2_ms=prof.get('stage2_ms'), interaction_ms=prof.get('interaction_ms'), imagined_steps=prof['imagined_steps'],
             cache=dict(sb.last_cache), stage2_calls=s2.get('calls'),
+            stage2_parts={k: 1000*float(v) for k, v in s2.items() if k.endswith('_seconds')},
             summaries=[{k: v for k, v in c.items() if k in ('label', 'steps', 'ended_by', 'progress', 'p_collision',
                                                              'p_social', 'predicted_free', 'predicted_blocked')}
                        for c in res.summaries()]))
         first = False
-    out = dict(key=spec.key, config=config, planner=planner, dynamics=dynamics, range_sensor=range_sensor,
-               setup_s=setup_s, steps=ep.task.steps, decisions=rows, range_stats=getattr(ep.ranges, 'stats', None),
+    out = dict(key=spec.key, config=config, planner=planner, dynamics=dynamics, range_sensor=range_sensor, env=env,
+               setup_s=setup_s, steps=ep.steps, decisions=rows, range_stats=getattr(ep.ranges, 'stats', None),
                metrics={k: float(v) for k, v in ep.metrics().items() if isinstance(v, (int, float))})
     ep.close()
     return out
@@ -111,9 +112,105 @@ def summarize(records):
     return out
 
 
+def worker(a):
+    """One throughput worker: its own sandbox (shared GPU), its own episodes; per-decision wall-clock stamps.
+
+    ``--work full``: environment steps + sensing + decision state + generator + sandbox (the RL inner loop);
+    ``--work sandbox``: contexts are collected first (untimed), then the sandbox alone re-evaluates them."""
+    from .core import WorldModelSandbox, SandboxConfig, Candidate
+    from .episode import RealEpisode, BranchEpisode, generator, default_query, freeze_gc
+    from eventwm_graph.querygen import suites
+    out = Path(a.out)
+    sb = WorldModelSandbox.from_release(SandboxConfig(**json.loads(a.sandbox)), map_device='cuda:0')
+    items = parse_items(a.episodes)
+    stamps, comp = [], dict(sandbox=0., interval=0., state=0., generator=0.)
+    t_start = time.time()
+    ctxs = []
+    k = 0
+    while time.time()-t_start < a.seconds:
+        suite, idx = items[k % len(items)]; k += 1
+        spec = suites.load(suite)[idx]
+        gen = generator(a.config, a.dynamics)
+        ep = (BranchEpisode if a.env == 'branch' else RealEpisode)(spec, a.planner, a.dynamics, range_sensor=a.range, gc_freeze=True)
+        q = default_query()
+        while not ep.over and time.time()-t_start < a.seconds:
+            t0 = time.perf_counter()
+            r = ep.run(q if ep.execution is None or ep.execution.status != 'running' else None, 16)
+            t1 = time.perf_counter()
+            if ep.over or r['steps'] == 0:
+                break
+            state = ep.decision_state()
+            t2 = time.perf_counter()
+            queries, _ = gen.propose(ep.legal, ep.execution)
+            t3 = time.perf_counter()
+            cands = [Candidate(None, a.planner, a.dynamics, execution=ep.execution, level=ep.level) if qq.kind == 'continue'
+                     else Candidate(qq, a.planner, a.dynamics, level=ep.level) for qq in queries]
+            if a.work == 'sandbox':
+                frozen = [Candidate(c.query, c.planner, c.dynamics, execution=None if c.execution is None else c.execution.copy(),
+                                    level=c.level) for c in cands]      # the episode keeps running: freeze its state
+                ctxs.append((state, ep.legal.copy(), frozen))
+                if len(ctxs) >= a.contexts:
+                    break
+                continue
+            sb.evaluate(state, ep.legal, cands)
+            t4 = time.perf_counter()
+            comp['interval'] += t1-t0; comp['state'] += t2-t1; comp['generator'] += t3-t2; comp['sandbox'] += t4-t3
+            stamps.append(time.time())
+        ep.close()
+        if a.work == 'sandbox' and len(ctxs) >= a.contexts:
+            break
+    if a.work == 'sandbox':
+        freeze_gc()
+        sb.evaluate(*ctxs[0])                                    # warm
+        t_start = time.time()
+        i = 0
+        while time.time()-t_start < a.seconds:
+            st, legal, cands = ctxs[i % len(ctxs)]; i += 1
+            t0 = time.perf_counter()
+            sb.evaluate(st, legal, cands)
+            comp['sandbox'] += time.perf_counter()-t0
+            stamps.append(time.time())
+    (out/('worker_%02d.json' % a.id)).write_text(json.dumps(dict(id=a.id, stamps=stamps, components=comp, contexts=len(ctxs))))
+    sb.close()
+
+
+def throughput(a):
+    import subprocess
+    import sys
+    out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    items = parse_items(a.episodes)
+    procs = []
+    for i in range(a.workers):
+        eps = ','.join('%s:%d' % items[(i+j) % len(items)] for j in range(len(items)))
+        cmd = [sys.executable, 'scripts/sandbox_run.py', 'eventwm_graph.sandbox.benchmark', 'worker', '--out', str(out), '--id', str(i),
+               '--episodes', eps, '--config', a.config, '--planner', a.planner, '--dynamics', a.dynamics, '--env', a.env,
+               '--range', a.range, '--seconds', str(a.seconds), '--work', a.work, '--contexts', str(a.contexts), '--sandbox', a.sandbox]
+        procs.append(subprocess.Popen(cmd, stdout=open(out/('worker_%02d.log' % i), 'w'), stderr=subprocess.STDOUT))
+    for p in procs:
+        p.wait()
+    recs = [json.loads((out/('worker_%02d.json' % i)).read_text()) for i in range(a.workers) if (out/('worker_%02d.json' % i)).exists()]
+    stamps = sorted(t for r in recs for t in r['stamps'])
+    if len(stamps) < 4:
+        print('too few decisions', len(stamps)); return
+    # steady window: from the time every worker has produced its first decision to the first worker's last one
+    lo = max(min(r['stamps']) for r in recs if r['stamps']); hi = min(max(r['stamps']) for r in recs if r['stamps'])
+    n = sum(1 for t in stamps if lo <= t <= hi)
+    comp = {k: sum(r['components'][k] for r in recs) for k in recs[0]['components']}
+    summ = dict(workers=a.workers, work=a.work, env=a.env, config=a.config, planner=a.planner, dynamics=a.dynamics,
+                decisions=len(stamps), window_s=hi-lo, decisions_per_s=n/max(hi-lo, 1e-9),
+                per_worker=[len(r['stamps']) for r in recs], component_seconds=comp, load=os.getloadavg())
+    (out/'summary.json').write_text(json.dumps(summ, indent=1))
+    print(json.dumps(summ))
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['episodes'])
+    ap.add_argument('mode', choices=['episodes', 'worker', 'throughput'])
+    ap.add_argument('--workers', type=int, default=1)
+    ap.add_argument('--id', type=int, default=0)
+    ap.add_argument('--seconds', type=float, default=300.)
+    ap.add_argument('--work', default='full', choices=['full', 'sandbox'])
+    ap.add_argument('--contexts', type=int, default=12)
     ap.add_argument('--out', required=True)
     ap.add_argument('--config', default='k10')
     ap.add_argument('--planner', default='orca')
@@ -121,8 +218,13 @@ def main():
     ap.add_argument('--episodes', default='dev:0')
     ap.add_argument('--decisions', type=int, default=24)
     ap.add_argument('--range', default='fast')
+    ap.add_argument('--env', default='real', choices=['real', 'branch'])
     ap.add_argument('--sandbox', default='{}', help='SandboxConfig overrides (JSON)')
     a = ap.parse_args()
+    if a.mode == 'worker':
+        return worker(a)
+    if a.mode == 'throughput':
+        return throughput(a)
     from .core import WorldModelSandbox, SandboxConfig
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     cfg = SandboxConfig(**json.loads(a.sandbox))
@@ -133,12 +235,12 @@ def main():
     from eventwm_graph.querygen import suites
     for suite, idx in parse_items(a.episodes):
         spec = suites.load(suite)[idx]
-        rec = run_episode(sb, spec, a.config, a.planner, a.dynamics, a.decisions, a.range)
+        rec = run_episode(sb, spec, a.config, a.planner, a.dynamics, a.decisions, a.range, env=a.env)
         recs.append(rec)
         (out/(spec.key.replace('/', '_')+'.json')).write_text(json.dumps(rec, indent=1, default=float))
         print(spec.key, 'decisions', len(rec['decisions']), 'steps', rec['steps'], flush=True)
     summ = dict(summarize(recs), build_s=build_s, config=a.config, planner=a.planner, dynamics=a.dynamics,
-                range=a.range, sandbox=json.loads(a.sandbox), load=os.getloadavg())
+                range=a.range, env=a.env, sandbox=json.loads(a.sandbox), load=os.getloadavg())
     (out/'summary.json').write_text(json.dumps(summ, indent=1, default=float))
     print(json.dumps({k: summ[k] for k in ('decisions', 'end_to_end_decision_ms', 'per_step_ms', 'by_frames')}, indent=1, default=float))
     print('warm', json.dumps({k: (v and {kk: round(vv, 1) for kk, vv in v.items()}) for k, v in summ['warm'].items()}, default=float))

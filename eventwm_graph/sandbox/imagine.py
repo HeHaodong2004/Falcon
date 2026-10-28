@@ -28,6 +28,7 @@ from eventwm_graph.querygen.control import human_estimates
 from eventwm_graph.querygen.legal import BLOCKED
 
 HISTORY_TAIL = 8          # real poses kept for the executor's measured-velocity estimate (it reads a 1-step window)
+TRACK_PREFIX = 'track:'   # Stage 1 bank key of a legal track: 'track:' + legal track id (residual slots: 'residual:i')
 
 
 # ---------------------------------------------------------------------------------------------- human futures
@@ -46,12 +47,14 @@ class NominalHumans:
         self.steps = int(steps)
         self.step = float(step)
         self.mode = mode if bank is not None else 'cv'
+        self.fallback = 0
         est = human_estimates(legal_tracks, now)
         by_id = {t['track_id']: t for t in legal_tracks}
         rel = np.arange(self.steps+1)*self.step
         ids, heights, paths = [], [], []
         if bank is not None and self.mode != 'cv':
-            keys = list(bank.track_keys)
+            keys = [str(k) for k in bank.track_keys]
+            slot = {k[len(TRACK_PREFIX):]: n for n, k in enumerate(keys) if k.startswith(TRACK_PREFIX)}
             unseen = np.asarray(bank.unseen, bool)
             w = np.asarray(bank.weights, np.float64)
             horizon = float(bank.times[-1])
@@ -59,10 +62,13 @@ class NominalHumans:
             P = np.asarray(bank.sandbox_positions(covered), np.float64)          # [W, Tc, N, 2], +inf absent
             present = np.asarray(bank.present, bool)                              # [W, N]
             for h in est:
-                if h.track_id not in keys:
-                    continue
-                n = keys.index(h.track_id)
-                if unseen[n]:
+                n = slot.get(str(h.track_id))
+                if n is None or unseen[n]:
+                    # a perceivable track Stage 1 does not model: the planner still sees it (constant velocity)
+                    p0 = np.array([h.position[0], -h.position[1]]); v = np.array([h.velocity[0], -h.velocity[1]])
+                    ids.append(h.track_id); heights.append(float(by_id[h.track_id]['position'][1]))
+                    paths.append(p0[None]+rel[:, None]*v[None])
+                    self.fallback += 1
                     continue
                 pw = present[:, n]
                 if float(w[pw].sum()) < 0.5 or not pw.any():
@@ -97,6 +103,7 @@ class NominalHumans:
         validation; never used by the sandbox itself)."""
         self = cls.__new__(cls)
         self.now, self.steps, self.step, self.mode = float(now), int(steps), float(step), mode
+        self.fallback = 0
         self._build(list(ids), list(heights), [np.asarray(p, np.float64) for p in paths])
         return self
 

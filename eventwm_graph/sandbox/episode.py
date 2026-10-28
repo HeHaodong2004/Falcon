@@ -130,6 +130,10 @@ class RealEpisode:
     def over(self):
         return self.task.episode_over
 
+    @property
+    def steps(self):
+        return int(self.task.steps)
+
     def decision_state(self, **metadata):
         return self.stream.decision_state(dict(metadata, key=self.spec.key, steps=self.task.steps))
 
@@ -183,5 +187,111 @@ class RealEpisode:
 
     def close(self):
         self.task.close()
+        if self.gc_freeze:
+            thaw_gc()
+
+
+class BranchEpisode:
+    """``RealEpisode``'s interface on querygen's exact branch simulator (``EpisodeRuntime``: the ``Env.step`` mirror
+    with the humans replayed from the recorded tape; bit-identical poses and actions to the unchanged habitat.Env,
+    verified by every Oracle replay).  This is the environment a Layer 3 learner steps (querygen ``QueryEnv``): no live
+    human controllers or physics sub-steps, so per-step cost is a fraction of ``habitat.Env``'s.  The tape cache is
+    ``QG_TAPE_CACHE`` (default ``output/sandbox_cache/tapes``; a miss records the episode's tape once).
+    """
+
+    def __init__(self, spec, planner='orca', dynamics='native', range_sensor='fast', stream=None, global_graph=False,
+                 gc_freeze=False):
+        import os
+        from pathlib import Path
+        from eventwm_graph.querygen.episode import EpisodeRuntime
+        from .ranges import make_range_sensor
+        t0 = time.perf_counter()
+        os.environ.setdefault('QG_TAPE_CACHE', str(Path(__file__).resolve().parents[2]/'output/sandbox_cache/tapes'))
+        Path(os.environ['QG_TAPE_CACHE']).mkdir(parents=True, exist_ok=True)
+        self.spec = spec
+        self.dyn = FAMILIES[dynamics] if isinstance(dynamics, str) else dynamics
+        self.planner = planner
+        self.rt = EpisodeRuntime(spec, planner, self.dyn, strict=False, velocity_action=not self.dyn.native_actions)
+        self.task = self.rt.task
+        self.sensor = self.rt.sensor
+        self.ranges = make_range_sensor(range_sensor, self.task, self.sensor.config)
+        self.stream = LegalStream(stream or spec.key, RESOLUTION, global_graph=global_graph)
+        self.perf = dict(steps=0, env_s=0., sensor_s=0., range_s=0., legal_s=0., stream_s=0., planner_s=0.)
+        self._observe = self.rt.sensor.observe
+        self.rt._load(self.rt.root)                 # robot at the reset, humans at tape index 0
+        root_row = self.rt.root.sensor[3]
+        t = time.perf_counter()
+        rf = self.ranges.measure(timestamp=root_row['timestamp'])
+        self.perf['range_s'] += time.perf_counter()-t
+        self.stream.observe(root_row, rf)
+        self.rt.sensor.observe = self._sense
+        self.state = self.rt.root
+        self.decisions = []
+        self.gc_freeze = bool(gc_freeze)
+        if self.gc_freeze:
+            freeze_gc()
+        self.setup_s = time.perf_counter()-t0
+
+    def _sense(self, ts):
+        row = self._observe(ts)
+        t = time.perf_counter()
+        rf = self.ranges.measure(timestamp=row['timestamp'])
+        t1 = time.perf_counter()
+        self.stream.observe(row, rf)
+        self.perf['range_s'] += t1-t; self.perf['stream_s'] += time.perf_counter()-t1
+        return row
+
+    @property
+    def legal(self):
+        return self.state.legal
+
+    @property
+    def execution(self):
+        return self.state.execution
+
+    @property
+    def level(self):
+        return self.state.dyn_state
+
+    @property
+    def over(self):
+        return self.state.terminal
+
+    @property
+    def steps(self):
+        return int(self.state.index)
+
+    def decision_state(self, **metadata):
+        return self.stream.decision_state(dict(metadata, key=self.spec.key, steps=self.state.index))
+
+    def run(self, query=None, horizon=16, on_step=None):
+        if self.over:
+            raise RuntimeError('episode is over')
+        p = dict(self.rt.perf)
+        r0, s0 = self.perf['range_s'], self.perf['stream_s']
+        cont = query is None
+        if cont and (self.state.execution is None or self.state.execution.status != 'running'):
+            raise RuntimeError('nothing to continue')
+        start = self.state.index
+        self.state = self.rt.run(self.state, query, horizon=int(horizon), cont=cont, geodesic=False)
+        q = self.rt.perf
+        self.perf['steps'] += q['steps']-p['steps']
+        self.perf['env_s'] += (q['sim_s']-p['sim_s'])+(q['copy_s']-p['copy_s'])
+        # the runtime times our wrapped observe: legal sensor + range frame + stream update
+        self.perf['sensor_s'] += (q['sensor_s']-p['sensor_s'])-(self.perf['range_s']-r0)-(self.perf['stream_s']-s0)
+        self.perf['legal_s'] += q['legal_s']-p['legal_s']
+        self.perf['planner_s'] += q['planner_s']-p['planner_s']
+        rec = dict(query=self.state.decisions[-1]['query'], cont=cont, horizon=int(horizon), start=start,
+                   steps=self.state.index-start, end=self.state.index, status=self.state.decisions[-1]['status'],
+                   reason=self.state.decisions[-1]['reason'], outcome=self.state.outcome)
+        self.decisions.append(rec)
+        return rec
+
+    def metrics(self):
+        return dict(steps=float(self.state.index), success=float(self.state.outcome == 'success'),
+                    human_collision=float(self.state.outcome == 'human_collision'))
+
+    def close(self):
+        self.rt.close()
         if self.gc_freeze:
             thaw_gc()

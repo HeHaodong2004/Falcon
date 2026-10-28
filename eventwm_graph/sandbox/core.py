@@ -76,6 +76,8 @@ class SandboxConfig:
     materialize: bool = True         # Stage 2 complete hypothetical future graphs
     maps: bool = True                # run Stage 2 (False: imagined trajectories + human risk only)
     memoize: bool = True             # exact per-decision caches on the frozen map (accel.py; bit-identical rollouts)
+    prefetch_maps: bool = False      # warm Stage 2's legal-map context (graph compile, range voxel map) on a worker
+                                     # thread while Stage 1 and the rollouts run (Layer 2 outputs are cache-independent)
 
     def steps_for(self, cand):
         if cand.query is None and cand.execution is None:
@@ -89,6 +91,31 @@ class SandboxConfig:
         else:
             n = int(self.horizon)+int(self.lookahead)
         return max(0, min(n, int(self.max_steps)))
+
+
+RECORD_SCHEMA = 'wm_sandbox_record_1'
+
+
+def _jsonable(x):
+    if isinstance(x, dict):
+        return {str(k): _jsonable(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_jsonable(v) for v in x]
+    if isinstance(x, np.ndarray):
+        return x.tolist()
+    if isinstance(x, (np.floating, float)):
+        v = float(x)
+        return v if math.isfinite(v) else None
+    if isinstance(x, (np.integer,)):
+        return int(x)
+    if isinstance(x, (np.bool_,)):
+        return bool(x)
+    return x
+
+
+def _num(v):
+    """Float, or NaN for an undefined statistic (e.g. minimum distance when no person exists in any world)."""
+    return float('nan') if v is None else float(v)
 
 
 class _Interval:
@@ -125,7 +152,7 @@ class CandidateOutcome:
             h = self.humans
             out.update(p_collision=float(h['p_collision']), p_social=float(h['p_social']),
                        expected_social_seconds=float(h['expected_social_duration']),
-                       min_distance_q10=float(h['minimum_quantiles'][0]), min_distance_median=float(h['minimum_quantiles'][1]),
+                       min_distance_q10=_num(h['minimum_quantiles'][0]), min_distance_median=_num(h['minimum_quantiles'][1]),
                        risk_steps=int(h['steps']), risk_horizon_truncated=bool(h['horizon_truncated']))
         if self.map is not None:
             s = self.map['states']; p = self.map['probabilities'].astype(np.float64)
@@ -150,6 +177,30 @@ class SandboxResult:
     def summaries(self):
         return [c.summary() for c in self.candidates]
 
+    def record(self, maps=False):
+        """JSON-ready structured record (schema ``RECORD_SCHEMA``) for logging and the future Graph Compiler.
+
+        Per candidate: descriptor, imagined trajectory [t, x, y, z, yaw] rows and commands, outcome summary, human
+        risk; with ``maps`` also the predicted increment (cells, states, probabilities).  The shared human futures are
+        summarised by their track keys and the bank clock.  Everything is flagged hypothetical."""
+        cands = []
+        for c in self.candidates:
+            r = c.rollout
+            item = dict(index=c.index, candidate=_jsonable(c.candidate), summary=_jsonable(c.summary()),
+                        trajectory=r.trajectory().round(6).tolist(), commands=[list(x) if isinstance(x, tuple) else x for x in r.commands])
+            if c.humans is not None:
+                item['risk'] = {k: _jsonable(c.humans[k]) for k in ('p_collision', 'p_social', 'expected_social_duration',
+                                                                     'minimum_quantiles', 'steps', 'horizon_truncated') if k in c.humans}
+            if maps and c.map is not None:
+                item['map'] = dict(cells=c.map['candidate_cells'][c.map['states'] > 0].tolist(),
+                                   states=c.map['states'][c.map['states'] > 0].tolist(),
+                                   probabilities=c.map['probabilities'][c.map['states'] > 0].round(4).tolist())
+            cands.append(item)
+        return dict(schema=RECORD_SCHEMA, hypothetical=True, timestamp=self.timestamp, robot_pose=self.robot_pose.tolist(),
+                    stream=self.stream, human_tracks=list(getattr(self.humans, 'track_keys', ())),
+                    nominal_tracks=list(self.nominal.ids), candidates=cands, profile=_jsonable(self.profile),
+                    provenance=_jsonable(self.provenance))
+
     def human_futures(self, steps=None):
         """The shared bank on the planner clock (Layer2Prediction.human_futures)."""
         if self.layer2 is None:
@@ -165,6 +216,7 @@ class WorldModelSandbox:
         self.config = config or SandboxConfig()
         self.last_profile = {}
         self.last_cache = {}
+        self._prefetch = None
         accel.install()
 
     @classmethod
@@ -173,6 +225,9 @@ class WorldModelSandbox:
         return cls(Layer2WorldModel.from_release(**layer2_kw), config)
 
     def close(self):
+        if self._prefetch is not None:
+            self._prefetch.shutdown(wait=True)
+            self._prefetch = None
         self.l2.close()
 
     def reset(self, stream=None):
@@ -235,6 +290,13 @@ class WorldModelSandbox:
         self.check_context(state, legal)
         cands = list(candidates)
         steps = [cfg.steps_for(c) for c in cands]
+        warm = None
+        if cfg.maps and cfg.prefetch_maps and cands:
+            if self._prefetch is None:
+                from concurrent.futures import ThreadPoolExecutor
+                self._prefetch = ThreadPoolExecutor(1, thread_name_prefix='sandbox-stage2-prefetch')
+            stay = CandidateTrajectory(state.start_pose[None, :].copy(), query_id='__prefetch__')
+            warm = self._prefetch.submit(self.l2.predict_maps, state, [stay], False)
         # 1. shared Stage 1 bank (cached by Layer 2 for this state object: the batched predict below reuses it)
         b0 = time.perf_counter()
         bank = self.l2.predict_humans(state, worlds=cfg.worlds, seed=cfg.seed)
@@ -248,6 +310,10 @@ class WorldModelSandbox:
         trajs = [CandidateTrajectory(r.trajectory(), query_id=c.query_id, metadata=dict(index=i))
                  for i, (c, r) in enumerate(zip(cands, rollouts))]
         pred = None
+        w0 = time.perf_counter()
+        if warm is not None:
+            warm.result()                       # the warm-up call's own outputs are discarded
+        wait_ms = (time.perf_counter()-w0)*1000
         if trajs:
             if cfg.maps:
                 pred = self.l2.predict(state, trajs, materialize=cfg.materialize, worlds=cfg.worlds, seed=cfg.seed)
@@ -264,6 +330,7 @@ class WorldModelSandbox:
         self.last_profile = dict(candidates=len(cands), total_ms=(done-tick)*1000, stage1_ms=(b1-b0)*1000,
                                  nominal_ms=(b2-b1)*1000, imagine_ms=(b3-b2)*1000, layer2_ms=(b4-b3)*1000,
                                  assemble_ms=(done-b4)*1000, imagined_steps=int(sum(r.steps for r in rollouts)),
+                                 prefetch_wait_ms=wait_ms if warm is not None else None,
                                  stage2_ms=l2p.get('stage2_ms'), interaction_ms=l2p.get('interaction_ms'),
                                  per_candidate_imagine_ms=[r.planner_ms for r in rollouts])
         prov = dict(version=VERSION, hypothetical=True, privileged_runtime_inputs=False,
