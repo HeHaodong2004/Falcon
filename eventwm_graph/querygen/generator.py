@@ -144,6 +144,10 @@ class GeneratorConfig:
                                      # both sidesteps right after goal / st_goal (before the hold, the reset creep and the
                                      # reset route turns).  Falcon's humans walk into a holding robot; at gTV8FGcVJC9's
                                      # spawn K=10 escapes with sidestep_right, which K=6 never offered (its tree died)
+    maneuver_vclose: bool = False    # v12: exact manoeuvres (k-step rotations, creeps) and route turns carry meta 'vclose'
+                                     # (their one-step human check uses the 0.20 m contact-level clearance): spawn
+                                     # turn-aways next to a human (s19Uyn7AWwv's native solution turns 23 steps in place
+                                     # with humans within 1 m for 58% of its steps)
     stop_strict: bool = False        # v12: goal / stgoal queries carry meta 'stop19' (a stuck STOP is declared only within
                                      # 0.19 m: official success needs geodesic < 0.2 m; YM4nG4pSAEJ stopped at 0.21 m)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
@@ -245,6 +249,10 @@ class QueryGenerator:
                         q.meta = dict(q.meta, shum=1)
                     if self.cfg.unstick_progress:
                         q.meta = dict(q.meta, uprog=1)
+        if self.cfg.maneuver_vclose and not self.dyn.stateful:
+            for q in queries:
+                if is_maneuver(q) or (q.kind == 'rotate' and q.label.startswith('turn_')):
+                    q.meta = dict(q.meta, vclose=1)
         if self.cfg.stop_strict:
             for q in queries:
                 if q.kind in ('goal', 'stgoal'):
