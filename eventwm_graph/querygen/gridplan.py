@@ -18,8 +18,9 @@ INF = 1e18
 # cells -- typically a goal on the navmesh edge next to furniture, covered by the legal map's 0.25 m inflated
 # band once seen -- seeds the field from the passable cells within this radius (initial cost = their distance
 # to the target) instead of leaving every cell unreachable (LEFTm3JecaC: every goal query 'unreachable' after
-# the first turn; 13 of 68 DEV/unseen goals lie within 0.1 m of the navmesh edge).
-BLOCKED_TARGET_RELAX_M = 0.0
+# the first turn; 13 of 68 DEV/unseen goals lie within 0.1 m of the navmesh edge).  Default = the v10
+# generator default, so replays that build no generator agree with the search.
+BLOCKED_TARGET_RELAX_M = 0.5
 
 
 @njit(cache=True)

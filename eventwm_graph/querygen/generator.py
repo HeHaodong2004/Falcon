@@ -110,10 +110,13 @@ class GeneratorConfig:
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
                                      # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
-    goal_relax_m: float = 0.0        # v10: planning-field targets inside observed BLOCKED cells (goals on the navmesh
+    goal_relax_m: float = 0.5        # v10: planning-field targets inside observed BLOCKED cells (goals on the navmesh
                                      # edge next to furniture) are relaxed to the passable cells within this radius
                                      # (gridplan.BLOCKED_TARGET_RELAX_M; process-wide, so the authoritative replay
-                                     # in the same process uses it too); 0 = v9 (target unreachable)
+                                     # in the same process uses it too); 0 = v9 (target unreachable).  DEV check
+                                     # (weight 3.5): LEFTm3JecaC 2,091 -> 1,782 edges, 205 -> 144 steps, no
+                                     # 'unreachable' goal decisions; eF36g7L6Z9M 401 -> 306; 9 other near-edge
+                                     # goals unchanged
 
 
 _route_points = resample_route
