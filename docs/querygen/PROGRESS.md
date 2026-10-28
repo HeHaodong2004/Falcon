@@ -477,6 +477,8 @@ then budget scaling of representative DEV failures.
 - Interim results page published (top-down recordings: default vs Oracle on collision and deadlock cases, the
   PFLH failure; charts; metrics table).
 
+Technical report of the current implementation and results: `docs/querygen/TECHNICAL_REPORT.md` (2026-10-28 15:15).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
