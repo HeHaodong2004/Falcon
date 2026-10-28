@@ -110,6 +110,11 @@ class GeneratorConfig:
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
                                      # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
+    turnaround: bool = False         # v11: facing away from the route (> 100 deg) where the body cannot rotate in place
+                                     # on the legal map -> 'turnaround' = goto the nearest reachable spot whose legal
+                                     # map admits a full in-place rotation, then face the route (narrow-corridor spawn
+                                     # facing away: BCWtGkh8CHv drives 1.6 m away to turn; no query expressed it)
+    turnaround_m: float = 3.0        # max path distance to the turning spot
     goal_relax_m: float = 0.5        # v10: planning-field targets inside observed BLOCKED cells (goals on the navmesh
                                      # edge next to furniture) are relaxed to the passable cells within this radius
                                      # (gridplan.BLOCKED_TARGET_RELAX_M; process-wide, so the authoritative replay
@@ -347,6 +352,11 @@ class QueryGenerator:
                                       meta=dict(direction=short)))
             cats['turn'].append(Query('rotate', heading=route_dir, duration=n_long, label=f'turn_{long_}',
                                       meta=dict(direction=long_)))
+        # ---- v11 turn-around spot (no room to rotate here, facing away from the route)
+        if cfg.turnaround and route_dir is not None and abs(wrap(route_dir-pose[3])) > math.radians(100):
+            spot = self._turn_spot(legal, view, rfield, robot_xz, float(pose[3]), route_dir)
+            if spot is not None:
+                cats['turn'].insert(0, Query('goto', via=(spot,), heading=route_dir, label='turnaround'))
         # ---- observation rotations
         gdir = math.atan2(-(goal_xz[1]-robot_xz[1]), goal_xz[0]-robot_xz[0])
         if abs(wrap(gdir-pose[3])) > math.radians(50) and (route_dir is None or abs(wrap(gdir-route_dir)) > math.radians(30)):
@@ -623,6 +633,36 @@ class QueryGenerator:
             out.append(alt)
             prev.append(alt)
         return out
+
+    def _turn_spot(self, legal, view, rfield, robot_xz, psi, route_dir, n_headings=24):
+        """Legal: if the legal map does not certify an in-place rotation toward ``route_dir`` (either way: every
+        body-axis sample of the sweep on observed FREE cells), the nearest reachable cell (robot cost-to-go field,
+        <= turnaround_m, >= 0.3 m away) where it certifies a full rotation (``n_headings`` headings); else None.
+        Certified = observed: the walls that stop a rotation are often behind the robot and still UNKNOWN."""
+        from .control import turn_ok, body_ok
+        cfg = self.cfg
+        gmap = legal.map
+        P = to_plane(robot_xz)
+        err = wrap(route_dir-psi)
+        other = err-math.copysign(2*math.pi, err)
+        if turn_ok(gmap, P, psi, err, False, 0) or turn_ok(gmap, P, psi, other, False, 0):
+            return None
+        lim = cfg.turnaround_m/view.res
+        ii, jj = np.nonzero((rfield <= lim) & ~view.blocked)
+        if len(ii) == 0:
+            return None
+        order = np.argsort(rfield[ii, jj], kind='stable')
+        here = view.to_local(*robot_xz)
+        heads = [2*math.pi*k/n_headings for k in range(n_headings)]
+        for k in order:
+            i, j = int(ii[k]), int(jj[k])
+            if (i-here[0])**2+(j-here[1])**2 < (0.3/view.res)**2:
+                continue
+            xz = view.to_world(i, j)
+            Q = to_plane(xz)
+            if all(body_ok(gmap, Q, h, False, 0) for h in heads):
+                return (float(xz[0]), float(xz[1]))
+        return None
 
     def _frontiers(self, view, rfield, gfield, route):
         cfg = self.cfg
