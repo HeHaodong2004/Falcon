@@ -56,10 +56,11 @@ def capability_svg(cap):
 
 
 def floor_svg(floor):
-    arms = [a for a in ('exec', 'exec_ub', 'exec_ube') if a in floor]
-    names = {'exec': 'v10 baseline', 'exec_ub': 'deadlock breaker + bump memory', 'exec_ube': 'v11: + evasion reflex'}
+    arms = [a for a in ('exec', 'exec_ub', 'exec_ube', 'exec_v12') if a in floor]
+    names = {'exec': 'v10 baseline', 'exec_ub': 'breaker + bump memory', 'exec_ube': 'v11 (+ evasion reflex)',
+             'exec_v12': 'v12 (+ plan keeping, bump-aware reflex)'}
     rows = [(a, p) for a in arms for p in ('orca', 'dwa') if p in floor[a]]
-    W, rh, L = 640, 30, 250
+    W, rh, L = 640, 30, 300
     H = 20+len(rows)*rh+30
     out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Default-policy outcomes by arm and planner">']
     for i, (a, p) in enumerate(rows):
@@ -83,7 +84,7 @@ def floor_svg(floor):
     for _, lab, col in OUTCOMES:
         out.append(f'<rect x="{lx}" y="{H-18}" width="10" height="10" rx="2" fill="{col}"/>'
                    f'<text x="{lx+14}" y="{H-9}" class="tick">{esc(lab)}</text>')
-        lx += 110
+        lx += 14+7*len(lab)+16
     out.append('</svg>')
     return '\n'.join(out)
 
@@ -184,7 +185,7 @@ def main():
                         f'<td class="num">{d["passed"]} / {d["denominator"]}</td><td class="num">{100*d["sr"]:.1f}%</td>'
                         f'<td class="num">{d["finished"]}</td><td class="num">{spl}</td><td class="num">{psc}</td>'
                         f'<td class="num">{d["hcoll_among_solved"]:.0f}</td><td class="num">{steps}</td>'
-                        f'<td class="num">{edges}</td><td>{esc(fails)}</td></tr>')
+                        f'<td class="num">{edges}</td><td class="wrap">{esc(fails)}</td></tr>')
     tiles = extra.get('tiles', [])
     tile_html = '\n'.join(f'<div class="tile"><div class="tv">{esc(t["value"])}</div><div class="tl">{esc(t["label"])}</div>'
                           f'<div class="ts">{esc(t.get("sub", ""))}</div></div>' for t in tiles)
@@ -195,16 +196,14 @@ def main():
         for k, p, c in media)
     m = rep['minint']
     rd = rep.get('readiness')
-    readiness_html = ''
+    readiness_html = good_html = ''
     if rd:
         rc = rd.get('recovery') or {}
         rec_txt = (f"One-decision recovery: after a candidate whose default continuation fails, one later decision "
                    f"still saves the episode in {100*rc['recovered']:.0f}% of {rc['tested']} tested cases"
                    if rc.get('recovered') is not None else '')
-        readiness_html = f"""<section class="two">
-<div class="card"><h2>Can legal information pick a good query?</h2><p>Share of {rd['states']} decision states ({rd['episodes']} solved episodes) where each selection rule picks a candidate that the default policy then carries to an official success. Grey bars are references.</p>{readiness_svg(rd)}</div>
-<div class="card"><h2>Good candidates per decision state</h2><p>Candidates (of {rd['K_mean']:.1f} on average) after which the default policy succeeds; 1 means a single right answer, 2 or more means several reasonable choices. {esc(rec_txt)}.</p>{good_hist_svg(rd)}</div>
-</section>"""
+        readiness_html = f"""<section class="card"><h2>Can legal information pick a good query?</h2><p>Share of {rd['states']} decision states ({rd['episodes']} solved episodes) where each selection rule picks a candidate that the default policy then carries to an official success. Grey bars are references.</p>{readiness_svg(rd)}</section>"""
+        good_html = f"""<div class="card"><h2>Good candidates per decision state</h2><p>Candidates (of {rd['K_mean']:.1f} on average) after which the default policy succeeds; 1 means a single right answer, 2 or more means several reasonable choices. {esc(rec_txt)}.</p>{good_hist_svg(rd)}</div>"""
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Falcon Query-Space Foundation</title>
@@ -238,7 +237,7 @@ svg .lab {{ fill:var(--ink); }} svg .tick {{ fill:var(--muted); }} svg .inbar {{
 .two {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }}
 .tablewrap {{ overflow-x:auto; }} table {{ border-collapse:collapse; width:100%; font-size:13px; }}
 th, td {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--grid); white-space:nowrap; }}
-td.num, th.num {{ text-align:right; font-variant-numeric:tabular-nums; }}
+td.num, th.num {{ text-align:right; font-variant-numeric:tabular-nums; }} td.wrap {{ white-space:normal; min-width:160px; }}
 .sw {{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:baseline; }}
 .media {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:16px; }}
 figure {{ margin:0; display:grid; gap:6px; }} video, img {{ max-width:100%; border-radius:8px; border:1px solid var(--ring); background:var(--surface); }}
@@ -252,11 +251,12 @@ figcaption {{ color:var(--ink2); font-size:13px; }} ul {{ margin:0; padding-left
 <p>Share of episodes solved by the privileged Oracle selecting among the generator's legal queries, over every episode not proven natively infeasible (unfinished and unresolved episodes count as failures). Hover a bar for counts.</p>
 <div style="display:flex;gap:16px;flex-wrap:wrap">{''.join(f'<span><span class="sw" style="background:{c}"></span>{esc(n)}</span>' for _, n, c in CFG)}</div>
 {capability_svg(cap)}</section>
-<section class="two">
-<div class="card"><h2>Default policy without selection</h2><p>Keep the running query, else the goal query; no Layer 3. Outcomes per foundation variant and planner.</p>{floor_svg(rep['floor'])}</div>
-<div class="card"><h2>Critical decisions per solved episode</h2><p>Minimum number of non-default queries the Oracle needs (C1 ORCA, K=10; {m['episodes']} episodes so far, median {m['critical_median']}).</p>{crit_svg(m)}</div>
-</section>
+<section class="card"><h2>Default policy without selection</h2><p>Keep the running query, else the goal query; no Layer 3. Outcomes per foundation variant and planner (hover for counts).</p>{floor_svg(rep['floor'])}</section>
 {readiness_html}
+<section class="two">
+<div class="card"><h2>Critical decisions per solved episode</h2><p>Minimum number of non-default queries the Oracle needs (C1 ORCA, K=10; {m['episodes']} episodes, median {m['critical_median']}).</p>{crit_svg(m)}</div>
+{good_html}
+</section>
 <section class="card"><h2>Official metrics on solved episodes</h2><div class="tablewrap"><table>
 <thead><tr><th>Configuration</th><th>Suite</th><th class="num">Solved</th><th class="num">SR</th><th class="num">Finished</th><th class="num">SPL</th><th class="num">PSC</th><th class="num">H-Coll</th><th class="num">Steps P50</th><th class="num">Oracle edges P50 / P95</th><th>Failures</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div></section>
