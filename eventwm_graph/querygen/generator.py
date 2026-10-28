@@ -94,6 +94,11 @@ class GeneratorConfig:
     vc_variants: tuple = ()          # v12: also offer contact-level copies of these fixed queries (labels + '_vc'; meta
                                      # tight=2 + vclose: 0.20 m hard clearance to predicted human centres, small planner
                                      # proxies; discrete instant-stop robots only), e.g. ('goal', 'st_goal')
+    vc_tight: int = 2                # v15 candidate: wall-band rings relabelled UNKNOWN for the contact-level ('_vc') copies.
+                                     # The legal band (0.25 m around wall hits at 0.2-1.4 m) is stricter than the native
+                                     # robot, which moves kinematically on the navmesh and may scrape walls (official
+                                     # rules): p32JzpQyhPk's witness crosses band cells even at tight=2, with static
+                                     # contact in 9 of 35 steps; 3 = the whole band (bump memory still learns obstacles)
     xc_variants: tuple = ()          # v14 candidate: committed contact-level copies of these fixed queries (labels + '_xc';
                                      # meta tight=2 + vclose + commit: the planner follows the body-aware static plan
                                      # whenever the next pose keeps the 0.20 m one-step clearance to predicted human
@@ -364,7 +369,7 @@ class QueryGenerator:
         if cfg.vc_variants and variants_on and not self.dyn.stateful:
             for q in [x for x in fixed if x.label in cfg.vc_variants]:
                 fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
-                                   label=q.label+'_vc', meta=dict(q.meta, tight=2, vclose=1)))
+                                   label=q.label+'_vc', meta=dict(q.meta, tight=int(cfg.vc_tight), vclose=1)))
         if cfg.xc_variants and variants_on and not self.dyn.stateful:
             for q in [x for x in fixed if x.label in cfg.xc_variants]:
                 fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
