@@ -94,6 +94,12 @@ class GeneratorConfig:
     vc_variants: tuple = ()          # v12: also offer contact-level copies of these fixed queries (labels + '_vc'; meta
                                      # tight=2 + vclose: 0.20 m hard clearance to predicted human centres, small planner
                                      # proxies; discrete instant-stop robots only), e.g. ('goal', 'st_goal')
+    variant_gating: bool = False     # v12: offer the tight / contact-level goal copies (tc_variants, vc_variants) only where
+                                     # they can behave differently from the plain query: at the reset state, with a tracked
+                                     # human within variant_human_m, when no legal goal route exists, or after a legal
+                                     # stall.  In open space the six goal variants drive identically: 74% of v12 edges on
+                                     # bXu6SSWkJY8 / PUNuHY5M7MS were duplicates, and they crowd out turns / sidesteps
+    variant_human_m: float = 3.0
     st_goal: bool = False            # v9: also offer 'st_goal' (legal space-time lattice plan to the goal,
                                      # stplan.py) as a fixed candidate (native-like discrete robots only)
     v9_select: bool = True           # v9: approach gated by legal *route* length; K=10 quotas from solution usage
@@ -311,7 +317,14 @@ class QueryGenerator:
         fixed.append(Query('goal', label='goal'))
         if cfg.st_goal and (not self.dyn.stateful or cfg.st_goal_momentum):
             fixed.append(Query('stgoal', label='st_goal'))
-        if cfg.tc_variants:
+        variants_on = True
+        if cfg.variant_gating:
+            P = to_plane(robot_xz)
+            variants_on = (len(legal.poses) <= 1 or route is None or
+                           any(float(np.hypot(*(h.position-P))) <= cfg.variant_human_m for h in humans) or
+                           self._stalled(legal))
+            diag['variants'] = variants_on
+        if cfg.tc_variants and variants_on:
             # mixed mode: explicit squeeze variants (tight wall band + close passes for robots that stop
             # within one step); tight-only for robots with momentum
             tc_meta = dict(tight=1) if self.dyn.stateful else dict(tight=1, close=1)
@@ -319,7 +332,7 @@ class QueryGenerator:
                 if q.label in cfg.tc_variants:
                     fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
                                        label=q.label+'_tc', meta=dict(q.meta, **tc_meta)))
-        if cfg.vc_variants and not self.dyn.stateful:
+        if cfg.vc_variants and variants_on and not self.dyn.stateful:
             for q in [x for x in fixed if x.label in cfg.vc_variants]:
                 fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
                                    label=q.label+'_vc', meta=dict(q.meta, tight=2, vclose=1)))
