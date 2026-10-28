@@ -377,6 +377,23 @@ then budget scaling of representative DEV failures.
   succeeds at ~ n * min_i(edges_i): single-member runs score any combination offline
   (`tests/querygen/virtual_portfolio.py`).  Two v9/r2-style variants at a fixed budget gain little
   (budget halving offsets the complementary solves), so members must be chosen by data.
+- **Where branches lose time against witnesses** (`tests/querygen/branch_lag.py`, r2 best branches):
+  * LEFTm3JecaC (witness 54 steps, a continuous right arc through the inflated band): after the first turn
+    the robot sees the furniture next to the goal and the legal map's 0.25 m inflated band covers the goal
+    cell; gridplan's Dijkstra skipped blocked sources, so every goal-directed query was 'unreachable' (the
+    v9 solution spun 12 steps, then tight queries found the way).  13 of 68 DEV/unseen goals lie within
+    0.1 m of the navmesh edge (LEFT, iePH, Vvot 0.0 m; 3t8D, wz9F, mJXq, Nfvx < 0.075 m).  -> v10 option
+    `goal_relax_m` (field seeded from passable cells near a blocked target; commit 81d01a84), under test.
+  * Nfvxx8J5NCo: the branch tracks the witness within 3-8 steps for 80 steps, then loses ~15 at the side
+    passage entrance (stop-turn-crawl where the witness turns while moving through the band); a human
+    then blocks the junction.  YRUkbU5xsYj: 11 steps lost in the confined spawn turn-around (the witness:
+    12 right, 1 forward, 29 left), then a passage the witness crosses 0.7 m from humans.
+  * p4ZPcGtk6Ex / W16Bm4ysK8v: the witness reaches a waiting spot early, waits (50 / 15 steps) and passes
+    a bottleneck in a short window (0.7 m from a human); the branches arrive 18-45 steps late after
+    non-progress decisions (a goal query that alternates left/right 'jammed' for 16 steps; advances that
+    lose ground).
+  * 3t8DB4Uzvkt (r2): 2,119 of 2,624 expansions at t = 25-50 near the spawn; waiting far from humans is
+    pruned (time enters the duplicate key only within 4 m of a human) -- `time_key_slack` under test.
 
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
