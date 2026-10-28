@@ -94,6 +94,13 @@ class GeneratorConfig:
     vc_variants: tuple = ()          # v12: also offer contact-level copies of these fixed queries (labels + '_vc'; meta
                                      # tight=2 + vclose: 0.20 m hard clearance to predicted human centres, small planner
                                      # proxies; discrete instant-stop robots only), e.g. ('goal', 'st_goal')
+    xc_variants: tuple = ()          # v14 candidate: committed contact-level copies of these fixed queries (labels + '_xc';
+                                     # meta tight=2 + vclose + commit: the planner follows the body-aware static plan
+                                     # whenever the next pose keeps the 0.20 m one-step clearance to predicted human
+                                     # centres, otherwise holds -- no soft avoidance).  The v12 development failures are
+                                     # decisive close passes: VqCaAuuoeWk slips into a corridor beside a walking human,
+                                     # p32JzpQyhPk follows one within 0.4 m, Nfvxx8J5NCo loses 8-20 steps to soft
+                                     # avoidance at a bottleneck and meets the next human
     variant_gating: bool = False     # v12: offer the tight / contact-level goal copies (tc_variants, vc_variants) only where
                                      # they can behave differently from the plain query: at the reset state, with a tracked
                                      # human within variant_human_m, when no legal goal route exists, or after a legal
@@ -295,7 +302,7 @@ class QueryGenerator:
                     q.meta = dict(q.meta, blind=1)
         if self.cfg.goal_unknown_cost > 0:
             for q in queries:
-                if q.kind == 'goal' and not q.via and q.label in ('goal', 'goal_tc', 'goal_vc'):
+                if q.kind == 'goal' and not q.via and q.label in ('goal', 'goal_tc', 'goal_vc', 'goal_xc'):
                     q.meta = dict(q.meta, unknown_cost=float(self.cfg.goal_unknown_cost))
         if self.cfg.primitives and self.dyn.native_actions:
             queries = list(queries)+primitive_queries()
@@ -358,6 +365,10 @@ class QueryGenerator:
             for q in [x for x in fixed if x.label in cfg.vc_variants]:
                 fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
                                    label=q.label+'_vc', meta=dict(q.meta, tight=2, vclose=1)))
+        if cfg.xc_variants and variants_on and not self.dyn.stateful:
+            for q in [x for x in fixed if x.label in cfg.xc_variants]:
+                fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
+                                   label=q.label+'_xc', meta=dict(q.meta, tight=2, vclose=1, commit=1)))
         closest = False
         if cfg.stop_closest_m > 0 and cfg.stop_radius <= gd < cfg.stop_closest_m:
             gi, gj = view.to_local(*goal_xz)

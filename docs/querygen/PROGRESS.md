@@ -551,6 +551,26 @@ in stuck mode.  Not applicable to the frozen gate system.
 - Default-policy failure mix (v12, 128 eps): ORCA 34 human collisions / 22 timeouts, DWA 49 / 14; goal overshoot is
   rare (7 / 256 runs).
 
+## 2026-10-28 ~19:10: user -- the privileged witness fallback is the LAST resort
+- User (after checking v13): do not use the privileged fallback unless every other approach failed.  Consequences:
+  gate claims use query-level results only (v12, or v13's ordinary search = v12's); v13's fallback is reported only
+  as a labelled diagnostic; v14+ do not enable `primitives` / `prim_fallback_sims`.  Fallback experiments (v13fb,
+  witness-weight tests, fallback expert benchmark) were stopped; the expert benchmark restarted query-level only
+  (`output/runs/official/expert_q_cap1500`: v12 search + exact fast sensor).
+- Why the v12 development failures fail at the query level (branch vs native witness, `tests/querygen/branch_lag.py`):
+  * VqCaAuuoeWk: crowded spawn (7,272 of 12,000 edges are spawn manoeuvres, 5,252 edges end in contact); the
+    witness slips into a corridor beside a walking human (Falcon's humans never yield).
+  * p32JzpQyhPk: the witness waits (turns in place) ~40 steps, then follows a human through a narrow corridor
+    within 0.4 m; the query-level robot keeps its distance / waits (wait_short 1,077 edges) and its best branch
+    ends jammed in a dead-end pocket (legal-map body checks).
+  * Nfvxx8J5NCo: the branch follows the witness's route but loses 2-20 steps to soft avoidance at a bottleneck and
+    meets the next human at the last passage.
+  Common gap: decisive close passes / following.  v14 candidate `xc_variants` (committed contact-level goal copies:
+  tight 2 + vclose + ORCA commit; replacing the `_vc` copies inside K) under test (`output/runs/official/v14xc`).
+- Other v14 candidates: `goal_unknown_cost=1.25` (default policy 30 paired: success 14 -> 16, SPL 0.66 -> 0.70;
+  Oracle 12 paired: all pass, edges -32%, SPL -0.013); path-aware SPL refinement (+0.095 SPL on the 9 lowest).
+  Sixth unseen suite frozen for a v14 test (`suites_unseen6.json`, HM3D only).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.

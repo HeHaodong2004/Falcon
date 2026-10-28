@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # v14 development runs under the OFFICIAL Falcon rules: DEV + unseen 1-5 (unseen 5 is consumed by the v13 gate test;
-# run it here only after that test has finished).  v14 = v13 + goal-route UNKNOWN cost 1.25 (generator
-# goal_unknown_cost: the default policy no longer drives away from a goal behind the spawn) + the path-aware SPL
-# refinement (Oracle improve_edges 300, improve_lambda 1, improve_below_spl 0.85).
+# run it here only after that test has finished).  v14 = the v12 query-level system (fast exact sensor; NO privileged
+# witness fallback -- user, 2026-10-28 19:10: the fallback is the last resort, used only if every other approach fails)
+# + goal-route UNKNOWN cost 1.25 (generator goal_unknown_cost: the default policy no longer drives away from a goal
+# behind the spawn) + the path-aware SPL refinement (Oracle improve_edges 300, improve_lambda 1, improve_below_spl 0.85).
 #   scripts/querygen_dev_v14.sh CONFIG OUT_ROOT [GEN_OVERRIDES_JSON] [ORACLE_OVERRIDES_JSON]
 #   CONFIG = c1k10 | c1k6 | c2k10
 #   W_DEV / W_UNSEEN / W_UNSEEN2 / W_UNSEEN3 / W_UNSEEN4 / W_UNSEEN5 (env) worker counts (default 4 / 5 / 5 / 6 / 6 / 6)
@@ -18,9 +19,9 @@ PY=/home/haodong/miniforge3/envs/eventwm-falcon/bin/python
 cd "$QG_REPO"
 export QG_TAPE_CACHE="$QG_REPO/output/runs/official/tapes"     # exact human-tape cache (setup 28 s -> ~0 s)
 export QG_FAST_SENSE=1                                          # exact fast legal sensor (tests/querygen/test_fastsense.py)
-ORACLE='{"heading_h": true, "escape_penalty": 80, "prefix_cache": 48, "max_edges": 12000, "max_seconds": 40000, "portfolio": [{"weight": 3.5}, {"st_radius": 0.6, "st_radius_opt": 0}], "prim_fallback_sims": 400000, "improve_edges": 300, "improve_lambda": 1.0, "improve_below_spl": 0.85}'
+ORACLE='{"heading_h": true, "escape_penalty": 80, "prefix_cache": 48, "max_edges": 12000, "max_seconds": 40000, "portfolio": [{"weight": 3.5}, {"st_radius": 0.6, "st_radius_opt": 0}], "improve_edges": 300, "improve_lambda": 1.0, "improve_below_spl": 0.85}'
 # v12 foundation (legal-only): default-policy options + capability fixes
-F='"goal_unstick": 6, "bump_memory_m": 0.25, "evade": true, "unstick_keep": true, "bump_front": true, "static_humans": true, "stop_strict": true, "unstick_progress": true, "goal_relax_m": 0.5, "stop_closest_m": 1.2, "primitives": true, "goal_unknown_cost": 1.25'
+F='"goal_unstick": 6, "bump_memory_m": 0.25, "evade": true, "unstick_keep": true, "bump_front": true, "static_humans": true, "stop_strict": true, "unstick_progress": true, "goal_relax_m": 0.5, "stop_closest_m": 1.2, "goal_unknown_cost": 1.25'
 case "$CFG" in
   c1k10) PL=orca; GEN="{\"tc_variants\": [\"goal\", \"st_goal\"], \"vc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, $F}" ;;
   c1k6)  PL=orca; GEN="{\"select\": \"compact\", \"budget\": 6, \"tc_variants\": [\"goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, \"compact_long_turns\": true, \"compact_human_first\": true, $F}" ;;

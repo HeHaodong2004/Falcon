@@ -18,8 +18,8 @@ PY=/home/haodong/miniforge3/envs/eventwm-falcon/bin/python
 cd "$QG_REPO"
 export QG_TAPE_CACHE="$QG_REPO/output/runs/official/tapes"     # exact human-tape cache
 export QG_FAST_SENSE=1                                          # exact fast legal sensor
-ORACLE='{"heading_h": true, "escape_penalty": 80, "prefix_cache": 48, "max_edges": 12000, "max_seconds": 40000, "portfolio": [{"weight": 3.5}, {"st_radius": 0.6, "st_radius_opt": 0}], "prim_fallback_sims": 400000, "improve_edges": 300, "improve_lambda": 1.0, "improve_below_spl": 0.85}'
-F='"goal_unstick": 6, "bump_memory_m": 0.25, "evade": true, "unstick_keep": true, "bump_front": true, "static_humans": true, "stop_strict": true, "unstick_progress": true, "goal_relax_m": 0.5, "stop_closest_m": 1.2, "primitives": true, "goal_unknown_cost": 1.25'
+ORACLE='{"heading_h": true, "escape_penalty": 80, "prefix_cache": 48, "max_edges": 12000, "max_seconds": 40000, "portfolio": [{"weight": 3.5}, {"st_radius": 0.6, "st_radius_opt": 0}], "improve_edges": 300, "improve_lambda": 1.0, "improve_below_spl": 0.85}'
+F='"goal_unstick": 6, "bump_memory_m": 0.25, "evade": true, "unstick_keep": true, "bump_front": true, "static_humans": true, "stop_strict": true, "unstick_progress": true, "goal_relax_m": 0.5, "stop_closest_m": 1.2, "goal_unknown_cost": 1.25'
 POLICY=oracle
 case "$CFG" in
   c1k10) PL=orca; GEN="{\"tc_variants\": [\"goal\", \"st_goal\"], \"vc_variants\": [\"goal\", \"st_goal\"], \"st_goal\": true, \"maneuver_spawn_only\": false, $F}" ;;
