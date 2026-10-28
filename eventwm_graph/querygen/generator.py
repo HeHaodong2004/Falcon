@@ -123,6 +123,10 @@ class GeneratorConfig:
     bump_front: bool = False         # v12: evade / unstick queries carry meta 'bumpf' (their forward checks respect
                                      # bump memory at the body's front contact point; iePHCSf119p: the evasion reflex
                                      # pushed 'forward' into an unseen obstacle for 100+ steps)
+    static_humans: bool = False      # v12: unstick goal queries carry meta 'shum' (standing tracked humans -- Falcon's
+                                     # humans stop for good after 100-400 steps -- do not block escalation, and the
+                                     # escalated plan routes around a 0.35 m disc per standing human; Nfvxx8J5NCo held
+                                     # 300 steps behind two standing humans at 1.0 / 1.3 m)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
                                      # within 2 m -> tight map + plan following under the hard human check); 0 = off
     creep_blind: bool = False        # v11: exact creeps of robots with momentum skip the legal-map body gate (like the
@@ -218,6 +222,8 @@ class QueryGenerator:
                     q.meta = dict(q.meta, unstick=int(self.cfg.goal_unstick))
                     if self.cfg.unstick_keep:
                         q.meta = dict(q.meta, ukeep=1)
+                    if self.cfg.static_humans:
+                        q.meta = dict(q.meta, shum=1)
         if self.cfg.bump_front:
             for q in queries:
                 if (q.meta or {}).get('evade') or (q.meta or {}).get('unstick'):

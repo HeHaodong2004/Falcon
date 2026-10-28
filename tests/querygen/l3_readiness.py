@@ -61,6 +61,8 @@ def default_meta_of(gen_cfg):
         m['evade'] = 1
     if m.get('unstick') and (gen_cfg or {}).get('unstick_keep'):
         m['ukeep'] = 1
+    if m.get('unstick') and (gen_cfg or {}).get('static_humans'):
+        m['shum'] = 1
     if m and (gen_cfg or {}).get('bump_front'):
         m['bumpf'] = 1
     return m

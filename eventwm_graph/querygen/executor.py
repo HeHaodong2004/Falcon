@@ -93,6 +93,52 @@ def tight_legal(legal, cells):
     return _TightLegal(legal, cells) if cells else legal
 
 
+STATIC_HUMAN_SPEED = 0.05    # m/s: a tracked human with a valid velocity estimate below this is standing still
+STATIC_HUMAN_R = 0.35        # m: BLOCKED disc around a standing human for escalated plans (body ~0.25 m + 0.1 m)
+
+
+def static_humans(legal):
+    """Legally tracked humans that stand still (valid constant-velocity estimate below STATIC_HUMAN_SPEED).
+    Falcon's humans stop for good once their waypoint routes end (typically after 100-400 steps)."""
+    return [h for h in human_estimates(legal.tracks, legal.time)
+            if h.valid_velocity and float(np.hypot(*h.velocity)) < STATIC_HUMAN_SPEED]
+
+
+class _StaticHumanLegal:
+    """Legal state whose map also marks a disc around every standing tracked human BLOCKED (v12 meta 'shum'):
+    an escalated plan routes around standing humans like around furniture instead of holding behind them (the
+    one-step hard human check still applies).  The revision key includes the disc cells, so plans and fields
+    refresh when a human starts or stops."""
+
+    def __init__(self, legal, humans):
+        from .legal import GridMap, BLOCKED
+        g0 = legal.map
+        g = GridMap.__new__(GridMap)
+        g.__dict__.update(g0.__dict__)
+        st = g0.state.copy()
+        n = int(math.ceil(STATIC_HUMAN_R/g0.res))
+        cells = set()
+        for h in humans:
+            x, z = to_world(h.position)
+            ci, cj = g0.index(x, z)
+            for a in range(-n, n+1):
+                for b in range(-n, n+1):
+                    i, j = ci+a, cj+b
+                    if not g0.inside(i, j):
+                        continue
+                    cx, cz = g0.center_xz(i, j)
+                    if math.hypot(cx-x, cz-z) <= STATIC_HUMAN_R:
+                        st[i, j] = BLOCKED
+                        cells.add((i+g0.ox, j+g0.oz))
+        g.state = st
+        g.revision = (g0.revision, tuple(sorted(cells)))
+        self._legal = legal
+        self.map = g
+
+    def __getattr__(self, k):
+        return getattr(self._legal, k)
+
+
 @dataclass
 class Query:
     kind: str
@@ -104,7 +150,7 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade', 'ukeep', 'bumpf')    # meta flags that change the execution
+                 'evade', 'ukeep', 'bumpf', 'shum')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -230,7 +276,10 @@ class QueryExecution:
         self._last_xz = xz
         if self._still >= n:
             P = to_plane(xz)
-            near = any(float(np.hypot(*(h.position-P))) < 2.0 for h in human_estimates(legal.tracks, legal.time))
+            shum = bool((self.query.meta or {}).get('shum'))
+            near = any(float(np.hypot(*(h.position-P))) < 2.0 and not
+                       (shum and h.valid_velocity and float(np.hypot(*h.velocity)) < STATIC_HUMAN_SPEED)
+                       for h in human_estimates(legal.tracks, legal.time))
             if not near:
                 self.escalated = True
                 self.plan = None
@@ -320,6 +369,10 @@ class QueryExecution:
         self._update_unstick(legal)
         raw_legal = legal
         legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)) or (1 if self.escalated else 0))
+        if self.escalated and (self.query.meta or {}).get('shum'):
+            sh = static_humans(raw_legal)
+            if sh:
+                legal = _StaticHumanLegal(legal, sh)
         prim = self._step_kin(legal, level)
         if (self.query.meta or {}).get('evade') and self.dyn.discrete and prim in ('forward', 'left', 'right') \
                 and self.status == 'running':

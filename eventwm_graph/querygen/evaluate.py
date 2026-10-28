@@ -161,6 +161,8 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
         meta['evade'] = 1
     if n and (gen_kw or {}).get('unstick_keep'):
         meta['ukeep'] = 1
+    if n and (gen_kw or {}).get('static_humans'):
+        meta['shum'] = 1
     if (gen_kw or {}).get('bump_front') and meta:
         meta['bumpf'] = 1
     q = Query('goal', label='goal', meta=meta)
