@@ -92,6 +92,18 @@ class OracleConfig:
     block_horizon_m: float = 8.0      # path length checked ahead
     block_step: int = 4               # departure-delay resolution (steps)
     block_max: int = 240              # cap (steps) when no clear departure is found
+    portfolio: list = field(default_factory=list)
+                                      # v10: [] = one search.  Otherwise one OracleConfig override dict per member
+                                      # search (e.g. [{}, {"weight": 3.5}]): the members are independent best-first
+                                      # searches over the same generator queries from the same reset, run
+                                      # interleaved (the member with the fewest simulated edges per share goes
+                                      # next) under the shared max_edges / max_seconds budget; the first success
+                                      # wins.  Search cost is heavy-tailed (small, unrelated changes moved single
+                                      # episodes between 30 and 12,000 edges), which differently ordered
+                                      # searches cut
+    portfolio_shares: list = field(default_factory=list)   # relative edge shares of the members (default equal)
+    noise: float = 0.                 # v10: deterministic pseudo-random edge priority offset in [0, noise) steps (a
+    noise_seed: int = 0               # randomised tie-break / restart member of a portfolio; 0 = off)
 
 
 class SpaceTimeHeuristic:
@@ -374,10 +386,16 @@ class EscapeMap:
 
 
 class Oracle:
-    def __init__(self, runtime, generator, config=None):
+    def __init__(self, runtime, generator, config=None, shared=None, member=0):
         self.rt = runtime
         self.gen = generator
         self.cfg = config or OracleConfig()
+        # heavy privileged tables (space-time, escape map, body cost-to-go) shared by portfolio members
+        self._shared = shared if shared is not None else {}
+        self.member = int(member)
+        self._ord_attr = '_qg_ordinary' if not self.member else f'_qg_ordinary{self.member}'
+        self._org_attr = '_qg_origin' if not self.member else f'_qg_origin{self.member}'
+        self._best = None
         self._st = None
         self._st_opt = None
         self._witness = None
@@ -442,7 +460,8 @@ class Oracle:
             h = max(h, hw)
         if cfg.escape_h:
             if self._escmap is None:
-                self._escmap = EscapeMap(self.rt, astar_sims=cfg.escape_h_sims, min_blocked=cfg.escape_h_min_blocked)
+                self._escmap = self._cached(('escmap', cfg.escape_h_sims, cfg.escape_h_min_blocked), lambda: EscapeMap(
+                    self.rt, astar_sims=cfg.escape_h_sims, min_blocked=cfg.escape_h_min_blocked))
                 em = self._escmap
                 self.stats['escape_map'] = dict(active=em.active, mode=em.mode, first_escape=em.first, states=em.states,
                                                 blocked_early=em.blocked_early,
@@ -455,7 +474,7 @@ class Oracle:
         hs = 0.
         if cfg.body_h and self._body is None:
             from .bodyh import BodyCostToGo
-            self._body = BodyCostToGo(self.rt, band_cost=cfg.body_band_cost)
+            self._body = self._cached(('body', cfg.body_band_cost), lambda: BodyCostToGo(self.rt, band_cost=cfg.body_band_cost))
             self.stats['body_h'] = dict(shape=list(self._body.shape), seconds=round(self._body.seconds, 2))
         if cfg.heading_h and st.geodesic == st.geodesic and st.geodesic > 0.3:
             hb = self._body.heading_cost(st.legal.pose) if cfg.body_h else None
@@ -468,12 +487,12 @@ class Oracle:
         if cfg.st_heuristic:
             if self._st is None:
                 t = time.perf_counter()
-                self._st = SpaceTimeHeuristic(self.rt, radius=cfg.st_radius)
+                self._st = self._cached(('st', cfg.st_radius), lambda: SpaceTimeHeuristic(self.rt, radius=cfg.st_radius))
                 if cfg.st_radius_opt:
                     from .native import BODY_PROXY_M, ROBOT_BOUNDS
                     r = cfg.st_radius_opt if cfg.st_radius_opt > 0 else \
                         BODY_PROXY_M+min(abs(b) for b in ROBOT_BOUNDS)-self._st.cell*math.sqrt(2)/2
-                    self._st_opt = SpaceTimeHeuristic(self.rt, radius=r)
+                    self._st_opt = self._cached(('st', r), lambda: SpaceTimeHeuristic(self.rt, radius=r))
                 self.stats['st_build_s'] = time.perf_counter()-t
             p = st.legal.pose
             v = self._st.value(float(p[0]), float(p[2]), st.index)
@@ -485,6 +504,18 @@ class Oracle:
         elif cfg.block_weight:
             pen += cfg.block_weight*self._block_time(st)
         return st.index+cfg.weight*h+pen
+
+    def _noise(self, node, q):
+        """Deterministic uniform [0, 1) from (seed, node pose/time, query) -- process-independent (crc32)."""
+        import zlib
+        p = node.legal.pose
+        k = f"{self.cfg.noise_seed}|{node.index}|{p[0]:.3f}|{p[2]:.3f}|{p[3]:.3f}|{q.label}|{q.kind}"
+        return zlib.crc32(k.encode())/4294967296.
+
+    def _cached(self, key, make):
+        if key not in self._shared:
+            self._shared[key] = make()
+        return self._shared[key]
 
     def _in_spawn(self, node, radius=1.0):
         p = node.legal.pose
@@ -613,18 +644,105 @@ class Oracle:
         return 4.
 
     def search(self):
+        if self.cfg.portfolio:
+            return self._search_portfolio()
         if self.cfg.lazy:
             return self._search_lazy()
         return self._search_eager()
 
     def _search_lazy(self):
-        """Best-first over *edges*: an edge (node, query) is simulated when popped."""
+        it = self._lazy_iter()
+        while True:
+            try:
+                next(it)
+            except StopIteration as stop:
+                return stop.value
+
+    def _search_portfolio(self):
+        """Interleaved independent searches (``OracleConfig.portfolio``) under one edge budget."""
+        from dataclasses import replace
+        base = self.cfg
+        t0 = time.perf_counter()
+        n = len(base.portfolio)
+        shares = [float(x) for x in base.portfolio_shares] if base.portfolio_shares else [1.]*n
+        assert len(shares) == n and min(shares) > 0
+        members = []
+        for i, over in enumerate(base.portfolio):
+            cfg = replace(base, portfolio=[], portfolio_shares=[], lazy=True, **over)
+            members.append(Oracle(self.rt, self.gen, cfg, shared=self._shared, member=i))
+            members[-1]._member_over = dict(over)
+        its = [m._lazy_iter() for m in members]
+        status = ['running']*n
+        win = None
+        while time.perf_counter()-t0 < base.max_seconds:
+            used = sum(m.stats['children'] for m in members)
+            if used >= base.max_edges:
+                break
+            live = [i for i in range(n) if status[i] == 'running']
+            if not live:
+                break
+            i = min(live, key=lambda j: (members[j].stats['children']/shares[j], j))
+            try:
+                next(its[i])
+            except StopIteration as stop:
+                res = stop.value
+                if res['success']:
+                    status[i] = 'success'
+                    win = (i, res)
+                    break
+                status[i] = 'exhausted'
+        for i in range(n):
+            if status[i] == 'running':
+                status[i] = 'budget'
+        stats = self._merge_stats(members, status, shares)
+        if win is not None:
+            stats['portfolio_winner'] = win[0]
+            st, ok = win[1]['state'], True
+        else:
+            bests = [m._best for m in members if m._best is not None]
+            st, ok = min(bests, key=lambda b: b.geodesic) if bests else self.rt.root, False
+        self.stats = stats
+        return self._result(st, t0, ok)
+
+    @staticmethod
+    def _merge_stats(members, status, shares):
+        S = dict(expansions=0, children=0, outcomes={}, by_label={}, gen_s=0., run_s=0., raw_candidates=0,
+                 kept_candidates=0, gen_ms=[], edge_ms=[], edge_steps=[], exp_log=[])
+        for i, m in enumerate(members):
+            s = m.stats
+            for k in ('expansions', 'children', 'gen_s', 'run_s', 'raw_candidates', 'kept_candidates', 'duplicates',
+                      'goal_tests', 'deferred', 'predict_s'):
+                if k in s:
+                    S[k] = S.get(k, 0)+s[k]
+            for k in ('gen_ms', 'edge_ms', 'edge_steps'):
+                S[k].extend(s[k])
+            S['exp_log'].extend(tuple(e)+(i,) for e in s.get('exp_log', []))
+            for k in ('outcomes', 'dup_by_label'):
+                for a, b in s.get(k, {}).items():
+                    S.setdefault(k, {})[a] = S.setdefault(k, {}).get(a, 0)+b
+            for a, b in s['by_label'].items():
+                d = S['by_label'].setdefault(a, dict(n=0, fail=0))
+                d['n'] += b['n']; d['fail'] += b['fail']
+            for k in ('escape_map', 'body_h', 'witness_steps'):
+                if k in s and k not in S:
+                    S[k] = s[k]
+            S['st_build_s'] = S.get('st_build_s', 0.)+s.get('st_build_s', 0.)
+        S['portfolio'] = [dict(member=i, overrides=m._member_over, share=shares[i], status=status[i],
+                               children=m.stats['children'], expansions=m.stats['expansions'],
+                               best_geodesic=None if m._best is None else round(float(m._best.geodesic), 3),
+                               escaped_at_edge=m.stats.get('escaped_at_edge'))
+                          for i, m in enumerate(members)]
+        return S
+
+    def _lazy_iter(self):
+        """Best-first over *edges*: an edge (node, query) is simulated when popped.  A generator that
+        yields before every pop (portfolio interleaving) and returns the search result."""
         cfg = self.cfg
         t0 = time.perf_counter()
         root = self.rt.root
         counter = 0
         heap = []
-        best = root
+        best = self._best = root
         seen = set()
 
         def propose(node):
@@ -642,7 +760,7 @@ class Oracle:
         def gate_open(node):
             """Manoeuvres are justified at ``node`` if it was reached by a manoeuvre, or
             every ordinary movement query tried from its parent failed natively."""
-            par = getattr(node, '_qg_origin', None)
+            par = getattr(node, self._org_attr, None)
             if par is None:
                 return False
             rec, by_maneuver = par
@@ -670,9 +788,12 @@ class Oracle:
             for q in queries:
                 counter += 1
                 extra = gate if self.is_maneuver(q) else 0.
+                if cfg.noise > 0:
+                    extra += cfg.noise*self._noise(node, q)
                 heapq.heappush(heap, (self._key(fn+self._prior(q)+extra, node), counter, node, q, False, fine))
         push_children(root, *propose(root))
         while heap and self.stats['children'] < cfg.max_edges and time.perf_counter()-t0 < cfg.max_seconds:
+            yield
             prio, _, node, q, deferred, node_fine = heapq.heappop(heap)
             if MAX_EPISODE_STEPS-node.index <= 0:
                 continue
@@ -692,12 +813,14 @@ class Oracle:
             self.stats['edge_ms'].append(round(1000*dt, 1))
             self.stats['edge_steps'].append(child.index-node.index)
             self.stats['children'] += 1
-            if not hasattr(node, '_qg_ordinary'):
-                node._qg_ordinary = [0, 0]
-            child._qg_origin = (node._qg_ordinary, self.is_maneuver(q))
+            rec = getattr(node, self._ord_attr, None)
+            if rec is None:
+                rec = [0, 0]
+                setattr(node, self._ord_attr, rec)
+            setattr(child, self._org_attr, (rec, self.is_maneuver(q)))
             if q.kind in ('goal', 'goto', 'rotate') and not self.is_maneuver(q):
-                node._qg_ordinary[0] += 1
-                node._qg_ordinary[1] += int(child.outcome is not None and child.outcome != 'success')
+                rec[0] += 1
+                rec[1] += int(child.outcome is not None and child.outcome != 'success')
             lab = self.stats['by_label'].setdefault(q.label.rstrip('0123456789'), dict(n=0, fail=0))
             lab['n'] += 1
             if child.outcome is not None:
@@ -707,7 +830,7 @@ class Oracle:
                 lab['fail'] += 1
                 continue
             if child.geodesic < best.geodesic:
-                best = child
+                best = self._best = child
             if cfg.escape_penalty and not self._escaped and not self._in_spawn(child, cfg.escape_m):
                 self._escaped = True
                 self.stats['escaped_at_edge'] = self.stats['children']
