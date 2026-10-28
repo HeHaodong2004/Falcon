@@ -461,6 +461,22 @@ then budget scaling of representative DEV failures.
 - gTV8FGcVJC9 (unseen2): C1-K6 search tree exhausted after 2,478 edges (every branch met a human by step 22);
   feasible (declared-rule witness, 127 steps: 11 right turns first).  K=6 coverage gap at a spawn threat.
 
+## 2026-10-28 ~14:00: gate test launched; v11 superseded
+- User: has the gate been met, or is this polishing?  Answer: met on the finished development episodes (C1-K10
+  86/87, C1-K6 83/85, C2-K10 69/70) but not yet formally -- the hardest development episodes are still running and
+  the held-out suite had not been run.  The default-policy work is Layer-3 foundation work, not gate work.
+- Gate test (`FINAL_PROTOCOL_V10_OFFICIAL.md`): the exact code of the official development runs, tag
+  `querygen-freeze-v10-official` (2786115d, package sha256 bcecb8e8...), on the untouched third unseen suite, three
+  configurations, `output/runs/official/test_v10/`; feasibility of unsolved test episodes afterwards with
+  `scripts/querygen_test_feasibility.sh` (native witness, then exact certificate).
+- v11 default policy superseded: its unstick trigger counted in-place turns as "still", so the breaker took over in
+  88 of 100 runs (mostly at the spawn turn) and ORCA and DWA produced identical action sequences in 24 of 48
+  episodes -- the planners were bypassed.  v12 candidate flags (all default off): `unstick_progress` (genuine
+  deadlocks only), `unstick_keep`, `bump_front`, `static_humans` (Falcon's humans stop for good after 100-400
+  steps: by step 300 most stand still), `stop_strict` (0.19 m stuck-STOP).  To be evaluated after the gate test.
+- Interim results page published (top-down recordings: default vs Oracle on collision and deadlock cases, the
+  PFLH failure; charts; metrics table).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
