@@ -59,6 +59,8 @@ ST_HUMAN_RANGE = 8.0
 VIA_ADVANCE_M = 0.45
 STOP_M = 0.15
 STUCK_STOP_M = 0.22
+STUCK_STOP_STRICT_M = 0.19   # v12 meta 'stop19': official success needs geodesic < 0.2 m, so a stuck STOP at
+                             # 0.2-0.22 m can only fail (YM4nG4pSAEJ: default policy stopped at 0.21 m)
 LOOKAHEAD_M = 0.8
 
 
@@ -150,7 +152,7 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade', 'ukeep', 'bumpf', 'shum')    # meta flags that change the execution
+                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -199,6 +201,9 @@ class QueryExecution:
         if (query.meta or {}).get('commit') and hasattr(self.planner, 'commit'):
             self.planner.commit = True
         self.planner.reset()
+
+    def _stuck_stop_m(self):
+        return STUCK_STOP_STRICT_M if (self.query.meta or {}).get('stop19') else STUCK_STOP_M
 
     def _bump_blocked(self, legal, P, psi):
         """v12 meta 'bumpf': the body's front contact point at plane pose (P, psi) lies in a bump-memory disc --
@@ -495,7 +500,7 @@ class QueryExecution:
             d = float(np.hypot(*(robot_xz-target)))
             self.recent.append(d)
             stopped = (not self.dyn.stateful) or int(dyn_state) == 0
-            if stopped and (d < STOP_M or (d < STUCK_STOP_M and len(self.recent) >= 4 and
+            if stopped and (d < STOP_M or (d < self._stuck_stop_m() and len(self.recent) >= 4 and
                                            self.recent[-4]-d < 0.02)):
                 self.status, self.reason = 'done', 'stop_at_goal'
                 return 'stop'
@@ -592,7 +597,7 @@ class QueryExecution:
         d = math.hypot(target[0]-pose[0], target[1]-pose[2])
         if not q.via:
             self.recent.append(d)
-            if d < STOP_M or (d < STUCK_STOP_M and len(self.recent) >= 4 and self.recent[-4]-d < 0.02):
+            if d < STOP_M or (d < self._stuck_stop_m() and len(self.recent) >= 4 and self.recent[-4]-d < 0.02):
                 self.status, self.reason = 'done', 'stop_at_goal'
                 return 'stop'
         ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
@@ -657,7 +662,8 @@ class QueryExecution:
         d = math.hypot(target[0]-pose[0], target[1]-pose[2])
         if not q.via:
             self.recent.append(d)
-            if L == 0 and (d < STOP_M or (d < STUCK_STOP_M and len(self.recent) >= 4 and self.recent[-4]-d < 0.02)):
+            if L == 0 and (d < STOP_M or (d < self._stuck_stop_m() and len(self.recent) >= 4 and
+                                          self.recent[-4]-d < 0.02)):
                 self.status, self.reason = 'done', 'stop_at_goal'
                 return 'stop'
         ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)

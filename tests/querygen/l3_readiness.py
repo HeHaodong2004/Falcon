@@ -65,6 +65,8 @@ def default_meta_of(gen_cfg):
         m['shum'] = 1
     if m and (gen_cfg or {}).get('bump_front'):
         m['bumpf'] = 1
+    if (gen_cfg or {}).get('stop_strict'):
+        m['stop19'] = 1
     return m
 
 

@@ -165,6 +165,8 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
         meta['shum'] = 1
     if (gen_kw or {}).get('bump_front') and meta:
         meta['bumpf'] = 1
+    if (gen_kw or {}).get('stop_strict'):
+        meta['stop19'] = 1
     q = Query('goal', label='goal', meta=meta)
     while not st.terminal:
         cont = st.execution is not None and st.execution.status == 'running'

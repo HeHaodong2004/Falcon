@@ -127,6 +127,8 @@ class GeneratorConfig:
                                      # humans stop for good after 100-400 steps -- do not block escalation, and the
                                      # escalated plan routes around a 0.35 m disc per standing human; Nfvxx8J5NCo held
                                      # 300 steps behind two standing humans at 1.0 / 1.3 m)
+    stop_strict: bool = False        # v12: goal / stgoal queries carry meta 'stop19' (a stuck STOP is declared only within
+                                     # 0.19 m: official success needs geodesic < 0.2 m; YM4nG4pSAEJ stopped at 0.21 m)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
                                      # within 2 m -> tight map + plan following under the hard human check); 0 = off
     creep_blind: bool = False        # v11: exact creeps of robots with momentum skip the legal-map body gate (like the
@@ -224,6 +226,10 @@ class QueryGenerator:
                         q.meta = dict(q.meta, ukeep=1)
                     if self.cfg.static_humans:
                         q.meta = dict(q.meta, shum=1)
+        if self.cfg.stop_strict:
+            for q in queries:
+                if q.kind in ('goal', 'stgoal'):
+                    q.meta = dict(q.meta, stop19=1)
         if self.cfg.bump_front:
             for q in queries:
                 if (q.meta or {}).get('evade') or (q.meta or {}).get('unstick'):
