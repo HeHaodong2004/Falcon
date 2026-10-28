@@ -151,6 +151,10 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
     t0 = time.perf_counter()
     rt = EpisodeRuntime(spec, planner, dyn, strict=False)
     st = rt.root
+    from .legal import LegalState
+    from . import gridplan
+    LegalState.BUMP_MEMORY = float((gen_kw or {}).get('bump_memory_m', 0.))
+    gridplan.BLOCKED_TARGET_RELAX_M = float((gen_kw or {}).get('goal_relax_m', 0.5))
     n = int((gen_kw or {}).get('goal_unstick', 0))
     meta = dict(unstick=n) if n else {}
     if (gen_kw or {}).get('evade'):

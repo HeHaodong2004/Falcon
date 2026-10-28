@@ -472,14 +472,31 @@ class QueryExecution:
         ctx.plan_prims = prims
         ctx.plan_poses = plan_poses
         self._plan_now = prims
-        if self.escalated and prims and self.dyn.discrete:
-            # unstick: follow the (tight-map) static plan whenever its next pose keeps the one-step human clearance
+        if self.escalated and self.dyn.discrete:
+            # unstick: follow the (tight-map) static plan whenever its next pose keeps the one-step human clearance;
+            # without a body-feasible plan (narrow dead ends: the in-place sweep meets the inflated walls) use the
+            # official motion model -- an in-place rotation is always executable (the base is navmesh-constrained,
+            # body-wall overlap is not a benchmark failure): turn toward the legal route, then advance while the next
+            # base position is not an observed wall core
             from .planners import one_step_hard_ok
             hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
-            P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, prims[0])
-            if hard is None or hard(P1, psi1):
-                self.plan_i += 1
-                return prims[0]
+            cand = prims[0] if prims else None
+            if cand is None and route_dir is not None:
+                err = wrap(route_dir-float(legal.pose[3]))
+                if abs(err) > 0.6*self.dyn.turn_rad:
+                    cand = 'left' if err > 0 else 'right'
+                else:
+                    from .legal import BLOCKED
+                    P1 = Pl+self.dyn.step_m*heading_vec(float(legal.pose[3]))
+                    x1, z1 = to_world(P1)
+                    if tight_legal(legal, 2).map.state_at(x1, z1) != BLOCKED:
+                        cand = 'forward'
+            if cand is not None:
+                P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, cand)
+                if hard is None or hard(P1, psi1):
+                    if prims and cand == prims[0]:
+                        self.plan_i += 1
+                    return cand
         prim = self.planner.act(ctx, self.adapter)
         if prims and prim == prims[0]:
             self.plan_i += 1

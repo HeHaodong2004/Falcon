@@ -22,11 +22,14 @@ def main():
     from eventwm_graph.querygen.legal import FREE, BLOCKED
     spec = [s for s in load(a.suite) if s.key == a.key][0]
     dyn = FAMILIES['native']
-    rt = EpisodeRuntime(spec, 'orca', dyn)
+    rt = EpisodeRuntime(spec, 'orca', dyn, strict=False)
     gen = QueryGenerator(dyn, GeneratorConfig(**json.loads(a.gen)))
     st = rt.root
     for item in [x for x in a.prefix.split(',') if x]:
-        lab, n = item.split(':')
+        lab, n = item.split(':')[:2]
+        if lab == 'cont':
+            st = rt.run(st, None, horizon=int(n), cont=True)
+            continue
         qs, _ = gen.propose(st.legal, st.execution)
         q = next(x for x in qs if x.label == lab)
         st = rt.run(st, q, horizon=int(n))

@@ -14,12 +14,15 @@ def main():
     ap.add_argument('--steps', type=int, default=120)
     ap.add_argument('--unstick', type=int, default=0)
     ap.add_argument('--evade', action='store_true')
+    ap.add_argument('--bump', type=float, default=0.)
     a = ap.parse_args()
     from eventwm_graph.querygen.suites import load
     from eventwm_graph.querygen.episode import EpisodeRuntime
     from eventwm_graph.querygen.executor import Query
     from eventwm_graph.querygen.dynamics import FAMILIES
     spec = [s for s in load(a.suite) if s.key == a.key][0]
+    from eventwm_graph.querygen.legal import LegalState
+    LegalState.BUMP_MEMORY = a.bump
     rt = EpisodeRuntime(spec, a.planner, FAMILIES[a.dynamics], strict=False, trace=True)
     st = rt.root
     meta = dict(unstick=a.unstick) if a.unstick else {}

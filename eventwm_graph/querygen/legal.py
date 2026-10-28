@@ -156,6 +156,14 @@ class GridMap:
 class LegalState:
     """The robot's complete legal knowledge at one decision/control instant."""
 
+    # v11 bump memory (GeneratorConfig.bump_memory_m sets it per process; 0 = off): a commanded native forward step
+    # that moves the base < 2 cm is proprioceptive evidence of an obstacle the camera does not see (navmesh edge,
+    # low furniture); the disc of this radius around the body's front contact point is kept BLOCKED from then on
+    # (re-applied after every observation, so a later FREE certificate cannot reopen it).  8B43pG641ff: the default
+    # policy pushed 'forward' into an unseen navmesh edge for 290 steps.
+    BUMP_MEMORY = 0.0
+    BUMP_FRONT_M = 0.684        # body front (0.584 m) + 0.1 m
+
     def __init__(self, goal, start_pose, start_time, resolution=RESOLUTION):
         self.goal = np.asarray(goal, dtype=float)          # public PointGoal (world frame)
         self.map = GridMap(resolution, center=(start_pose[0], start_pose[2]))
@@ -168,18 +176,44 @@ class LegalState:
         self.actions = []
         self.steps = 0
         self.track_log = []          # (time, tracks) legal human history for Stage 1
+        self.bumps = []              # bump-memory contact points (x, z)
 
     def observe(self, row, action=None):
         if action is not None:
             self.actions.append(action)
             self.steps += 1
+        prev = self.pose
         self.map.apply(row)
         self.tracks = row['tracks']
         self.time = float(row['timestamp'])
         self.pose = np.asarray(row['robot_pose'], dtype=float)
+        if self.BUMP_MEMORY > 0:
+            if action == 'forward' and math.hypot(self.pose[0]-prev[0], self.pose[2]-prev[2]) < 0.02:
+                psi = float(prev[3])
+                self.bumps.append((float(prev[0])+self.BUMP_FRONT_M*math.cos(psi),
+                                   float(prev[2])-self.BUMP_FRONT_M*math.sin(psi)))
+            if self.bumps:
+                self._apply_bumps()
         self.poses.append(self.pose.copy())
         self.times.append(self.time)
         self.track_log.append((self.time, row['tracks']))
+
+    def _apply_bumps(self):
+        g = self.map
+        r = self.BUMP_MEMORY
+        n = int(math.ceil(r/g.res))
+        changed = False
+        for x, z in self.bumps:
+            ci, cj = g.key(x, z)
+            keys = np.asarray([(ci+a, cj+b) for a in range(-n, n+1) for b in range(-n, n+1)
+                               if math.hypot(a*g.res, b*g.res) <= r], dtype=np.int64)
+            g._ensure(keys)
+            ii = keys[:, 0]-g.ox; jj = keys[:, 1]-g.oz
+            if (g.state[ii, jj] != BLOCKED).any():
+                g.state[ii, jj] = BLOCKED
+                changed = True
+        if changed:
+            g.revision += 1
 
     def velocity(self, window=1):
         """Measured planar velocity (m/s) and yaw rate over the last steps."""
@@ -204,6 +238,7 @@ class LegalState:
         s.poses, s.times, s.actions = list(self.poses), list(self.times), list(self.actions)
         s.steps = self.steps
         s.track_log = list(self.track_log)
+        s.bumps = list(getattr(self, 'bumps', []))
         return s
 
 

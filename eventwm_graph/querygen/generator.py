@@ -110,6 +110,9 @@ class GeneratorConfig:
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
                                      # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
+    bump_memory_m: float = 0.0       # v11: legal bump memory radius (LegalState.BUMP_MEMORY, process-wide): a native
+                                     # forward step that moves < 2 cm keeps a disc around the body's front contact
+                                     # point BLOCKED (proprioceptive evidence of an unseen obstacle); 0 = off
     evade: bool = False              # v11: movement queries carry meta 'evade' (executor human-threat reflex: when the
                                      # robot's own next step + holding meets a tracked human's CV prediction within
                                      # 0.30 m in 14 steps, take the clearance-maximising short native sequence)
@@ -158,7 +161,9 @@ class QueryGenerator:
         self.dyn = dyn
         self.cfg = config or GeneratorConfig()
         from . import gridplan
+        from .legal import LegalState
         gridplan.BLOCKED_TARGET_RELAX_M = float(self.cfg.goal_relax_m)
+        LegalState.BUMP_MEMORY = float(self.cfg.bump_memory_m)
 
     # ------------------------------------------------------------------ utils
     def _free_reachable(self, view, rfield, xz):
