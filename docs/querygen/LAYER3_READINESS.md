@@ -22,6 +22,20 @@ Foundation options under A/B (all legal): `goal_unstick` (static deadlock -> tig
 toward the route when no body-feasible plan exists -- in-place rotation is always executable in the official
 simulator), `bump_memory_m` (a forward step that does not move marks the front contact as BLOCKED --
 proprioception), `evade` (human-threat reflex from constant-velocity predictions of tracked humans).
+* v11 (all three): paired default-policy SR ORCA 12 -> 28 of 49, DWA 5 -> 26 of 47 -- but its trigger counted
+  in-place turns as "not moving", so the breaker took over in 88 of 100 runs (mostly the first turn toward the
+  route) and ORCA and DWA produced identical action sequences in 24 of 48 episodes: the gain partly came from
+  replacing both planners by one plan follower.  Superseded.
+* v12 candidate (flags, default off): `unstick_progress` (escalate only on a genuine deadlock: no translation with
+  at most 1.5 turn steps of net rotation over the window, or no translation for 40 steps), `unstick_keep` (the
+  escalated plan survives decision boundaries -- the boundary re-plan from an intermediate turn pose caused 32-step
+  left/right cycles), `bump_front` (forward checks of the reflex and the breaker respect bump memory at the body's
+  front contact point), `static_humans` (Falcon's humans stop for good after 100-400 steps; standing tracked humans
+  do not block escalation and the escalated plan routes around a 0.35 m disc each), `stop_strict` (a stuck STOP only
+  within 0.19 m: official success needs < 0.2 m).  Floor A/B: `output/runs/official/exec_v12`.
+* Remaining default-policy collisions are decision problems: in-field-of-view head-on approaches by stop-and-go
+  humans (the constant-velocity reflex mispredicts them) and humans walking beside the robot outside its 90-degree
+  camera; yielding or side-stepping earlier is exactly what the Layer-3 query choice provides.
 
 ## 3. Learnability
 * Critical decisions per episode -- minimum-intervention Oracle (`OracleConfig.intervention_cost`, lambda = 300
