@@ -92,6 +92,16 @@ def main():
               + f"; SR over confirmed-feasible {sum(1 for k in p if cat[k] == 'feasible')}/"
                 f"{sum(1 for k in denom if cat[k] == 'feasible')}")
         print('     failures:', fails)
+        ok = [R[k] for k in p]
+        if ok:
+            import statistics as S
+            met = [r.get('replay', {}).get('metrics', {}) for r in ok]
+            edges = sorted(r['oracle']['stats']['children'] for r in ok)
+            secs = sorted(r['oracle']['seconds'] for r in ok)
+            print(f"     solved: SPL {S.mean(m.get('spl', 0.) for m in met):.3f}  PSC {S.mean(m.get('psc', 0.) for m in met):.3f}  "
+                  f"H-Coll among solved {sum(m.get('human_collision', 0.) for m in met):.0f}  steps P50 "
+                  f"{S.median(r['replay']['steps'] for r in ok):.0f}  Oracle edges P50 {edges[len(edges)//2]} "
+                  f"P95 {edges[int(0.95*(len(edges)-1))]}  seconds P50 {secs[len(secs)//2]:.0f}")
 
 
 if __name__ == '__main__':
