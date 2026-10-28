@@ -479,6 +479,13 @@ then budget scaling of representative DEV failures.
 
 Technical report of the current implementation and results: `docs/querygen/TECHNICAL_REPORT.md` (2026-10-28 15:15).
 
+K=6 coverage gap (found on the held-out JmbYfDe2QKZ, 15:35; also gTV8FGcVJC9, likely s19Uyn7AWwv): in manoeuvre
+(stuck) mode `_select_compact` fills goal / st_goal / goal_tc first, leaving creep1, rot_left1, rot_right1 -- the
+4- and 10-step rotations are never offered, so a spawn turn-away from an approaching human takes one decision per
+turn step.  K=10's solution: rot_left1, rot_left10, goal_tc.  The K=6 tree was exhausted (2,754 edges, every
+branch caught by a human within ~21 steps).  v12 candidate: one long-rotation slot (rot_*10 toward the freer side)
+in stuck mode.  Not applicable to the frozen gate system.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
