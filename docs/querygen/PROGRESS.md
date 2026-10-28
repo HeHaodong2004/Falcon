@@ -532,6 +532,25 @@ in stuck mode.  Not applicable to the frozen gate system.
   viable, 3.7 with good SPL; no state with a single viable choice; 69% of suboptimal choices recovered by the default
   policy, 24% need a clever continuation, 6% dead.
 
+## 2026-10-28 ~18:30-19:00: v13 frozen and under test; v14 candidates
+- v13 FROZEN (tag `querygen-freeze-v13` = 95585f5f, package sha256 d97b30b3..., `FINAL_PROTOCOL_V13.md`); test on the
+  untouched fifth unseen suite started 18:27 (`output/runs/official/test_v13/unseen5_{c1k10,c1k6}`).  wrq3kiEU4VR
+  certified natively infeasible (all 3 first actions -> official human contact at step 1).
+- v13 fallback on v12's dev failures / hard tail (`v13fb`, ordinary search skipped): VqCa 0.989, p32J 0.975,
+  ANmW 0.959, Nfvx 1.0, FXuX 0.98, kdFE 0.929 (SPL), all official PASS.  v12 dev itself: VqCa and p32J fail at
+  12,000 edges.
+- SPL analysis (v12 dev solutions, mean 0.909): low-SPL cases come from the time-only weighted A*: with the
+  space-time heuristic every step of an unavoidable wait lowers h, so driving away and back is as cheap as waiting
+  (cV4RVeZvu5T: turn_right toward the goal was offered at the reset but never popped).  v14 candidate
+  `improve_lambda` (refinement objective steps + lambda x forward steps) + `improve_below_spl`: 9 lowest-SPL episodes
+  0.704 -> 0.799 mean (+300 edges each).
+- Default policy: 23 of 125 ORCA runs first drive > 0.5 m away from the goal (success 9/23, SPL 0.53 vs 63/102,
+  0.81): the goal route prices UNKNOWN at 2.5x, so a goal behind the spawn is approached through the observed area in
+  front.  v14 candidate `goal_unknown_cost=1.25`: paired floor runs (partial, 17 eps) success 9 -> 10, SPL on
+  both-solved 0.62 -> 0.68, steps 207 -> 171.
+- Default-policy failure mix (v12, 128 eps): ORCA 34 human collisions / 22 timeouts, DWA 49 / 14; goal overshoot is
+  rare (7 / 256 runs).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
