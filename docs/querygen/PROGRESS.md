@@ -635,6 +635,9 @@ in stuck mode.  Not applicable to the frozen gate system.
   (`output/runs/official/v15`).  Interim paired with v14: 66 episodes, PASS 63 / 63, SPL 0.906 / 0.907, mean search
   minutes 13.3 / 10.1.  Freeze rule pre-registered at 22:58: freeze v15 iff its paired PASS >= v14's and its mean
   search time is lower; otherwise v14.  The held-out test of the frozen version runs on the untouched sixth suite.
+- Freeze time declared 23:53 (before the remaining v15 episodes finished): the rule is applied to the episodes paired
+  at the earlier of v15 completion and 00:45.  Interim 23:51: 230 paired, PASS 218 (v14) / 217 (v15; flip
+  jh4fc5c5qoQ PASS -> FAIL), mean search minutes 7.10 / 5.86, SPL 0.919 / 0.920.
 
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
