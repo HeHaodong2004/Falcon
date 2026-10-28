@@ -67,6 +67,11 @@ class OracleConfig:
                                       # most recent parents; 0 = off).  Search results are identical with or without.
     heading_h: bool = False           # v9: add the in-place turn steps needed to face the true geodesic path
                                       # (0.6 m look-ahead) to h -- a turn-in-place robot must turn before it moves
+    body_h: str = ''                  # v10 privileged body-aware static cost-to-go (bodyh.py, navmesh, exact native
+                                      # primitives over cell x heading): 'heading' = its heading cost replaces the
+                                      # geodesic-facing turn term; 'full' = also h >= body_scale * cost-to-go
+    body_band_cost: float = 1.0       # price per body-axis sample off the navmesh (dilated-wall band)
+    body_scale: float = 1.0
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
     st_heuristic: bool = True         # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
     st_fallback: float = 300.         # extra steps when the space-time model finds no arrival
@@ -336,6 +341,7 @@ class Oracle:
         self._witness = None
         self._escaped = False
         self._escmap = None
+        self._body = None
         runtime.prefix_cache = int(self.cfg.prefix_cache)
         p0 = runtime.root.legal.pose
         self._start_xz = (float(p0[0]), float(p0[2]))
@@ -405,9 +411,18 @@ class Oracle:
                     # remaining exact primitive steps to leave the spawn, then the usual estimate
                     h = h+k
         hs = 0.
+        if cfg.body_h and self._body is None:
+            from .bodyh import BodyCostToGo
+            self._body = BodyCostToGo(self.rt, band_cost=cfg.body_band_cost)
+            self.stats['body_h'] = dict(shape=list(self._body.shape), seconds=round(self._body.seconds, 2))
         if cfg.heading_h and st.geodesic == st.geodesic and st.geodesic > 0.3:
-            hs = self._heading_steps(st.legal.pose)
+            hb = self._body.heading_cost(st.legal.pose) if cfg.body_h else None
+            hs = hb if hb is not None else self._heading_steps(st.legal.pose)
             h += hs
+        if cfg.body_h == 'full':
+            v = self._body.value(st.legal.pose)
+            if v is not None:
+                h = max(h, cfg.body_scale*v)
         if cfg.st_heuristic:
             if self._st is None:
                 t = time.perf_counter()
