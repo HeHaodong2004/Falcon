@@ -365,6 +365,18 @@ then budget scaling of representative DEV failures.
 - Budget use: 50-75% of all edges end in already-seen (coarse-key) states; long equal-f plateaus at
   human timing points (SByzJLxpRGn: 800 expansions at t=100-150 before the breakthrough edge).  The
   sandbox duplicate predictor (off since the wall-clock era) is being re-tested under the edge budget.
+- **Search-order fragility (2026-10-28 morning, r2 = all v10 fixes, 12,000 edges).**  Small, unrelated
+  changes move single episodes between tens and >12,000 edges: v9 -> r2 HMkoS756sz6 K6 2,119 -> 29,
+  hkr2MGpHD6B K6 44 -> 1,645, BJovXQkqbC3 K10 5,778 -> 228, LEFTm3JecaC K10 1,269 -> FAIL (the v9 branch
+  relied on the stray rotation step), LT9Jq6dN3Ea K10 233 (r1, space-time radius 0.6) -> >7,000 (r2,
+  radius 0.5 + cell-sound fallback); iePHCSf119p K6 FAIL at 12,000 with weight 2 but PASS in 645 edges
+  with weight 3.5.  The K6/K10 search spaces contain these solutions; the single best-first order misses
+  them.  -> **Oracle portfolio** (`OracleConfig.portfolio`, commit 89d2fade): independent member searches
+  (override dicts) interleaved under one edge budget, first success wins; identical to the single search
+  for one member (checked).  Members only share exact caches, so an equal-share portfolio of n members
+  succeeds at ~ n * min_i(edges_i): single-member runs score any combination offline
+  (`tests/querygen/virtual_portfolio.py`).  Two v9/r2-style variants at a fixed budget gain little
+  (budget halving offsets the complementary solves), so members must be chosen by data.
 
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
