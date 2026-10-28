@@ -16,7 +16,8 @@ import statistics as S
 from collections import Counter, defaultdict
 
 SUITES = {'dev': 'docs/querygen/suites.json', 'unseen': 'docs/querygen/suites_unseen.json',
-          'unseen2': 'docs/querygen/suites_unseen2.json', 'unseen3': 'docs/querygen/suites_unseen3.json'}
+          'unseen2': 'docs/querygen/suites_unseen2.json', 'unseen3': 'docs/querygen/suites_unseen3.json',
+          'unseen4': 'docs/querygen/suites_unseen4.json', 'unseen5': 'docs/querygen/suites_unseen5.json'}
 
 
 def suite_keys(name):
@@ -84,6 +85,10 @@ def capability(root, tag=''):
             pq = [path_quality(R[k]['replay'].get('trace', {}).get('actions'), R[k]['replay'].get('trace', {}).get('trajectory'))
                   for k in ok]
             edges = [R[k]['oracle']['stats']['children'] for k in ok]
+            # v13 privileged witness fallback: solutions expressed with primitive (planner-bypassing) queries
+            fb = [k for k in ok if ((R[k]['oracle']['stats'].get('prim_fallback') or {}).get('outcome') == 'success')]
+            n_dec = sum(len(R[k].get('decisions', [])) for k in ok)
+            n_prim = sum(sum(1 for d in R[k].get('decisions', []) if d.get('kind') == 'prim') for k in ok)
             out[f'{suite}_{cfg}{tag}'] = dict(
                 episodes=len(suite_keys(suite)), proven_infeasible=len(suite_keys(suite))-len(denom), denominator=len(denom),
                 finished=len(done), passed=len(ok), sr=len(ok)/len(denom) if denom else None,
@@ -97,7 +102,10 @@ def capability(root, tag=''):
                 turn_share=S.mean(x['turn_share'] for x in pq) if pq else None,
                 backtrack_m=S.mean(x['backtrack_m'] for x in pq) if pq else None,
                 edges_p50=S.median(edges) if edges else None,
-                edges_p95=sorted(edges)[int(0.95*(len(edges)-1))] if edges else None)
+                edges_p95=sorted(edges)[int(0.95*(len(edges)-1))] if edges else None,
+                fallback_solved=len(fb), fallback_episodes=sorted(k.split('/')[2] for k in fb),
+                sr_without_fallback=(len(ok)-len(fb))/len(denom) if denom else None,
+                primitive_decision_share=n_prim/n_dec if n_dec else 0.)
     return out
 
 
