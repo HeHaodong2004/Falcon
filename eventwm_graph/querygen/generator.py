@@ -110,6 +110,11 @@ class GeneratorConfig:
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
                                      # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
+    root_fine: bool = False          # v11 compact selection at the reset state: the single-step rotations (rot_left1,
+                                     # rot_right1) instead of the two long route turns (a manoeuvre puts the next state
+                                     # into manoeuvre mode, which offers the 4/10-step rotations).  Spawns in static
+                                     # contact (5737gQA9p2T, tJ7XVoEN82a) need rot_left1 -> rot_left4/10 -> creep; every
+                                     # K=6 root child collided and the tree was exhausted after 24 edges
     turnaround: bool = False         # v11: facing away from the route (> 100 deg) where the body cannot rotate in place
                                      # on the legal map -> 'turnaround' = goto the nearest reachable spot whose legal
                                      # map admits a full in-place rotation, then face the route (narrow-corridor spawn
@@ -725,6 +730,7 @@ class QueryGenerator:
         by_label = {q.label: q for q in fixed}
         take(by_label.get('goal'))
         take(by_label.get('st_goal'))
+        fine = cfg.root_fine and diag.get('reset') and not diag.get('stuck')
         cover = cfg.root_cover and diag.get('reset') and not diag.get('stuck') and len(cats.get('turn', [])) >= 2
         for lab in ('goal_tc', 'st_goal_tc'):
             if not cover:
@@ -743,6 +749,9 @@ class QueryGenerator:
         take(waits[0] if waits else None)
         # reset state: keep the single forward probe (a creep starts manoeuvre mode)
         take(next((q for q in cats.get('maneuver', []) if q.label == 'creep1'), None))
+        if fine:
+            for lab in ('rot_left1', 'rot_right1'):
+                take(next((q for q in cats.get('maneuver', []) if q.label == lab), None))
         if cover:
             for q in cats['turn'][:2]:
                 take(q)
