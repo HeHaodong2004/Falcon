@@ -592,3 +592,59 @@ generated under `output/runs/official/` (not in git).
   `python3 tests/querygen/build_page.py --report report.json --out DIR`.
 * Protocols: `docs/querygen/FINAL_PROTOCOL_V10_OFFICIAL.md` (gate), `OFFICIAL_RULES.md`, `LAYER3_READINESS.md`;
   development log `PROGRESS.md`.
+## 16. Versions v12 and v13 (2026-10-28 evening)
+
+### 16.1 v12: legal foundation and capability fixes (frozen `querygen-freeze-v12` = b0f3c1a3)
+Generator / executor flags, all legal (generation uses only the legal state):
+
+| flag | what it does | evidence on development data |
+|---|---|---|
+| `vc_variants=(goal, st_goal)` | contact-level copies `goal_vc`, `st_goal_vc` (tight=2 map, 0.20 m hard clearance to predicted human centres, small planner proxies; instant-stop robots only) | half of v12 solutions use a `_vc` query; s19Uyn7AWwv solved (crowded spawn) |
+| `stop_closest_m=1.2` | STOP also offered at the legal closest approach when the goal point is not legally reachable | s8pcmisQ38h (goal 0.72 m off the navmesh): 12,000-edge failure -> 607 edges |
+| `compact_long_turns`, `compact_human_first` (K=6) | 10-step rotations and both sidesteps get slots | gTV8FGcVJC9 K=6: exhausted -> 153 edges |
+| `maneuver_vclose` | manoeuvres use the contact-level one-step check | s19Uyn7AWwv DWA |
+| `goal_unstick=6` + `unstick_progress` + `unstick_keep` + `static_humans`, `bump_memory_m=0.25` + `bump_front`, `evade`, `stop_strict` | default-policy foundation (deadlock breaker only on genuine deadlocks, bump memory at the body front, human-threat reflex, strict stuck-STOP) | default policy alone: ORCA 72/128 (56%), DWA 64/128 (50%) vs v10 ~18% |
+
+Development run (ORCA K=10, DEV + unseen 1-3, 188 episodes): mean Oracle edges 232 vs v10 397 on common episodes,
+SPL unchanged (0.92), fewer turn reversals (1.5-2.3 vs 2.0-3.2 per 100 steps).
+
+### 16.2 v13: exact speed-up and the privileged witness fallback (frozen `querygen-freeze-v13` = 95585f5f)
+* **Exact fast legal sensor** (`fastsense.py`, `QG_FAST_SENSE=1`).  Same rows, trackers and certified cells as the
+  accepted observer (checked observation by observation: 5 episodes, 2,196 observations, 0 differences; search
+  digests identical).  (1) Static-occlusion memo: support probes are cast through the same native castRay with all
+  hits and classified; a probe blocked by the stage stays blocked from that exact camera origin whatever moves, so
+  the cell is skipped at later observations from there (a waiting robot, branches through the same pose).  (2) The
+  inflated wall band is computed in one vectorised pass with the reference's float64 arithmetic and boundary rule
+  and published as arrays (`UpdateBlock`), read directly by the legal map and the prefix cache.  Load-normalised
+  sensor speed-up 1.0-2.8x (median ~1.8x); remaining search cost: native castRay ~35%, planning ~25%.
+* **Witness fallback** (generator `primitives`, Oracle `prim_fallback_sims=400000`).  The generator also offers the
+  exact one-step native queries `prim_f/l/r/s` (outside K, no legal input).  The ordinary search never expands them,
+  so it is the v12 search: 12 development episodes re-run with the v13 code give identical decisions, edge counts,
+  steps and official metrics.  When the ordinary search fails, the Oracle runs the native witness search
+  (`witness.py`: weighted A* over the native primitives, true human tape -- privileged selection only) from the
+  reset inside the search runtime and executes the witness as primitive queries; every step is simulated and
+  legally observed again and the authoritative replay verifies it like any branch.  Primitive decisions bypass the
+  planner, so SR with and without the fallback and the primitive-decision share are always reported separately.
+  A takeover option (hand control back to the default policy as early as possible) exists but is off: on
+  VqCaAuuoeWk it saved 30 of 94 primitive decisions for SPL 0.989 -> 0.909.
+
+### 16.3 Gate tests of v12 and v13 [in progress]
+* Frozen v10 (third unseen suite, final): ORCA K=10 53/57 (93.0%), DWA K=10 53/57 (93.0%), ORCA K=6 51-52/57 -- gate
+  missed (VqCaAuuoeWk, p32JzpQyhPk: native witnesses weave past humans; s8pcmisQ38h: STOP rule; tEafuWwhhwr).
+* Frozen v12 on the fourth unseen suite (`output/runs/official/test_v12/`), ORCA K=10 primary: running.
+* Frozen v13 on the fifth unseen suite (`output/runs/official/test_v13/`), ORCA K=10 and K=6: running.
+  wrq3kiEU4VR is certified natively infeasible (every first action meets a human at step 1; official verification
+  of all 3 sequences).
+* v13 fallback on v12's development failures (`output/runs/official/v13fb`, ordinary search skipped -- it is the
+  v12 search): VqCaAuuoeWk SPL 0.989, p32JzpQyhPk 0.975, ANmWrL7Kz7h 0.959, Nfvxx8J5NCo 1.0, FXuXGH9YQTW 0.98 -- all
+  official PASS; 94-159 primitive decisions each.
+
+### 16.4 Decision robustness of the v12 solutions [in progress, 28 of 35 episodes]
+`querygen/decision_robustness.py` (`output/runs/official/decision_v12`): at every decision state of an Oracle
+solution all K candidates are executed for one interval; near-duplicates (same outcome, end time +-3 steps, end
+pose 0.25 m / 20 deg, path 0.25 m) are merged into choices; each choice is continued by the default policy ("easy")
+or a bounded minimum-intervention Oracle ("clever", 200 edges) or found dead.  110 states: 5.3 distinct choices of
+10 candidates, 4.9 viable, 3.5 recoverable by the default policy alone, 3.8 with good SPL (>= 90% of the best
+choice); a single viable choice in 0.9% of states, a single good-SPL choice in 13.6%.  Of 451 suboptimal choices
+(not the Oracle's), 64% are recovered by the default policy, 27% need a clever continuation, 9% are dead; mean SPL
+loss 0.108.  The good-SPL shortfall mostly reflects the default policy's own route efficiency (success SPL ~0.81).
