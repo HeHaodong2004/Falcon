@@ -443,6 +443,24 @@ then budget scaling of representative DEV failures.
 - Visualization: `viz_episode.py` (figures), `render_topdown.py` (navigation videos; RGB chase-camera recording is
   blocked by the GPU driver/library mismatch: EGL cannot create a context), `build_page.py` (results page).
 
+## 2026-10-28 afternoon: v11 foundation, default-policy diagnosis, v12 candidate fixes
+- v11 default (paired floor A/B on the same episodes, official rules): `goal_unstick=6 + bump_memory_m=0.25 +
+  evade` >= breaker + bump >= v10 baseline (ORCA 5 -> 9 of 21, DWA 2 -> 10 of 21 at 13:10).  v11 Oracle capability
+  runs `output/runs/official/v11/`, minimum intervention `minint_v11/`, readiness `readiness_v11/` (watch mode).
+- Remaining v11 default-policy failures (`exec_ube`, first 60 episodes): human collisions -- in-FOV head-on
+  approaches where the constant-velocity reflex mispredicts stop-and-go humans (Qpor2mEya8F: the human's estimated
+  velocity went 1.6 -> 0.2 -> 0 -> 1.9 m/s in the last 8 steps) and humans beside the robot outside its 90-degree
+  camera (yr17PDCnDDW, FgswoxWb3uN, PUNuHY5M7MS: within 1 m for 20 steps at bearings 50-120 deg); these are
+  decision problems for Layer 3 (yield / sidestep earlier), not executor bugs.  Static failures were executor
+  bugs: (1) an escalated unstick goal query re-planned at every decision boundary; from the intermediate pose of
+  an in-place turn the lattice found no plan and the route fallback turned back (HMkoS756sz6, bXu6SSWkJY8,
+  LEFTm3JecaC: a 32-step left/right cycle for 400 steps); (2) the evasion reflex and the unstick fallback checked
+  forward steps at the base centre on the tight map, so a bump-memory disc 0.684 m ahead never stopped them
+  (iePHCSf119p pushed 'forward' for 100+ steps).  v12 candidate flags `unstick_keep` (meta 'ukeep') and
+  `bump_front` (meta 'bumpf'); keep-plan experiment: 6 of 6 cycles broken, 3 of 6 then succeed.
+- gTV8FGcVJC9 (unseen2): C1-K6 search tree exhausted after 2,478 edges (every branch met a human by step 22);
+  feasible (declared-rule witness, 127 steps: 11 right turns first).  K=6 coverage gap at a spawn threat.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
