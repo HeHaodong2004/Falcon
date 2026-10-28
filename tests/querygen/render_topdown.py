@@ -93,8 +93,8 @@ def main():
     frames = []
     # panel size follows the plotted region's aspect ratio (wide corridors are not padded into squares)
     aspect = (ylim[0]-ylim[1])/max(1e-6, xlim[1]-xlim[0])
-    pw = 5.4
-    ph = min(7.0, max(2.8, pw*aspect))+0.75+(0.35 if a.title else 0.)
+    pw = 5.4 if aspect >= 0.6 else 7.2
+    ph = min(7.0, max(1.8, pw*aspect))+0.75+(0.35 if a.title else 0.)
     import textwrap
     title = '\n'.join(textwrap.wrap(a.title, width=int(13*pw*n))) if a.title else ''
     for t in list(range(0, T, a.every))+[T-1]:
@@ -114,6 +114,8 @@ def main():
             ax.plot(P[:, 0], P[:, 1], color=c, lw=1.8, zorder=3)
             x, z, psi = r['traj'][tt][:3]
             ax.add_patch(Polygon(body_corners(x, z, psi), closed=True, color=c, alpha=0.9, zorder=5))
+            fx, fz = x+0.45*math.cos(psi), z-0.45*math.sin(psi)          # front marker (plane frame: z = -y)
+            ax.plot(fx, fz, 'o', ms=3.5, color='white', zorder=6)
             ax.plot(goal[0], goal[2], '*', ms=15, color='#0b0b0b', mec='white', zorder=6)
             ax.set_xlim(*xlim); ax.set_ylim(*ylim); ax.set_aspect('equal')
             ax.set_xticks([]); ax.set_yticks([])

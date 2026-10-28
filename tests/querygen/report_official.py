@@ -118,7 +118,8 @@ def main():
                     help='ROOT:TAG -- further Oracle runs (e.g. a foundation variant); keys get the tag suffix')
     ap.add_argument('--floor', nargs='*', default=['output/runs/official/exec', 'output/runs/official/exec_ub',
                                                    'output/runs/official/exec_ube'])
-    ap.add_argument('--minint', default='output/runs/official/minint')
+    ap.add_argument('--minint', default='output/runs/official/minint_v11')
+    ap.add_argument('--minint-ref', default='output/runs/official/minint', help='earlier foundation (v10) reference')
     ap.add_argument('--readiness', default='')
     a = ap.parse_args()
     cap = capability(a.oracle_root)
@@ -126,7 +127,7 @@ def main():
         root, tag = item.rsplit(':', 1)
         if os.path.isdir(root):
             cap.update(capability(root, tag))
-    rep = dict(capability=cap, floor=floor(a.floor), minint=minint(a.minint),
+    rep = dict(capability=cap, floor=floor(a.floor), minint=minint(a.minint), minint_ref=minint(a.minint_ref),
                native_infeasible=sorted(native_infeasible()))
     if a.readiness and os.path.exists(os.path.join(a.readiness, 'summary.json')):
         rep['readiness'] = json.load(open(os.path.join(a.readiness, 'summary.json')))
