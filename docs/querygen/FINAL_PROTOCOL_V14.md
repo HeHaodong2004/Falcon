@@ -20,14 +20,20 @@ v14 = v12 (FINAL_PROTOCOL_V12.md) + exact fast legal sensor (`QG_FAST_SENSE=1`, 
   episodes: success 16 -> 20, SPL on both-solved 0.65 -> 0.68);
 * Oracle path-aware refinement for first solutions below path efficiency 0.85 (`improve_edges=300`,
   `improve_lambda=1`, `improve_below_spl=0.85`; 9 lowest-SPL development solutions 0.70 -> 0.80);
-* [pending] `xc_variants` (committed contact-level goal copies replacing the `_vc` copies).
+* generator `th_variants=(goal, st_goal)` replacing `vc_variants` in the K=10 configurations: contact-tolerant goal
+  copies (`executor._ThruLegal`: observed wall-band cells are soft obstacles -- body checks optimistic, routes at
+  cost x6 -- except proprioceptive bump-memory discs; human clearance contact-level as `_vc`).  The legal band is
+  visual and stricter than Falcon's kinematic, navmesh-bound robot, which clips through furniture (static contact is
+  legal): every hard development witness crosses band cells at body height.  p32JzpQyhPk (v12: 12,000-edge failure)
+  solved in 105 edges.
+* `xc_variants` (committed contact-level copies) tested and NOT adopted (no gain on VqCa / p32J / Nfvx).
 No `primitives`, no `prim_fallback_sims`.
 
 | id | role | planner | generator |
 |---|---|---|---|
-| C1-K10 | primary | ORCA | v14 C1-K10 |
-| C1-K6 | secondary | ORCA | v14 C1-K6 |
-| C2-K10 | secondary | DWA | v14 C2-K10 |
+| C1-K10 | primary | ORCA | v12 C1-K10 with `_th` instead of `_vc` + the v14 options |
+| C1-K6 | secondary | ORCA | v12 C1-K6 + the v14 options (no `_vc` / `_th` copies) |
+| C2-K10 | secondary | DWA | as C1-K10 |
 | Floor-C1 / Floor-C2 | default policy | ORCA / DWA | no selection |
 
 ## Test set
