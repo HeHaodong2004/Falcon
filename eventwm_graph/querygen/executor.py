@@ -161,7 +161,7 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog', 'vclose')    # meta flags that change the execution
+                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog', 'vclose', 'action')    # meta that change execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -396,6 +396,12 @@ class QueryExecution:
 
     def step(self, legal, level=0):
         """Next (command primitive, new speed level) under the dynamics family."""
+        if self.query.kind == 'prim':
+            # v13 primitive query (generator 'primitives'): exactly one native action, no planner, no safety filter
+            # -- the Oracle's privileged fallback phase (native witness) expresses its solution with these
+            self.steps += 1
+            self.status, self.reason = 'done', 'prim'
+            return self.query.meta['action'], 0
         self._plan_now = None
         self._update_unstick(legal)
         raw_legal = legal

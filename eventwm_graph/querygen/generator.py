@@ -181,6 +181,12 @@ class GeneratorConfig:
                                      # map admits a full in-place rotation, then face the route (narrow-corridor spawn
                                      # facing away: BCWtGkh8CHv drives 1.6 m away to turn; no query expressed it)
     turnaround_m: float = 3.0        # max path distance to the turning spot
+    primitives: bool = False         # v13: also offer the native primitives as exact one-step queries ('prim_f', 'prim_l',
+                                     # 'prim_r', 'prim_s'; kind 'prim', outside the budget K) at every decision of a
+                                     # native-action robot.  The Oracle's ordinary search never expands them
+                                     # (OracleConfig.prim_search); its privileged fallback phase (prim_fallback_s) uses
+                                     # them to express a native witness when the ordinary search failed (VqCaAuuoeWk,
+                                     # p32JzpQyhPk: the witnesses weave past humans within 0.25 m for 20-25 steps)
     goal_relax_m: float = 0.5        # v10: planning-field targets inside observed BLOCKED cells (goals on the navmesh
                                      # edge next to furniture) are relaxed to the passable cells within this radius
                                      # (gridplan.BLOCKED_TARGET_RELAX_M; process-wide, so the authoritative replay
@@ -191,6 +197,12 @@ class GeneratorConfig:
 
 
 _route_points = resample_route
+
+
+def primitive_queries():
+    """v13: the exact one-step native primitives (forward, left, right, stop) as queries (fixed; no legal input)."""
+    return [Query('prim', duration=1, label=f'prim_{a[0]}', meta=dict(action=a))
+            for a in ('forward', 'left', 'right', 'stop')]
 
 
 def is_maneuver(q):
@@ -277,6 +289,8 @@ class QueryGenerator:
             for q in queries:
                 if q.kind == 'creep':
                     q.meta = dict(q.meta, blind=1)
+        if self.cfg.primitives and self.dyn.native_actions:
+            queries = list(queries)+primitive_queries()
         return queries, diag
 
     def _propose_all(self, legal, execution=None):

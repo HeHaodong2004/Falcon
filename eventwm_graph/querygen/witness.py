@@ -52,12 +52,16 @@ def _decode(item):
 
 
 def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, t_bucket=4, dynamics='native',
-                 margin=0., rules='declared'):
+                 margin=0., rules='declared', runtime=None, verify=True):
     """rules='declared': the system's strict rules (official human contact, body proxy, static contact with the
     spawn-escape rule).  rules='native': the original Falcon rules only -- an episode ends on STOP, on an official
     human contact or at step 500, and succeeds on STOP within 0.2 m geodesic; static contact and the body proxy
     are not failures natively (they are still counted by the verification).  A verified native witness proves
-    that the episode is solvable in the original simulator."""
+    that the episode is solvable in the original simulator.
+
+    ``runtime`` (v13 Oracle fallback): search in an existing EpisodeRuntime's task / branch simulator / human tape
+    from its root state instead of a fresh task (no second scene load); the caller must reload its own branch state
+    afterwards.  ``verify=False`` skips the separate two-task verification (the caller replays authoritatively)."""
     assert rules in ('declared', 'native')
     native = rules == 'native'
     from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, contact_links,
@@ -67,14 +71,21 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
     from .executor import command_for
     dyn = FAMILIES[dynamics]
     t0 = time.perf_counter()
-    task = NativeTask(spec, velocity_action=not dyn.native_actions)
-    sim = BranchSimulator(task, None)
-    root = sim.root()
+    if runtime is None:
+        task = NativeTask(spec, velocity_action=not dyn.native_actions)
+        sim = BranchSimulator(task, None)
+        root = sim.root()
+    else:
+        task, sim = runtime.task, runtime.sim
+        root = runtime.root.robot
+        sim.load(root, 0)
+        check_static0 = sim.check_static
     p0 = task.robot_pose()
     g0 = task.geodesic_to_goal()
     c0 = classify_contacts(task, gate_humans=False)
     C0 = contact_links(c0)
-    sim.tape = HumanTape.record(task, MAX_EPISODE_STEPS+2)
+    if runtime is None:
+        sim.tape = HumanTape.record(task, MAX_EPISODE_STEPS+2)
     if native:
         sim.check_static = False
     # native: official contact needs actual mesh contact (robot half width 0.24 m + a limb) -> small human radius
@@ -159,7 +170,10 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
         k, a = parent[k]
         seq.append(a)
     seq.reverse()
-    task.close()
+    if runtime is None:
+        task.close()
+    else:
+        sim.check_static = check_static0
     if dyn.native_actions:
         acts = ''.join(a[0] for a in seq)+('s' if found else '')
     else:
@@ -167,7 +181,7 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
     rec = dict(key=spec.key, dynamics=dynamics, margin=margin, rules=rules, found=found is not None, actions=acts,
                steps=len(seq)+(1 if found else 0), start_geodesic=g0, best_geodesic=best_geo, sims=sims,
                states=len(seen), exhausted=not heap, seconds=time.perf_counter()-t0)
-    if found:
+    if found and verify:
         rec['verified'] = verify_witness(spec, rec['actions'], dynamics, rules=rules)
     return rec
 

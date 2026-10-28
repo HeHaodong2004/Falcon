@@ -111,6 +111,19 @@ class OracleConfig:
                                       # values give the solution with the fewest non-default ("critical") decisions
     noise: float = 0.                 # v10: deterministic pseudo-random edge priority offset in [0, noise) steps (a
     noise_seed: int = 0               # randomised tie-break / restart member of a portfolio; 0 = off)
+    prim_search: bool = False         # v13: the ordinary search may expand the generator's exact primitive queries
+                                      # (kind 'prim'); False = they are never expanded (search identical to v12)
+    prim_fallback_sims: int = 0       # v13 privileged fallback phase: when the ordinary search fails, a native witness
+                                      # search (witness.py: weighted A* over the native primitives with the true human
+                                      # tape) from the reset for up to this many simulated primitive steps (the binding,
+                                      # deterministic budget); a witness is executed through the runtime as the
+                                      # generator's primitive queries (needs GeneratorConfig.primitives) and verified
+                                      # like any branch.  0 = off
+    prim_fallback_s: float = 14400.   # wall-clock safety cap of the fallback search only
+    prim_fallback_weight: float = 3.0
+    prim_takeover: bool = True        # v13: keep only the witness prefix up to the earliest step (every
+    prim_takeover_every: int = 8      # prim_takeover_every steps) from which the no-selection default policy succeeds
+    prim_takeover_spl: float = 0.9    # with path efficiency >= this x the witness's (fewest primitive decisions)
 
 
 class SpaceTimeHeuristic:
@@ -668,7 +681,92 @@ class Oracle:
             return self._search_eager()
         if res['success'] and self.cfg.improve_edges > 0:
             res = self._improve(res)
+        if not res['success'] and self.cfg.prim_fallback_sims > 0:
+            res = self._prim_fallback(res)
         return res
+
+    def _prim_fallback(self, res):
+        """v13 privileged fallback: native witness search from the reset (true human tape; selection only), executed
+        through the runtime as exact primitive queries -- every step simulated and legally observed again, so the
+        branch is an ordinary branch (authoritative replay as usual)."""
+        from .witness import find_witness
+        from .generator import primitive_queries
+        cfg = self.cfg
+        rt = self.rt
+        t0 = time.perf_counter()
+        info = dict(found=False)
+        stats = res['stats']
+        stats['prim_fallback'] = info
+        if not rt.dyn.native_actions:
+            info['skipped'] = 'not a native-action robot'
+            return res
+        w = find_witness(rt.spec, budget_s=cfg.prim_fallback_s, max_sims=cfg.prim_fallback_sims,
+                         weight=cfg.prim_fallback_weight, dynamics='native', rules='native', runtime=rt, verify=False)
+        rt._loaded = None                   # the witness search moved the shared simulator
+        info.update(found=bool(w['found']), sims=int(w['sims']), states=int(w['states']),
+                    witness_steps=int(w['steps']), best_geodesic=round(float(w['best_geodesic']), 3),
+                    search_s=round(time.perf_counter()-t0, 1))
+        if not w['found']:
+            res['seconds'] += time.perf_counter()-t0
+            return res
+        prims = {q.meta['action'][0]: q for q in primitive_queries()}
+        node = rt.root
+        chain = [node]
+        for ch in w['actions']:
+            node = rt.run(node, prims[ch], horizon=1)
+            chain.append(node)
+            if node.terminal:
+                break
+        info['outcome'] = node.outcome
+        stats['children'] += len(node.decisions)
+        stats['outcomes'][f'prim_{node.outcome}'] = stats['outcomes'].get(f'prim_{node.outcome}', 0)+1
+        ok = node.outcome == 'success'
+        if ok and cfg.prim_takeover:
+            node = self._prim_takeover(chain, node, info)
+        info['primitive_decisions'] = sum(1 for d in node.decisions if d['query'].kind == 'prim')
+        info['seconds'] = round(time.perf_counter()-t0, 1)
+        return dict(success=ok, state=node if ok else res['state'], steps=node.index if ok else res['steps'],
+                    outcome=node.outcome if ok else res['outcome'],
+                    final_geodesic=node.geodesic if ok else res['final_geodesic'],
+                    decisions=node.decisions if ok else res['decisions'],
+                    seconds=res['seconds']+time.perf_counter()-t0, stats=stats)
+
+    def _default_rollout(self, node):
+        """The no-selection default policy from ``node`` (continue / the generator's 'goal' query / its STOP where
+        the privileged goal test says success), through the runtime.  Returns the terminal (or last) branch."""
+        rt, cfg = self.rt, self.cfg
+        while not node.terminal and node.index < MAX_EPISODE_STEPS:
+            queries, _ = self.gen.propose(node.legal, node.execution)
+            by = {(q.kind if q.kind in ('continue', 'stop') else q.label): q for q in queries}
+            if 'stop' in by and node.geodesic < SUCCESS_DISTANCE:
+                q = by['stop']
+            elif 'continue' in by:
+                q = by['continue']
+            elif 'goal' in by:
+                q = by['goal']
+            else:
+                break
+            node = rt.run(node, q, horizon=min(horizon_for(q, cfg), MAX_EPISODE_STEPS-node.index))
+        return node
+
+    def _prim_takeover(self, chain, witness_end, info):
+        """Fewest primitive decisions: the earliest witness step (grid ``prim_takeover_every``) from which the
+        default policy succeeds with SPL >= ``prim_takeover_spl`` x the witness's own path efficiency; else the
+        whole witness."""
+        cfg = self.cfg
+        geo0 = float(self.rt.start_geodesic)
+        def eff(st):
+            return geo0/max(st.path_length, geo0) if st.outcome == 'success' else 0.
+        target = cfg.prim_takeover_spl*eff(witness_end)
+        tried = []
+        for k in range(0, len(chain)-1, max(1, int(cfg.prim_takeover_every))):
+            st = self._default_rollout(chain[k])
+            tried.append((k, st.outcome, round(eff(st), 3)))
+            if st.outcome == 'success' and eff(st) >= target:
+                info['takeover'] = dict(step=k, tried=tried, witness_efficiency=round(eff(witness_end), 3))
+                return st
+        info['takeover'] = dict(step=None, tried=tried, witness_efficiency=round(eff(witness_end), 3))
+        return witness_end
 
     def _improve(self, res):
         """Anytime refinement: bounded search for a branch with fewer steps than the first solution."""
@@ -805,6 +903,8 @@ class Oracle:
         def propose(node):
             t = time.perf_counter()
             queries, diag = self.gen.propose(node.legal, node.execution)
+            if not cfg.prim_search:
+                queries = [q for q in queries if q.kind != 'prim']
             dt = time.perf_counter()-t
             self.stats['gen_s'] += dt
             self.stats['gen_ms'].append(round(1000*dt, 2))
@@ -974,6 +1074,8 @@ class Oracle:
             self.stats['expansions'] += 1
             t = time.perf_counter()
             queries, diag = self.gen.propose(node.legal, node.execution)
+            if not cfg.prim_search:
+                queries = [q for q in queries if q.kind != 'prim']
             self.stats['gen_s'] += time.perf_counter()-t
             self.stats['raw_candidates'] += sum(diag.get('raw', {}).values())+diag.get('fixed', 0)
             self.stats['kept_candidates'] += len(queries)
