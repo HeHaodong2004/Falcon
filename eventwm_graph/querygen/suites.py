@@ -1,0 +1,270 @@
+"""Frozen evaluation suites (declared before any Generator/Oracle iteration).
+
+Selection is a deterministic salted hash (no inspection of episodes or
+outcomes): Social-HM3D val scenes are ordered by sha256(SALT|scene); the first
+half form DEV (development + primary acceptance gate), the rest HOLDOUT.
+Within each scene the episode with the smallest sha256(SALT|scene|episode_id)
+is chosen.  All Social-MP3D val scenes join HOLDOUT the same way (cross-dataset).
+HOLDOUT stays untouched until the Generator is frozen.
+"""
+import gzip
+import hashlib
+import json
+from pathlib import Path
+
+SALT = 'querygen-oracle-suites-20261026'
+DATA = Path('data/datasets/pointnav')
+
+
+def _h(*parts):
+    return hashlib.sha256('|'.join([SALT, *map(str, parts)]).encode()).hexdigest()
+
+
+def _file_sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _episodes(dataset, split='val'):
+    root = DATA/f'social-{dataset}'/split/'content'
+    out = {}
+    for f in sorted(root.glob('*.json.gz')):
+        scene = f.name.split('.')[0]
+        eps = json.load(gzip.open(f))['episodes']
+        out[scene] = (f, eps)
+    return out
+
+
+def _pick(dataset, scene, eps):
+    e = min(eps, key=lambda e: _h(dataset, scene, e['episode_id']))
+    seed = int(_h('seed', dataset, scene, e['episode_id'])[:8], 16) % (2**31-1)
+    return dict(dataset=dataset, split='val', scene=scene, episode_id=str(e['episode_id']), seed=seed,
+                human_num=int(e['info']['human_num']),
+                geodesic=round(float(e['info']['geodesic_distance']), 3))
+
+
+def build():
+    hm3d = _episodes('hm3d')
+    mp3d = _episodes('mp3d')
+    scenes = sorted(hm3d, key=lambda s: _h('scene', 'hm3d', s))
+    half = len(scenes)//2
+    dev = [_pick('hm3d', s, hm3d[s][1]) for s in scenes[:half]]
+    hold = [_pick('hm3d', s, hm3d[s][1]) for s in scenes[half:]]
+    hold += [_pick('mp3d', s, mp3d[s][1]) for s in sorted(mp3d, key=lambda s: _h('scene', 'mp3d', s))]
+    files = {str(f): _file_sha(f) for d in (hm3d, mp3d) for f, _ in d.values()}
+    return dict(salt=SALT, rule=__doc__.strip(), dev=dev, holdout=hold, dataset_file_sha256=files)
+
+
+UNSEEN_SALT = 'querygen-unseen-train-scenes-20261027'
+UNSEEN_PATH = 'docs/querygen/suites_unseen.json'
+# MP3D train scene used once as a pipeline smoke test (2026-10-27) -> excluded from the unseen suite
+UNSEEN_EXCLUDE = {('mp3d', '17DRP5sb8fy')}
+
+
+def build_unseen(n_hm3d=30, n_mp3d=10):
+    """Frozen *unseen-scene* suite from the Falcon train splits (never used for development):
+    scenes ordered by sha256(UNSEEN_SALT|dataset|scene), first n per dataset, smallest-hash episode
+    per scene; only the chosen scene files are opened."""
+    def h(*parts):
+        return hashlib.sha256('|'.join([UNSEEN_SALT, *map(str, parts)]).encode()).hexdigest()
+    rows, files = [], {}
+    for dataset, n in (('hm3d', n_hm3d), ('mp3d', n_mp3d)):
+        root = DATA/f'social-{dataset}'/'train'/'content'
+        scenes = sorted((f.name.split('.')[0] for f in root.glob('*.json.gz')), key=lambda sc: h('scene', dataset, sc))
+        scenes = [sc for sc in scenes if (dataset, sc) not in UNSEEN_EXCLUDE][:n]
+        for sc in scenes:
+            f = root/f'{sc}.json.gz'
+            eps = json.load(gzip.open(f))['episodes']
+            e = min(eps, key=lambda e: h('episode', dataset, sc, e['episode_id']))
+            seed = int(h('seed', dataset, sc, e['episode_id'])[:8], 16) % (2**31-1)
+            rows.append(dict(dataset=dataset, split='train', scene=sc, episode_id=str(e['episode_id']), seed=seed,
+                             human_num=int(e['info']['human_num']), geodesic=round(float(e['info']['geodesic_distance']), 3)))
+            files[str(f)] = _file_sha(f)
+    return dict(salt=UNSEEN_SALT, rule=build_unseen.__doc__.strip(), unseen=rows, dataset_file_sha256=files)
+
+
+UNSEEN2_SALT = 'querygen-unseen2-train-scenes-20261027'
+UNSEEN2_PATH = 'docs/querygen/suites_unseen2.json'
+
+
+def build_unseen2(n_hm3d=45, n_mp3d=15):
+    """Second frozen *unseen-scene* suite (declared after the v9 evaluation of the first unseen suite and
+    before any later development looks at it): the build_unseen rule with a new salt, excluding every scene
+    of the first unseen suite and the smoke-test scene; only the chosen scene files are opened."""
+    def h(*parts):
+        return hashlib.sha256('|'.join([UNSEEN2_SALT, *map(str, parts)]).encode()).hexdigest()
+    used = {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN_PATH).read_text())['unseen']}
+    rows, files = [], {}
+    for dataset, n in (('hm3d', n_hm3d), ('mp3d', n_mp3d)):
+        root = DATA/f'social-{dataset}'/'train'/'content'
+        scenes = sorted((f.name.split('.')[0] for f in root.glob('*.json.gz')), key=lambda sc: h('scene', dataset, sc))
+        scenes = [sc for sc in scenes if (dataset, sc) not in UNSEEN_EXCLUDE | used][:n]
+        for sc in scenes:
+            f = root/f'{sc}.json.gz'
+            eps = json.load(gzip.open(f))['episodes']
+            e = min(eps, key=lambda e: h('episode', dataset, sc, e['episode_id']))
+            seed = int(h('seed', dataset, sc, e['episode_id'])[:8], 16) % (2**31-1)
+            rows.append(dict(dataset=dataset, split='train', scene=sc, episode_id=str(e['episode_id']), seed=seed,
+                             human_num=int(e['info']['human_num']), geodesic=round(float(e['info']['geodesic_distance']), 3)))
+            files[str(f)] = _file_sha(f)
+    return dict(salt=UNSEEN2_SALT, rule=build_unseen2.__doc__.strip(), unseen2=rows, dataset_file_sha256=files)
+
+
+UNSEEN3_SALT = 'querygen-unseen3-train-scenes-20261028'
+UNSEEN3_PATH = 'docs/querygen/suites_unseen3.json'
+
+
+def build_unseen3(n_hm3d=45, n_mp3d=15):
+    """Third frozen *unseen-scene* suite (declared while the v10 test on the second unseen suite was running and
+    before any post-v10 development): the build_unseen rule with a new salt, excluding every scene of the
+    first and second unseen suites and the smoke-test scene; only the chosen scene files are opened."""
+    def h(*parts):
+        return hashlib.sha256('|'.join([UNSEEN3_SALT, *map(str, parts)]).encode()).hexdigest()
+    used = {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN_PATH).read_text())['unseen']}
+    used |= {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN2_PATH).read_text())['unseen2']}
+    rows, files = [], {}
+    for dataset, n in (('hm3d', n_hm3d), ('mp3d', n_mp3d)):
+        root = DATA/f'social-{dataset}'/'train'/'content'
+        scenes = sorted((f.name.split('.')[0] for f in root.glob('*.json.gz')), key=lambda sc: h('scene', dataset, sc))
+        scenes = [sc for sc in scenes if (dataset, sc) not in UNSEEN_EXCLUDE | used][:n]
+        for sc in scenes:
+            f = root/f'{sc}.json.gz'
+            eps = json.load(gzip.open(f))['episodes']
+            e = min(eps, key=lambda e: h('episode', dataset, sc, e['episode_id']))
+            seed = int(h('seed', dataset, sc, e['episode_id'])[:8], 16) % (2**31-1)
+            rows.append(dict(dataset=dataset, split='train', scene=sc, episode_id=str(e['episode_id']), seed=seed,
+                             human_num=int(e['info']['human_num']), geodesic=round(float(e['info']['geodesic_distance']), 3)))
+            files[str(f)] = _file_sha(f)
+    return dict(salt=UNSEEN3_SALT, rule=build_unseen3.__doc__.strip(), unseen3=rows, dataset_file_sha256=files)
+
+
+UNSEEN4_SALT = 'querygen-unseen4-train-scenes-20261028'
+UNSEEN4_PATH = 'docs/querygen/suites_unseen4.json'
+
+
+def build_unseen4(n_hm3d=45, n_mp3d=15):
+    """Fourth frozen *unseen-scene* suite (declared 2026-10-28 while the gate test of the frozen v10 system ran on
+    the third unseen suite, before any evaluation of the v12 foundation): the build_unseen rule with a new salt,
+    excluding every scene of the first, second and third unseen suites and the smoke-test scene; only the chosen
+    scene files are opened."""
+    def h(*parts):
+        return hashlib.sha256('|'.join([UNSEEN4_SALT, *map(str, parts)]).encode()).hexdigest()
+    used = {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN_PATH).read_text())['unseen']}
+    used |= {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN2_PATH).read_text())['unseen2']}
+    used |= {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN3_PATH).read_text())['unseen3']}
+    rows, files = [], {}
+    for dataset, n in (('hm3d', n_hm3d), ('mp3d', n_mp3d)):
+        root = DATA/f'social-{dataset}'/'train'/'content'
+        scenes = sorted((f.name.split('.')[0] for f in root.glob('*.json.gz')), key=lambda sc: h('scene', dataset, sc))
+        scenes = [sc for sc in scenes if (dataset, sc) not in UNSEEN_EXCLUDE | used][:n]
+        for sc in scenes:
+            f = root/f'{sc}.json.gz'
+            eps = json.load(gzip.open(f))['episodes']
+            e = min(eps, key=lambda e: h('episode', dataset, sc, e['episode_id']))
+            seed = int(h('seed', dataset, sc, e['episode_id'])[:8], 16) % (2**31-1)
+            rows.append(dict(dataset=dataset, split='train', scene=sc, episode_id=str(e['episode_id']), seed=seed,
+                             human_num=int(e['info']['human_num']), geodesic=round(float(e['info']['geodesic_distance']), 3)))
+            files[str(f)] = _file_sha(f)
+    return dict(salt=UNSEEN4_SALT, rule=build_unseen4.__doc__.strip(), unseen4=rows, dataset_file_sha256=files)
+
+
+UNSEEN5_SALT = 'querygen-unseen5-train-scenes-20261028'
+UNSEEN5_PATH = 'docs/querygen/suites_unseen5.json'
+
+
+def build_unseen5(n_hm3d=56, n_mp3d=4):
+    """Fifth frozen *unseen-scene* suite (declared 2026-10-28 while the gate test of the frozen v12 system ran on
+    the fourth unseen suite, before any post-v12 development): the build_unseen rule with a new salt, excluding
+    every scene of the first to fourth unseen suites and the smoke-test scene.  The Falcon MP3D train split has only
+    4 unused scenes left, so the suite takes all of them plus 56 HM3D scenes (60 episodes); only the chosen scene
+    files are opened."""
+    def h(*parts):
+        return hashlib.sha256('|'.join([UNSEEN5_SALT, *map(str, parts)]).encode()).hexdigest()
+    used = {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN_PATH).read_text())['unseen']}
+    used |= {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN2_PATH).read_text())['unseen2']}
+    used |= {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN3_PATH).read_text())['unseen3']}
+    used |= {(r['dataset'], r['scene']) for r in json.loads(Path(UNSEEN4_PATH).read_text())['unseen4']}
+    rows, files = [], {}
+    for dataset, n in (('hm3d', n_hm3d), ('mp3d', n_mp3d)):
+        root = DATA/f'social-{dataset}'/'train'/'content'
+        scenes = sorted((f.name.split('.')[0] for f in root.glob('*.json.gz')), key=lambda sc: h('scene', dataset, sc))
+        scenes = [sc for sc in scenes if (dataset, sc) not in UNSEEN_EXCLUDE | used][:n]
+        assert len(scenes) == n, (dataset, len(scenes))
+        for sc in scenes:
+            f = root/f'{sc}.json.gz'
+            eps = json.load(gzip.open(f))['episodes']
+            e = min(eps, key=lambda e: h('episode', dataset, sc, e['episode_id']))
+            seed = int(h('seed', dataset, sc, e['episode_id'])[:8], 16) % (2**31-1)
+            rows.append(dict(dataset=dataset, split='train', scene=sc, episode_id=str(e['episode_id']), seed=seed,
+                             human_num=int(e['info']['human_num']), geodesic=round(float(e['info']['geodesic_distance']), 3)))
+            files[str(f)] = _file_sha(f)
+    return dict(salt=UNSEEN5_SALT, rule=build_unseen5.__doc__.strip(), unseen5=rows, dataset_file_sha256=files)
+
+
+UNSEEN6_SALT = 'querygen-unseen6-train-scenes-20261028'
+UNSEEN6_PATH = 'docs/querygen/suites_unseen6.json'
+
+
+def build_unseen6(n_hm3d=60):
+    """Sixth frozen *unseen-scene* suite (declared 2026-10-28 ~19:05 while the v12 / v13 gate tests ran, before any v14
+    development): the build_unseen rule with a new salt over the Falcon HM3D train split, excluding every scene of
+    the first to fifth unseen suites and the smoke-test scene (the MP3D train split is exhausted, so the suite is HM3D
+    only); only the chosen scene files are opened."""
+    def h(*parts):
+        return hashlib.sha256('|'.join([UNSEEN6_SALT, *map(str, parts)]).encode()).hexdigest()
+    used = set()
+    for path, name in ((UNSEEN_PATH, 'unseen'), (UNSEEN2_PATH, 'unseen2'), (UNSEEN3_PATH, 'unseen3'),
+                       (UNSEEN4_PATH, 'unseen4'), (UNSEEN5_PATH, 'unseen5')):
+        used |= {(r['dataset'], r['scene']) for r in json.loads(Path(path).read_text())[name]}
+    rows, files = [], {}
+    dataset = 'hm3d'
+    root = DATA/f'social-{dataset}'/'train'/'content'
+    scenes = sorted((f.name.split('.')[0] for f in root.glob('*.json.gz')), key=lambda sc: h('scene', dataset, sc))
+    scenes = [sc for sc in scenes if (dataset, sc) not in UNSEEN_EXCLUDE | used][:n_hm3d]
+    assert len(scenes) == n_hm3d
+    for sc in scenes:
+        f = root/f'{sc}.json.gz'
+        eps = json.load(gzip.open(f))['episodes']
+        e = min(eps, key=lambda e: h('episode', dataset, sc, e['episode_id']))
+        seed = int(h('seed', dataset, sc, e['episode_id'])[:8], 16) % (2**31-1)
+        rows.append(dict(dataset=dataset, split='train', scene=sc, episode_id=str(e['episode_id']), seed=seed,
+                         human_num=int(e['info']['human_num']), geodesic=round(float(e['info']['geodesic_distance']), 3)))
+        files[str(f)] = _file_sha(f)
+    return dict(salt=UNSEEN6_SALT, rule=build_unseen6.__doc__.strip(), unseen6=rows, dataset_file_sha256=files)
+
+
+def load(name, path='docs/querygen/suites.json'):
+    from .native import EpisodeSpec
+    for p in (path, UNSEEN_PATH, UNSEEN2_PATH, UNSEEN3_PATH, UNSEEN4_PATH, UNSEEN5_PATH, UNSEEN6_PATH):
+        if Path(p).exists():
+            data = json.loads(Path(p).read_text())
+            if name in data:
+                break
+    return [EpisodeSpec(r['dataset'], r['split'], r['scene'], r['episode_id'], r['seed']) for r in data[name]]
+
+
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] in ('unseen', 'unseen2', 'unseen3', 'unseen4', 'unseen5', 'unseen6'):
+        name = sys.argv[1]
+        out = Path({'unseen': UNSEEN_PATH, 'unseen2': UNSEEN2_PATH, 'unseen3': UNSEEN3_PATH, 'unseen4': UNSEEN4_PATH,
+                    'unseen5': UNSEEN5_PATH, 'unseen6': UNSEEN6_PATH}[name])
+        if out.exists():
+            raise SystemExit(f'{out} exists: suite is frozen')
+        s = {'unseen': build_unseen, 'unseen2': build_unseen2, 'unseen3': build_unseen3, 'unseen4': build_unseen4,
+             'unseen5': build_unseen5, 'unseen6': build_unseen6}[name]()
+        out.write_text(json.dumps(s, indent=1))
+        rows = s[name]
+        print(name, len(rows), 'humans', {n: sum(r['human_num'] == n for r in rows) for n in (2, 3, 4, 5, 6)},
+              'geo mean %.2f min %.2f max %.2f' % (sum(r['geodesic'] for r in rows)/len(rows),
+                                                   min(r['geodesic'] for r in rows), max(r['geodesic'] for r in rows)))
+        raise SystemExit(0)
+    out = Path(sys.argv[1] if len(sys.argv) > 1 else 'docs/querygen/suites.json')
+    if out.exists():
+        raise SystemExit(f'{out} exists: suites are frozen')
+    s = build()
+    out.write_text(json.dumps(s, indent=1))
+    for k in ('dev', 'holdout'):
+        rows = s[k]
+        print(k, len(rows), 'humans', {n: sum(r['human_num'] == n for r in rows) for n in (2, 4, 6)},
+              'geo mean %.2f min %.2f max %.2f' % (sum(r['geodesic'] for r in rows)/len(rows),
+                                                   min(r['geodesic'] for r in rows), max(r['geodesic'] for r in rows)))
