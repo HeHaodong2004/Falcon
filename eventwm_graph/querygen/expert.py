@@ -29,7 +29,7 @@ import numpy as np
 
 # expert-generation search budget: the evaluation portfolio, capped (the long tail is handled by the cap; episodes
 # that exceed it are reported, never silently dropped)
-FAST_ORACLE = dict(heading_h=True, escape_penalty=80, prefix_cache=48, max_edges=1500, max_seconds=900,
+FAST_ORACLE = dict(heading_h=True, escape_penalty=80, prefix_cache=48, max_edges=1500, max_seconds=7200,
                    portfolio=[{'weight': 3.5}, {'st_radius': 0.6, 'st_radius_opt': 0}], portfolio_shares=[2, 1])
 # member 0 (weight 3.5) wins 90% of solved development episodes (139 / 155 C1-K10); a 2:1 edge share cuts the
 # median search by ~20% (94 -> 74 edges) and costs member-1 wins 1.5x
@@ -65,7 +65,7 @@ def _verify(key, verify):
 
 
 def run_episode(spec, out_dir, planner='orca', dynamics='native', gen_kw=None, oracle_kw=None, features='raw', M=8,
-                feat_steps=24, verify='official'):
+                feat_steps=24, verify='official', extend_edges=0, extend_seconds=7200.):
     from .episode import EpisodeRuntime, replay
     from .generator import QueryGenerator, GeneratorConfig
     from .oracle import Oracle, OracleConfig
@@ -81,12 +81,24 @@ def run_episode(spec, out_dir, planner='orca', dynamics='native', gen_kw=None, o
     okw = dict(oracle_kw or {}); okw['escape_h'] = False
     ph['setup'] = T()-t
     t = T()
-    res = Oracle(rt, gen, OracleConfig(**okw)).search()
+    oracle = Oracle(rt, gen, OracleConfig(**okw))
+    res = oracle.search()
     ph['search'] = T()-t
+    phase = 1
+    if not res['success'] and extend_edges and extend_edges > okw.get('max_edges', 0) and \
+            any(x != 'exhausted' for x in oracle._pf['status']):
+        # the few hard episodes: continue the same searches (resumable portfolio) instead of failing / restarting
+        from dataclasses import replace
+        t = T()
+        oracle.cfg = replace(oracle.cfg, max_edges=int(extend_edges), max_seconds=float(extend_seconds))
+        res = oracle.search()
+        ph['search_ext'] = T()-t
+        phase = 2
     st = res['state']
     rec = dict(key=spec.key, spec=spec.asdict(), planner=planner, dynamics=dynamics, gen=gen_kw, oracle=okw,
                search=dict(success=res['success'], edges=res['stats']['children'], steps=int(st.index),
-                           final_geodesic=float(st.geodesic)), start_geodesic=float(rt.start_geodesic))
+                           final_geodesic=float(st.geodesic), phase=phase,
+                           winner=res['stats'].get('portfolio_winner')), start_geodesic=float(rt.start_geodesic))
     private_cache = rt.private_cache
     decisions_out, crops = [], []
     verdict = 'FAIL_SEARCH'
@@ -168,7 +180,7 @@ def summarize(out_dir):
         return {}
     tot = np.asarray([r['timing']['total'] for r in recs])
     phases = {}
-    for k in ('setup', 'search', 'records', 'replay', 'features', 'total'):
+    for k in ('setup', 'search', 'search_ext', 'records', 'replay', 'features', 'total'):
         v = np.asarray([r['timing'].get(k, 0.) for r in recs])
         phases[k] = dict(p50=round(float(np.median(v)), 1), mean=round(float(v.mean()), 1),
                          p95=round(float(np.percentile(v, 95)), 1), max=round(float(v.max()), 1))
@@ -178,6 +190,7 @@ def summarize(out_dir):
         return (r.get('official') or {}).get(k, r['branch'][k])
     s = dict(episodes=len(recs), passed=len(ok), sr=len(ok)/len(recs),
              officially_verified=sum(r['verdict'] == 'PASS' for r in recs),
+             extended=sum(r['search'].get('phase') == 2 for r in recs),
              replay_failures=sum(r['verdict'] == 'FAIL_REPLAY' for r in recs),
              spl_mean=float(np.mean([q(r, 'spl') for r in ok])) if ok else None,
              psc_mean=float(np.mean([q(r, 'psc') for r in ok])) if ok else None,
@@ -204,6 +217,7 @@ def main():
                     help='raw = legal map crop + tracks + candidate descriptors (cheap); sandbox = + legal consequence '
                          'features (one executor rollout per candidate; stand-in for Layer 2.5 outputs)')
     ap.add_argument('--verify', default='official', help="official | none | sample:P (official replay of a fraction P)")
+    ap.add_argument('--extend', type=int, default=0, help='continue an unsolved capped search up to this many edges')
     ap.add_argument('--shard', type=int, default=0)
     ap.add_argument('--shards', type=int, default=1)
     a = ap.parse_args()
@@ -225,7 +239,8 @@ def main():
         f = Path(a.out)/f"{spec.key.replace('/', '_')}.json"
         if f.exists():
             continue
-        r = run_episode(spec, a.out, a.planner, 'native', gen_kw, oracle_kw, features=a.features, verify=a.verify)
+        r = run_episode(spec, a.out, a.planner, 'native', gen_kw, oracle_kw, features=a.features, verify=a.verify,
+                        extend_edges=a.extend)
         print(json.dumps(dict(key=r['key'], verdict=r['verdict'], edges=r['search']['edges'], timing=r['timing'])),
               flush=True)
 

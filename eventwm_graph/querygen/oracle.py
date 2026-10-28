@@ -709,22 +709,32 @@ class Oracle:
                 return stop.value
 
     def _search_portfolio(self):
-        """Interleaved independent searches (``OracleConfig.portfolio``) under one edge budget."""
+        """Interleaved independent searches (``OracleConfig.portfolio``) under one edge budget.
+
+        Resumable: the member searches persist on the Oracle, so after a budget stop the caller may raise
+        ``self.cfg.max_edges`` / ``max_seconds`` and call ``search()`` again to continue the same searches (expert
+        generation: a capped first pass, then an extension for the few hard episodes -- no restart).  The members'
+        own caps are unbounded; the portfolio loop enforces the shared budget (a member's count never exceeds the
+        total, so single-call results are unchanged)."""
         from dataclasses import replace
         base = self.cfg
-        t0 = time.perf_counter()
-        n = len(base.portfolio)
-        shares = [float(x) for x in base.portfolio_shares] if base.portfolio_shares else [1.]*n
-        assert len(shares) == n and min(shares) > 0
-        members = []
-        for i, over in enumerate(base.portfolio):
-            cfg = replace(base, portfolio=[], portfolio_shares=[], lazy=True, **over)
-            members.append(Oracle(self.rt, self.gen, cfg, shared=self._shared, member=i))
-            members[-1]._member_over = dict(over)
-        its = [m._lazy_iter() for m in members]
-        status = ['running']*n
-        win = None
-        while time.perf_counter()-t0 < base.max_seconds:
+        pf = getattr(self, '_pf', None)
+        if pf is None:
+            n = len(base.portfolio)
+            shares = [float(x) for x in base.portfolio_shares] if base.portfolio_shares else [1.]*n
+            assert len(shares) == n and min(shares) > 0
+            members = []
+            for i, over in enumerate(base.portfolio):
+                cfg = replace(base, portfolio=[], portfolio_shares=[], lazy=True, max_edges=10**12, max_seconds=1e12,
+                              **over)
+                members.append(Oracle(self.rt, self.gen, cfg, shared=self._shared, member=i))
+                members[-1]._member_over = dict(over)
+            pf = self._pf = dict(members=members, its=[m._lazy_iter() for m in members], status=['running']*n,
+                                 shares=shares, t0=time.perf_counter(), win=None)
+        members, its, status, shares, t0 = pf['members'], pf['its'], pf['status'], pf['shares'], pf['t0']
+        n = len(members)
+        win = pf['win']
+        while win is None and time.perf_counter()-t0 < base.max_seconds:
             used = sum(m.stats['children'] for m in members)
             if used >= base.max_edges:
                 break
@@ -738,13 +748,10 @@ class Oracle:
                 res = stop.value
                 if res['success']:
                     status[i] = 'success'
-                    win = (i, res)
+                    win = pf['win'] = (i, res)
                     break
                 status[i] = 'exhausted'
-        for i in range(n):
-            if status[i] == 'running':
-                status[i] = 'budget'
-        stats = self._merge_stats(members, status, shares)
+        stats = self._merge_stats(members, ['budget' if x == 'running' else x for x in status], shares)
         if win is not None:
             stats['portfolio_winner'] = win[0]
             st, ok = win[1]['state'], True
