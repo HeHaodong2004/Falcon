@@ -571,6 +571,22 @@ in stuck mode.  Not applicable to the frozen gate system.
   Oracle 12 paired: all pass, edges -32%, SPL -0.013); path-aware SPL refinement (+0.095 SPL on the 9 lowest).
   Sixth unseen suite frozen for a v14 test (`suites_unseen6.json`, HM3D only).
 
+## 2026-10-28 ~20:00: GATE MET at the query level (no privileged fallback)
+- Frozen v12 (tag querygen-freeze-v12), ORCA K=10, untouched fourth unseen suite: **57 of 60 PASS = 95.0%**
+  already with 3 episodes still running (no proven-infeasible episode, so the denominator is 60); every PASS is an
+  official success reproduced by the authoritative replay; SPL 0.910, PSC 0.945, human collisions 0, 1.58 turn
+  reversals / 100 steps, Oracle edges P50 61 / P95 1,018.
+- Second untouched suite (fifth unseen, the v13 test; v13's ordinary search is the v12 search and the fallback was
+  never used): ORCA K=10 56 / 58 = 96.6% (2 certified infeasible: wrq3kiEU4VR, Uxmj2M2itWa), ORCA K=6 56 / 58 = 96.6%,
+  DWA K=10 running (30 / 30 finished).
+- v14 dev run launched 19:57 (`output/runs/official/v14`, hard episodes first): v12 + exact fast sensor +
+  goal_unknown_cost 1.25 + path-aware SPL refinement, no fallback.  v14 default policy (`exec_v14`, partial): ORCA
+  success 26 -> 29 of 45 paired, DWA 24 -> 31 of 52, mean SPL up.
+- Hard-case analysis (witness_probe.py): p32JzpQyhPk / VqCaAuuoeWk witnesses cross wall-band CORE cells -- the
+  kinematic, navmesh-bound robot scrapes through geometry the legal sensor reports at body height (static contact is
+  legal); no clearance setting opens it.  v15 direction: proprioceptive traversability (learn from the robot's own
+  motion that a blocked-looking cell is passable).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.

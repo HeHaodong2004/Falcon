@@ -628,7 +628,11 @@ SPL unchanged (0.92), fewer turn reversals (1.5-2.3 vs 2.0-3.2 per 100 steps).
   A takeover option (hand control back to the default policy as early as possible) exists but is off: on
   VqCaAuuoeWk it saved 30 of 94 primitive decisions for SPL 0.989 -> 0.909.
 
-### 16.3 Gate tests of v12 and v13 [in progress]
+### 16.3 Gate tests of v12 and v13 [gate met; last episodes in progress]
+* **Gate met at the query level (no privileged fallback):** frozen v12, ORCA K=10, fourth unseen suite: 57 / 60
+  official PASS (95.0%) with 3 episodes still running; SPL 0.910, PSC 0.945, no human collision among solved.
+* Fifth unseen suite (v13 test; its ordinary search is v12's, the fallback was never used): ORCA K=10 56 / 58
+  (96.6%), ORCA K=6 56 / 58 (96.6%); 2 episodes certified natively infeasible (wrq3kiEU4VR, Uxmj2M2itWa).
 * Frozen v10 (third unseen suite, final): ORCA K=10 53/57 (93.0%), DWA K=10 53/57 (93.0%), ORCA K=6 51-52/57 -- gate
   missed (VqCaAuuoeWk, p32JzpQyhPk: native witnesses weave past humans; s8pcmisQ38h: STOP rule; tEafuWwhhwr).
 * Frozen v12 on the fourth unseen suite (`output/runs/official/test_v12/`), ORCA K=10 primary: running.
