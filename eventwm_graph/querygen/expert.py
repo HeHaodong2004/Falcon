@@ -53,8 +53,19 @@ def map_crop(legal, n=CROP):
     return out
 
 
+def _verify(key, verify):
+    """Official replay for this episode?  'official' = always, 'none' = never, 'sample:p' = a deterministic hash-based
+    fraction p (the unverified rest is PASS_BRANCH: verified by the branch simulator only)."""
+    if verify == 'official':
+        return True
+    if verify == 'none':
+        return False
+    p = float(verify.split(':')[1])
+    return (zlib.crc32(key.encode()) % 10000)/10000. < p
+
+
 def run_episode(spec, out_dir, planner='orca', dynamics='native', gen_kw=None, oracle_kw=None, features='raw', M=8,
-                feat_steps=24):
+                feat_steps=24, verify='official'):
     from .episode import EpisodeRuntime, replay
     from .generator import QueryGenerator, GeneratorConfig
     from .oracle import Oracle, OracleConfig
@@ -77,10 +88,11 @@ def run_episode(spec, out_dir, planner='orca', dynamics='native', gen_kw=None, o
                search=dict(success=res['success'], edges=res['stats']['children'], steps=int(st.index),
                            final_geodesic=float(st.geodesic)), start_geodesic=float(rt.start_geodesic))
     private_cache = rt.private_cache
-    rt.close()
     decisions_out, crops = [], []
     verdict = 'FAIL_SEARCH'
-    if res['success']:
+    if not res['success']:
+        rt.close()
+    else:
         from .sandbox import cv_futures
         from .l3_interface import consequence_features
         feat_s = [0.]
@@ -106,23 +118,37 @@ def run_episode(spec, out_dir, planner='orca', dynamics='native', gen_kw=None, o
                 row['features'] = np.asarray(X, dtype=np.float32).round(4).tolist()
                 feat_s[0] += T()-tf
             decisions_out.append(row)
+        # training records: deterministic re-run of the solution in the branch simulator (the search's own
+        # simulator; bitwise equal to Env.step in every authoritative replay so far), at every decision boundary
         t = T()
-        rp = replay(spec, planner, dyn, st.decisions, private_cache=private_cache, lean=True, on_decision=on_decision)
-        ph['replay'] = T()-t-feat_s[0]
+        sr = rt.root
+        geo = [float(sr.geodesic)]
+        for i, d in enumerate(st.decisions):
+            on_decision(i, sr.legal, sr.execution, d, sr.index)
+            n0 = sr.index
+            sr = rt.run(sr, None if d['cont'] else d['query'], horizon=int(d['horizon']), cont=bool(d['cont']))
+            decisions_out[-1]['steps'] = int(sr.index-n0)
+            geo.append(float(sr.geodesic) if sr.outcome is None else 0.)
+        for row, g0, g1 in zip(decisions_out, geo[:-1], geo[1:]):
+            row['progress_m'] = g0-g1
+        rt.close()
+        ph['records'] = T()-t-feat_s[0]
         ph['features'] = feat_s[0]
-        m = rp['metrics']
-        ok = rp['actions'] == st.actions and m.get('success') == 1.0
-        verdict = 'PASS' if ok else 'FAIL_REPLAY'
-        # rewards per decision: geodesic progress over the decision's steps, step count; success at the end
-        geo = [row[3] for row in rp['trajectory']]
-        k = 0
-        for row, n in zip(decisions_out, rp['per_decision_steps']):
-            row['steps'] = int(n)
-            row['progress_m'] = float(geo[k]-geo[min(k+n, len(geo)-1)])
-            k += n
-        rec['official'] = dict(success=m.get('success'), spl=m.get('spl'), psc=m.get('psc'),
-                               human_collision=m.get('human_collision'), steps=rp['steps'])
+        same = sr.actions == st.actions and sr.outcome == 'success'
+        L, Ls = float(sr.path_length), float(rec['start_geodesic'])
+        rec['branch'] = dict(outcome=sr.outcome, steps=int(sr.index), spl=Ls/max(L, Ls) if L > 0 else 1.,
+                             psc=1.-sr.psc_steps/max(1, sr.index), deterministic=same)
         rec['chosen_in_candidates'] = all(r['chosen'] >= 0 for r in decisions_out)
+        verdict = 'PASS_BRANCH' if same else 'FAIL_RECONSTRUCT'
+        if same and _verify(spec.key, verify):
+            t = T()
+            rp = replay(spec, planner, dyn, st.decisions, private_cache=private_cache, lean=True)
+            ph['replay'] = T()-t
+            m = rp['metrics']
+            ok = rp['actions'] == st.actions and m.get('success') == 1.0
+            verdict = 'PASS' if ok else 'FAIL_REPLAY'
+            rec['official'] = dict(success=m.get('success'), spl=m.get('spl'), psc=m.get('psc'),
+                                   human_collision=m.get('human_collision'), steps=rp['steps'])
     rec['verdict'] = verdict
     rec['decisions'] = decisions_out
     ph['total'] = T()-t_all
@@ -142,14 +168,19 @@ def summarize(out_dir):
         return {}
     tot = np.asarray([r['timing']['total'] for r in recs])
     phases = {}
-    for k in ('setup', 'search', 'replay', 'features', 'total'):
+    for k in ('setup', 'search', 'records', 'replay', 'features', 'total'):
         v = np.asarray([r['timing'].get(k, 0.) for r in recs])
         phases[k] = dict(p50=round(float(np.median(v)), 1), mean=round(float(v.mean()), 1),
                          p95=round(float(np.percentile(v, 95)), 1), max=round(float(v.max()), 1))
-    ok = [r for r in recs if r['verdict'] == 'PASS']
+    ok = [r for r in recs if r['verdict'] in ('PASS', 'PASS_BRANCH')]
+
+    def q(r, k):
+        return (r.get('official') or {}).get(k, r['branch'][k])
     s = dict(episodes=len(recs), passed=len(ok), sr=len(ok)/len(recs),
-             spl_mean=float(np.mean([r['official']['spl'] for r in ok])) if ok else None,
-             psc_mean=float(np.mean([r['official']['psc'] for r in ok])) if ok else None,
+             officially_verified=sum(r['verdict'] == 'PASS' for r in recs),
+             replay_failures=sum(r['verdict'] == 'FAIL_REPLAY' for r in recs),
+             spl_mean=float(np.mean([q(r, 'spl') for r in ok])) if ok else None,
+             psc_mean=float(np.mean([q(r, 'psc') for r in ok])) if ok else None,
              decisions_per_episode=float(np.mean([len(r['decisions']) for r in ok])) if ok else None,
              chosen_in_candidates=all(r.get('chosen_in_candidates', True) for r in ok),
              timing=phases, episodes_per_hour_per_worker=round(3600/float(tot.mean()), 1),
@@ -172,6 +203,7 @@ def main():
     ap.add_argument('--features', default='raw', choices=['none', 'raw', 'sandbox'],
                     help='raw = legal map crop + tracks + candidate descriptors (cheap); sandbox = + legal consequence '
                          'features (one executor rollout per candidate; stand-in for Layer 2.5 outputs)')
+    ap.add_argument('--verify', default='official', help="official | none | sample:P (official replay of a fraction P)")
     ap.add_argument('--shard', type=int, default=0)
     ap.add_argument('--shards', type=int, default=1)
     a = ap.parse_args()
@@ -193,7 +225,7 @@ def main():
         f = Path(a.out)/f"{spec.key.replace('/', '_')}.json"
         if f.exists():
             continue
-        r = run_episode(spec, a.out, a.planner, 'native', gen_kw, oracle_kw, features=a.features)
+        r = run_episode(spec, a.out, a.planner, 'native', gen_kw, oracle_kw, features=a.features, verify=a.verify)
         print(json.dumps(dict(key=r['key'], verdict=r['verdict'], edges=r['search']['edges'], timing=r['timing'])),
               flush=True)
 
