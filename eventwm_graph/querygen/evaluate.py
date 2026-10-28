@@ -238,6 +238,8 @@ def main():
     ap.add_argument('--oracle', default='{}', help='JSON OracleConfig overrides')
     ap.add_argument('--gen', default='{}', help='JSON GeneratorConfig overrides')
     ap.add_argument('--only', default='', help='comma-separated scene names (suite mode)')
+    ap.add_argument('--first', default='', help='comma-separated scene names started first, in this order (suite mode; '
+                    'scheduling only -- e.g. known long searches first so the tail overlaps the rest)')
     ap.add_argument('--rules', default='official', choices=['official', 'declared'],
                     help='official = Falcon benchmark definitions only (default); declared = pre-2026-10-28 rules')
     a = ap.parse_args()
@@ -275,6 +277,9 @@ def main():
     (out/'run.json').write_text(json.dumps(dict(argv=sys.argv, code=git_identity(), started=time.time(),
                                                 snapshot=str(snap)), indent=1))
     pending = [s for s in specs if not (out/f"{s.key.replace('/', '_')}.json").exists()]
+    if a.first:
+        rank = {sc: i for i, sc in enumerate(a.first.split(','))}
+        pending.sort(key=lambda s: rank.get(s.scene, len(rank)))     # stable: the rest keep the suite order
     procs = []
     py = sys.executable
     runner = str(Path(__file__).resolve().parents[2]/'scripts/querygen_run.py')

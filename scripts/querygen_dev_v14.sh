@@ -8,6 +8,7 @@
 #   CONFIG = c1k10 | c1k6 | c2k10
 #   W_DEV / W_UNSEEN / W_UNSEEN2 / W_UNSEEN3 / W_UNSEEN4 / W_UNSEEN5 (env) worker counts (default 4 / 5 / 5 / 6 / 6 / 6)
 #   ONLY_<SUITE> (env, comma-separated scene names, 'none' = skip) restrict the episodes
+#   FIRST_SCENES (env, comma-separated scene names) are started first (scheduling only)
 set -eu
 if [ -z "${QG_LAUNCH_COPY:-}" ]; then
   export QG_REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -43,8 +44,9 @@ for SUITE in dev unseen unseen2 unseen3 unseen4 unseen5; do
   [ "$O" = none ] && continue
   OUT="$ROOT/${SUITE}_${CFG}"
   ONLY=(); [ -n "$O" ] && ONLY=(--only "$O")
+  FIRST=(); [ -n "${FIRST_SCENES:-}" ] && FIRST=(--first "$FIRST_SCENES")
   CUDA_VISIBLE_DEVICES=1 nice -n 10 $PY scripts/querygen_run.py eventwm_graph.querygen.evaluate suite "$SUITE" \
     --out "$OUT" --workers "$WS" --planner $PL --dynamics native --gen "$GEN" --oracle "$ORACLE" --rules official \
-    "${ONLY[@]}" > "$OUT.log" 2>&1 &
+    "${ONLY[@]}" "${FIRST[@]}" > "$OUT.log" 2>&1 &
 done
 wait
