@@ -98,6 +98,8 @@ class GeneratorConfig:
     kturns: tuple = ()               # v9: multi-point turns offered in manoeuvre mode: first in-place turn of
                                      # k steps away from the final direction, one creep step, then turn to the
                                      # route heading (e.g. (6, 12)); () = off
+    st_goal_momentum: bool = False   # v10: also offer st_goal to robots with momentum (stplan.plan_inertia:
+                                     # speed level in the lattice state; braking-tail safety at every step)
     rot_exact: bool = True           # v10: in-place rotations end on the primitive that reaches the target heading
                                      # (v9 noticed it one step late and spent that step on a native hold turn,
                                      # which always starts right: rot_left1 was a no-op, rot_left<k> turned k-1,
@@ -200,7 +202,7 @@ class QueryGenerator:
             fixed.append(Query('continue', label='continue', meta=dict(of=execution.query.label)))
         gd = math.hypot(goal_xz[0]-robot_xz[0], goal_xz[1]-robot_xz[1])
         fixed.append(Query('goal', label='goal'))
-        if cfg.st_goal and not self.dyn.stateful:
+        if cfg.st_goal and (not self.dyn.stateful or cfg.st_goal_momentum):
             fixed.append(Query('stgoal', label='st_goal'))
         if cfg.tc_variants:
             # mixed mode: explicit squeeze variants (tight wall band + close passes for robots that stop

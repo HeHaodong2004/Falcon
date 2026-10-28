@@ -405,6 +405,8 @@ class QueryExecution:
         predictions) is recomputed every ST_REPLAN steps, when the robot is off the planned pose, or
         when the one-step rectangle check rejects its next primitive (then the robot holds once).
         """
+        if self.dyn.stateful:
+            return self._step_st_inertia(legal, dyn_state)
         from . import stplan
         from .planners import one_step_hard_ok
         q = self.query
@@ -463,6 +465,83 @@ class QueryExecution:
                 return prim
             self.st = None
         return self.planner.act(ctx, self.adapter)
+
+    def _step_st_inertia(self, legal, dyn_state):
+        """stgoal for robots with momentum (v10): follow a legal momentum-aware space-time plan
+        (stplan.plan_inertia: speed level in the state, turns at rest, arrival at rest).  Each command is
+        executed only if it and its braking tail keep the body off observed walls and the rectangle clearance
+        from the legal constant-velocity predictions; otherwise the DWA planner holds (it brakes)."""
+        from . import stplan
+        from .planners import Realized
+        q = self.query
+        pose = legal.pose
+        L = int(dyn_state)
+        target = tuple(map(float, q.via[-1])) if q.via else self._goal_xz(legal)
+        d = math.hypot(target[0]-pose[0], target[1]-pose[2])
+        if not q.via:
+            self.recent.append(d)
+            if L == 0 and (d < STOP_M or (d < STUCK_STOP_M and len(self.recent) >= 4 and self.recent[-4]-d < 0.02)):
+                self.status, self.reason = 'done', 'stop_at_goal'
+                return 'stop'
+        ctx = self._context(legal, dyn_state, np.zeros(2), hold=True)
+        if q.via and d < ARRIVE_M:
+            self.status, self.reason = 'done', 'arrived'
+            return self.planner.act(ctx, self.adapter)
+        need = self.st is None or self.st_i >= len(self.st['cmds']) or self.st_age >= ST_REPLAN
+        if not need and self.st_i > 0:
+            ex = self.st['poses'][self.st_i-1]
+            need = math.hypot(ex[0]-pose[0], ex[1]-pose[2]) > 0.06 or abs(wrap(ex[2]-pose[3])) > 0.03 or \
+                self.st['levels'][self.st_i-1] != L
+        if need:
+            route = self._ensure_field(legal, target)
+            if route is None:
+                self.status, self.reason = 'done', 'unreachable'
+                return self.planner.act(ctx, self.adapter)
+            P = to_plane([pose[0], pose[2]])
+            humans = [h for h in ctx.humans if float(np.hypot(*(h.position-P))) <= ST_HUMAN_RANGE]
+            self.st = stplan.plan_inertia(self.view, self.field, pose, L, target, self.dyn, humans, STEP_SECONDS,
+                                          horizon=ST_HORIZON, goal_tol=STOP_M*0.8 if not q.via else ARRIVE_M*0.8,
+                                          margin=ST_MARGIN, growth=ST_GROWTH, start_budget=body_cost(legal.map, P, pose[3]),
+                                          stop_at_goal=not q.via)
+            if not self.st['found'] or not self.st['cmds']:
+                self.st = None
+            self.st_i = 0
+            self.st_age = 0
+            self.lattice_calls += 1
+        self.st_age += 1
+        if self.st is not None and self.st_i < len(self.st['cmds']):
+            cmd, lvl = self.st['cmds'][self.st_i], self.st['levels'][self.st_i]
+            if self._momentum_cmd_safe(legal, ctx, cmd, lvl):
+                self.st_i += 1
+                return Realized(cmd, lvl)
+            self.st = None
+        return self.planner.act(ctx, self.adapter)
+
+    def _momentum_cmd_safe(self, legal, ctx, cmd, lvl):
+        """The command and the braking tail that follows it: body admissible on the legal map (no worse than
+        now) and rectangle >= hard clearance from every legal constant-velocity human prediction."""
+        from .control import body_ok
+        from .planners import DWAPlanner
+        dyn = self.dyn
+        P, psi = np.array(ctx.P, dtype=float), float(ctx.psi)
+        if isinstance(cmd, tuple):
+            P = P+dyn.levels[int(lvl)]*heading_vec(psi)
+        elif cmd in ('left', 'right'):
+            psi += dyn.turn_rad if cmd == 'left' else -dyn.turn_rad
+        traj = [(P.copy(), psi)]
+        lv = int(lvl)
+        while lv > 0:
+            lv = max(0, lv-dyn.brake)
+            P = P+dyn.levels[lv]*heading_vec(psi)
+            traj.append((P.copy(), psi))
+        budget0 = body_cost(legal.map, ctx.P, ctx.psi)
+        for k, (Pk, psik) in enumerate(traj):
+            if not body_ok(legal.map, Pk, psik, True, budget0):
+                return False
+            for h in ctx.humans or []:
+                if float(DWAPlanner._rect_dist(Pk, psik, h.at((k+1)*STEP_SECONDS))) < self.hard_clearance:
+                    return False
+        return True
 
     def _step_kturn(self, legal, dyn_state):
         """Multi-point turn (manoeuvre): ``first`` = (direction, k) in-place turn steps, ``creep`` forward
