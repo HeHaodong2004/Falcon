@@ -42,22 +42,22 @@ Union of K=10 and K=6: 22/24; 3t8DB4Uzvkt (K=6 only) and LT9Jq6dN3Ea (K=10 only)
 6000-edge budget and flip with small search changes.  Generator latency P50 36-42 ms per decision.
 
 ## 3. Unseen-scene suite (40 episodes, never used for development)
-Feasibility (privileged, computed after the freeze): 25 verified witnesses (1,800 s searches) plus 5
-episodes proven feasible by a replay-verified Oracle solution of some configuration (iePHCSf119p,
-iigzG1rtanx, mJXqzFtmKg4, Pm6F8kyY3z2, PuKPg4mmafe) = **30 feasible**; **7 certified infeasible**
-(sT4fr6TAbpF: goal region unreachable for Spot's body; D8bT1ambLFc, FgswoxWb3uN, s19Uyn7AWwv, JeFG25nYj2p,
-VLzqgDo317F: no escape from the spawn; gDDiZeyaVc2: exact-gait progress search exhausted); **3
-unresolved** (W16Bm4ysK8v, kdFEfVoT1WE, nMeXfQU4PMS: every certificate passes, 1,800 s witness searches
-time out; 9,000 s searches running).
+Feasibility (privileged, computed after the freeze): 25 verified witnesses (1,800 s searches), 1 more
+from 9,000 s searches (W16Bm4ysK8v, 108 steps), plus 5 episodes proven feasible by a replay-verified
+Oracle solution of some configuration (iePHCSf119p, iigzG1rtanx, mJXqzFtmKg4, Pm6F8kyY3z2, PuKPg4mmafe)
+= **31 feasible**; **7 certified infeasible** (sT4fr6TAbpF: goal region unreachable for Spot's body;
+D8bT1ambLFc, FgswoxWb3uN, s19Uyn7AWwv, JeFG25nYj2p, VLzqgDo317F: no escape from the spawn; gDDiZeyaVc2:
+exact-gait progress search exhausted); **2 unresolved** (kdFEfVoT1WE, nMeXfQU4PMS: every certificate
+passes, no witness in 9,000 s at two search weights; a sound space-time relaxation (`stcert.py`) does
+not certify them either).
 
 | config | feasible SR | strict SR | feasible failures | SPL | steps P50 | min human clearance (min / P50) | Oracle edges P50/P95 | Oracle s P50/P95 | generator ms P50/P95 |
 |---|---|---|---|---|---|---|---|---|---|
-| **C1 ORCA x native K=10** | **28/30 (93.3%)** | 28/40 | pUneSGJDrvY, zUG6FL9TYeR | 0.841 | 115 | 0.275 / 0.439 m | 102 / 5475 | 96 / 4993 | 38 / 74 |
-| **C1 ORCA x native K=6** | **25/30 (83.3%)** | 25/40 | TQSiMZJawkS, iePHCSf119p, p4ZPcGtk6Ex, pUneSGJDrvY, zUG6FL9TYeR | 0.819 | 103 | 0.251 / 0.425 m | 47 / 2703 | 86 / 2414 | 41 / 81 |
+| **C1 ORCA x native K=10** | **28/31 (90.3%)** | 28/40 | pUneSGJDrvY, zUG6FL9TYeR, W16Bm4ysK8v | 0.841 | 115 | 0.275 / 0.439 m | 102 / 5475 | 96 / 4993 | 38 / 74 |
+| **C1 ORCA x native K=6** | **25/31 (80.6%)** | 25/40 | TQSiMZJawkS, iePHCSf119p, p4ZPcGtk6Ex, pUneSGJDrvY, zUG6FL9TYeR, W16Bm4ysK8v | 0.819 | 103 | 0.251 / 0.425 m | 47 / 2703 | 86 / 2414 | 41 / 81 |
 | C2 DWA x inertia K=10 | (running) | | | | | | | | |
 
-No unresolved episode was solved by any configuration (all FAIL_SEARCH at 6,000 edges); if the long
-witness searches prove them feasible they count as feasible failures.  The union of K=10 and K=6 is 28/30.
+The union of K=10 and K=6 is 28/31.
 
 ## 4. Remaining DEV failures
 * **Nfvxx8J5NCo**: the narrow passage opening lies at the end of the inflated wall band and is unobserved while
