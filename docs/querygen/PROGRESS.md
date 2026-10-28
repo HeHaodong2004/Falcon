@@ -617,6 +617,25 @@ in stuck mode.  Not applicable to the frozen gate system.
   (`short_human_m=2.5`, 4-step edges; `output/runs/official/v15sh`).
 - v12 dev final tail: 8 failures among 185 finished (Nfvx, 3t8D, jh4f, ANmW, p32J, VqCa, tEaf, Pm6F).
 
+## 2026-10-28 ~21:00-23:00: held-out tests final; v14 vs v15
+- **Frozen v12 test FINAL** (untouched fourth unseen suite, ORCA K=10): **58 / 60 = 96.7%** (SPL 0.876 over all,
+  PSC 0.941, 0 human collisions, mean Oracle 948 s); failures oKFJo8jpzRW (final geodesic 6.79 m) and yqNxxJnA3iL
+  (0.48 m), both FAIL_SEARCH; native witness searches (protocol accounting, 1 h each) running in
+  `output/runs/witness_native/unseen4`.  The gate holds whatever their verdict (>= 58/60).
+- **Frozen v13 test FINAL** (untouched fifth unseen suite; v13's ordinary search = v12's, the fallback never
+  fired): ORCA K=10, ORCA K=6 and DWA K=10 all **58 / 60 = 58 / 58 feasible** (wrq3kiEU4VR, Uxmj2M2itWa certified
+  infeasible).  Every configuration meets the gate.
+- v14 dev (`output/runs/official/v14`, hard episodes first), paired with v12 on 205 finished episodes: PASS 188 -> 194
+  (gained VqCaAuuoeWk, p32JzpQyhPk, Nfvxx8J5NCo, YRUkbU5xsYj, Pm6F8kyY3z2, jh4fc5c5qoQ, uNb9QFRL6hY; lost FXuXGH9YQTW,
+  a 7,008-edge v12 solution that uses no '_vc' copy -- search-order sensitivity), SPL on both-pass 0.896 -> 0.914,
+  median edges 82 -> 77, mean search minutes 16.8 -> 7.5.  Open: 3t8DB4Uzvkt, ANmWrL7Kz7h, FXuXGH9YQTW, tEafuWwhhwr,
+  nMeXfQU4PMS (nMeX: 30 min native witness search inconclusive, best geodesic 5.66 m).
+- v15 candidate = v14 + short-interval goal copies near humans (generator `short_human_m=2.5`, `short_steps=4`):
+  3,000-edge probe solved VqCaAuuoeWk in 280 edges (v14: 7,154) and Pm6F8kyY3z2 in 749; full dev run launched 21:05
+  (`output/runs/official/v15`).  Interim paired with v14: 66 episodes, PASS 63 / 63, SPL 0.906 / 0.907, mean search
+  minutes 13.3 / 10.1.  Freeze rule pre-registered at 22:58: freeze v15 iff its paired PASS >= v14's and its mean
+  search time is lower; otherwise v14.  The held-out test of the frozen version runs on the untouched sixth suite.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
