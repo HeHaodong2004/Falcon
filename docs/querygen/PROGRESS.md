@@ -587,6 +587,24 @@ in stuck mode.  Not applicable to the frozen gate system.
   legal); no clearance setting opens it.  v15 direction: proprioceptive traversability (learn from the robot's own
   motion that a blocked-looking cell is passable).
 
+## 2026-10-28 ~20:00-20:10: the long tail is a legal-map vs native-motion mismatch; 'thru' queries
+- `tests/querygen/witness_probe.py` executes every candidate query from a native witness's states.  p32JzpQyhPk:
+  at witness steps 40-60 the witness covers 2.8-4.0 m per 32 steps while every legal query holds (0-0.5 m) --
+  no human blocks it (true clearance 1.8 -> 3.4 m); the body-aware planner sees the passage as wall.
+- `probe_hits`: along every hard development witness (p32J, VqCa, ANmW, FXuX, kdFE) 115-505 legal wall hits lie
+  within 0.25 m of the witness's own path, mostly 0.6-0.8 m above the base (body height), some within 1-4 cm; the
+  witnesses are in static contact in 18-24% of their steps.  Falcon's Spot moves kinematically, bounded only by the
+  navmesh; it clips through furniture the camera reports (legal under the official rules), while the legal map
+  (visual hits 0.2-1.4 m above the base, dilated 0.25 m) treats the same geometry as walls.  No clearance setting
+  opens these passages (vc_tight 3: 0.77 m vs witness 3.9 m).
+- v15 candidate `th_variants` ('_th' copies, meta thru + vclose; executor._ThruLegal): observed BLOCKED cells become
+  soft obstacles (UNKNOWN for body checks, routed at cost x6) except the proprioceptive bump-memory discs.  Probe on
+  p32JzpQyhPk: at witness steps 50 / 60 goal_th progresses 3.21 / 3.78 m (witness 3.9 / 4.0).  Full-search test on
+  the four v12 dev failures (`output/runs/official/v15th`, '_th' replacing '_vc', 3,000 edges) running.
+- v14 default policy (`exec_v14`, partial): ORCA 40 -> 44 of 64 paired, DWA 34 -> 41 of 68; expert benchmark with
+  the exact fast sensor (`expert_q_cap1500`, 68 feasible): same solutions, P50 56 -> 44 s, mean 172 -> 139 s,
+  P95 832 -> 627 s per episode.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
