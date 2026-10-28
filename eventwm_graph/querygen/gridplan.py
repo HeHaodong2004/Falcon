@@ -14,6 +14,12 @@ from scipy.ndimage import distance_transform_edt
 from .legal import UNKNOWN, FREE, BLOCKED
 
 INF = 1e18
+# v10 (GeneratorConfig.goal_relax_m sets it per process; 0 = v9): a field target inside observed BLOCKED
+# cells -- typically a goal on the navmesh edge next to furniture, covered by the legal map's 0.25 m inflated
+# band once seen -- seeds the field from the passable cells within this radius (initial cost = their distance
+# to the target) instead of leaving every cell unreachable (LEFTm3JecaC: every goal query 'unreachable' after
+# the first turn; 13 of 68 DEV/unseen goals lie within 0.1 m of the navmesh edge).
+BLOCKED_TARGET_RELAX_M = 0.0
 
 
 @njit(cache=True)
@@ -181,6 +187,17 @@ class PlanningView:
         for x, z in targets_xz:
             i, j = self.to_local(x, z)
             i = min(max(i, 0), self.state.shape[0]-1); j = min(max(j, 0), self.state.shape[1]-1)
+            if self.blocked[i, j] and BLOCKED_TARGET_RELAX_M > 0:
+                r = BLOCKED_TARGET_RELAX_M/self.res
+                n = int(math.ceil(r))
+                found = False
+                for a in range(max(i-n, 0), min(i+n+1, self.state.shape[0])):
+                    for b in range(max(j-n, 0), min(j+n+1, self.state.shape[1])):
+                        d = math.hypot(a-i, b-j)
+                        if d <= r and not self.blocked[a, b]:
+                            si.append(a); sj.append(b); sd.append(d); found = True
+                if found:
+                    continue
             si.append(i); sj.append(j); sd.append(0.)
         return _dijkstra(self.cost, np.asarray(si, dtype=np.int64), np.asarray(sj, dtype=np.int64),
                          np.asarray(sd, dtype=np.float64), self.blocked)

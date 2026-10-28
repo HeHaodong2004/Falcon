@@ -110,6 +110,10 @@ class GeneratorConfig:
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
                                      # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
+    goal_relax_m: float = 0.0        # v10: planning-field targets inside observed BLOCKED cells (goals on the navmesh
+                                     # edge next to furniture) are relaxed to the passable cells within this radius
+                                     # (gridplan.BLOCKED_TARGET_RELAX_M; process-wide, so the authoritative replay
+                                     # in the same process uses it too); 0 = v9 (target unreachable)
 
 
 _route_points = resample_route
@@ -128,6 +132,8 @@ class QueryGenerator:
     def __init__(self, dyn, config=None):
         self.dyn = dyn
         self.cfg = config or GeneratorConfig()
+        from . import gridplan
+        gridplan.BLOCKED_TARGET_RELAX_M = float(self.cfg.goal_relax_m)
 
     # ------------------------------------------------------------------ utils
     def _free_reachable(self, view, rfield, xz):
