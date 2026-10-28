@@ -102,6 +102,12 @@ class OracleConfig:
                                       # episodes between 30 and 12,000 edges), which differently ordered
                                       # searches cut
     portfolio_shares: list = field(default_factory=list)   # relative edge shares of the members (default equal)
+    improve_below_spl: float = 0.     # v14 candidate: refine only first solutions whose path efficiency (start geodesic /
+                                      # path length, the official SPL of a success) is below this (0 = always)
+    improve_lambda: float = 0.        # v14 candidate: the refinement's objective is steps + improve_lambda x forward
+                                      # steps (path length / native step): among equally fast branches the shorter
+                                      # route wins (SPL).  The time-only A* fills unavoidable waits with detours
+                                      # (cV4RVeZvu5T: drives 1.4 m away and back, SPL 0.47).  0 = steps only
     improve_edges: int = 0            # anytime refinement: after the first success, a second bounded search (weight
     improve_weight: float = 1.5       # improve_weight) spends up to this many extra edges looking for a branch with
                                       # fewer steps (nodes whose step lower bound -- index + geodesic / step + 1 --
@@ -476,6 +482,21 @@ class Oracle:
                 return float(tau)
         return float(cfg.block_max)
 
+    def _efficiency(self, st):
+        g0 = float(self.rt.start_geodesic)
+        return g0/max(float(st.path_length), g0) if g0 > 0 else 1.
+
+    def _obj(self, st):
+        """Refinement objective of a branch: steps (+ improve_lambda x path length in native forward steps)."""
+        lam = self.cfg.improve_lambda if getattr(self, '_improving', False) else 0.
+        return st.index+lam*st.path_length/float(self.rt.dyn.step_m)
+
+    def _obj_lb(self, st):
+        """Lower bound of the objective of any completion of ``st`` (remaining forward steps >= geodesic / step)."""
+        lam = self.cfg.improve_lambda if getattr(self, '_improving', False) else 0.
+        step_m = float(self.rt.dyn.step_m)
+        return self._obj(st)+(1.+lam)*st.geodesic/step_m+1
+
     def _f(self, st):
         cfg = self.cfg
         h = st.geodesic/cfg.speed_est if st.geodesic == st.geodesic else 1e3
@@ -529,6 +550,9 @@ class Oracle:
             h = max(h, v+hs) if v is not None else h+cfg.st_fallback
         elif cfg.block_weight:
             pen += cfg.block_weight*self._block_time(st)
+        if cfg.improve_lambda and getattr(self, '_improving', False):
+            lam = cfg.improve_lambda/float(self.rt.dyn.step_m)
+            return st.index+lam*st.path_length+cfg.weight*(h+lam*st.geodesic)+pen
         return st.index+cfg.weight*h+pen
 
     def _noise(self, node, q):
@@ -682,7 +706,8 @@ class Oracle:
             res = self._search_lazy()
         else:
             return self._search_eager()
-        if res['success'] and self.cfg.improve_edges > 0:
+        if res['success'] and self.cfg.improve_edges > 0 and (
+                not self.cfg.improve_below_spl or self._efficiency(res['state']) < self.cfg.improve_below_spl):
             res = self._improve(res)
         if not res['success'] and self.cfg.prim_fallback_sims > 0:
             res = self._prim_fallback(res)
@@ -781,7 +806,8 @@ class Oracle:
                       max_edges=base.improve_edges, improve_edges=0)
         m = Oracle(self.rt, self.gen, cfg, shared=self._shared, member=99)
         m._member_over = dict(improve=True)
-        m._bound = first.index
+        m._improving = True
+        m._bound = m._obj(first)
         it = m._lazy_iter()
         while True:
             try:
@@ -792,9 +818,11 @@ class Oracle:
         stats['edges_first_success'] = stats['children']
         stats['improve'] = dict(edges=m.stats['children'], steps_first=int(first.index),
                                 steps_best=int(m._incumbent.index) if m._incumbent is not None else int(first.index),
+                                path_first=round(float(first.path_length), 3),
+                                path_best=round(float((m._incumbent or first).path_length), 3),
                                 improvements=m._improvements, seconds=round(time.perf_counter()-t0, 1))
         stats['children'] += m.stats['children']
-        if m._incumbent is not None and m._incumbent.index < first.index:
+        if m._incumbent is not None and m._obj(m._incumbent) < m._obj(first):
             st = m._incumbent
             return dict(success=True, state=st, steps=st.index, outcome=st.outcome, final_geodesic=st.geodesic,
                         decisions=st.decisions, seconds=res['seconds']+time.perf_counter()-t0, stats=stats)
@@ -961,7 +989,7 @@ class Oracle:
             prio, _, node, q, deferred, node_fine = heapq.heappop(heap)
             if MAX_EPISODE_STEPS-node.index <= 0:
                 continue
-            if self._bound is not None and node.index+node.geodesic/step_m+1 >= self._bound:
+            if self._bound is not None and self._obj_lb(node) >= self._bound:
                 continue
             if cfg.predict_dups and not deferred:
                 t = time.perf_counter()
@@ -995,8 +1023,8 @@ class Oracle:
                 if child.outcome == 'success':
                     if self._bound is None:
                         return self._result(child, t0, True)
-                    if child.index < self._bound:
-                        self._incumbent, self._bound = child, child.index
+                    if self._obj(child) < self._bound:
+                        self._incumbent, self._bound = child, self._obj(child)
                         self._improvements += 1
                     continue
                 lab['fail'] += 1
@@ -1037,8 +1065,8 @@ class Oracle:
                         self.stats['outcomes']['success'] = self.stats['outcomes'].get('success', 0)+1
                         if self._bound is None:
                             return self._result(done, t0, True)
-                        if done.index < self._bound:
-                            self._incumbent, self._bound = done, done.index
+                        if self._obj(done) < self._bound:
+                            self._incumbent, self._bound = done, self._obj(done)
                             self._improvements += 1
             # cm/turn-step resolution only for states reached by an exact manoeuvre
             # (multi-point turns) or close to the goal; ordinary exploration keeps the coarse key

@@ -181,6 +181,10 @@ class GeneratorConfig:
                                      # map admits a full in-place rotation, then face the route (narrow-corridor spawn
                                      # facing away: BCWtGkh8CHv drives 1.6 m away to turn; no query expressed it)
     turnaround_m: float = 3.0        # max path distance to the turning spot
+    goal_unknown_cost: float = 0.    # v14 candidate: UNKNOWN cell cost factor of the 'goal' queries' legal route (0 = the
+                                     # planning default 2.5).  At 2.5 a goal behind a spawn routes through the observed
+                                     # area in front: 23 of 125 ORCA default runs first drive > 0.5 m away from the goal
+                                     # (success 9 / 23, SPL 0.53 vs 63 / 102, SPL 0.81)
     primitives: bool = False         # v13: also offer the native primitives as exact one-step queries ('prim_f', 'prim_l',
                                      # 'prim_r', 'prim_s'; kind 'prim', outside the budget K) at every decision of a
                                      # native-action robot.  The Oracle's ordinary search never expands them
@@ -289,6 +293,10 @@ class QueryGenerator:
             for q in queries:
                 if q.kind == 'creep':
                     q.meta = dict(q.meta, blind=1)
+        if self.cfg.goal_unknown_cost > 0:
+            for q in queries:
+                if q.kind == 'goal' and not q.via and q.label in ('goal', 'goal_tc', 'goal_vc'):
+                    q.meta = dict(q.meta, unknown_cost=float(self.cfg.goal_unknown_cost))
         if self.cfg.primitives and self.dyn.native_actions:
             queries = list(queries)+primitive_queries()
         return queries, diag
