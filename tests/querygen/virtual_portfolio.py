@@ -2,9 +2,10 @@
 
 Portfolio members (``OracleConfig.portfolio``) are independent searches that share only exact caches, so
 with shares s_i a portfolio first succeeds at total edges ~ min_i e_i * sum(s) / s_i, where e_i is member
-i's edges-to-solution when run alone.  Given single-search runs of every candidate member (same generator,
-planner, dynamics; one directory per member), this prints SR over feasible episodes at several budgets
-for every single member and every equal-share combination.
+i's edges-to-solution when run alone (member runs capped at E edges score budgets up to E * sum(s) / s_i).
+Given single-search runs of every candidate member (same generator, planner, dynamics; one directory per
+member), this prints SR over feasible episodes at several budgets for every single member and every
+equal-share combination (``--shares`` adds unequal 2-member splits).
 
   python tests/querygen/virtual_portfolio.py --cfg c1k10 RUN_DIR_A RUN_DIR_B [...]
 RUN_DIR_X/{dev,unseen}_<cfg>/*.json as written by scripts/querygen_dev_v10.sh.
@@ -38,6 +39,15 @@ def edges(r):
     return r['oracle']['stats']['children'] if r is not None and r['verdict'] == 'PASS' else None
 
 
+def share_sets(m, spec):
+    out = [(1.,)*m]
+    if m == 2 and spec:
+        for x in spec.split(','):
+            u, v = (float(t) for t in x.split(':'))
+            out += [(u, v), (v, u)]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('runs', nargs='+')
@@ -45,6 +55,7 @@ def main():
     ap.add_argument('--budgets', default='1000,3000,6000,12000')
     ap.add_argument('--max-members', type=int, default=3)
     ap.add_argument('--complete', action='store_true', help='only episodes finished in every run')
+    ap.add_argument('--shares', default='', help='also unequal shares for 2-member portfolios, e.g. "2:1,3:1"')
     a = ap.parse_args()
     budgets = [int(b) for b in a.budgets.split(',')]
     for suite, inf in (('dev', DEV_INFEASIBLE), ('unseen', UNSEEN_INFEASIBLE)):
@@ -62,18 +73,21 @@ def main():
         rows = []
         for m in range(1, min(a.max_members, len(R))+1):
             for combo in itertools.combinations(range(len(R)), m):
-                sr = []
-                for b in budgets:
-                    n = 0
-                    for k in feas:
-                        es = [edges(R[i].get(k)) for i in combo]
-                        es = [e for e in es if e is not None]
-                        if es and m*min(es) <= b:
-                            n += 1
-                    sr.append(n)
-                name = '+'.join(a.runs[i].rstrip('/').split('/')[-1] for i in combo)
-                rows.append((name, sr))
-                print(name[:43].ljust(44)+''.join(f'{x:>8}' for x in sr))
+                for shares in share_sets(m, a.shares):
+                    sr = []
+                    for b in budgets:
+                        n = 0
+                        for k in feas:
+                            cost = [edges(R[i].get(k))*sum(shares)/s for i, s in zip(combo, shares)
+                                    if edges(R[i].get(k)) is not None]
+                            if cost and min(cost) <= b:
+                                n += 1
+                        sr.append(n)
+                    name = '+'.join(a.runs[i].rstrip('/').split('/')[-1] for i in combo)
+                    if m > 1 and len(set(shares)) > 1:
+                        name += ' '+':'.join(f'{x:g}' for x in shares)
+                    rows.append((name, sr))
+                    print(name[:43].ljust(44)+''.join(f'{x:>8}' for x in sr))
         fails = {}
         for k in feas:
             es = [edges(x.get(k)) for x in R]
