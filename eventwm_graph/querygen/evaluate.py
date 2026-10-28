@@ -163,6 +163,8 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
         meta['ukeep'] = 1
     if n and (gen_kw or {}).get('static_humans'):
         meta['shum'] = 1
+    if n and (gen_kw or {}).get('unstick_progress'):
+        meta['uprog'] = 1
     if (gen_kw or {}).get('bump_front') and meta:
         meta['bumpf'] = 1
     if (gen_kw or {}).get('stop_strict'):

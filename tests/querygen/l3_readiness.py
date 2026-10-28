@@ -63,6 +63,8 @@ def default_meta_of(gen_cfg):
         m['ukeep'] = 1
     if m.get('unstick') and (gen_cfg or {}).get('static_humans'):
         m['shum'] = 1
+    if m.get('unstick') and (gen_cfg or {}).get('unstick_progress'):
+        m['uprog'] = 1
     if m and (gen_cfg or {}).get('bump_front'):
         m['bumpf'] = 1
     if (gen_cfg or {}).get('stop_strict'):

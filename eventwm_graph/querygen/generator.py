@@ -127,6 +127,10 @@ class GeneratorConfig:
                                      # humans stop for good after 100-400 steps -- do not block escalation, and the
                                      # escalated plan routes around a 0.35 m disc per standing human; Nfvxx8J5NCo held
                                      # 300 steps behind two standing humans at 1.0 / 1.3 m)
+    unstick_progress: bool = False   # v12: unstick goal queries carry meta 'uprog' (escalate only on a genuine deadlock: no
+                                     # translation for N steps with <= 1.5 turn steps of net rotation, or none for 40
+                                     # steps; v11 escalated on the spawn turn in 88 of 100 default runs, so ORCA and DWA
+                                     # ran the same plan follower)
     stop_strict: bool = False        # v12: goal / stgoal queries carry meta 'stop19' (a stuck STOP is declared only within
                                      # 0.19 m: official success needs geodesic < 0.2 m; YM4nG4pSAEJ stopped at 0.21 m)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
@@ -226,6 +230,8 @@ class QueryGenerator:
                         q.meta = dict(q.meta, ukeep=1)
                     if self.cfg.static_humans:
                         q.meta = dict(q.meta, shum=1)
+                    if self.cfg.unstick_progress:
+                        q.meta = dict(q.meta, uprog=1)
         if self.cfg.stop_strict:
             for q in queries:
                 if q.kind in ('goal', 'stgoal'):

@@ -152,7 +152,7 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19')    # meta flags that change the execution
+                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -196,6 +196,7 @@ class QueryExecution:
         self.escalated = False      # v11 'unstick': static deadlock -> tight map + plan following (hard check only)
         self._still = 0
         self._last_xz = None
+        self._still_psi = []        # v12 'uprog': headings during the current no-translation streak
         if (query.meta or {}).get('close'):
             self._make_close()
         if (query.meta or {}).get('commit') and hasattr(self.planner, 'commit'):
@@ -276,10 +277,22 @@ class QueryExecution:
         xz = (float(legal.pose[0]), float(legal.pose[2]))
         if self._last_xz is not None and math.hypot(xz[0]-self._last_xz[0], xz[1]-self._last_xz[1]) < 0.02:
             self._still += 1
+            self._still_psi.append(float(legal.pose[3]))
         else:
             self._still = 0
+            self._still_psi = [float(legal.pose[3])]
         self._last_xz = xz
-        if self._still >= n:
+        stuck = self._still >= n
+        if stuck and (self.query.meta or {}).get('uprog'):
+            # v12 'uprog': a genuine deadlock only -- no translation for n steps AND at most 1.5 turn steps of net
+            # rotation over them (holding, dithering, pushing into an obstacle), or no translation for 40 steps
+            # (a full turn-around takes ~37).  v11 also escalated on ordinary in-place turns (88 of 100 default
+            # runs within the first 16 steps -- the spawn turn toward the route), which replaced ORCA / DWA by the
+            # same plan follower (identical ORCA and DWA action sequences in 24 of 48 episodes)
+            psi = self._still_psi
+            net = abs(wrap(psi[-1]-psi[max(0, len(psi)-1-n)])) if len(psi) > 1 else 0.
+            stuck = net <= 1.5*self.dyn.turn_rad or self._still >= 40
+        if stuck:
             P = to_plane(xz)
             shum = bool((self.query.meta or {}).get('shum'))
             near = any(float(np.hypot(*(h.position-P))) < 2.0 and not
