@@ -80,7 +80,7 @@ class OracleConfig:
     block_weight: float = 0.          # privileged time-to-clear term (steps) added to f (0 = off)
     st_heuristic: bool = True         # privileged space-time cost-to-go (SpaceTimeHeuristic) replaces h + block term
     st_fallback: float = 300.         # extra steps when the space-time model finds no arrival
-    st_radius: float = 0.6            # human radius (m) of the space-time model.  v10: 0.5 = the strict rule's lateral
+    st_radius: float = 0.5            # human radius (m) of the space-time model (v9: 0.6).  0.5 = the strict rule's lateral
                                       # bound (0.25 m rectangle clearance + 0.243 m half width); 0.6 declared corridors
                                       # the witnesses pass through unreachable, and st_fallback then pushed every later
                                       # state behind all earlier ones (TEEsavR23oF: unreachable from t=20)
