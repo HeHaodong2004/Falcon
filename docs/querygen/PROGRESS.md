@@ -421,6 +421,28 @@ then budget scaling of representative DEV failures.
     manoeuvre mode within a larger spawn radius (needs a regression check against the v8 search explosion).
 - **Third unseen suite frozen** (`suites_unseen3.json`, commit 4a40ed00) for the post-v10 version.
 
+## Official Falcon rules (user, 2026-10-28 ~10:45) -- the binding evaluation from here on
+- Declared project rules (static contact, body proxy) are dropped; verdict = official success in the authoritative
+  replay (`OFFICIAL_RULES.md`).  Denominator = every episode not PROVEN natively infeasible: exact native-rule
+  certificates (`native_cert.py`, officially verified) prove 5Poh4Qz68hd, sKLMLpTHeUy, AMEM2eWycTq; native witnesses
+  (`witness.py --rules native`) proved every other formerly 'certified infeasible' episode solvable (incl. the 4 DEV
+  ones, sT4fr6TAbpF, Wo6kuutE9i7); nMeXfQU4PMS unresolved (in the denominator).  C2 = DWA x native (official actions).
+- Oracle capability (v10 portfolio Oracle, official rules; `output/runs/official/base`, partial at 13:10): only
+  PFLHHbjscNN fails among finished non-infeasible episodes (C1 K10 and K6; narrow corridor section that the
+  conservative legal wall band blocks); SPL on solved 0.87-0.97, PSC 0.92-0.97, H-Coll 0 among solved.
+- User refocus (2026-10-28 ~11:50): the Oracle is only a diagnostic; priorities are the foundation (planner,
+  dynamics, executor, generator) and Layer-3 learnability.  No more Oracle-search work (anytime refinement dropped).
+- No-selection floor (default policy) failure modes: human collisions (13/16 analysed hit a robot holding/turning in
+  place while a tracked human walked into it) and static deadlocks (inflated wall band treated as hard; obstacles the
+  camera cannot see).  Foundation options (legal): `goal_unstick` (tight map + plan following; rotate toward the
+  route when no body-feasible plan exists), `bump_memory_m` (proprioceptive bump marks), `evade` (human-threat
+  reflex).  Floor A/B: baseline ~19%, breaker+bump ~39%, +evade ~42% (partial).
+- Learnability: minimum-intervention Oracle (C1 K10) -- solved episodes need 0-2 non-default decisions (median 1;
+  most common critical choice: the initial turn direction); `l3_env.QueryEnv` (decision-level environment);
+  `l3_readiness.py` (recovery / identifiability study); exact human-tape cache halves episode setup.
+- Visualization: `viz_episode.py` (figures), `render_topdown.py` (navigation videos; RGB chase-camera recording is
+  blocked by the GPU driver/library mismatch: EGL cannot create a context), `build_page.py` (results page).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.
