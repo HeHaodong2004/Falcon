@@ -84,6 +84,10 @@ class OracleConfig:
                                       # bound (0.25 m rectangle clearance + 0.243 m half width); 0.6 declared corridors
                                       # the witnesses pass through unreachable, and st_fallback then pushed every later
                                       # state behind all earlier ones (TEEsavR23oF: unreachable from t=20)
+    st_radius_opt: float = -1.        # v10: where the st_radius table finds no arrival, use a second table with the
+                                      # cell-sound radius (strict bound 0.4882 m minus the 0.2 m cell's half
+                                      # diagonal; -1 = that value, 0 = off).  A 0.5 m cell-centre test still
+                                      # declared W16Bm4ysK8v unreachable from t=50, yet a witness arrives at t=108
     block_dist: float = 0.5           # centre distance to the geodesic path that blocks it (> half-width + body proxy)
     block_horizon_m: float = 8.0      # path length checked ahead
     block_step: int = 4               # departure-delay resolution (steps)
@@ -375,6 +379,7 @@ class Oracle:
         self.gen = generator
         self.cfg = config or OracleConfig()
         self._st = None
+        self._st_opt = None
         self._witness = None
         self._escaped = False
         self._escmap = None
@@ -464,9 +469,16 @@ class Oracle:
             if self._st is None:
                 t = time.perf_counter()
                 self._st = SpaceTimeHeuristic(self.rt, radius=cfg.st_radius)
+                if cfg.st_radius_opt:
+                    from .native import BODY_PROXY_M, ROBOT_BOUNDS
+                    r = cfg.st_radius_opt if cfg.st_radius_opt > 0 else \
+                        BODY_PROXY_M+min(abs(b) for b in ROBOT_BOUNDS)-self._st.cell*math.sqrt(2)/2
+                    self._st_opt = SpaceTimeHeuristic(self.rt, radius=r)
                 self.stats['st_build_s'] = time.perf_counter()-t
             p = st.legal.pose
             v = self._st.value(float(p[0]), float(p[2]), st.index)
+            if v is None and self._st_opt is not None:
+                v = self._st_opt.value(float(p[0]), float(p[2]), st.index)
             # time-to-go in steps: the space-time arrival (it already includes the
             # forced waits); never below the geodesic estimate
             h = max(h, v+hs) if v is not None else h+cfg.st_fallback
