@@ -1,4 +1,4 @@
-# v10 evaluation protocol (DRAFT -- to be completed and committed before any run on the second unseen suite)
+# v10 evaluation protocol (DRAFT -- completed and committed before any run on the second unseen suite)
 
 ## Suites
 * **Development set** (may be inspected freely): DEV (28 episodes; 24 feasible, 4 certified infeasible) and
@@ -13,9 +13,25 @@
   certificates are computed only after the freeze.
 
 ## Frozen system
-Tag `querygen-freeze-v10` (to be set).  Configurations: TBD from the development runs (C1 ORCA x native
-K=10 and K=6; C2 TBD).  Oracle budget: TBD (edge budget, deterministic; wall-clock cap only as a safety net
-set high enough never to bind before the edge budget).
+Tag `querygen-freeze-v10` (to be set).  Three configurations share the generator code:
+
+| id | planner | dynamics | generator | Oracle |
+|---|---|---|---|---|
+| C1-K10 | ORCA (full responsibility) | native | v9 C1-K10 settings + all v10 defaults (TBD: `goal_relax_m`) | portfolio TBD |
+| C1-K6 | ORCA | native | v9 C1-K6 settings (compact, K=6) + v10 defaults | portfolio TBD |
+| C2-K10 | DWA | inertia (12 levels, accel/brake 2, turns at rest) | as C1-K10 | portfolio TBD |
+
+v10 generator/executor defaults (all legal-only): exact rotation ends (`rot_exact`), exact goto arrival
+(`arrive_exact`), K=6 reset-state coverage (`root_cover`), momentum robots brake to rest before STOP,
+DWA's blocked fallback brakes at the brake limit.  v10 Oracle defaults (privileged selection only):
+space-time radius 0.5 m with the cell-sound fallback table, goal test horizon 1 + braking steps.
+
+**Oracle portfolio** (`OracleConfig.portfolio`): independent member searches over the same generator
+queries from the same reset, interleaved one simulated edge at a time under one deterministic edge
+budget (first success wins).  Members and the budget are chosen on the development set from single-member
+runs (`tests/querygen/virtual_portfolio.py`; a portfolio of members with equal shares succeeds at
+n x min(member edges)).  Wall-clock cap only as a safety net, set high enough never to bind before the
+edge budget.
 
 ## Verdict (v9 + dynamics check)
 PASS iff the Oracle found a complete branch of generator queries and the authoritative continuous replay
@@ -29,8 +45,12 @@ turning while moving, STOP while moving; always 0 for the native robot).
 ## Feasibility accounting
 As v9: witness-proven feasible (verified witness, or a replay-verified PASS of any configuration),
 certified infeasible (start escape / exact-gait progress / goal region certificates), unresolved otherwise.
+C2 (inertia) feasibility is reported against the native-dynamics witnesses and certificates (an inertia
+robot can only be slower), with the caveat stated.
 
 ## Reporting
 Per configuration: SR over feasible episodes (primary), strict SR, failures, certified-infeasible and
 unresolved lists; SR as a function of the edge budget (from the edges-to-solution of each run); SPL, steps,
-minimum human clearance, Oracle edges and wall time (P50/P95), generator latency, cached-step share.
+minimum human clearance, Oracle edges and wall time (P50/P95), generator latency, cached-step share,
+per-member wins of the portfolio; Layer-3 proxies (decisions per episode, default-query share, distinct
+query types).
