@@ -140,6 +140,10 @@ class GeneratorConfig:
                                      # creep1 and the 1-step rotations fit and a spawn turn-away took one decision per
                                      # turn step (JmbYfDe2QKZ: K=10 solves it with rot_left1, rot_left10, goal_tc; the
                                      # K=6 tree was exhausted after 2,754 edges; also gTV8FGcVJC9, s19Uyn7AWwv)
+    compact_human_first: bool = False  # v12 compact (K ~ 6) selection: when a tracked human is within sidestep range, take
+                                     # both sidesteps right after goal / st_goal (before the hold, the reset creep and the
+                                     # reset route turns).  Falcon's humans walk into a holding robot; at gTV8FGcVJC9's
+                                     # spawn K=10 escapes with sidestep_right, which K=6 never offered (its tree died)
     stop_strict: bool = False        # v12: goal / stgoal queries carry meta 'stop19' (a stuck STOP is declared only within
                                      # 0.19 m: official success needs geodesic < 0.2 m; YM4nG4pSAEJ stopped at 0.21 m)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
@@ -823,6 +827,10 @@ class QueryGenerator:
             for lab in want:
                 take(pool.get(lab))
             return chosen[:K]
+        if cfg.compact_human_first:
+            for q in cats.get('yield', []):
+                if q.label.startswith('sidestep'):
+                    take(q)
         waits = cats.get('wait', [])
         take(waits[0] if waits else None)
         # reset state: keep the single forward probe (a creep starts manoeuvre mode)
