@@ -52,7 +52,14 @@ def _decode(item):
 
 
 def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, t_bucket=4, dynamics='native',
-                 margin=0.):
+                 margin=0., rules='declared'):
+    """rules='declared': the system's strict rules (official human contact, body proxy, static contact with the
+    spawn-escape rule).  rules='native': the original Falcon rules only -- an episode ends on STOP, on an official
+    human contact or at step 500, and succeeds on STOP within 0.2 m geodesic; static contact and the body proxy
+    are not failures natively (they are still counted by the verification).  A verified native witness proves
+    that the episode is solvable in the original simulator."""
+    assert rules in ('declared', 'native')
+    native = rules == 'native'
     from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, contact_links,
                          escape_exempt, MAX_EPISODE_STEPS, SUCCESS_DISTANCE)
     from .oracle import SpaceTimeHeuristic
@@ -68,7 +75,10 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
     c0 = classify_contacts(task, gate_humans=False)
     C0 = contact_links(c0)
     sim.tape = HumanTape.record(task, MAX_EPISODE_STEPS+2)
-    st = SpaceTimeHeuristic(SimpleNamespace(task=task, tape=sim.tape))
+    if native:
+        sim.check_static = False
+    # native: official contact needs actual mesh contact (robot half width 0.24 m + a limb) -> small human radius
+    st = SpaceTimeHeuristic(SimpleNamespace(task=task, tape=sim.tape), radius=0.3 if native else 0.6)
 
     import habitat_sim
     pf = task.sim.pathfinder
@@ -115,12 +125,12 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
             sim.load(state, t)
             r = sim.step(a, compute_geodesic=True)
             sims += 1
-            if r.human_collision or r.body_overlap or r.min_rect_distance < margin:
+            if r.human_collision or (not native and (r.body_overlap or r.min_rect_distance < margin)):
                 continue
             trav2 = trav+math.hypot(r.pose[0]-pose[0], r.pose[2]-pose[2])
-            if r.static_contact and not escape_exempt(r.static_links, C0, t+1, trav2):
+            if not native and r.static_contact and not escape_exempt(r.static_links, C0, t+1, trav2):
                 continue
-            esc2 = esc and bool(r.static_contact)
+            esc2 = (esc and bool(r.static_contact)) if not native else False
             ti2 = ti+(1 if prim == 'left' else -1 if prim == 'right' else 0)
             k2 = (round(r.pose[0]/cell), round(r.pose[2]/cell), ti2 % n_turn, (t+1)//t_bucket, esc2, l2)
             if k2 in seen:
@@ -134,7 +144,8 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
                 sim.load(st2, t+1)
                 rs = sim.step('stop', compute_geodesic=True)
                 sims += 1
-                if rs.success and not rs.human_collision and not rs.body_overlap and rs.min_rect_distance >= margin:
+                if rs.success and not rs.human_collision and (native or (not rs.body_overlap and
+                                                                          rs.min_rect_distance >= margin)):
                     found = k2
                     break
             counter += 1
@@ -153,17 +164,19 @@ def find_witness(spec, budget_s=1800., max_sims=400_000, weight=3.0, cell=0.05, 
         acts = ''.join(a[0] for a in seq)+('s' if found else '')
     else:
         acts = [_encode(a) for a in seq]+(['s'] if found else [])
-    rec = dict(key=spec.key, dynamics=dynamics, margin=margin, found=found is not None, actions=acts,
+    rec = dict(key=spec.key, dynamics=dynamics, margin=margin, rules=rules, found=found is not None, actions=acts,
                steps=len(seq)+(1 if found else 0), start_geodesic=g0, best_geodesic=best_geo, sims=sims,
                states=len(seen), exhausted=not heap, seconds=time.perf_counter()-t0)
     if found:
-        rec['verified'] = verify_witness(spec, rec['actions'], dynamics)
+        rec['verified'] = verify_witness(spec, rec['actions'], dynamics, rules=rules)
     return rec
 
 
-def verify_witness(spec, actions, dynamics='native'):
+def verify_witness(spec, actions, dynamics='native', rules='declared'):
     """Re-execute the witness from reset with the authoritative Env.step and a lockstep shadow
-    branch simulator (canonical contacts); check every declared rule."""
+    branch simulator (canonical contacts); check every declared rule (rules='declared') or only the original
+    Falcon outcome -- official success, no official human collision -- (rules='native'; declared-rule
+    violations are still counted and reported)."""
     from .native import (NativeTask, HumanTape, BranchSimulator, classify_contacts, contact_links,
                          escape_exempt, MAX_EPISODE_STEPS)
     from .dynamics import FAMILIES
@@ -193,9 +206,10 @@ def verify_witness(spec, actions, dynamics='native'):
             if task.episode_over:
                 break
         m = task.metrics()
-        ok = (m.get('success') == 1.0 and m.get('human_collision') == 0.0 and statics == 0 and overlaps == 0
-              and mismatch == 0)
-        return dict(ok=bool(ok), metrics=m, static_steps=statics, overlap_steps=overlaps, shadow_mismatch=mismatch)
+        native_ok = m.get('success') == 1.0 and m.get('human_collision') == 0.0 and mismatch == 0
+        ok = native_ok and (rules == 'native' or (statics == 0 and overlaps == 0))
+        return dict(ok=bool(ok), rules=rules, native_ok=bool(native_ok), metrics=m, static_steps=statics,
+                    overlap_steps=overlaps, shadow_mismatch=mismatch)
     finally:
         task.close()
         shadow.close()
@@ -233,11 +247,12 @@ def main():
     ap.add_argument('--margin', type=float, default=0., help='also require robot-rectangle to human-centre distance >= this '
                     '(stricter than the 0.25 m body proxy; robustness study only)')
     ap.add_argument('--max-sims', type=int, default=400_000)
+    ap.add_argument('--rules', default='declared', choices=['declared', 'native'])
     a = ap.parse_args()
     from .suites import load
     spec = [s for s in load(a.suite) if s.key == a.key][0]
     rec = find_witness(spec, budget_s=a.budget, weight=a.weight, dynamics=a.dynamics, margin=a.margin,
-                       max_sims=a.max_sims)
+                       max_sims=a.max_sims, rules=a.rules)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     (out/f"{spec.key.replace('/', '_')}.json").write_text(json.dumps(rec, indent=1, default=float))
     print(json.dumps({k: v for k, v in rec.items() if k != 'actions'}, default=float))
