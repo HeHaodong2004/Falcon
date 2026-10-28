@@ -25,6 +25,7 @@ import math
 import random
 import time
 import numpy as np
+from pathlib import Path
 
 CONFIGS = {'hm3d': 'social_nav_v2/falcon_hm3d.yaml', 'mp3d': 'social_nav_v2/falcon_mp3d.yaml'}
 # Original socialnav_task_detail measures minus the pixel top-down map and the
@@ -354,6 +355,32 @@ class HumanTape:
         self.inputs = inputs
         self.positions = np.asarray(positions, dtype=float)
         self.speed_scales = list(speed_scales)
+
+    # exact on-disk cache (RL / repeated resets: recording 500 steps costs ~13 s per episode)
+    def save(self, path):
+        import pickle
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(path)+'.tmp')
+        tmp.write_bytes(pickle.dumps(dict(times=self.times, inputs=self.inputs, positions=self.positions,
+                                          speed_scales=self.speed_scales), protocol=4))
+        tmp.replace(path)
+
+    @classmethod
+    def load(cls, path):
+        import pickle
+        d = pickle.loads(Path(path).read_bytes())
+        return cls(d['times'], d['inputs'], d['positions'], d['speed_scales'])
+
+    @classmethod
+    def cached(cls, task, spec, steps, cache_dir):
+        """Recorded tape for ``spec`` from ``cache_dir`` (recorded and stored on a miss).  The tape is a
+        deterministic function of the episode reset (humans do not react to the robot), so the cache is exact."""
+        f = Path(cache_dir)/f"{spec.key.replace('/', '_')}_s{int(spec.seed)}_{int(steps)}.pkl"
+        if f.exists():
+            return cls.load(f)
+        tape = cls.record(task, steps)
+        tape.save(f)
+        return tape
 
     def __len__(self):
         return len(self.times)

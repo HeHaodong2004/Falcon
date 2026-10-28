@@ -86,7 +86,10 @@ class EpisodeRuntime:
         self.spawn_links = contact_links(c0)
         self.root.escape_open = self.spawn_contact
         self.start_geodesic = self.root.geodesic
-        self.sim.tape = HumanTape.record(self.task, tape_steps)
+        import os
+        cache = os.environ.get('QG_TAPE_CACHE')
+        self.sim.tape = HumanTape.cached(self.task, spec, tape_steps, cache) if cache else \
+            HumanTape.record(self.task, tape_steps)
         self.tape = self.sim.tape
         self._loaded = None
         self.setup_s = time.perf_counter()-t0
