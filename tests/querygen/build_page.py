@@ -23,7 +23,7 @@ def esc(s):
     return html.escape(str(s))
 
 
-def capability_svg(cap):
+def capability_svg(cap, finished_only=False):
     W, H, L, B, T = 640, 300, 44, 40, 16
     groups = [s for s, _ in SUITES if any(f'{s}_{c}' in cap for c, _, _ in CFG)]
     cfgs = [c for c in CFG if any(f'{s}_{c[0]}' in cap for s in groups)]
@@ -44,9 +44,11 @@ def capability_svg(cap):
                 continue
             v = d['passed']/d['denominator'] if d['denominator'] else 0
             vf = d['passed']/d['finished'] if d['finished'] else 0
+            if finished_only:
+                v = vf
             x = x0+ci*(bw+4)
-            tip = (f"{name}, {dict(SUITES)[s]}: {d['passed']} of {d['denominator']} episodes not proven infeasible "
-                   f"({100*v:.1f}%); finished {d['finished']}")
+            tip = (f"{name}, {dict(SUITES)[s]}: {d['passed']} solved of {d['finished']} finished; "
+                   f"{d['denominator']} episodes not proven infeasible in total")
             out.append(f'<g><title>{esc(tip)}</title><rect x="{x:.1f}" y="{y(v):.1f}" width="{bw:.1f}" '
                        f'height="{max(0, y(0)-y(v)):.1f}" rx="3" fill="{color}"/></g>')
             out.append(f'<text x="{x+bw/2:.1f}" y="{y(v)-5:.1f}" class="val" text-anchor="middle">{100*v:.0f}</text>')
@@ -158,6 +160,7 @@ def main():
     ap.add_argument('--video', nargs='*', default=[])
     ap.add_argument('--figure', nargs='*', default=[])
     ap.add_argument('--extra', default='')
+    ap.add_argument('--finished-only', action='store_true', help='interim page: SR among finished episodes')
     a = ap.parse_args()
     rep = json.load(open(a.report))
     extra = json.load(open(a.extra)) if a.extra else {}
@@ -248,9 +251,9 @@ figcaption {{ color:var(--ink2); font-size:13px; }} ul {{ margin:0; padding-left
 <p>{esc(extra.get('lead', ''))}</p></header>
 <section class="tiles">{tile_html}</section>
 <section class="card"><h2>Oracle capability ceiling</h2>
-<p>Share of episodes solved by the privileged Oracle selecting among the generator's legal queries, over every episode not proven natively infeasible (unfinished and unresolved episodes count as failures). Hover a bar for counts.</p>
+<p>{'Interim: share of FINISHED episodes' if a.finished_only else 'Share of episodes'} solved by the privileged Oracle selecting among the generator's legal queries{', excluding only episodes proven natively infeasible; the runs are still in progress' if a.finished_only else ', over every episode not proven natively infeasible (unfinished and unresolved episodes count as failures)'}. Hover a bar for counts.</p>
 <div style="display:flex;gap:16px;flex-wrap:wrap">{''.join(f'<span><span class="sw" style="background:{c}"></span>{esc(n)}</span>' for _, n, c in CFG)}</div>
-{capability_svg(cap)}</section>
+{capability_svg(cap, a.finished_only)}</section>
 <section class="card"><h2>Default policy without selection</h2><p>Keep the running query, else the goal query; no Layer 3. Outcomes per foundation variant and planner (hover for counts).</p>{floor_svg(rep['floor'])}</section>
 {readiness_html}
 <section class="two">

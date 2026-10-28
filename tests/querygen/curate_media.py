@@ -70,9 +70,10 @@ def main():
     media = []
     for p in social+static:
         scene = p['key'].split('/')[2]
-        why = ('walks into a human' if p['default_outcome'] == 'human_collision' else 'deadlocks (timeout)')
+        why = ('collides with a human' if p['default_outcome'] == 'human_collision' else
+               'deadlocks and times out')
         mp4 = os.path.join(a.out, f"{scene}_{a.cfg}_default_vs_oracle.mp4")
-        title = (f"{scene} ({p['suite']}): the default policy {why} after {p['default_steps']} steps; "
+        title = (f"{scene} ({p['suite']}): the default policy {why} at step {p['default_steps']}; "
                  f"the Oracle-selected queries reach the goal in {p['oracle_steps']} steps (SPL {p['spl']:.2f})")
         cmd = [sys.executable, 'scripts/querygen_run.py', 'tests.querygen.render_topdown',
                f"{p['default']}:Default policy ({planner}, no selection)",
