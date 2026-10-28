@@ -507,6 +507,31 @@ in stuck mode.  Not applicable to the frozen gate system.
 - Robustness: `querygen/robust.py` (lost-step perturbations: start +1/+2, middle +1, late +1).  Route quality in
   `report_official.py`: turn reversals per 100 steps, in-place turn share, backtracking.
 
+## 2026-10-28 ~17:45-18:30: v12 frozen and under test; v13 prepared in parallel
+- v12 FROZEN (tag `querygen-freeze-v12` = b0f3c1a3, `FINAL_PROTOCOL_V12.md`); held-out test on the untouched fourth
+  unseen suite running (`output/runs/official/test_v12/unseen4_c1k10`, 37/37 PASS at 18:15).  User (18:00): if v12
+  misses the gate, go straight to the next version without waiting for approval.
+- Fifth unseen suite frozen for v13 (`suites_unseen5.json`, commit 1bda275b): 56 HM3D + the last 4 unused MP3D train
+  scenes (the MP3D train split is exhausted).
+- v12 development run: VqCaAuuoeWk fails at 12,000 edges (as v10); p32JzpQyhPk, tEafuWwhhwr, ANmWrL7Kz7h,
+  nMeXfQU4PMS still searching.  Their native witnesses are short and found fast (VqCa 94 steps / 1,704 sims,
+  p32J 121 / 46,734, ANmW 121 / 9,120): fine weaving past humans that no planner-executed query expresses.
+- v13 candidate 1 -- exact fast legal sensor (`querygen/fastsense.py`, commit 89f04b08): static-occlusion memo per
+  exact camera origin, vectorised wall band, array update rows.  Dual check on 5 episodes (2,196 observations): rows,
+  trackers, certified cells identical; search digests identical; search 1.18-1.56x faster.  Remaining cost: native
+  castRay ~35% (cannot be replaced without a second geometry kernel), planning ~25%.
+- v13 candidate 2 -- privileged witness fallback (commit 361e78da): generator `primitives` (exact one-step queries
+  prim_f/l/r/s, outside K; the ordinary search never expands them, so it is the v12 search), Oracle
+  `prim_fallback_sims`: after a failed ordinary search, the native witness search runs inside the search runtime and
+  its actions are executed as primitive queries (every step simulated and legally observed again; authoritative
+  replay as usual); `prim_takeover` keeps the witness only up to the earliest step from which the default policy
+  succeeds.  Smoke test VqCaAuuoeWk: witness 19 s, official PASS, SPL 0.989, PSC 0.65.  Reporting rule: SR with and
+  without the fallback, and the share of primitive decisions, are always reported separately (primitive decisions
+  bypass the planner).
+- Decision robustness (v12 solutions, 15 of 35 episodes analysed): ~5 distinct choices per decision state, 4.8
+  viable, 3.7 with good SPL; no state with a single viable choice; 69% of suboptimal choices recovered by the default
+  policy, 24% need a clever continuation, 6% dead.
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.

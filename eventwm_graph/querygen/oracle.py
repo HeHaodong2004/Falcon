@@ -121,9 +121,12 @@ class OracleConfig:
                                       # like any branch.  0 = off
     prim_fallback_s: float = 14400.   # wall-clock safety cap of the fallback search only
     prim_fallback_weight: float = 3.0
-    prim_takeover: bool = True        # v13: keep only the witness prefix up to the earliest step (every
+    prim_takeover: bool = False       # v13 option: keep only the witness prefix up to the earliest step (every
     prim_takeover_every: int = 8      # prim_takeover_every steps) from which the no-selection default policy succeeds
-    prim_takeover_spl: float = 0.9    # with path efficiency >= this x the witness's (fewest primitive decisions)
+    prim_takeover_spl: float = 0.9    # with path efficiency >= this x the witness's (fewest primitive decisions).  Off:
+                                      # on VqCaAuuoeWk the default policy can take over only after witness step 64 (it
+                                      # meets a human from every earlier step), saving 30 of 94 primitive decisions for
+                                      # SPL 0.989 -> 0.909 and +50 s
 
 
 class SpaceTimeHeuristic:
