@@ -247,6 +247,8 @@ class SpaceTimeHeuristic:
 
 
 def horizon_for(query, cfg):
+    if (query.meta or {}).get('short'):
+        return max(1, int(query.meta['short']))      # v15 candidate: short-interval copies near humans
     if query.kind == 'stop':
         return 8      # 1 for instant-speed robots; robots with momentum brake to rest first (executor)
     if query.kind in ('wait', 'wait_clear', 'creep', 'kturn'):

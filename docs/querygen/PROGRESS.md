@@ -605,6 +605,18 @@ in stuck mode.  Not applicable to the frozen gate system.
   the exact fast sensor (`expert_q_cap1500`, 68 feasible): same solutions, P50 56 -> 44 s, mean 172 -> 139 s,
   P95 832 -> 627 s per episode.
 
+## 2026-10-28 ~20:10-20:40: v14 = v12 + thru queries; long-tail classification
+- v14 dev run restarted 20:06 with '_th' copies replacing '_vc' (K=10), goal_unknown_cost 1.25, SPL refinement, no
+  fallback (`output/runs/official/v14`; the aborted no-thru start is in `v14_aborted_novc`).  First 23 paired with
+  v12: PASS 21 -> 23 (p32JzpQyhPk 12,000 -> 105 edges; jh4fc5c5qoQ 12,000 -> 1,955), SPL 0.821 -> 0.895;
+  uNb9QFRL6hY (a long v12 search) in 32 edges.  '_th' is used in 14 of 17 paired v14 solutions; static-contact steps
+  7.5 -> 11.3 (legal), PSC 0.951 -> 0.957, no human collision.
+- Long tail, classified with witness probes: (a) wall-band-limited (p32J, jh4f): solved by '_th'; (b) human-timing
+  limited (VqCaAuuoeWk crowded spawn, Nfvxx8J5NCo final passage, Pm6F8kyY3z2): '_th' alone and manoeuvre-level thru
+  (`maneuver_thru`) do not help within 3,000 edges.  Testing short-interval goal copies near humans
+  (`short_human_m=2.5`, 4-step edges; `output/runs/official/v15sh`).
+- v12 dev final tail: 8 failures among 185 finished (Nfvx, 3t8D, jh4f, ANmW, p32J, VqCa, tEaf, Pm6F).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.

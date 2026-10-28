@@ -200,7 +200,8 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog', 'vclose', 'action', 'thru')  # meta changing execution
+                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog', 'vclose', 'action', 'thru',
+                 'short')  # meta that change execution (short: the Oracle runs the edge for that many steps)
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)

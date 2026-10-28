@@ -99,6 +99,11 @@ class GeneratorConfig:
                                      # robot, which moves kinematically on the navmesh and may scrape walls (official
                                      # rules): p32JzpQyhPk's witness crosses band cells even at tight=2, with static
                                      # contact in 9 of 35 steps; 3 = the whole band (bump memory still learns obstacles)
+    short_human_m: float = 0.        # v15 candidate: when a tracked human is within this distance, offer short-interval
+    short_steps: int = 4             # copies of the goal query (label 'goal_s', meta short=short_steps; the '_th' copy's
+                                     # meta when th_variants is on) in the human category: the Oracle may re-decide every
+                                     # few steps in a crowd (one 16-step interval meeting a human anywhere is lost: 1,444
+                                     # of VqCaAuuoeWk's 3,000 edges; its witness weaves with single turns / steps).  0 = off
     maneuver_thru: bool = False      # v15 candidate: exact manoeuvres (k-step rotations, creeps) carry meta 'thru' (their
                                      # legal-map body gate sees soft obstacles, bump memory stays hard).  VqCaAuuoeWk's
                                      # witness weaves out of a crowded spawn with single turns and steps through wall-band
@@ -478,6 +483,15 @@ class QueryGenerator:
                         cats['wait'].insert(0, Query('goal', speed=0.4, label='goal_slow',
                                                      meta=dict(track=h.track_id)))
                         break
+
+        # ---- v15 candidate: short-interval goal copy near a tracked human (fine timing in crowds)
+        if cfg.short_human_m > 0 and not self.dyn.stateful:
+            P = to_plane(robot_xz)
+            if any(float(np.hypot(*(h.position-P))) <= cfg.short_human_m for h in humans):
+                base = next((q for q in fixed if q.label == 'goal_th'), None) or next(q for q in fixed if q.label == 'goal')
+                cats['human'].insert(0, Query(base.kind, via=base.via, heading=base.heading, duration=base.duration,
+                                              speed=base.speed, label='goal_s',
+                                              meta=dict(base.meta, short=int(cfg.short_steps))))
 
         # ---- temporal alternatives
         # Holding alternates small in-place turns (no native pause action);
