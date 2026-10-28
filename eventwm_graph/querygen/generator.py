@@ -110,6 +110,9 @@ class GeneratorConfig:
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
                                      # (TQSiMZJawkS: every K=6 root candidate started 'r' or 'f'; only 'l' was free)
+    evade: bool = False              # v11: movement queries carry meta 'evade' (executor human-threat reflex: when the
+                                     # robot's own next step + holding meets a tracked human's CV prediction within
+                                     # 0.30 m in 14 steps, take the clearance-maximising short native sequence)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
                                      # within 2 m -> tight map + plan following under the hard human check); 0 = off
     creep_blind: bool = False        # v11: exact creeps of robots with momentum skip the legal-map body gate (like the
@@ -192,6 +195,11 @@ class QueryGenerator:
             for q in queries:
                 if q.kind == 'goto' and q.heading is None:
                     q.meta = dict(q.meta, arrive_exact=1)
+        if self.cfg.evade:
+            for q in queries:
+                if q.kind in ('goal', 'goto', 'stgoal', 'wait', 'wait_clear') or \
+                        (q.kind == 'rotate' and not q.label.startswith('rot_')):
+                    q.meta = dict(q.meta, evade=1)
         if self.cfg.goal_unstick:
             for q in queries:
                 if q.kind == 'goal' and not q.via and q.label in ('goal', 'goal_tc'):

@@ -103,7 +103,8 @@ class Query:
     label: str = ''
     meta: dict = field(default_factory=dict)
 
-    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick')    # meta flags that change the execution
+    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
+                 'evade')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -152,6 +153,53 @@ class QueryExecution:
         if (query.meta or {}).get('commit') and hasattr(self.planner, 'commit'):
             self.planner.commit = True
         self.planner.reset()
+
+    EVADE_H = 14            # steps of constant-velocity human prediction
+    EVADE_R = 0.30          # rectangle-to-human-centre distance treated as a contact threat (official contact needs touch)
+    EVADE_SEQS = ('f'*8, 'l'+'f'*7, 'r'+'f'*7, 'll'+'f'*6, 'rr'+'f'*6, 'llll'+'f'*4, 'rrrr'+'f'*4, 'l'*8, 'r'*8)
+
+    def _evade(self, legal, prim):
+        """v11 meta 'evade': human-threat reflex (legal).  Falcon's humans do not yield, and 13 of 16 default-policy
+        collisions hit a robot that held or turned in place while a human it had tracked for 10-20 steps walked into
+        it.  If the query's own next primitive followed by holding brings the robot rectangle within EVADE_R of a
+        tracked human's constant-velocity prediction within EVADE_H steps, execute the first primitive of the short
+        native sequence (turn 0-8 steps, then advance) that maximises the predicted clearance instead.  Static
+        obstacles are soft here (wall contact is not a benchmark failure): only observed wall cores (the legal map
+        with its two outer band rings released) stop a predicted advance."""
+        from .planners import DWAPlanner
+        P0 = to_plane([legal.pose[0], legal.pose[2]])
+        humans = [h for h in human_estimates(legal.tracks, legal.time) if float(np.hypot(*(h.position-P0))) < 4.0]
+        if not humans:
+            return prim
+        H = np.stack([np.stack([h.at(k*STEP_SECONDS) for h in humans]) for k in range(1, self.EVADE_H+1)])  # [T,N,2]
+        core = tight_legal(legal, 2).map
+        from .legal import BLOCKED
+
+        def clearance(seq):
+            P, psi, dmin = P0.copy(), float(legal.pose[3]), math.inf
+            for k in range(self.EVADE_H):
+                a = seq[k] if k < len(seq) else 'h'
+                if a == 'f':
+                    Pn = P+self.dyn.step_m*heading_vec(psi)
+                    x, z = to_world(Pn)
+                    if core.state_at(x, z) != BLOCKED:
+                        P = Pn
+                elif a == 'l':
+                    psi += self.dyn.turn_rad
+                elif a == 'r':
+                    psi -= self.dyn.turn_rad
+                dmin = min(dmin, float(DWAPlanner._rect_dist(P, psi, H[k]).min()))
+            return dmin
+        own = {'forward': 'f', 'left': 'l', 'right': 'r'}[prim]
+        d_own = clearance(own)
+        if d_own >= self.EVADE_R:
+            return prim
+        best = max(self.EVADE_SEQS, key=clearance)
+        if clearance(best) > d_own+0.05:
+            self.plan = None
+            self.reason = 'evade'
+            return {'f': 'forward', 'l': 'left', 'r': 'right'}[best[0]]
+        return prim
 
     def _update_unstick(self, legal):
         """v11 meta 'unstick' (= N steps): a goal query whose robot has not translated for N steps while no
@@ -253,8 +301,12 @@ class QueryExecution:
         """Next (command primitive, new speed level) under the dynamics family."""
         self._plan_now = None
         self._update_unstick(legal)
+        raw_legal = legal
         legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)) or (1 if self.escalated else 0))
         prim = self._step_kin(legal, level)
+        if (self.query.meta or {}).get('evade') and self.dyn.discrete and prim in ('forward', 'left', 'right') \
+                and self.status == 'running':
+            prim = self._evade(raw_legal, prim)
         if prim == 'stop':
             if self.dyn.stateful and int(level) > 0:
                 # v10: a robot with momentum declares STOP only at rest -- it brakes at its brake limit first

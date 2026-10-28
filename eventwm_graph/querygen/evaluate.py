@@ -152,7 +152,10 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
     rt = EpisodeRuntime(spec, planner, dyn, strict=False)
     st = rt.root
     n = int((gen_kw or {}).get('goal_unstick', 0))
-    q = Query('goal', label='goal', meta=dict(unstick=n) if n else {})
+    meta = dict(unstick=n) if n else {}
+    if (gen_kw or {}).get('evade'):
+        meta['evade'] = 1
+    q = Query('goal', label='goal', meta=meta)
     while not st.terminal:
         cont = st.execution is not None and st.execution.status == 'running'
         st = rt.run(st, None if cont else q, horizon=horizon, cont=cont)

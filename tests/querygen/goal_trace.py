@@ -13,6 +13,7 @@ def main():
     ap.add_argument('--dynamics', default='native')
     ap.add_argument('--steps', type=int, default=120)
     ap.add_argument('--unstick', type=int, default=0)
+    ap.add_argument('--evade', action='store_true')
     a = ap.parse_args()
     from eventwm_graph.querygen.suites import load
     from eventwm_graph.querygen.episode import EpisodeRuntime
@@ -21,7 +22,10 @@ def main():
     spec = [s for s in load(a.suite) if s.key == a.key][0]
     rt = EpisodeRuntime(spec, a.planner, FAMILIES[a.dynamics], strict=False, trace=True)
     st = rt.root
-    q = Query('goal', label='goal', meta=dict(unstick=a.unstick) if a.unstick else {})
+    meta = dict(unstick=a.unstick) if a.unstick else {}
+    if a.evade:
+        meta['evade'] = 1
+    q = Query('goal', label='goal', meta=meta)
     while not st.terminal and st.index < a.steps:
         cont = st.execution is not None and st.execution.status == 'running'
         st = rt.run(st, None if cont else q, horizon=16, cont=cont)
