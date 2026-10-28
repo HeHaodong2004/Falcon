@@ -15,6 +15,7 @@ import numpy as np
 UNKNOWN, FREE, BLOCKED = 0, 1, 2
 RESOLUTION = 0.1016884229464652  # robot collision_reference/6, as in all Stage 1/2 data
 EGO_SOURCE = 'occupied_ego_base_support'
+_SRC_EGO = 2                     # fastsense.SRC_EGO
 
 
 class GridMap:
@@ -87,16 +88,29 @@ class GridMap:
         if not math.isfinite(t) or (self.timestamp is not None and t <= self.timestamp):
             raise ValueError('Map observations must arrive in strict timestamp order')
         allu = row['static_updates']
-        if any(float(u['timestamp']) != t for u in allu):
-            raise ValueError('Future/stale static evidence is forbidden')
-        ups = [u for u in allu if u['source'] != EGO_SOURCE]
         changed = 0
-        if ups:
-            keys = np.asarray([u['cell'] for u in ups], dtype=np.int64)
-            states = np.asarray([int(u['state']) for u in ups], dtype=np.uint8)
-            if not np.isin(states, (FREE, BLOCKED)).all():
-                raise ValueError('Only measured free/occupied cells may be published')
-            heights = np.asarray([float(u['height']) for u in ups], dtype=np.float64)
+        if hasattr(allu, 'sources'):
+            # fastsense.UpdateBlock: the same updates as arrays (identical content and order)
+            if allu.timestamp != t:
+                raise ValueError('Future/stale static evidence is forbidden')
+            m = allu.sources != _SRC_EGO
+            n_ups = int(m.sum())
+            if n_ups:
+                keys, states, heights = allu.cells[m], allu.states[m], allu.heights[m]
+                if not np.isin(states, (FREE, BLOCKED)).all():
+                    raise ValueError('Only measured free/occupied cells may be published')
+        else:
+            if any(float(u['timestamp']) != t for u in allu):
+                raise ValueError('Future/stale static evidence is forbidden')
+            ups = [u for u in allu if u['source'] != EGO_SOURCE]
+            n_ups = len(ups)
+            if n_ups:
+                keys = np.asarray([u['cell'] for u in ups], dtype=np.int64)
+                states = np.asarray([int(u['state']) for u in ups], dtype=np.uint8)
+                if not np.isin(states, (FREE, BLOCKED)).all():
+                    raise ValueError('Only measured free/occupied cells may be published')
+                heights = np.asarray([float(u['height']) for u in ups], dtype=np.float64)
+        if n_ups:
             self._ensure(keys)
             ii = keys[:, 0]-self.ox; jj = keys[:, 1]-self.oz
             flat = ii*self.state.shape[1]+jj
@@ -286,7 +300,13 @@ class LegalSensor:
     querygen-freeze-v1) makes those caches branch-history independent.
     """
 
-    def __init__(self, task, resolution=RESOLUTION, private_cache=None, pure_caches=False):
+    # v13: exact fast sensor (fastsense.py: static-occlusion memo, vectorised wall band, array update rows); the
+    # published rows, tracker and certified-cell set are identical to the accepted observer's
+    # (tests/querygen/test_fastsense.py).  QG_FAST_SENSE=1 / 0 overrides the default.
+    FAST_SENSE = False
+
+    def __init__(self, task, resolution=RESOLUTION, private_cache=None, pure_caches=False, fast=None):
+        import os
         from types import SimpleNamespace
         from habitat_baselines.config.default import get_config
         from scripts.collector.observation import ObservationConfig
@@ -298,6 +318,13 @@ class LegalSensor:
                              episode=SimpleNamespace(scene_id=task.episode.scene_id,
                                                      info={'graph_navmesh': 'native_benchmark_navmesh'}))
         cls = _pure_observer_class() if pure_caches else FastGeometryObserver
+        if fast is None:
+            env = os.environ.get('QG_FAST_SENSE')
+            fast = self.FAST_SENSE if env is None else env == '1'
+        if fast:
+            from .fastsense import fast_observer_class
+            cls = fast_observer_class(cls)
+        self.fast = bool(fast)
         self.observer = cls(rt, resolution, private_cache=private_cache if private_cache is not None else {})
         self.task = task
         self.pure_caches = pure_caches

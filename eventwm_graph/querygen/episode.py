@@ -235,9 +235,14 @@ class EpisodeRuntime:
         """Cached step: step result, robot state, observation row, tracker copy and the seen-set delta."""
         if row is None:
             return (res, robot_state, None, None, (), ())
-        adds = tuple(tuple(u['cell']) for u in row['static_updates']
+        su = row['static_updates']
+        if hasattr(su, 'sources'):        # fastsense.UpdateBlock (same cells, same order)
+            adds = tuple(map(tuple, su.cells[su.sources == 0].tolist()))
+            drops = tuple(map(tuple, su.cells[su.sources == 1].tolist()))
+            return (res, robot_state, row, copy.deepcopy(self.sensor.observer.tracker), adds, drops)
+        adds = tuple(tuple(u['cell']) for u in su
                      if u['source'] == 'visible_native_cspace_square_and_clearance_halo')
-        drops = tuple(tuple(u['cell']) for u in row['static_updates']
+        drops = tuple(tuple(u['cell']) for u in su
                       if u['source'] == 'observed_static_wall_inflated_025m')
         return (res, robot_state, row, copy.deepcopy(self.sensor.observer.tracker), adds, drops)
 
