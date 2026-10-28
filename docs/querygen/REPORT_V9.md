@@ -55,9 +55,13 @@ not certify them either).
 |---|---|---|---|---|---|---|---|---|---|
 | **C1 ORCA x native K=10** | **28/31 (90.3%)** | 28/40 | pUneSGJDrvY, zUG6FL9TYeR, W16Bm4ysK8v | 0.841 | 115 | 0.275 / 0.439 m | 102 / 5475 | 96 / 4993 | 38 / 74 |
 | **C1 ORCA x native K=6** | **25/31 (80.6%)** | 25/40 | TQSiMZJawkS, iePHCSf119p, p4ZPcGtk6Ex, pUneSGJDrvY, zUG6FL9TYeR, W16Bm4ysK8v | 0.819 | 103 | 0.251 / 0.425 m | 47 / 2703 | 86 / 2414 | 41 / 81 |
-| C2 DWA x inertia K=10 | (running) | | | | | | | | |
+| C2 DWA x inertia K=10 | 25/31 as run; **23/31 (74.2%) physically consistent** | 23/40 | BJovXQkqbC3, W16Bm4ysK8v, iePHCSf119p, p4ZPcGtk6Ex, zR6kPe1PsyS, zUG6FL9TYeR (+ 77mMEyxhs44, Pm6F8kyY3z2) | 0.875 | 131 | 0.262 / 0.568 m | 198 / 3999 | 304 / 2708 | 35 / 68 |
 
-The union of K=10 and K=6 is 28/31.
+The union of K=10 and K=6 is 28/31.  C2 physics audit (as on DEV): 9 unseen C2 solutions contain dynamics
+violations; 7 still pass under the corrected rules, 77mMEyxhs44 and Pm6F8kyY3z2 do not.  Feasibility is
+established with native-dynamics witnesses (or any configuration's solution), so C2's denominator may
+contain episodes that are feasible for the native robot but not for the momentum robot: C2 rates are
+conservative in that sense.
 
 ## 4. Remaining DEV failures
 * **Nfvxx8J5NCo**: the narrow passage opening lies at the end of the inflated wall band and is unobserved while
