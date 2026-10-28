@@ -12,9 +12,9 @@ import json
 import os
 import shutil
 
-CFG = [('c1k10', 'v10 C1 ORCA K=10', 'var(--s1)'), ('c1k6', 'v10 C1 ORCA K=6', 'var(--s2)'),
-       ('c2k10', 'v10 C2 DWA K=10', 'var(--s3)'), ('c1k10@v11', 'v11 C1 ORCA K=10', 'var(--s4)')]
-SUITES = [('dev', 'DEV'), ('unseen', 'Unseen 1'), ('unseen2', 'Unseen 2')]
+CFG = [('c1k10', 'C1 ORCA K=10', 'var(--s1)'), ('c1k6', 'C1 ORCA K=6', 'var(--s2)'),
+       ('c2k10', 'C2 DWA K=10', 'var(--s3)'), ('c1k10@v11', 'v11 C1 ORCA K=10', 'var(--s4)')]
+SUITES = [('dev', 'DEV'), ('unseen', 'Unseen 1'), ('unseen2', 'Unseen 2'), ('unseen3', 'Unseen 3')]
 OUTCOMES = [('success', 'success', 'var(--good)'), ('human_collision', 'human collision', 'var(--critical)'),
             ('timeout', 'timeout', 'var(--warning)'), ('other', 'other', 'var(--muted)')]
 
@@ -183,6 +183,8 @@ def main():
     ap.add_argument('--figure', nargs='*', default=[])
     ap.add_argument('--extra', default='')
     ap.add_argument('--finished-only', action='store_true', help='interim page: SR among finished episodes')
+    ap.add_argument('--gate', nargs='*', default=[], help='TAG:SUITE:TITLE held-out sections (report tags, e.g. @test12)')
+    ap.add_argument('--decision', default='', help='decision_robustness summary JSON')
     a = ap.parse_args()
     rep = json.load(open(a.report))
     extra = json.load(open(a.extra)) if a.extra else {}
@@ -224,23 +226,29 @@ def main():
     rd = rep.get('readiness')
     readiness_html = good_html = ''
     gate_html = ''
-    test = {k: v for k, v in cap.items() if k.endswith('@test')}
-    if test:
+    for spec in (a.gate or ['@test:unseen3:Held-out gate test (third unseen suite)']):
+        tag, suite, title = spec.split(':', 2)
         trs = []
         for c, name, color in CFG:
-            d = cap.get(f'unseen3_{c}@test')
+            d = cap.get(f'{suite}_{c}{tag}')
             if not d:
                 continue
-            trs.append(f'<tr><td><span class="sw" style="background:{color}"></span>{esc(name.replace("v10 ", ""))}</td>'
+            fb = d.get('fallback_solved', 0)
+            fb_txt = (f'{fb} ({100*d["sr_without_fallback"]:.1f}% without)' if fb else '0')
+            trs.append(f'<tr><td><span class="sw" style="background:{color}"></span>{esc(name)}</td>'
                        f'<td class="num">{d["passed"]} / {d["denominator"]}</td><td class="num">{100*d["sr"]:.1f}%</td>'
                        f'<td class="num">{d["finished"]}</td><td class="num">{d["proven_infeasible"]}</td>'
+                       f'<td class="num">{esc(fb_txt)}</td>'
                        f'<td class="num">{"" if d["spl"] is None else "%.3f" % d["spl"]}</td>'
                        f'<td class="num">{"" if d["psc"] is None else "%.3f" % d["psc"]}</td>'
                        f'<td class="num">{d["hcoll_among_solved"]:.0f}</td><td class="wrap">{esc(", ".join(d["failures"]) or "none")}</td></tr>')
-        gate_html = f"""<section class="card"><h2>Held-out gate test (third unseen suite)</h2>
-<p>{esc(extra.get('gate_text', 'Frozen system (tag querygen-freeze-v10-official), 60 episodes never used in development. Success rate over every test episode not proven natively infeasible; unfinished and unresolved episodes count as failures. Dashed line: the 95% gate.'))}</p>
-{gate_svg(cap)}
-<div class="tablewrap"><table><thead><tr><th>Configuration</th><th class="num">Solved</th><th class="num">SR</th><th class="num">Finished</th><th class="num">Proven infeasible</th><th class="num">SPL</th><th class="num">PSC</th><th class="num">H-Coll</th><th>Failures</th></tr></thead>
+        if not trs:
+            continue
+        text = extra.get('gate_text', {}).get(tag, '') if isinstance(extra.get('gate_text'), dict) else extra.get('gate_text', '')
+        gate_html += f"""<section class="card"><h2>{esc(title)}</h2>
+<p>{esc(text or 'Frozen system, episodes never used in development. Success rate over every test episode not proven natively infeasible; unfinished and unresolved episodes count as failures. Dashed line: the 95% gate.')}</p>
+{gate_svg(cap, tag, suite)}
+<div class="tablewrap"><table><thead><tr><th>Configuration</th><th class="num">Solved</th><th class="num">SR</th><th class="num">Finished</th><th class="num">Proven infeasible</th><th class="num">Fallback-solved</th><th class="num">SPL</th><th class="num">PSC</th><th class="num">H-Coll</th><th>Failures</th></tr></thead>
 <tbody>{''.join(trs)}</tbody></table></div></section>"""
     if rd:
         rc = rd.get('recovery') or {}
@@ -249,6 +257,19 @@ def main():
                    if rc.get('recovered') is not None else '')
         readiness_html = f"""<section class="card"><h2>Can legal information pick a good query?</h2><p>Share of {rd['states']} decision states ({rd['episodes']} solved episodes) where each selection rule picks a candidate that the default policy then carries to an official success. Grey bars are references.</p>{readiness_svg(rd)}</section>"""
         good_html = f"""<div class="card"><h2>Good candidates per decision state</h2><p>Candidates (of {rd['K_mean']:.1f} on average) after which the default policy succeeds; 1 means a single right answer, 2 or more means several reasonable choices. {esc(rec_txt)}.</p>{good_hist_svg(rd)}</div>"""
+    decision_html = ''
+    if a.decision and os.path.exists(a.decision):
+        dr = json.load(open(a.decision))
+        hist = dr.get('good_spl_choices_hist', {})
+        sub = dr.get('suboptimal', {})
+        decision_html = f"""<section class="card"><h2>Decision robustness (query-space learnability)</h2>
+<p>At {dr['states']} decision states of {dr['episodes']} Oracle solutions, every candidate query was executed for one interval; candidates with the same outcome, end time, end pose and path were merged into one choice; each choice was continued by the default policy ("easy") or a bounded minimum-intervention Oracle ("clever"). Good choice = success with SPL at least 90% of the best choice.</p>
+<div class="tiles">
+<div class="tile"><div class="tv">{dr['distinct_choices_mean']:.1f}</div><div class="tl">distinct choices per state</div><div class="ts">of {dr['candidates_mean']:.1f} candidate queries</div></div>
+<div class="tile"><div class="tv">{dr['viable_any_mean']:.1f}</div><div class="tl">viable choices per state</div><div class="ts">{dr['viable_easy_mean']:.1f} recoverable by the default policy</div></div>
+<div class="tile"><div class="tv">{100*dr['single_viable_share']:.1f}%</div><div class="tl">states with a single viable choice</div><div class="ts">{100*dr['single_good_share']:.1f}% with a single good-SPL choice</div></div>
+<div class="tile"><div class="tv">{100*sub.get('easy', 0):.0f}%</div><div class="tl">suboptimal choices recovered by the default policy</div><div class="ts">{100*sub.get('clever', 0):.0f}% need a clever continuation, {100*sub.get('dead', 0):.0f}% dead; mean SPL loss {sub.get('spl_loss_mean', 0):.3f}</div></div>
+</div></section>"""
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Falcon Query-Space Foundation</title>
@@ -293,6 +314,7 @@ figcaption {{ color:var(--ink2); font-size:13px; }} ul {{ margin:0; padding-left
 <p>{esc(extra.get('lead', ''))}</p></header>
 <section class="tiles">{tile_html}</section>
 {gate_html}
+{decision_html}
 <section class="card"><h2>Oracle capability ceiling</h2>
 <p>{'Interim: share of FINISHED episodes' if a.finished_only else 'Share of episodes'} solved by the privileged Oracle selecting among the generator's legal queries{', excluding only episodes proven natively infeasible; the runs are still in progress' if a.finished_only else ', over every episode not proven natively infeasible (unfinished and unresolved episodes count as failures)'}. Hover a bar for counts.</p>
 <div style="display:flex;gap:16px;flex-wrap:wrap">{''.join(f'<span><span class="sw" style="background:{c}"></span>{esc(n)}</span>' for k, n, c in CFG if any(f'{s_}_{k}' in cap for s_, _ in SUITES))}<span><svg width="22" height="10" style="vertical-align:middle"><line x1="0" x2="22" y1="5" y2="5" stroke="var(--ink2)" stroke-dasharray="4 4"/></svg> 95% target</span></div>

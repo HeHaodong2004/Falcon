@@ -98,7 +98,8 @@ def run_episode(spec, out_dir, planner='orca', dynamics='native', gen_kw=None, o
     rec = dict(key=spec.key, spec=spec.asdict(), planner=planner, dynamics=dynamics, gen=gen_kw, oracle=okw,
                search=dict(success=res['success'], edges=res['stats']['children'], steps=int(st.index),
                            final_geodesic=float(st.geodesic), phase=phase,
-                           winner=res['stats'].get('portfolio_winner')), start_geodesic=float(rt.start_geodesic))
+                           winner=res['stats'].get('portfolio_winner'),
+                           fallback=res['stats'].get('prim_fallback')), start_geodesic=float(rt.start_geodesic))
     private_cache = rt.private_cache
     decisions_out, crops = [], []
     verdict = 'FAIL_SEARCH'
@@ -195,6 +196,9 @@ def summarize(out_dir):
              spl_mean=float(np.mean([q(r, 'spl') for r in ok])) if ok else None,
              psc_mean=float(np.mean([q(r, 'psc') for r in ok])) if ok else None,
              decisions_per_episode=float(np.mean([len(r['decisions']) for r in ok])) if ok else None,
+             fallback_solved=sum(((r['search'].get('fallback') or {}).get('outcome') == 'success') for r in ok),
+             primitive_decision_share=(sum(sum(d['chosen_label'].startswith('prim_') for d in r['decisions']) for r in ok) /
+                                       max(1, sum(len(r['decisions']) for r in ok))),
              chosen_in_candidates=all(r.get('chosen_in_candidates', True) for r in ok),
              timing=phases, episodes_per_hour_per_worker=round(3600/float(tot.mean()), 1),
              failures=[(r['key'].split('/')[2], r['verdict'], r['search']['edges']) for r in recs
