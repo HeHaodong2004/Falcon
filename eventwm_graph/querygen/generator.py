@@ -91,6 +91,9 @@ class GeneratorConfig:
                                      # its first alt_via_m metres diverge from the main route (unexplored shortcuts)
     tc_variants: tuple = ()          # v9 mixed mode: also offer tight(1)+close copies of these fixed queries
                                      # (labels + '_tc'), e.g. ('goal', 'st_goal'); the rest stays conservative
+    vc_variants: tuple = ()          # v12: also offer contact-level copies of these fixed queries (labels + '_vc'; meta
+                                     # tight=2 + vclose: 0.20 m hard clearance to predicted human centres, small planner
+                                     # proxies; discrete instant-stop robots only), e.g. ('goal', 'st_goal')
     st_goal: bool = False            # v9: also offer 'st_goal' (legal space-time lattice plan to the goal,
                                      # stplan.py) as a fixed candidate (native-like discrete robots only)
     v9_select: bool = True           # v9: approach gated by legal *route* length; K=10 quotas from solution usage
@@ -131,6 +134,12 @@ class GeneratorConfig:
                                      # translation for N steps with <= 1.5 turn steps of net rotation, or none for 40
                                      # steps; v11 escalated on the spawn turn in 88 of 100 default runs, so ORCA and DWA
                                      # ran the same plan follower)
+    compact_long_turns: bool = False # v12 compact (K ~ 6) selection in manoeuvre mode: keep goal / st_goal, drop the
+                                     # tight-close copies and offer the 10-step rotations first (creep1, rot_left10,
+                                     # rot_right10, rot_left1, ...).  v10 filled goal / st_goal / goal_tc first, so only
+                                     # creep1 and the 1-step rotations fit and a spawn turn-away took one decision per
+                                     # turn step (JmbYfDe2QKZ: K=10 solves it with rot_left1, rot_left10, goal_tc; the
+                                     # K=6 tree was exhausted after 2,754 edges; also gTV8FGcVJC9, s19Uyn7AWwv)
     stop_strict: bool = False        # v12: goal / stgoal queries carry meta 'stop19' (a stuck STOP is declared only within
                                      # 0.19 m: official success needs geodesic < 0.2 m; YM4nG4pSAEJ stopped at 0.21 m)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
@@ -292,6 +301,10 @@ class QueryGenerator:
                 if q.label in cfg.tc_variants:
                     fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
                                        label=q.label+'_tc', meta=dict(q.meta, **tc_meta)))
+        if cfg.vc_variants and not self.dyn.stateful:
+            for q in [x for x in fixed if x.label in cfg.vc_variants]:
+                fixed.append(Query(q.kind, via=q.via, heading=q.heading, duration=q.duration, speed=q.speed,
+                                   label=q.label+'_vc', meta=dict(q.meta, tight=2, vclose=1)))
         if gd < cfg.stop_radius:
             fixed.append(Query('stop', label='stop', meta=dict(legal_goal_distance=gd)))
 
@@ -799,6 +812,10 @@ class QueryGenerator:
         if diag.get('stuck'):
             want = ('creep1', 'rot_left1', 'rot_right1', 'rot_left4', 'rot_right4', 'rot_left10', 'rot_right10',
                     'creep3')
+            if cfg.compact_long_turns:
+                chosen[:] = [q for q in chosen if q.label not in ('goal_tc', 'st_goal_tc')]
+                want = ('creep1', 'rot_left10', 'rot_right10', 'rot_left1', 'rot_right1', 'rot_left4', 'rot_right4',
+                        'creep3')
             pool = {q.label: q for q in cats.get('maneuver', [])}
             kt = [q for q in cats.get('maneuver', []) if q.kind == 'kturn']
             for q in kt[:2]:

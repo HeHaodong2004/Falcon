@@ -49,10 +49,19 @@ CLOSE_HARD_CLEARANCE = 0.27  # 'close' queries (declared body proxy: 0.25 m)
 CLOSE_ORCA = dict(robot_radius=0.30, human_radius=0.25, margin=0.05, time_horizon=0.5)
 CLOSE_SFM = dict(contact_radius=0.55)
 CLOSE_DWA = dict(safety=CLOSE_HARD_CLEARANCE, clearance_cap=0.8)
+# v12 'vclose' queries: contact-level passes.  The official rules count only physical robot-human contact (Falcon's
+# humans collide as thin articulated skeletons); native witnesses pass with the robot rectangle < 0.25 m from human
+# centres without contact (VqCaAuuoeWk: 20 such steps in a 94-step solution that no 0.30 m-clearance query could
+# express).  Legal inputs unchanged; the clearance is to *predicted* (constant-velocity) human centres.
+VCLOSE_HARD_CLEARANCE = 0.20
+VCLOSE_ORCA = dict(robot_radius=0.25, human_radius=0.18, margin=0.0, time_horizon=0.4)
+VCLOSE_SFM = dict(contact_radius=0.45)
+VCLOSE_DWA = dict(safety=VCLOSE_HARD_CLEARANCE, clearance_cap=0.6)
 # 'stgoal' queries (v9): legal space-time lattice plan (stplan.py) re-planned every ST_REPLAN steps
 ST_HORIZON = 40
 ST_MARGIN = 0.35            # rectangle to predicted human centre at t = 0 ...
 ST_MARGIN_CLOSE = 0.28      # ... for 'close' queries (declared body proxy 0.25 m)
+ST_MARGIN_VCLOSE = 0.21     # ... for v12 'vclose' (contact-level) queries
 ST_GROWTH = 0.004           # ... plus this per predicted step (CV uncertainty)
 ST_REPLAN = 4
 ST_HUMAN_RANGE = 8.0
@@ -152,7 +161,7 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog')    # meta flags that change the execution
+                 'evade', 'ukeep', 'bumpf', 'shum', 'stop19', 'uprog', 'vclose')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -197,7 +206,9 @@ class QueryExecution:
         self._still = 0
         self._last_xz = None
         self._still_psi = []        # v12 'uprog': headings during the current no-translation streak
-        if (query.meta or {}).get('close'):
+        if (query.meta or {}).get('vclose'):
+            self._make_close(very=True)
+        elif (query.meta or {}).get('close'):
             self._make_close()
         if (query.meta or {}).get('commit') and hasattr(self.planner, 'commit'):
             self.planner.commit = True
@@ -303,21 +314,23 @@ class QueryExecution:
                 self.plan = None
                 self.reason = 'unstick'
 
-    def _make_close(self):
-        """Close-pass variant: smaller human-avoidance proxies, rectangle hard check at 0.27 m."""
+    def _make_close(self, very=False):
+        """Close-pass variant: smaller human-avoidance proxies, rectangle hard check at 0.27 m (v12 ``very``:
+        contact-level proxies, 0.20 m)."""
         from .planners import ORCAPlanner, SFMPlanner, DWAPlanner
         from .orca import ORCASolver
         from dataclasses import replace as _replace
-        self.hard_clearance = CLOSE_HARD_CLEARANCE
+        hard = VCLOSE_HARD_CLEARANCE if very else CLOSE_HARD_CLEARANCE
+        self.hard_clearance = hard
         if isinstance(self.planner, ORCAPlanner):
-            self.planner.solver = ORCASolver(_replace(self.planner.solver.cfg, **CLOSE_ORCA))
-            self.planner.hard_clearance = CLOSE_HARD_CLEARANCE
+            self.planner.solver = ORCASolver(_replace(self.planner.solver.cfg, **(VCLOSE_ORCA if very else CLOSE_ORCA)))
+            self.planner.hard_clearance = hard
         elif isinstance(self.planner, SFMPlanner):
             # contact radius sized to the body width (0.95 m disc -> 0.55 m), same hard check
-            self.planner.cfg = _replace(self.planner.cfg, **CLOSE_SFM)
-            self.planner.hard_clearance = CLOSE_HARD_CLEARANCE
+            self.planner.cfg = _replace(self.planner.cfg, **(VCLOSE_SFM if very else CLOSE_SFM))
+            self.planner.hard_clearance = hard
         elif isinstance(self.planner, DWAPlanner):
-            self.planner.cfg = _replace(self.planner.cfg, **CLOSE_DWA)
+            self.planner.cfg = _replace(self.planner.cfg, **(VCLOSE_DWA if very else CLOSE_DWA))
 
     def copy(self):
         return copy.deepcopy(self)
@@ -629,8 +642,9 @@ class QueryExecution:
             P = to_plane([pose[0], pose[2]])
             humans = [h for h in ctx.humans if float(np.hypot(*(h.position-P))) <= ST_HUMAN_RANGE]
             close = bool((q.meta or {}).get('close'))
+            vclose = bool((q.meta or {}).get('vclose'))
             kw = dict(horizon=ST_HORIZON, goal_tol=STOP_M*0.8 if not q.via else ARRIVE_M*0.8,
-                      margin=ST_MARGIN_CLOSE if close else ST_MARGIN,
+                      margin=ST_MARGIN_VCLOSE if vclose else ST_MARGIN_CLOSE if close else ST_MARGIN,
                       growth=ST_GROWTH, start_budget=body_cost(legal.map, P, pose[3]))
             self.st = stplan.plan(self.view, self.field, pose, target, self.dyn.step_m, self.dyn.turn_rad, humans,
                                   STEP_SECONDS, **kw)
