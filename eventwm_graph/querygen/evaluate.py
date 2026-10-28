@@ -5,10 +5,12 @@ Single episode:
 Suite (one subprocess per episode):
   python scripts/querygen_run.py eventwm_graph.querygen.evaluate suite dev --out DIR --workers 8 [opts]
 
-Verdict PASS requires: Oracle success, replay success == 1 with STOP inside
-the 500-step limit, official human_collision == 0, zero body-proxy overlap
-steps, zero static-contact steps, and replayed actions identical to the
-Oracle branch actions.
+Verdict (rules='official', default since 2026-10-28): the official Falcon benchmark definitions only --
+PASS iff the authoritative continuous replay from reset with the unchanged Env.step reproduces the Oracle
+branch actions exactly and ends with the official ``success`` measure == 1 (STOP within 0.2 m geodesic of the
+goal inside the 500-step limit; the episode ends at the first official human contact).  Human collision, PSC,
+SPL, static contacts and the old body-proxy counts are reported, never added to the verdict.
+rules='declared' reproduces the pre-2026-10-28 stricter project rules (body proxy, static contact).
 """
 import argparse
 import hashlib
@@ -59,7 +61,8 @@ def compact_trace(rep):
     return dict(actions=acts, velocity_commands=vel, trajectory=traj, per_decision_steps=rep['per_decision_steps'])
 
 
-def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, gen_kw=None, plot=True):
+def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, gen_kw=None, plot=True,
+            rules='official'):
     from .episode import EpisodeRuntime, replay
     from .generator import QueryGenerator, GeneratorConfig
     from .oracle import Oracle, OracleConfig
@@ -68,12 +71,20 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
     key = spec.key.replace('/', '_')
     dyn = FAMILIES[dynamics]
     t0 = time.perf_counter()
-    rt = EpisodeRuntime(spec, planner, dyn, strict=True, trace=False)
+    assert rules in ('official', 'declared')
+    official = rules == 'official'
+    # official Falcon: only an official human contact, STOP or the step limit ends a branch
+    rt = EpisodeRuntime(spec, planner, dyn, strict=not official, trace=False)
+    if official:
+        rt.sim.check_static = False          # static contact is not a benchmark rule (diagnostic only in replay)
     gen = QueryGenerator(dyn, GeneratorConfig(**(gen_kw or {})))
-    oracle = Oracle(rt, gen, OracleConfig(**(oracle_kw or {})))
+    okw = dict(oracle_kw or {})
+    if official:
+        okw['escape_h'] = False              # the escape map models the declared static-contact rule
+    oracle = Oracle(rt, gen, OracleConfig(**okw))
     res = oracle.search()
     st = res['state']
-    record = dict(spec=spec.asdict(), key=spec.key, planner=planner, dynamics=dynamics,
+    record = dict(spec=spec.asdict(), key=spec.key, planner=planner, dynamics=dynamics, rules=rules,
                   generator=asdict(gen.cfg), oracle_config=asdict(oracle.cfg), code=git_identity(),
                   code_snapshot=snapshot_identity(),
                   start_geodesic=rt.start_geodesic, setup_s=rt.setup_s, spawn_contact=rt.spawn_contact,
@@ -106,10 +117,13 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
             return record
         m = rep['metrics']
         identical = rep['actions'] == st.actions
-        ok = (identical and m.get('success') == 1.0 and m.get('human_collision') == 0.0 and
-              rep['static_contact_steps'] == 0 and rep['body_overlap_steps'] == 0 and
-              rep['shadow_pose_mismatch_steps'] == 0 and not rep['canonical_human_collision'] and
-              rep['dynamics_violation_steps'] == 0)
+        if official:
+            ok = identical and m.get('success') == 1.0
+        else:
+            ok = (identical and m.get('success') == 1.0 and m.get('human_collision') == 0.0 and
+                  rep['static_contact_steps'] == 0 and rep['body_overlap_steps'] == 0 and
+                  rep['shadow_pose_mismatch_steps'] == 0 and not rep['canonical_human_collision'] and
+                  rep['dynamics_violation_steps'] == 0)
         verdict = 'PASS' if ok else 'FAIL_REPLAY'
         record['replay'] = dict(metrics=m, actions_identical=identical, steps=rep['steps'],
                                 static_contact_steps=rep['static_contact_steps'],
@@ -127,7 +141,7 @@ def run_one(spec, out_dir, planner='orca', dynamics='native', oracle_kw=None, ge
     return record
 
 
-def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=16):
+def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=16, rules='official'):
     """No high-level selection: the legal goal query, continued every decision."""
     from .episode import EpisodeRuntime, replay
     from .executor import Query
@@ -158,7 +172,8 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
                             escape_contact_steps=rep['escape_contact_steps'],
                             canonical_human_collision=rep['canonical_human_collision'], trace=compact_trace(rep))
     record['decisions'] = _decisions_json(st.decisions)
-    strict_ok = (m.get('success') == 1.0 and m.get('human_collision') == 0.0 and rep['static_contact_steps'] == 0
+    strict_ok = (m.get('success') == 1.0) if rules == 'official' else \
+        (m.get('success') == 1.0 and m.get('human_collision') == 0.0 and rep['static_contact_steps'] == 0
                  and rep['body_overlap_steps'] == 0 and rep['dynamics_violation_steps'] == 0)
     record['verdict'] = 'PASS' if strict_ok else ('NATIVE_SUCCESS_ONLY' if m.get('success') == 1.0 else 'FAIL')
     record['wall_seconds'] = time.perf_counter()-t0
@@ -202,20 +217,22 @@ def main():
     ap.add_argument('--oracle', default='{}', help='JSON OracleConfig overrides')
     ap.add_argument('--gen', default='{}', help='JSON GeneratorConfig overrides')
     ap.add_argument('--only', default='', help='comma-separated scene names (suite mode)')
+    ap.add_argument('--rules', default='official', choices=['official', 'declared'],
+                    help='official = Falcon benchmark definitions only (default); declared = pre-2026-10-28 rules')
     a = ap.parse_args()
     out = Path(a.out)
     if a.mode == 'one':
         key, seed = a.args
         ds, split, scene, ep = key.split('/')
         r = run_one(EpisodeSpec(ds, split, scene, ep, int(seed)), out, a.planner, a.dynamics,
-                    json.loads(a.oracle), json.loads(a.gen))
+                    json.loads(a.oracle), json.loads(a.gen), rules=a.rules)
         print(json.dumps(dict(key=r['key'], verdict=r['verdict'], oracle=r['oracle']['outcome'],
                               steps=r['oracle']['steps'], seconds=round(r['wall_seconds'], 1))))
         return
     if a.mode == 'exec_one':
         key, seed = a.args
         ds, split, scene, ep = key.split('/')
-        r = run_executor_only(EpisodeSpec(ds, split, scene, ep, int(seed)), out, a.planner, a.dynamics)
+        r = run_executor_only(EpisodeSpec(ds, split, scene, ep, int(seed)), out, a.planner, a.dynamics, rules=a.rules)
         print(json.dumps(dict(key=r['key'], verdict=r['verdict'], steps=r['replay']['steps'])))
         return
     if a.mode == 'summarize':
@@ -247,7 +264,7 @@ def main():
             cmd = ['nice', '-n', '10', py, runner, 'eventwm_graph.querygen.evaluate',
                    'one' if a.policy == 'oracle' else 'exec_one', s.key, str(s.seed),
                    '--out', str(out), '--planner', a.planner, '--dynamics', a.dynamics,
-                   '--oracle', a.oracle, '--gen', a.gen]
+                   '--oracle', a.oracle, '--gen', a.gen, '--rules', a.rules]
             f = open(logs/f"{s.key.replace('/', '_')}.log", 'w')
             procs.append((s, subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT, env=env), f))
         time.sleep(2.)
