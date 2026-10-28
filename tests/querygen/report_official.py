@@ -16,7 +16,7 @@ import statistics as S
 from collections import Counter, defaultdict
 
 SUITES = {'dev': 'docs/querygen/suites.json', 'unseen': 'docs/querygen/suites_unseen.json',
-          'unseen2': 'docs/querygen/suites_unseen2.json'}
+          'unseen2': 'docs/querygen/suites_unseen2.json', 'unseen3': 'docs/querygen/suites_unseen3.json'}
 
 
 def suite_keys(name):
@@ -114,7 +114,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', required=True)
     ap.add_argument('--oracle-root', default='output/runs/official/base')
-    ap.add_argument('--oracle-extra', nargs='*', default=['output/runs/official/v11:@v11'],
+    ap.add_argument('--oracle-extra', nargs='*', default=['output/runs/official/test_v10:@test'],
                     help='ROOT:TAG -- further Oracle runs (e.g. a foundation variant); keys get the tag suffix')
     ap.add_argument('--floor', nargs='*', default=['output/runs/official/exec', 'output/runs/official/exec_ub',
                                                    'output/runs/official/exec_ube'])
