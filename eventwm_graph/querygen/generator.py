@@ -102,6 +102,8 @@ class GeneratorConfig:
                                      # (v9 noticed it one step late and spent that step on a native hold turn,
                                      # which always starts right: rot_left1 was a no-op, rot_left<k> turned k-1,
                                      # rot_right<k> k+1).  False = v9 behaviour
+    arrive_exact: bool = True        # v10: a goto without a final heading ends on the step that reaches its target
+                                     # (v9 spent one more step on a hold = native in-place turn)
     root_cover: bool = True          # v10 compact selection at the reset state (nothing behind the robot observed yet,
                                      # so any first primitive may meet unseen geometry): both route turns instead of
                                      # the goal_tc copy, so the slots start with forward, left and right primitives
@@ -156,6 +158,10 @@ class QueryGenerator:
             for q in queries:
                 if q.kind == 'rotate':
                     q.meta = dict(q.meta, exact_end=1)
+        if self.cfg.arrive_exact:
+            for q in queries:
+                if q.kind == 'goto' and q.heading is None:
+                    q.meta = dict(q.meta, arrive_exact=1)
         return queries, diag
 
     def _propose_all(self, legal, execution=None):

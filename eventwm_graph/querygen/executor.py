@@ -103,7 +103,7 @@ class Query:
     label: str = ''
     meta: dict = field(default_factory=dict)
 
-    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end')    # meta flags that change the execution
+    EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -238,7 +238,7 @@ class QueryExecution:
             return 'stop', 0
         from .planners import Realized
         if isinstance(prim, Realized):
-            return prim[0], prim[1]          # planner already realised the command under the dynamics
+            return self._arrive_check(legal, (prim[0], prim[1]))   # planner already realised the command
         P = to_plane([legal.pose[0], legal.pose[2]])
         humans = human_estimates(legal.tracks, legal.time)
         speed = float(self.query.speed)
@@ -251,8 +251,25 @@ class QueryExecution:
                 prim = self.adapter.wait_action(P, float(legal.pose[3]), legal.map)
                 self.plan = None
         cap = None if speed >= 1. else max(1, int(round((len(self.dyn.levels)-1)*speed)))
-        return self.realizer.realize(prim, int(level), P, float(legal.pose[3]), legal.map, humans,
-                                     self._plan_now, cap)
+        return self._arrive_check(legal, self.realizer.realize(prim, int(level), P, float(legal.pose[3]), legal.map,
+                                                               humans, self._plan_now, cap))
+
+    def _arrive_check(self, legal, out):
+        """v10 (meta 'arrive_exact'): a goto without a final heading ends on the step whose own motion reaches
+        the final via-point (v9 noticed arrival at the start of the next step and spent it on a hold, which for
+        the native robot is an in-place turn)."""
+        q = self.query
+        if not (q.kind == 'goto' and q.meta.get('arrive_exact') and q.heading is None and q.via and
+                self.status == 'running' and self.via_index == len(q.via)-1):
+            return out
+        cmd = out[0]
+        d = (self.dyn.step_m if cmd == 'forward' else
+             self.dyn.levels[int(cmd[1])] if isinstance(cmd, tuple) and cmd[0] == 'forward' else 0.)
+        if d > 0.:
+            P1 = to_plane([legal.pose[0], legal.pose[2]])+d*heading_vec(float(legal.pose[3]))
+            if float(np.hypot(*(P1-to_plane(tuple(map(float, q.via[-1])))))) < ARRIVE_M:
+                self.status, self.reason = 'done', 'arrived'
+        return out
 
     def _step_kin(self, legal, dyn_state=0):
         """Next kinematic primitive, or 'stop'; updates completion status first."""
