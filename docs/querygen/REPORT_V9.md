@@ -68,3 +68,15 @@ witness searches prove them feasible they count as feasible failures.  The union
   followed by human timing near (-3, 2.8) where the best branches are already doomed; the budget is consumed
   before alternative timings are explored.
 * **3t8DB4Uzvkt / LT9Jq6dN3Ea**: budget-edge sensitivity (each solved by one of the two K settings).
+
+## 5. Defects found after the freeze (fixed in v10, not in the v9 numbers)
+* **In-place rotations ended one step late.**  The executor noticed "heading reached" at the start of
+  the next step and spent that step on a native hold, which is itself an in-place turn starting right:
+  `rot_left1` = left+right (a no-op), `rot_left<k>` turned k-1 steps, `rot_right<k>` k+1.  This alone
+  explains pUneSGJDrvY (wall-side spawn needing a left arc: no left turn was expressible; the tree was
+  exhausted after 587 edges; with the fix it is solved in 39 s).
+* **K=6 reset-state coverage.**  At TQSiMZJawkS's spawn only a left turn is free; every K=6 root candidate
+  started with a right turn or a forward step.
+* **Physics of the C2 robot** (section 2 note): STOP while moving and an instantaneous stop in the DWA
+  "blocked" fallback; the strict verdict now checks the dynamics model.
+* **goto arrival** also spent one extra hold step (a stray in-place turn for the native robot).
