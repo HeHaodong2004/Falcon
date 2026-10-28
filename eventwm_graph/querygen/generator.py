@@ -116,6 +116,13 @@ class GeneratorConfig:
     evade: bool = False              # v11: movement queries carry meta 'evade' (executor human-threat reflex: when the
                                      # robot's own next step + holding meets a tracked human's CV prediction within
                                      # 0.30 m in 14 steps, take the clearance-maximising short native sequence)
+    unstick_keep: bool = False       # v12: 'goal' queries with unstick also carry meta 'ukeep' (an escalated query keeps
+                                     # its static plan across decision boundaries; HMkoS756sz6 rotated back and forth
+                                     # for 400 steps: the boundary re-plan from an intermediate pose failed and the
+                                     # route fallback turned the other way)
+    bump_front: bool = False         # v12: evade / unstick queries carry meta 'bumpf' (their forward checks respect
+                                     # bump memory at the body's front contact point; iePHCSf119p: the evasion reflex
+                                     # pushed 'forward' into an unseen obstacle for 100+ steps)
     goal_unstick: int = 0            # v11: 'goal' queries carry meta unstick=N (executor: N still steps with no human
                                      # within 2 m -> tight map + plan following under the hard human check); 0 = off
     creep_blind: bool = False        # v11: exact creeps of robots with momentum skip the legal-map body gate (like the
@@ -209,6 +216,12 @@ class QueryGenerator:
             for q in queries:
                 if q.kind == 'goal' and not q.via and q.label in ('goal', 'goal_tc'):
                     q.meta = dict(q.meta, unstick=int(self.cfg.goal_unstick))
+                    if self.cfg.unstick_keep:
+                        q.meta = dict(q.meta, ukeep=1)
+        if self.cfg.bump_front:
+            for q in queries:
+                if (q.meta or {}).get('evade') or (q.meta or {}).get('unstick'):
+                    q.meta = dict(q.meta, bumpf=1)
         if self.cfg.creep_blind and self.dyn.stateful:
             for q in queries:
                 if q.kind == 'creep':

@@ -104,7 +104,7 @@ class Query:
     meta: dict = field(default_factory=dict)
 
     EXEC_META = ('tight', 'close', 'commit', 'unknown_cost', 'exact_end', 'arrive_exact', 'blind', 'unstick',
-                 'evade')    # meta flags that change the execution
+                 'evade', 'ukeep', 'bumpf')    # meta flags that change the execution
 
     def signature(self):
         v = tuple((round(float(x), 2), round(float(z), 2)) for x, z in self.via)
@@ -154,6 +154,18 @@ class QueryExecution:
             self.planner.commit = True
         self.planner.reset()
 
+    def _bump_blocked(self, legal, P, psi):
+        """v12 meta 'bumpf': the body's front contact point at plane pose (P, psi) lies in a bump-memory disc --
+        proprioceptive evidence that a forward step from here does not move the base (an obstacle the camera does
+        not see).  The base-centre checks on the (tight) legal map miss it: the disc sits 0.684 m ahead of the base."""
+        bumps = getattr(legal, 'bumps', None)
+        if not bumps or not (self.query.meta or {}).get('bumpf'):
+            return False
+        from .legal import LegalState
+        r = float(LegalState.BUMP_MEMORY)
+        fx, fz = to_world(P+LegalState.BUMP_FRONT_M*heading_vec(psi))
+        return any(math.hypot(fx-bx, fz-bz) <= r for bx, bz in bumps)
+
     EVADE_H = 14            # steps of constant-velocity human prediction
     EVADE_R = 0.30          # rectangle-to-human-centre distance treated as a contact threat (official contact needs touch)
     EVADE_SEQS = ('f'*8, 'l'+'f'*7, 'r'+'f'*7, 'll'+'f'*6, 'rr'+'f'*6, 'llll'+'f'*4, 'rrrr'+'f'*4, 'l'*8, 'r'*8)
@@ -182,7 +194,7 @@ class QueryExecution:
                 if a == 'f':
                     Pn = P+self.dyn.step_m*heading_vec(psi)
                     x, z = to_world(Pn)
-                    if core.state_at(x, z) != BLOCKED:
+                    if core.state_at(x, z) != BLOCKED and not self._bump_blocked(legal, P, psi):
                         P = Pn
                 elif a == 'l':
                     psi += self.dyn.turn_rad
@@ -252,9 +264,14 @@ class QueryExecution:
         self.view = None
         self.field = None
         self.field_key = None
-        self.plan = None
-        self.plan_i = 0
-        self.plan_age = 0
+        if not (self.escalated and (self.query.meta or {}).get('ukeep')):
+            self.plan = None
+            self.plan_i = 0
+            self.plan_age = 0
+        # v12 meta 'ukeep': an escalated (unstick) goal query keeps its static plan across decision boundaries
+        # (still re-validated on new evidence every step).  Re-planning at the boundary from an intermediate pose of
+        # an in-place turn could fail (start pose inside the inflated band) while the route fallback turned the
+        # other way: HMkoS756sz6 / bXu6SSWkJY8 / LEFTm3JecaC rotated back and forth for 400 steps (32-step cycle)
         self.st = None
         if hasattr(self.adapter, 'reset'):
             self.adapter.reset()
@@ -489,7 +506,8 @@ class QueryExecution:
                     from .legal import BLOCKED
                     P1 = Pl+self.dyn.step_m*heading_vec(float(legal.pose[3]))
                     x1, z1 = to_world(P1)
-                    if tight_legal(legal, 2).map.state_at(x1, z1) != BLOCKED:
+                    if tight_legal(legal, 2).map.state_at(x1, z1) != BLOCKED and \
+                            not self._bump_blocked(legal, Pl, float(legal.pose[3])):
                         cand = 'forward'
             if cand is not None:
                 P1, psi1 = self.adapter.predicted_pose(ctx.P, ctx.psi, cand)
@@ -704,7 +722,8 @@ class QueryExecution:
             return [], []
         pose = legal.pose
         P = to_plane([pose[0], pose[2]])
-        ok = (self.plan is not None and self.plan_i < len(self.plan['prims']) and self.plan_age < 24
+        keep = self.escalated and (self.query.meta or {}).get('ukeep')
+        ok = (self.plan is not None and self.plan_i < len(self.plan['prims']) and (self.plan_age < 24 or keep)
               and not dyn.stateful)
         if ok and self.plan_i > 0:
             ex = self.plan['poses'][self.plan_i-1]

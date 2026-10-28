@@ -159,6 +159,10 @@ def run_executor_only(spec, out_dir, planner='orca', dynamics='native', horizon=
     meta = dict(unstick=n) if n else {}
     if (gen_kw or {}).get('evade'):
         meta['evade'] = 1
+    if n and (gen_kw or {}).get('unstick_keep'):
+        meta['ukeep'] = 1
+    if (gen_kw or {}).get('bump_front') and meta:
+        meta['bumpf'] = 1
     q = Query('goal', label='goal', meta=meta)
     while not st.terminal:
         cont = st.execution is not None and st.execution.status == 'running'
