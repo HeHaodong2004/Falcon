@@ -218,7 +218,10 @@ class Learner:
                             continue
                         i = idx[t]
                         for k, c in enumerate(st['candidates'][:KMAX]):
-                            self.ring.cf[i, k] = [float(c['outcome'] == 'success'), float(c['outcome'] == 'human_collision'),
+                            # a continuation cut at the labeller's cap ('alive') is no outcome: success -1 marks it
+                            # (lower-bound hinge only, no regression)
+                            succ = -1. if c.get('alive') else float(c['outcome'] == 'success')
+                            self.ring.cf[i, k] = [succ, float(c['outcome'] == 'human_collision'),
                                                   c['steps']/CUM_SCALE[2], c['path']/CUM_SCALE[3], c['social']/CUM_SCALE[4]]
                             self.ring.cf_mask[i, k] = True
                         n += 1
@@ -329,14 +332,15 @@ class Learner:
         if wcf > 0 and bool(cfm.any()):
             cfl = torch.as_tensor(ring.cf[idx], device=self.dev)                 # [B, K, 5]
             q = self.w.scalarize(out)
-            ycf = self.w.success*cfl[..., 0]-self.w.collision*cfl[..., 1]-self.w.step*100*cfl[..., 2] \
+            ycf = self.w.success*cfl[..., 0].clamp(min=0)-self.w.collision*cfl[..., 1]-self.w.step*100*cfl[..., 2] \
                 - self.w.path*10*cfl[..., 3]-self.w.social*50*cfl[..., 4]
             hinge = Fn.relu(ycf-q)[cfm].pow(2).mean()
             reg = 0.
-            if self.updates < self.warm_steps or self.cf_reg > 0:
+            rmask = cfm & (cfl[..., 0] >= 0)                                    # complete continuations only
+            if (self.updates < self.warm_steps or self.cf_reg > 0) and bool(rmask.any()):
                 lab = {h: cfl[..., j] for j, h in enumerate(HEADS)}
-                pr = {h: out[h][cfm] for h in HEADS}
-                lb = {h: lab[h][cfm] for h in HEADS}
+                pr = {h: out[h][rmask] for h in HEADS}
+                lb = {h: lab[h][rmask] for h in HEADS}
                 reg = sum(self.head_w[h]*v for h, v in head_loss(pr, lb).items())
                 if self.updates >= self.warm_steps:
                     reg = reg*self.cf_reg/max(wcf, 1e-6)      # permanent dense supervision at weight cf_reg
@@ -347,7 +351,7 @@ class Learner:
             orc = torch.as_tensor(ring.oracle[idx].astype(np.int64), device=self.dev)
             has_o = orc >= 0
             if wm > 0 and bool(has_o.any()):
-                fail = (cfl[..., 0] < 0.5) & cfm                                   # candidate + default fails
+                fail = (cfl[..., 0] < 0.5) & (cfl[..., 0] >= 0) & cfm             # candidate + default fails
                 qo = q.gather(1, orc.clamp(min=0)[:, None])
                 viol = Fn.relu(q+self.margin-qo)*fail.float()
                 viol = viol*has_o[:, None].float()
