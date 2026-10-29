@@ -371,3 +371,7 @@ m_blk 0.51, m_free 0.39 -- rotations expose new cells), run at full speed (slow 
 often via-point manoeuvres (goto d = -0.33: pass / yield / sidestep / alternative routes).  At the decisive moments,
 stopping to look around is often what saves the episode -- active perception -- and the v4 inputs carry it.  The
 Stage 2 map-gain columns carry signal here, so dropping Stage 2 for speed is not advisable.
+Resume inheritance (21:25): a goal query interrupted by non-goal queries (scans, waits, rotations) is remembered and its
+history resumes when a goal query is issued again; the Sandbox imagination receives the running execution in any
+status so imagined goal candidates inherit exactly as reality does.  Official replay with L3_INHERIT=1 reproduces the
+branch runtime's actions exactly (2/2 smoke episodes).  R10 restarted in place with it (21:26).
