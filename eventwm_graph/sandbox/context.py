@@ -96,6 +96,33 @@ def layer2_frame(row, compact=True):
                 sensor_protocol=row['sensor_protocol'])
 
 
+def check_observation(frame, range_frame, size=RANGE_SIZE, last_timestamp=None):
+    """The per-observation contract of ``LegalStream.observe`` (strictly increasing clock; range frame protocol, size,
+    clock, camera pose and value range).  Returns the range image (float32), camera origin and rotation."""
+    t = frame['timestamp']
+    if not math.isfinite(t) or (last_timestamp is not None and t <= last_timestamp):
+        raise ContextError('observations must arrive in strictly increasing time')
+    if range_frame is None:
+        raise ContextError('every observation needs its measured range frame (Layer 2 range packet contract)')
+    if range_frame.get('sensor_protocol') != RANGE_PROTOCOL:
+        raise ContextError('range frame protocol must be %r' % RANGE_PROTOCOL)
+    img = range_frame['range_image'] if 'range_image' in range_frame else range_frame['ranges']
+    img = np.asarray(img, np.float32)
+    if img.shape != (size, size):
+        raise ContextError('range frame must be %d x %d' % (size, size))
+    if abs(float(range_frame['timestamp'])-t) > CLOCK_TOLERANCE:
+        raise ContextError('range frame clock %.9f differs from the observation %.9f' % (float(range_frame['timestamp']), t))
+    o = np.asarray(range_frame['camera_origin'], np.float64)
+    r = np.asarray(range_frame['camera_rotation'], np.float64)
+    if np.max(np.abs(o-np.asarray(frame['camera_origin']))) > POSE_TOLERANCE or \
+            np.max(np.abs(r-np.asarray(frame['camera_rotation']))) > POSE_TOLERANCE:
+        raise ContextError('range frame was not taken from the observation camera pose')
+    finite = img[np.isfinite(img)]
+    if len(finite) and (finite.min() < 0. or finite.max() > 10.00001):
+        raise ContextError('range values must be Euclidean metres within 10 m (NaN = no return)')
+    return img, o, r
+
+
 class LegalStream:
     """Append-only legal history of one robot/episode (Layer 2 view).
 
@@ -146,26 +173,7 @@ class LegalStream:
     def observe(self, row, range_frame):
         frame = layer2_frame(row, self.compact)
         t = frame['timestamp']
-        if not math.isfinite(t) or (self.frames and t <= self.frames[-1]['timestamp']):
-            raise ContextError('observations must arrive in strictly increasing time')
-        if range_frame is None:
-            raise ContextError('every observation needs its measured range frame (Layer 2 range packet contract)')
-        if range_frame.get('sensor_protocol') != RANGE_PROTOCOL:
-            raise ContextError('range frame protocol must be %r' % RANGE_PROTOCOL)
-        img = range_frame['range_image'] if 'range_image' in range_frame else range_frame['ranges']
-        img = np.asarray(img, np.float32)
-        if img.shape != (self.size, self.size):
-            raise ContextError('range frame must be %d x %d' % (self.size, self.size))
-        if abs(float(range_frame['timestamp'])-t) > CLOCK_TOLERANCE:
-            raise ContextError('range frame clock %.9f differs from the observation %.9f' % (float(range_frame['timestamp']), t))
-        o = np.asarray(range_frame['camera_origin'], np.float64)
-        r = np.asarray(range_frame['camera_rotation'], np.float64)
-        if np.max(np.abs(o-np.asarray(frame['camera_origin']))) > POSE_TOLERANCE or \
-                np.max(np.abs(r-np.asarray(frame['camera_rotation']))) > POSE_TOLERANCE:
-            raise ContextError('range frame was not taken from the observation camera pose')
-        finite = img[np.isfinite(img)]
-        if len(finite) and (finite.min() < 0. or finite.max() > 10.00001):
-            raise ContextError('range values must be Euclidean metres within 10 m (NaN = no return)')
+        img, o, r = check_observation(frame, range_frame, self.size, self.frames[-1]['timestamp'] if self.frames else None)
         if self.graph is None:
             self.graph = self._graph_cls(self.resolution, float(frame['robot_pose'][1]))
         self.graph.update(frame)

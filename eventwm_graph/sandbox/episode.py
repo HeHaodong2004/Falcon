@@ -62,6 +62,20 @@ def thaw_gc():
     gc.collect()
 
 
+def make_stream(stream, spec, global_graph=False):
+    """The episode's legal stream: a name (a local ``LegalStream``) or a stream object, e.g. a
+    ``service.RemoteStream`` whose Layer 2 view a sandbox server keeps."""
+    if hasattr(stream, 'observe'):
+        return stream
+    return LegalStream(stream or spec.key, RESOLUTION, global_graph=global_graph)
+
+
+def close_stream(stream):
+    close = getattr(stream, 'close', None)
+    if close is not None:
+        close()
+
+
 def default_query(gen_kw=None):
     """The legal default-policy goal query of the querygen executor-only floor (same meta)."""
     g = dict(FOUNDATION if gen_kw is None else gen_kw)
@@ -97,7 +111,7 @@ class RealEpisode:
         self.task = NativeTask(spec, velocity_action=not self.dyn.native_actions)
         self.sensor = LegalSensor(self.task, private_cache={}, pure_caches=True, fast=True)
         self.ranges = make_range_sensor(range_sensor, self.task, self.sensor.config)
-        self.stream = LegalStream(stream or spec.key, RESOLUTION, global_graph=global_graph)
+        self.stream = make_stream(stream, spec, global_graph)
         self.perf = dict(steps=0, env_s=0., sensor_s=0., range_s=0., legal_s=0., stream_s=0., planner_s=0.)
         row, rf = self._sense()
         self.legal = LegalState(self.task.goal, row['robot_pose'], row['timestamp'])
@@ -187,6 +201,7 @@ class RealEpisode:
 
     def close(self):
         self.task.close()
+        close_stream(self.stream)
         if self.gc_freeze:
             thaw_gc()
 
@@ -216,7 +231,7 @@ class BranchEpisode:
         self.task = self.rt.task
         self.sensor = self.rt.sensor
         self.ranges = make_range_sensor(range_sensor, self.task, self.sensor.config)
-        self.stream = LegalStream(stream or spec.key, RESOLUTION, global_graph=global_graph)
+        self.stream = make_stream(stream, spec, global_graph)
         self.perf = dict(steps=0, env_s=0., sensor_s=0., range_s=0., legal_s=0., stream_s=0., planner_s=0.)
         self._observe = self.rt.sensor.observe
         self.rt._load(self.rt.root)                 # robot at the reset, humans at tape index 0
@@ -294,5 +309,6 @@ class BranchEpisode:
 
     def close(self):
         self.rt.close()
+        close_stream(self.stream)
         if self.gc_freeze:
             thaw_gc()

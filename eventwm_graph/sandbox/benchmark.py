@@ -121,7 +121,11 @@ def worker(a):
     from .episode import RealEpisode, BranchEpisode, generator, default_query, freeze_gc
     from eventwm_graph.querygen import suites
     out = Path(a.out)
-    sb = WorldModelSandbox.from_release(SandboxConfig(**json.loads(a.sandbox)), map_device='cuda:0')
+    if a.server:                                   # split mode: Layer 2 in a server process (service.py)
+        from .service import RemoteSandbox
+        sb = RemoteSandbox(a.server, SandboxConfig(**json.loads(a.sandbox)))
+    else:
+        sb = WorldModelSandbox.from_release(SandboxConfig(**json.loads(a.sandbox)), map_device='cuda:0')
     items = parse_items(a.episodes)
     stamps, comp = [], dict(sandbox=0., interval=0., state=0., generator=0.)
     t_start = time.time()
@@ -131,7 +135,8 @@ def worker(a):
         suite, idx = items[k % len(items)]; k += 1
         spec = suites.load(suite)[idx]
         gen = generator(a.config, a.dynamics)
-        ep = (BranchEpisode if a.env == 'branch' else RealEpisode)(spec, a.planner, a.dynamics, range_sensor=a.range, gc_freeze=True)
+        ep = (BranchEpisode if a.env == 'branch' else RealEpisode)(spec, a.planner, a.dynamics, range_sensor=a.range, gc_freeze=True,
+                                                                 stream=sb.open_stream(spec.key) if a.server else None)
         q = default_query()
         while not ep.over and time.time()-t_start < a.seconds:
             t0 = time.perf_counter()
@@ -170,8 +175,23 @@ def worker(a):
             sb.evaluate(st, legal, cands)
             comp['sandbox'] += time.perf_counter()-t0
             stamps.append(time.time())
-    (out/('worker_%02d.json' % a.id)).write_text(json.dumps(dict(id=a.id, stamps=stamps, components=comp, contexts=len(ctxs))))
+    server_wait = getattr(getattr(sb, 'conn', None), 'wait_s', None)      # split mode: time blocked on server calls
+    (out/('worker_%02d.json' % a.id)).write_text(json.dumps(dict(id=a.id, stamps=stamps, components=comp, contexts=len(ctxs),
+                                                                  server=a.server, server_wait_s=server_wait)))
     sb.close()
+
+
+def gpu_free_gb(device=0):
+    """Free memory of physical GPU ``device`` (a short-lived probe process; NVML is unavailable on this host)."""
+    import subprocess
+    import sys
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(device))
+    try:
+        r = subprocess.run([sys.executable, '-c', 'import torch; print(torch.cuda.mem_get_info(0)[0])'], env=env,
+                           capture_output=True, text=True, timeout=120)
+        return int(r.stdout.strip().splitlines()[-1])/1e9
+    except Exception:
+        return None
 
 
 def throughput(a):
@@ -179,15 +199,46 @@ def throughput(a):
     import sys
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     items = parse_items(a.episodes)
+    memory = dict(start=gpu_free_gb())
+    servers, addresses = [], []
+    if a.servers:
+        from .service import start_server, wait_ready
+        ready = []
+        for j in range(a.servers):
+            addresses.append('tp-%d-%d' % (os.getpid(), j))
+            ready.append(out/('server_%02d.ready' % j))
+            if ready[-1].exists():
+                ready[-1].unlink()
+            servers.append(start_server(addresses[-1], ready[-1], log=out/('server_%02d.log' % j)))
+        wait_ready(ready, servers)
+        memory['servers_ready'] = gpu_free_gb()
     procs = []
     for i in range(a.workers):
         eps = ','.join('%s:%d' % items[(i+j) % len(items)] for j in range(len(items)))
         cmd = [sys.executable, 'scripts/sandbox_run.py', 'eventwm_graph.sandbox.benchmark', 'worker', '--out', str(out), '--id', str(i),
                '--episodes', eps, '--config', a.config, '--planner', a.planner, '--dynamics', a.dynamics, '--env', a.env,
                '--range', a.range, '--seconds', str(a.seconds), '--work', a.work, '--contexts', str(a.contexts), '--sandbox', a.sandbox]
+        if addresses:
+            cmd += ['--server', addresses[i % len(addresses)]]
         procs.append(subprocess.Popen(cmd, stdout=open(out/('worker_%02d.log' % i), 'w'), stderr=subprocess.STDOUT))
+    time.sleep(min(120., a.seconds/2))
+    memory['running'] = gpu_free_gb()
     for p in procs:
         p.wait()
+    server_stats = []
+    if servers:
+        from .service import RemoteSandbox
+        for addr, p in zip(addresses, servers):
+            try:
+                c = RemoteSandbox(addr, timeout=30)
+                server_stats.append(c.server_stats())
+                c.shutdown_server()
+            except Exception as exc:
+                server_stats.append(dict(error=repr(exc)))
+            try:
+                p.wait(timeout=120)
+            except Exception:
+                p.kill()
     recs = [json.loads((out/('worker_%02d.json' % i)).read_text()) for i in range(a.workers) if (out/('worker_%02d.json' % i)).exists()]
     stamps = sorted(t for r in recs for t in r['stamps'])
     if len(stamps) < 4:
@@ -196,9 +247,14 @@ def throughput(a):
     lo = max(min(r['stamps']) for r in recs if r['stamps']); hi = min(max(r['stamps']) for r in recs if r['stamps'])
     n = sum(1 for t in stamps if lo <= t <= hi)
     comp = {k: sum(r['components'][k] for r in recs) for k in recs[0]['components']}
-    summ = dict(workers=a.workers, work=a.work, env=a.env, config=a.config, planner=a.planner, dynamics=a.dynamics,
+    summ = dict(workers=a.workers, servers=a.servers, work=a.work, env=a.env, config=a.config, planner=a.planner, dynamics=a.dynamics,
                 decisions=len(stamps), window_s=hi-lo, decisions_per_s=n/max(hi-lo, 1e-9),
-                per_worker=[len(r['stamps']) for r in recs], component_seconds=comp, load=os.getloadavg())
+                per_worker=[len(r['stamps']) for r in recs], component_seconds=comp, load=os.getloadavg(),
+                gpu_free_gb=memory, server_wait_s=sum(r.get('server_wait_s') or 0. for r in recs),
+                server_stats=[{k: v for k, v in st.items() if k != 'started'} for st in server_stats])
+    for st in summ['server_stats']:
+        if 'busy_s' in st and 'now' in st:
+            st['busy_share'] = st['busy_s']/max(1e-9, a.seconds)
     (out/'summary.json').write_text(json.dumps(summ, indent=1))
     print(json.dumps(summ))
 
@@ -220,6 +276,8 @@ def main():
     ap.add_argument('--range', default='fast')
     ap.add_argument('--env', default='real', choices=['real', 'branch'])
     ap.add_argument('--sandbox', default='{}', help='SandboxConfig overrides (JSON)')
+    ap.add_argument('--servers', type=int, default=0, help='throughput: split mode with this many Layer 2 server processes')
+    ap.add_argument('--server', default='', help='worker: the server address (split mode)')
     a = ap.parse_args()
     if a.mode == 'worker':
         return worker(a)

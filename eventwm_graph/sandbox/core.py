@@ -284,6 +284,13 @@ class WorldModelSandbox:
         self.last_cache = cache.summary() if cache is not None else {}
         return out
 
+    def _layer2_predict(self, state, trajs):
+        """Stage 2 (one batched call) + the joint human reductions; without maps only the human side."""
+        cfg = self.config
+        if cfg.maps:
+            return self.l2.predict(state, trajs, materialize=cfg.materialize, worlds=cfg.worlds, seed=cfg.seed)
+        return _humans_only(self.l2, state, trajs, cfg)
+
     def evaluate(self, state, legal, candidates: Sequence[Candidate]):
         cfg = self.config
         tick = time.perf_counter()
@@ -315,10 +322,7 @@ class WorldModelSandbox:
             warm.result()                       # the warm-up call's own outputs are discarded
         wait_ms = (time.perf_counter()-w0)*1000
         if trajs:
-            if cfg.maps:
-                pred = self.l2.predict(state, trajs, materialize=cfg.materialize, worlds=cfg.worlds, seed=cfg.seed)
-            else:
-                pred = _humans_only(self.l2, state, trajs, cfg)
+            pred = self._layer2_predict(state, trajs)
         b4 = time.perf_counter()
         outs = []
         for i, (c, r) in enumerate(zip(cands, rollouts)):
