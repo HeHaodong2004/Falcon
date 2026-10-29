@@ -207,6 +207,7 @@ class BranchEpisode:
         from .ranges import make_range_sensor
         t0 = time.perf_counter()
         os.environ.setdefault('QG_TAPE_CACHE', str(Path(__file__).resolve().parents[2]/'output/sandbox_cache/tapes'))
+        os.environ.setdefault('QG_FAST_SENSE', '1')      # the exact fast legal sensor (identical rows; RealEpisode: fast=True)
         Path(os.environ['QG_TAPE_CACHE']).mkdir(parents=True, exist_ok=True)
         self.spec = spec
         self.dyn = FAMILIES[dynamics] if isinstance(dynamics, str) else dynamics

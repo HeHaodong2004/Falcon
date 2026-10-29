@@ -28,8 +28,8 @@ each summary records its load), branch-simulator episodes unless marked "real".
   * DWA under inertia, K=10: P50 874 ms.
 * **Throughput, one GPU, 6 processes:** ~10 K=10 or ~20 K=6 sandbox decisions/s. That is 1.7-2.6 M (K=10) or
   3.5-5.3 M (K=6) calls in 2-3 days, which meets the target.
-* **The full RL loop is environment-bound:** ~1.5 decisions/s with 7 workers. The sandbox is ~18% of a decision; the
-  rest is the environment's sensing (legal sensor ≈ 40%, range frames ≈ 25%) and stepping.
+* **The full RL loop is environment-bound:** ~2.0 decisions/s with 6 workers on one GPU. The sandbox is ~21% of a
+  decision; the rest is the environment's sensing (legal sensor ≈ 35-40%, range frames ≈ 25%) and stepping.
 * **Optimisations, all measured:**
   * exact per-decision caches plus exact numba helpers: imagination 2.0× faster, bit-identical;
   * fast range sensor: 1.2 ms GPU kernel per 256 × 256 frame, 15.7 ms per frame P50 including native recasts near
@@ -126,7 +126,9 @@ Sandbox = Stage 1 + imagination + Layer 2 (Stage 2 + risk) + assembly.  The firs
 stream, small history) is cheaper; process start costs the Layer 2 build (16-20 s) and, with cold JIT caches, ~8 s on
 the first call (1-2 s with the on-disk numba caches warm).
 
-Where a decision interval goes (mean ms per 16-step interval):
+Where a decision interval goes (mean ms per 16-step interval; `k10_branch` used querygen's reference legal observer,
+and the exact fast sensor (`k10_branch_fs`, identical rows) lowers the legal-sensor column to 920 ms and end-to-end
+P50 to 2.04 s):
 
 | run | simulator | legal sensor | range frames | stream update | decision state | generator | sandbox | sandbox share |
 |---|---|---|---|---|---|---|---|---|
@@ -172,6 +174,7 @@ window; the host also ran this project's niced Oracle searches (load 20-28).
 | full loop (env + sensing + generator + sandbox) | 1 | 0.27 | 0.27 | 0.59 | 2.47 | 19% |
 | full loop | 4 | 0.73 | 0.18 | 0.78 | 3.81 | 17% |
 | full loop | 7 (8 launched, 1 GPU OOM) | 1.48 | 0.21 | 0.74 | 3.21 | 18% |
+| full loop, exact fast legal sensor (`QG_FAST_SENSE=1`; the runs above used the reference observer -- identical rows) | 6 | 2.00 | 0.33 | 0.54 | 1.98 | 21% |
 | sandbox only (re-evaluating 10 stored decision states per worker) | 1 / 4 / 6 | 0.87 / 6.8 / 9.9 | 0.87 / 1.7 / 1.66 | ~0.6 | -- | -- |
 | sandbox only, K=6 | 6 | 20.5 | 3.4 | ~0.29 | -- | -- |
 
@@ -187,10 +190,14 @@ window; the host also ran this project's niced Oracle searches (load 20-28).
 * **The full RL inner loop is environment-bound.**
   * One worker spends ~2.5-3.8 CPU-s per decision on the 16 environment steps, mostly the legal sensor and the range
     frames, against ~0.6-0.8 s in the sandbox.
-  * Seven workers on one GPU give ~1.5 decisions/s: ~0.13 M per day, 1 M in ~8 days.
+  * Six workers on one GPU give ~2.0 decisions/s with the exact fast legal sensor: ~0.17 M per day, 1 M in ~6 days.
+    With the reference observer it was ~1.5 decisions/s on 7 workers.
 * **What it takes to reach millions in 2-3 days end to end:**
-  * cheaper environment sensing. The legal sensor's support-probe rays could be emulated on the GPU with exact
-    booleans and native fallback near the 0.015 m cutoff or near people: est. 1.5-2.5× on the sensor.
+  * cheaper environment sensing. In the exact fast legal sensor (19-41 ms per step on 3 measured episodes) the
+    native support-probe rays are 25-48% of the time. Emulating them on the GPU (exact booleans, native fallback near
+    the 0.015 m cutoff or near people) would bound the gain at 1.3-1.9× on the sensor, ~10-20% end to end. The rest
+    is the sensor's Python/numpy bookkeeping (frustum tests, probe-index lookups, tracker, wall band), which would
+    need a vectorised re-implementation of the observer.
   * the second GPU.
   * a smaller Stage 2 graph footprint, to fit more processes per GPU. A first measurement under concurrent GPU
     load: `lanes=1` reserves 0.86 GB vs 1.30 GB of torch memory per process, at Stage 2 P50 51 vs 45 ms. That is
@@ -200,11 +207,13 @@ window; the host also ran this project's niced Oracle searches (load 20-28).
 ## 7. Limits and next steps
 
 * **Environment-side sensing dominates RL cost.**
-  * querygen's exact legal sensor costs 22-61 ms per step (native Bullet certificate rays).
+  * querygen's exact fast legal sensor costs 19-41 ms per step: native certificate rays 25-48%, Python
+    bookkeeping the rest.
   * The range frame costs 4.5 ms per step plus ~12 us per native recast near people.
   * Together they are ~65% of a decision.
-  * The same GPU emulation of Bullet's triangle callback (with native recast of ambiguous cases) can accelerate the
-    legal sensor's certificate rays. That is the next lever, outside the sandbox.
+  * The same GPU emulation of Bullet's triangle callback (with native recast of ambiguous cases) can take over the
+    certificate rays. A vectorised observer would remove the bookkeeping. Both are environment-side, outside the
+    sandbox.
 * **Imagination fidelity.**
   * Imagination runs on the frozen legal map. The real executor re-plans with each new observation; imagination
     cannot.
