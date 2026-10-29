@@ -649,15 +649,21 @@ Untouched suites, frozen code snapshots, official rules, query level (the v13 wi
   v12 search): VqCaAuuoeWk SPL 0.989, p32JzpQyhPk 0.975, ANmWrL7Kz7h 0.959, Nfvxx8J5NCo 1.0, FXuXGH9YQTW 0.98 -- all
   official PASS; 94-159 primitive decisions each.  Not used for any gate claim (user, 19:10: last resort).
 
-### 16.4 Decision robustness of the v12 solutions [in progress, 28 of 35 episodes]
-`querygen/decision_robustness.py` (`output/runs/official/decision_v12`): at every decision state of an Oracle
-solution all K candidates are executed for one interval; near-duplicates (same outcome, end time +-3 steps, end
-pose 0.25 m / 20 deg, path 0.25 m) are merged into choices; each choice is continued by the default policy ("easy")
-or a bounded minimum-intervention Oracle ("clever", 200 edges) or found dead.  110 states: 5.3 distinct choices of
-10 candidates, 4.9 viable, 3.5 recoverable by the default policy alone, 3.8 with good SPL (>= 90% of the best
-choice); a single viable choice in 0.9% of states, a single good-SPL choice in 13.6%.  Of 451 suboptimal choices
-(not the Oracle's), 64% are recovered by the default policy, 27% need a clever continuation, 9% are dead; mean SPL
-loss 0.108.  The good-SPL shortfall mostly reflects the default policy's own route efficiency (success SPL ~0.81).
+### 16.4 Decision robustness of the v12 solutions [final]
+`querygen/decision_robustness.py` (`output/runs/official/decision_v12`) works on the decision states of the Oracle
+solutions:
+* At each state, all K candidates are executed for one interval.
+* Near-duplicates (same outcome, end time +-3 steps, end pose 0.25 m / 20 deg, path 0.25 m) are merged into choices.
+* Each choice is continued by the default policy ("easy") or by a bounded minimum-intervention Oracle ("clever",
+  200 edges), or found dead.
+
+Results, 34 solutions and 134 states:
+* 5.4 distinct choices out of 10 candidates; 4.7 viable; 3.1 recoverable by the default policy alone; 3.6 with good
+  SPL (>= 90% of the best choice).
+* A single viable choice in 1.5% of states; a single good-SPL choice in 13.4%.
+* Of 557 suboptimal choices (not the Oracle's), 57% are recovered by the default policy, 28% need a clever
+  continuation and 15% are dead; mean SPL loss 0.109.
+* The good-SPL shortfall mostly reflects the default policy's own route efficiency.
 
 ## 17. Versions v14 and v15; the frozen v14 system (2026-10-28 night)
 
@@ -710,5 +716,25 @@ Result on 246 paired development episodes:
 **v14 frozen.** Tag `querygen-freeze-v14` points to e8fb1c77, the code snapshot every v14 development episode
 imported (package sha256 21cc7deb...). Protocol: `FINAL_PROTOCOL_V14.md`; launcher: `scripts/querygen_test_v14.sh`.
 
-### 17.4 Held-out test of the frozen v14 (sixth unseen suite, 60 HM3D episodes, never run or inspected before)
+### 17.4 Decision robustness of the v14 solutions
+`output/runs/official/decision_v14` uses the protocol of 16.4: 35 v14 development solutions, 137 decision states, 10
+candidates each.
+
+| measure | v14 | v12 (34 solutions, 134 states) |
+|---|---|---|
+| distinct choices per state | 5.4 | 5.4 |
+| viable choices | 4.8 | 4.7 |
+| recoverable by the default policy | 3.2 | 3.1 |
+| good-SPL choices | 3.6 | 3.6 |
+| single viable choice | 0.7% of states | 1.5% |
+| single good-SPL choice | 11.7% | 13.4% |
+| suboptimal choices recovered / clever / dead | 57% / 30% / 13% (578) | 57% / 28% / 15% (557) |
+| mean SPL loss of a suboptimal choice | 0.121 | 0.109 |
+| search cost per state | 98 s | 193 s |
+
+* On the 76 critical states (the Oracle chose a non-default query), the mean is 3.6 good choices; a single good
+  choice occurs in 13%.
+* The query space is not knife-edge: a learner has several good choices at almost every state.
+
+### 17.5 Held-out test of the frozen v14 (sixth unseen suite, 60 HM3D episodes, never run or inspected before)
 <!-- V14TEST -->
