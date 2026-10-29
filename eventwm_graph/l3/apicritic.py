@@ -61,6 +61,9 @@ def main():
     ap.add_argument('--holdout', type=float, default=0.15)
     ap.add_argument('--device', default='cuda:1')
     ap.add_argument('--seed', type=int, default=0)
+    ap.add_argument('--lr', type=float, default=3e-4)
+    ap.add_argument('--eval-every', type=int, default=1000)
+    ap.add_argument('--freeze-encoders', action='store_true', help='fine-tune only the message passing and the head')
     a = ap.parse_args()
     import torch
     import torch.nn.functional as Fn
@@ -81,7 +84,10 @@ def main():
         sd = ck.get('net') or ck.get('state_dict')
         own = net.state_dict()
         net.load_state_dict({k: (sd[k] if k in sd and sd[k].shape == v.shape else v) for k, v in own.items()})
-    opt = torch.optim.AdamW(net.parameters(), 3e-4, weight_decay=1e-4)
+    if a.freeze_encoders:
+        for p_ in net.enc.parameters():
+            p_.requires_grad_(False)
+    opt = torch.optim.AdamW([p_ for p_ in net.parameters() if p_.requires_grad], a.lr, weight_decay=1e-3)
     Gt = to_torch(G, dev)
     Lt = torch.as_tensor(L, device=dev); Mt = torch.as_tensor(M, device=dev)
     itr, ite = np.flatnonzero(tr), np.flatnonzero(te)
@@ -99,19 +105,24 @@ def main():
             if bool(full.any()) else 0.
         return ls+lc+0.5*lr, o, b
 
-    best, best_sd = 1e9, None
+    def holdout():
+        net.eval()
+        with torch.no_grad():
+            tot, n = 0., 0
+            for j in range(0, len(ite), 256):
+                l_, _, _ = loss_of(ite[j:j+256], False)
+                tot += float(l_)*len(ite[j:j+256]); n += len(ite[j:j+256])
+        return tot/max(n, 1)
+
+    best = holdout()
+    best_sd = {k: t.detach().cpu().clone() for k, t in net.state_dict().items()}
+    print(json.dumps(dict(step=0, holdout_loss=round(best, 4))), flush=True)
     for it in range(a.steps):
         net.train()
         loss, _, _ = loss_of(rng.choice(itr, a.batch))
         opt.zero_grad(); loss.backward(); opt.step()
-        if (it+1) % 1000 == 0:
-            net.eval()
-            with torch.no_grad():
-                tot, n = 0., 0
-                for j in range(0, len(ite), 256):
-                    l_, _, _ = loss_of(ite[j:j+256], False)
-                    tot += float(l_)*len(ite[j:j+256]); n += len(ite[j:j+256])
-            v = tot/max(n, 1)
+        if (it+1) % a.eval_every == 0:
+            v = holdout()
             print(json.dumps(dict(step=it+1, train_loss=round(float(loss), 4), holdout_loss=round(v, 4))), flush=True)
             if v < best:
                 best, best_sd = v, {k: t.detach().cpu().clone() for k, t in net.state_dict().items()}
