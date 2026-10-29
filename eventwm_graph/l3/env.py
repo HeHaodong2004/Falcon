@@ -63,7 +63,7 @@ def default_index(labels):
 
 class L3Episode:
     def __init__(self, spec, cfg, sandbox, compiler=None, range_sensor='fast-driver', stream=None, horizon=HORIZON,
-                 gc_freeze=True, imagination=True):
+                 gc_freeze=True, imagination=True, near_interval=0, near_m=3.0):
         from eventwm_graph.sandbox.episode import BranchEpisode, generator
         from .compiler import GraphCompiler
         t0 = time.perf_counter()
@@ -71,6 +71,9 @@ class L3Episode:
         self.sb = sandbox
         self.compiler = compiler or GraphCompiler()
         self.horizon = int(horizon)
+        self.base_horizon = int(horizon)
+        # adaptive decision frequency: a shorter interval while a tracked person is within near_m (legal tracks only)
+        self.near_interval, self.near_m = int(near_interval), float(near_m)
         self.imagination = bool(imagination)
         self.gen = generator(cfg.gen, cfg.dynamics)
         if not self.imagination:
@@ -96,11 +99,26 @@ class L3Episode:
     def over(self):
         return self.ep.over
 
+    def _interval_now(self):
+        if not self.near_interval:
+            return self.base_horizon
+        from eventwm_graph.querygen.control import human_estimates
+        legal = self.ep.legal
+        p = np.asarray(legal.pose, np.float64)
+        for h in human_estimates(legal.tracks, legal.time):
+            # planar estimate (x, -z) of control.human_estimates
+            if math.hypot(float(h.position[0])-p[0], float(-h.position[1])-p[2]) <= self.near_m:
+                return self.near_interval
+        return self.base_horizon
+
     def observe(self):
         from eventwm_graph.sandbox.core import Candidate
         ep, cfg = self.ep, self.cfg
         T = time.perf_counter
         tm = {}
+        self.horizon = self._interval_now()
+        if self.sb is not None and hasattr(self.sb, 'config'):
+            self.sb.config.interval = self.horizon        # imagine the interval that will be executed
         t = T()
         queries, diag = self.gen.propose(ep.legal, ep.execution)
         tm['generator_ms'] = 1000*(T()-t)

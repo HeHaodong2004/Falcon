@@ -105,11 +105,12 @@ def cumulants(r):
 
 
 def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compiler=None, record=True, max_decisions=400,
-                oracle_seq=None, imagination=True, margin=0., anchor=0.):
+                oracle_seq=None, imagination=True, margin=0., anchor=0., near_interval=0, near_m=3.0):
     from .env import L3Episode
     from .batch import pack
     t0 = time.perf_counter()
-    ep = L3Episode(spec, cfg, sb if imagination else None, compiler=compiler, imagination=imagination)
+    ep = L3Episode(spec, cfg, sb if imagination else None, compiler=compiler, imagination=imagination,
+                   near_interval=near_interval, near_m=near_m)
     rows = dict(packed=[], actions=[], probs=[], cum=[], labels=[], n=[], default=[], q=[], timing=[], heads=[])
     diverged = False
     try:
@@ -235,6 +236,9 @@ def main():
     ap.add_argument('--margin', type=float, default=0., help='greedy evaluation: deviate from the default only if Q gain > margin')
     ap.add_argument('--compiler', default='{}', help='GraphCompiler options (JSON), e.g. {"brake_tail": true}')
     ap.add_argument('--weights', default=None, help='evaluation: override the value scalarisation (JSON of model.Weights fields)')
+    ap.add_argument('--near-interval', type=int, default=0, help='decision interval (steps) while a tracked person is within --near-m')
+    ap.add_argument('--near-m', type=float, default=3.0)
+    ap.add_argument('--sandbox', default='{}', help='SandboxConfig overrides (JSON), e.g. {"continuation": 24}')
     a = ap.parse_args()
     import torch
     torch.set_num_threads(1)
@@ -244,7 +248,7 @@ def main():
     run = Path(a.run)
     spool = run/a.spool; spool.mkdir(parents=True, exist_ok=True)
     logf = open(run/('%s_%02d.log' % ('actor' if a.spool == 'spool' else a.spool, a.worker)), 'a')
-    sbcfg = SandboxConfig(materialize=False)
+    sbcfg = SandboxConfig(materialize=False, **json.loads(a.sandbox))
     if a.blind:
         sb = None
     elif a.server:
@@ -304,7 +308,7 @@ def main():
             seq = oracle_map.get('%s|%s' % (spec.key, cfg.name)) if a.selector == 'oracle' else None
             m, rows = run_episode(spec, cfg, sb, a.selector, policy, rng, tau=tau, eps=eps, record=not a.no_record,
                                   oracle_seq=seq, imagination=not a.blind, margin=a.margin, compiler=compiler,
-                                  anchor=anchor)
+                                  anchor=anchor, near_interval=a.near_interval, near_m=a.near_m)
             extra = dict(spec=spec.asdict(), config=cfg.name, selector=a.selector, version=policy.version, tau=tau,
                          eps=eps, anchor=anchor, worker=a.worker, compiler=compiler.schema)
             write_episode(spool, name, m, rows if not a.no_record else {k: v for k, v in rows.items() if k != 'packed'}, extra)
