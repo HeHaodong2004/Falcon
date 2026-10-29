@@ -3,8 +3,8 @@
 Per training episode (all configurations pooled) the outcomes seen so far -- earlier runs' actor logs as a prior plus
 the current run's own logs (re-read every ``refresh_s``) -- give a smoothed success rate s; the sampling weight is
 0.25 + 3 s (1 - s) (1.0 at s = 0.5, 0.25 for episodes that always / never succeed), 0.8 for unseen episodes, and 0.03
-for episodes that never succeeded and mostly ended in a collision within the first 10 steps (spawn collisions: no
-decision can matter).  Training data only; evaluation suites are never weighted.
+for episodes that never succeeded and ended in a collision within 3 steps of the start (spawn collisions: no decision
+can matter).  Training data only; evaluation suites are never weighted.
 
     python scripts/l3_run.py eventwm_graph.l3.curriculum --runs output/runs/R1,...,output/runs/R5 --out output/curriculum_90.json
 """
@@ -36,7 +36,7 @@ def scan_logs(run_dirs, table=None):
                 k, _ = key_of(r['name'])
                 n, s, e = table.get(k, (0, 0, 0))
                 table[k] = (n+1, s+int(r['outcome'] == 'success'),
-                            e+int(r['outcome'] == 'human_collision' and int(r.get('steps', 99)) < 10))
+                            e+int(r['outcome'] == 'human_collision' and int(r.get('steps', 99)) <= 3))
     return table
 
 
@@ -44,8 +44,8 @@ def weight(entry):
     if entry is None:
         return 0.8
     n, s, e = entry
-    if n >= 2 and s == 0 and e >= n/2:
-        return 0.03
+    if s == 0 and e >= 1:
+        return 0.03            # a collision within 3 steps of the start: a spawn collision, no decision can matter
     p = (s+0.5)/(n+1.)
     return 0.25+3.*p*(1.-p)
 

@@ -253,3 +253,19 @@ new input columns (the v3 network starts exactly as R5).
 
 **Runs.**  R8 = v3 + scans + warm start from R5, legal 90-degree sensing, 7 seen configurations, 18 actors + 2 dev
 evaluators + 6 labellers (5.4-7.2 decisions/s); restarted in place as R8b with the training changes after 15 min.
+
+**Graph Compiler v4 (`L3_LAYOUT=v4`) and R9 (19:00).**  The counterfactual label of a candidate is "this query, then
+the default policy" -- and the default keeps the candidate's query running -- so the outcome depends on what the
+query does AFTER the 16-step interval.  v4 adds each candidate's intention: the running query's remaining executor
+route from the imagined end pose (`SandboxConfig.route`, client-side, no extra simulation), else the default
+continuation's legal goal route, else standing; it is followed at the candidate's own speed for the rest of Stage 1's
+3 s horizon and scored against all 40 worlds (P(< 0.55 m), P(< 1 m), 10% distance quantile, expected first-conflict
+time; hidden people separately) plus unknown / stale / clearance / turning exposure along it (11 columns).  On a live
+smoke episode the default's route showed P(contact) 0.22 / P(social) 0.88 two decisions before the actual collision
+(goal_th and yield routes 0.02), one decision earlier than any v1-v3 feature.  The information features were
+vectorised (bit-identical): compile 237 -> 90-130 ms per decision with v4.  Curriculum: episodes whose human tape is
+not cached yet are weighted x0.3 (recording a tape costs about one episode: R8b's per-episode setup rose 7 -> 24 s
+with the uncertainty-only curriculum), 6 episodes per scene, spawn collisions (collision within 3 steps, never solved)
+dropped after one occurrence.  Labellers now label failures over the whole episode (last 2 + 4 earlier decisions,
+continuations to the episode end).  R9 = v4 + scans + prioritised replay + ranking + risk-directed exploration +
+curriculum, warm start from R8b's network, 18 actors + 2 dev evaluators + 6 labellers.
