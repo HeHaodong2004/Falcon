@@ -78,8 +78,9 @@ def main():
         addr = 'l3.%s.s%d' % (tag, i)
         p = start_server(addr, f, log=run/('server%d.log' % i), map_device='cuda:%d' % devs[i % len(devs)], env=base_env)
         servers.append((addr, p)); ready.append(f)
-    wait_ready(ready, [p for _, p in servers], timeout=900)
-    print('servers ready', flush=True)
+    if servers:
+        wait_ready(ready, [p for _, p in servers], timeout=900)
+        print('servers ready', flush=True)
     learner = None
     if a.learner_args is not None:
         learner = spawn('eventwm_graph.l3.learner', ['--run', str(run)]+shlex.split(a.learner_args), run/'learner.log',
@@ -92,7 +93,9 @@ def main():
         g = wg[i % len(wg)]
         env['CUDA_VISIBLE_DEVICES'] = g+',' + ','.join(x for x in ('0', '1') if x != g)
         env['L3_NWORKERS'] = str(a.workers)
-        args = ['--run', str(run), '--worker', str(i), '--server', servers[i % len(servers)][0], '--seed', str(restarts)]
+        args = ['--run', str(run), '--worker', str(i), '--seed', str(restarts)]
+        if servers:
+            args += ['--server', servers[i % len(servers)][0]]
         args += shlex.split(a.actor_args)
         procs[i] = (spawn('eventwm_graph.l3.actor', args, run/('actor_%02d.out' % i), env=env, nice=a.nice), restarts)
     for i in range(a.workers):

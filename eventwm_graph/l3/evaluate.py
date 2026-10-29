@@ -108,6 +108,8 @@ def run(a):
         shlex.quote(str(out/'jobs.json')), a.selector, configs[0], a.suite if a.suite != 'test_full' else 'test')
     if a.selector == 'oracle':
         actor += ' --oracle-map %s' % shlex.quote(a.oracle_map)
+    if a.blind:
+        actor += ' --blind'
     cmd = [sys.executable, str(ROOT/'scripts/l3_run.py'), 'eventwm_graph.l3.fleet', '--run', str(out), '--servers',
            str(a.servers), '--server-devices', a.server_devices, '--workers', str(a.workers), '--sequential',
            '--actor-args', actor, '--tag', a.tag or out.name]
@@ -188,6 +190,7 @@ def main():
     ap.add_argument('--nice', type=int, default=0)
     ap.add_argument('--tag', default=None)
     ap.add_argument('--paired', default=None)
+    ap.add_argument('--blind', action='store_true')
     ap.add_argument('--procs', type=int, default=16)
     a = ap.parse_args()
     if a.mode == 'run':

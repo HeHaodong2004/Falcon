@@ -95,12 +95,12 @@ def cumulants(r):
     return c/CUM_SCALE
 
 
-def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compiler=None, record=True, max_decisions=64,
-                oracle_seq=None):
+def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compiler=None, record=True, max_decisions=400,
+                oracle_seq=None, imagination=True):
     from .env import L3Episode
     from .batch import pack
     t0 = time.perf_counter()
-    ep = L3Episode(spec, cfg, sb, compiler=compiler)
+    ep = L3Episode(spec, cfg, sb if imagination else None, compiler=compiler, imagination=imagination)
     rows = dict(packed=[], actions=[], probs=[], cum=[], labels=[], n=[], default=[], q=[], timing=[], heads=[])
     diverged = False
     try:
@@ -204,6 +204,7 @@ def main():
     ap.add_argument('--sequential', action='store_true', help='run the listed episodes x configs in order once (evaluation)')
     ap.add_argument('--oracle-map', default=None, help='JSON {key|config: [labels]} for --selector oracle (warm-up replays)')
     ap.add_argument('--jobs', default=None, help='JSON list of [suite_key, config] jobs (sequential); overrides suite x configs')
+    ap.add_argument('--blind', action='store_true', help='no imagination: no Sandbox, no range frames (floors, no-WM ablation)')
     a = ap.parse_args()
     import torch
     torch.set_num_threads(1)
@@ -214,7 +215,9 @@ def main():
     spool = run/'spool'; spool.mkdir(parents=True, exist_ok=True)
     logf = open(run/('actor_%02d.log' % a.worker), 'a')
     sbcfg = SandboxConfig(materialize=False)
-    if a.server:
+    if a.blind:
+        sb = None
+    elif a.server:
         from eventwm_graph.sandbox.service import RemoteSandbox
         sb = RemoteSandbox(a.server, sbcfg)
     else:
@@ -267,7 +270,7 @@ def main():
                 continue
             seq = oracle_map.get('%s|%s' % (spec.key, cfg.name)) if a.selector == 'oracle' else None
             m, rows = run_episode(spec, cfg, sb, a.selector, policy, rng, tau=tau, eps=eps, record=not a.no_record,
-                                  oracle_seq=seq)
+                                  oracle_seq=seq, imagination=not a.blind)
             extra = dict(spec=spec.asdict(), config=cfg.name, selector=a.selector, version=policy.version, tau=tau,
                          eps=eps, worker=a.worker)
             write_episode(spool, name, m, rows if not a.no_record else {k: v for k, v in rows.items() if k != 'packed'}, extra)

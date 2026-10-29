@@ -73,7 +73,10 @@ class L3Episode:
         self.horizon = int(horizon)
         self.imagination = bool(imagination)
         self.gen = generator(cfg.gen, cfg.dynamics)
-        if stream is None and sandbox is not None and hasattr(sandbox, 'open_stream'):
+        if not self.imagination:
+            # no Layer 2 input is needed: skip the range frames and the legal Layer 2 stream (cheaper environment)
+            range_sensor, stream = _NullRange(), _NullStream()
+        elif stream is None and sandbox is not None and hasattr(sandbox, 'open_stream'):
             stream = sandbox.open_stream(spec.key)
         self.ep = BranchEpisode(spec, cfg.planner, cfg.dynamics, range_sensor=range_sensor, gc_freeze=gc_freeze,
                                 stream=stream)
@@ -172,3 +175,20 @@ class L3Episode:
 class _H:
     def __init__(self, horizon):
         self.horizon = horizon
+
+
+class _NullRange:
+    """No range frames (selectors that do not use Layer 2)."""
+    def measure(self, timestamp=None):
+        return None
+
+    def close(self):
+        pass
+
+
+class _NullStream:
+    def observe(self, row, range_frame):
+        pass
+
+    def close(self):
+        pass
