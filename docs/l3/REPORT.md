@@ -399,3 +399,17 @@ floor.  Three attacks run in parallel overnight, each judged on the same paired 
    for progress -- the closest legal copy of the exact reference, no learning.  Sandbox time per decision grows to
    0.3-8 s (evaluation only).
 3. RL (R10's learner) continues on the same labels; milestone checks.
+
+**Milestone: R10 checkpoint v100, paired dev (72 episodes per configuration, with the loop fix).**  ORCA 55.6% vs
+floor 47.2% (SPL 0.442 vs 0.351, collisions 26.4% vs 38.9%); DWA 50.0% vs 48.6%; SFM 45.8% vs 47.2%.  Discordant
+pairs: ORCA 10 policy-only vs 4 floor-only successes (sign test p ~ 0.18), DWA 10 vs 9, SFM 6 vs 7 -- the first learned
+shared policy with a gain on the main official configuration, suggestive but not significant yet.
+
+**Metric audit (user question, 22:30).**  SR (STOP within 0.2 m) and human collision (official physics-contact measure,
+episode ends) are the official definitions in the branch runtime, and official replays verify identical actions and
+success.  PSC was NOT: the benchmark config composes `psc` with `use_geo_distance: True` (navmesh geodesic robot-human
+distance < 1 m, 3D Euclidean when no path), while the branch runtime counted planar Euclidean centre distance --
+stricter, so every PSC reported before 22:40 is biased LOW.  SPL used the official start geodesic but a planar path
+length (official: 3D Euclidean steps).  Fixed (`BranchState.psc_official_steps`, `path_length_3d`; L3 metrics `psc` /
+`spl` now official, `psc_euclid` / `spl_planar` kept); a per-episode comparison against official replays is running.
+Numbers of record remain the official replays.
