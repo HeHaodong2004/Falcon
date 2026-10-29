@@ -360,3 +360,5 @@ for keeping the default; gated deviation 22% vs 16% (labels: failure-heavy state
 rollout-policy reference (exact one-step evaluation over the default; analysis only) at 4/4 vs the floor's 2/4 on the
 first paired dev episodes, the lever is an accurate per-candidate evaluator.  R10 restarted in place as R10b (21:09):
 8 labellers (failures over the whole episode, successes with p 0.5), 16 actors, cf_reg 0.25 / cf_frac 0.25 / cf_rank 0.3.
+Route-safe (progress-preserving) re-tested with inheritance: identical to the run without it on ORCA / DWA (it
+deviates at ~6% of decisions, mostly to non-goal queries), so its floor-level result was not caused by the reset cost.
