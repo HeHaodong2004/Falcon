@@ -36,9 +36,9 @@ class NativeRangeSensor:
 def make_range_sensor(kind, task, observation_config, size=RANGE_SIZE):
     if kind == 'native':
         return NativeRangeSensor(task, observation_config, size)
-    if kind == 'fast':
+    if kind in ('fast', 'fast-driver'):      # 'fast-driver': the same kernel without a PyTorch CUDA context
         from .fastrange import FastRangeSensor
-        return FastRangeSensor(task, observation_config, size)
+        return FastRangeSensor(task, observation_config, size, backend='driver' if kind == 'fast-driver' else 'torch')
     if hasattr(kind, 'measure'):
         return kind
     raise ValueError('unknown range sensor %r' % (kind,))

@@ -1,6 +1,6 @@
 # World Model Sandbox Core (Layer 2.5): interface
 
-Package `eventwm_graph/sandbox/` · tests `tests/sandbox/test_sandbox.py` · results [REPORT.md](REPORT.md).
+Package `eventwm_graph/sandbox/` · tests `tests/sandbox/test_sandbox.py`, `tests/sandbox/test_service.py` · results [REPORT.md](REPORT.md).
 Built on the unified Layer 2 (`eventwm_graph/layer2/`, [docs/layer2/INTERFACE.md](../layer2/INTERFACE.md)) and the
 querygen planners / executor / dynamics / Query generator (`eventwm_graph/querygen/`), all unchanged.
 
@@ -96,6 +96,39 @@ Graph Compiler.
 | `materialize` | True | build complete future graphs |
 | `memoize` | True | exact per-decision caches (`accel.py`) |
 | `prefetch_maps` | False | warm Stage 2's candidate-independent context on a worker thread (exact; no measured gain) |
+
+### Split-process mode (`service.py`): many environment workers per GPU
+
+In-process, every worker holds Layer 2 (~2.5 GB of GPU memory), which caps an RL loop at 6-7 workers per GPU while
+the loop itself is CPU-bound. In split mode Layer 2 runs in a few server processes and each worker keeps only the
+environment, its sensors, the generator and the imagined rollouts (~0.8 GB of GPU memory: CUDA context, simulator,
+range buffers):
+
+```python
+from eventwm_graph.sandbox.service import RemoteSandbox, start_server, wait_ready
+
+srv = start_server('wm0', 'wm0.ready')         # or: scripts/sandbox_run.py eventwm_graph.sandbox.service serve --address wm0
+wait_ready(['wm0.ready'], [srv])               # ~20 s (Layer 2 build)
+sb = RemoteSandbox('wm0', SandboxConfig())     # in each worker; several workers share a server
+ep = BranchEpisode(spec, 'orca', 'native', stream=sb.open_stream(spec.key))
+res = sb.evaluate(ep.decision_state(), ep.legal, cands)   # the same SandboxResult as in process
+```
+
+* **Exactness.** The server rebuilds each worker stream's decision state with `context.LegalStream` from the same
+  frames and makes the same Layer 2 calls on it. The worker runs the same imagination code: `RemoteSandbox` subclasses
+  `WorldModelSandbox` and only answers its Layer 2 calls remotely. Results are identical bit for bit, also with
+  several workers interleaved on one server (`tests/sandbox/test_service.py`).
+* **Protocol.** `RemoteStream.observe` checks every observation against the `LegalStream` contract and buffers it.
+  The frames travel with the decision's first request (at most 64 are buffered). A decision makes two round trips:
+  `stage1` (frames -> decision state -> Stage 1 bank, which the worker needs for its nominal humans) and `predict`
+  (the K imagined trajectories -> Stage 2 + joint risk; the bank is not sent back).
+* **Server.** One model thread serves requests in arrival order. It is the thread that built the model, because Stage
+  2's driver-API CUDA modules are bound to it. Each worker stream gets its own `LegalStream` and Stage 1 stream state.
+  Stream names are suffixed with the worker's pid by default and cannot be taken over by another connection. A
+  closed or vanished worker's streams are released.
+* **Contract.** A decision handle (`RemoteDecision`) is valid until its stream observes again; stale handles are
+  rejected. `prefetch_maps` is in-process only. Transport: `multiprocessing.connection` over Unix sockets (Linux
+  abstract namespace) with pickled messages. Stage 2's read-only outputs are rebuilt through their constructors.
 
 ## 3. Legality
 

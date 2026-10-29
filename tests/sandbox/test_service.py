@@ -241,6 +241,38 @@ def test_streams_are_released():
     probe.close()
 
 
+def test_driver_range_backend_is_identical():
+    """The torch-free range backend (split-mode workers without a PyTorch CUDA context) gives the torch backend's
+    frames bit for bit along a real episode."""
+    from eventwm_graph.sandbox.fastrange import FastRangeSensor
+    spec = suites.load(EPISODES[0][0])[EPISODES[0][1]]
+    ep = BranchEpisode(spec, 'orca', 'native', range_sensor='fast')
+
+    class Both:
+        def __init__(self, a, b):
+            self.a, self.b, self.frames = a, b, 0
+
+        def measure(self, timestamp=None):
+            x, y = self.a.measure(timestamp), self.b.measure(timestamp)
+            assert np.array_equal(x['range_image'], y['range_image'], equal_nan=True)
+            assert x['fast'] == y['fast'] and np.array_equal(x['camera_origin'], y['camera_origin'])
+            self.frames += 1
+            return x
+    a0 = dict(ep.ranges.stats)                   # the torch sensor already measured the reset frame
+    both = Both(ep.ranges, FastRangeSensor(ep.task, ep.sensor.config, backend='driver'))
+    ep.ranges = both
+    try:
+        q = default_query()
+        for _ in range(4):
+            ep.run(q if ep.execution is None or ep.execution.status != 'running' else None, 16)
+            if ep.over:
+                break
+        assert both.frames >= 32
+        assert both.b.stats['native_rays'] == both.a.stats['native_rays']-a0['native_rays'] > 0   # same native recasts
+    finally:
+        ep.close()
+
+
 if __name__ == '__main__':
     import sys
     import time

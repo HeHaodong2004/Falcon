@@ -217,25 +217,150 @@ class StageIndex:
         return w@self.R if self.local else w
 
 
+def kernel_ptx(source, capability):
+    """The PTX ``stage2_repair.cuda_module`` builds for ``source``: same NVRTC options, same on-disk cache entry."""
+    import ctypes as ct
+    import sys
+    options = [('--gpu-architecture=compute_%d%d' % tuple(capability)).encode(), b'--fmad=false', b'--prec-div=true',
+               b'--prec-sqrt=true', b'--std=c++11']
+    identity = hashlib.sha256(source.encode()+b'\0'.join(options)).hexdigest()
+    cache = Path(os.environ['NUMBA_CACHE_DIR'])/'geometry_cuda'
+    cache.mkdir(parents=True, exist_ok=True)
+    path = cache/(identity+'.ptx')
+    if not path.exists():
+        lib = ct.CDLL(str(Path(sys.prefix)/'lib/libnvrtc.so'))
+
+        def ck(name, types, *args):
+            f = getattr(lib, name); f.argtypes = types; f.restype = ct.c_int
+            if f(*args):
+                raise RuntimeError('%s failed' % name)
+        program = ct.c_void_p()
+        ck('nvrtcCreateProgram', [ct.POINTER(ct.c_void_p), ct.c_char_p, ct.c_char_p, ct.c_int, ct.c_void_p, ct.c_void_p],
+           ct.byref(program), source.encode(), b'geometry.cu', 0, None, None)
+        try:
+            ck('nvrtcCompileProgram', [ct.c_void_p, ct.c_int, ct.POINTER(ct.c_char_p)], program, len(options),
+               (ct.c_char_p*len(options))(*options))
+            size = ct.c_size_t()
+            ck('nvrtcGetPTXSize', [ct.c_void_p, ct.POINTER(ct.c_size_t)], program, ct.byref(size))
+            buf = ct.create_string_buffer(size.value)
+            ck('nvrtcGetPTX', [ct.c_void_p, ct.c_void_p], program, buf)
+            import tempfile
+            with tempfile.NamedTemporaryFile(dir=cache, delete=False) as stream:
+                stream.write(buf.raw)
+                tmp = stream.name
+            os.replace(tmp, path)
+        finally:
+            ck('nvrtcDestroyProgram', [ct.POINTER(ct.c_void_p)], ct.byref(program))
+    return path.read_bytes()
+
+
+class DriverCuda:
+    """Torch-free CUDA runtime for the range kernel (``FastRangeSensor(backend='driver')``): the device's primary
+    context through the driver API, the PTX of ``kernel_ptx`` and plain device buffers.  A worker with no other GPU work
+    then holds ~0.3 GB of GPU memory instead of a PyTorch CUDA context's ~0.7 GB (torch 1.12 / CUDA 11.3: no lazy
+    module loading).  Same kernel, same inputs, same launch shape: outputs identical to the torch backend (tested)."""
+
+    def __init__(self, source, device=0):
+        import ctypes as ct
+        self.ct = ct
+        cu = ct.CDLL('libcuda.so.1')
+        P, U64, SZ, I, U = ct.c_void_p, ct.c_uint64, ct.c_size_t, ct.c_int, ct.c_uint
+        sig = dict(cuInit=[U], cuDeviceGet=[ct.POINTER(I), I], cuDevicePrimaryCtxRetain=[ct.POINTER(P), I],
+                   cuCtxSetCurrent=[P], cuDeviceGetAttribute=[ct.POINTER(I), I, I], cuModuleLoadData=[ct.POINTER(P), P],
+                   cuModuleGetFunction=[ct.POINTER(P), P, ct.c_char_p], cuMemAlloc_v2=[ct.POINTER(U64), SZ],
+                   cuMemFree_v2=[U64], cuMemcpyHtoD_v2=[U64, P, SZ], cuMemcpyDtoH_v2=[P, U64, SZ],
+                   cuLaunchKernel=[P, U, U, U, U, U, U, U, P, ct.POINTER(P), P])
+        self.f = {}
+        for name, types in sig.items():
+            fn = getattr(cu, name); fn.argtypes = types; fn.restype = I
+            self.f[name] = fn
+        self._ck('cuInit', 0)
+        dev = I(); self._ck('cuDeviceGet', ct.byref(dev), int(device))
+        self.ctx = P(); self._ck('cuDevicePrimaryCtxRetain', ct.byref(self.ctx), dev)
+        self._ck('cuCtxSetCurrent', self.ctx)
+        major, minor = I(), I()
+        self._ck('cuDeviceGetAttribute', ct.byref(major), 75, dev)      # COMPUTE_CAPABILITY_MAJOR
+        self._ck('cuDeviceGetAttribute', ct.byref(minor), 76, dev)      # COMPUTE_CAPABILITY_MINOR
+        self.module = P()
+        self._ck('cuModuleLoadData', ct.byref(self.module), ct.create_string_buffer(kernel_ptx(source, (major.value, minor.value))))
+        self.functions = {}
+        self.buffers = {}
+
+    def _ck(self, name, *args):
+        code = self.f[name](*args)
+        if code:
+            raise RuntimeError('%s returned CUDA status %d' % (name, code))
+
+    def current(self):
+        self._ck('cuCtxSetCurrent', self.ctx)
+
+    def buffer(self, key, nbytes):
+        """Device pointer of a reusable allocation of at least ``nbytes`` (grown on demand)."""
+        cur = self.buffers.get(key)
+        if cur is None or cur[1] < nbytes:
+            if cur is not None:
+                self._ck('cuMemFree_v2', self.ct.c_uint64(cur[0]))
+            size = max(int(nbytes), 256)
+            p = self.ct.c_uint64()
+            self._ck('cuMemAlloc_v2', self.ct.byref(p), size)
+            cur = self.buffers[key] = (p.value, size)
+        return cur[0]
+
+    def upload(self, key, array):
+        a = np.ascontiguousarray(array)
+        ptr = self.buffer(key, a.nbytes)
+        if a.nbytes:
+            self._ck('cuMemcpyHtoD_v2', ptr, a.ctypes.data, a.nbytes)
+        return ptr
+
+    def download(self, ptr, out):
+        if out.nbytes:
+            self._ck('cuMemcpyDtoH_v2', out.ctypes.data, ptr, out.nbytes)     # legacy default stream: after the kernel
+        return out
+
+    def launch(self, name, total, values, threads=128):
+        ct = self.ct
+        if not total:
+            return
+        fn = self.functions.get(name)
+        if fn is None:
+            fn = ct.c_void_p()
+            self._ck('cuModuleGetFunction', ct.byref(fn), self.module, name.encode())
+            self.functions[name] = fn
+        args = [ct.c_void_p(v) if isinstance(v, int) else v for v in values]   # device pointers are ints here
+        params = (ct.c_void_p*len(args))(*[ct.addressof(v) for v in args])
+        self._ck('cuLaunchKernel', fn, (total+threads-1)//threads, 1, 1, threads, 1, 1, 0, None, params, None)
+
+
 class FastRangeSensor:
     kind = 'fast'
 
-    def __init__(self, task, observation_config, size=RANGE_SIZE, device='cuda:0', cache_dir=None, check_every=0):
-        import torch
+    def __init__(self, task, observation_config, size=RANGE_SIZE, device='cuda:0', cache_dir=None, check_every=0,
+                 backend='torch'):
         from eventwm_graph.stage2_repair.current_range_sensor import CurrentRangeSensor
-        from eventwm_graph.stage2_repair.cuda_module import CudaModule
         self.native = CurrentRangeSensor(runtime_view(task, observation_config), RESOLUTION, size=size)
         self.task = task
         self.size = int(size)
         self.index = StageIndex(task.sim, cache_dir)
-        self.device = torch.device(device)
-        self.module = CudaModule(SOURCE, self.device)
+        self.backend = str(backend)
         a = self.index.arrays
-        self.gpu = [torch.from_numpy(np.ascontiguousarray(a[k])).to(self.device)
-                    for k in ('tri', 'bounds', 'left', 'right', 'first', 'count', 'index')]
         n = self.size*self.size
-        self.out_fr = torch.empty(n, dtype=torch.float32, device=self.device)
-        self.out_flag = torch.empty(n, dtype=torch.uint8, device=self.device)
+        keys = ('tri', 'bounds', 'left', 'right', 'first', 'count', 'index')
+        if self.backend == 'driver':
+            self.cuda = DriverCuda(SOURCE, int(str(device).split(':')[-1]) if ':' in str(device) else 0)
+            self.gpu = [self.cuda.upload('stage:'+k, np.ascontiguousarray(a[k])) for k in keys]
+            self.out_fr = self.cuda.buffer('out_fr', 4*n)
+            self.out_flag = self.cuda.buffer('out_flag', n)
+        elif self.backend == 'torch':
+            import torch
+            from eventwm_graph.stage2_repair.cuda_module import CudaModule
+            self.device = torch.device(device)
+            self.module = CudaModule(SOURCE, self.device)
+            self.gpu = [torch.from_numpy(np.ascontiguousarray(a[k])).to(self.device) for k in keys]
+            self.out_fr = torch.empty(n, dtype=torch.float32, device=self.device)
+            self.out_flag = torch.empty(n, dtype=torch.uint8, device=self.device)
+        else:
+            raise ValueError('unknown fast range backend %r' % (backend,))
         obs = self.native.boundary
         self.ignored = sorted(obs.robot_ids | obs.inactive_ids)
         agents = [task.sim.get_agent_data(i).articulated_agent for i in range(1, task.human_count+1)]
@@ -269,11 +394,13 @@ class FastRangeSensor:
 
     def cast(self, origin, directions):
         """(fractions float32 [n], flags uint8 [n]) for float32 world rays (GPU)."""
-        import torch
         import ctypes as ct
         o = np.asarray(origin, np.float32); d = np.asarray(directions, np.float32)
         ol = self.index.to_local(o.astype(np.float64)).astype(np.float32)
         dl = self.index.to_local(d.astype(np.float64)).astype(np.float32)
+        if self.backend == 'driver':
+            return self._cast_driver(ol, dl, len(d))
+        import torch
         rays = torch.from_numpy(np.ascontiguousarray(np.r_[ol, dl.reshape(-1)], np.float32)).to(self.device, non_blocking=False)
         boxes, caps, offsets = self.human_capsules()
         dev = self.device
@@ -285,6 +412,19 @@ class FastRangeSensor:
         self.module.launch('cast_static', n, [*self.gpu, rays, ct.c_int(n), ct.c_float(MAX_RANGE), bt, ct.c_int(len(boxes)),
                                               st, ot, fr, fl], 128)
         return fr.cpu().numpy(), fl.cpu().numpy()
+
+    def _cast_driver(self, ol, dl, n):
+        import ctypes as ct
+        c = self.cuda
+        c.current()
+        rays = c.upload('rays', np.ascontiguousarray(np.r_[ol, dl.reshape(-1)], np.float32))
+        boxes, caps, offsets = self.human_capsules()
+        bt = c.upload('boxes', np.ascontiguousarray(boxes.reshape(-1) if len(boxes) else np.zeros(6, np.float32)))
+        st = c.upload('caps', np.ascontiguousarray(caps.reshape(-1)))
+        ot = c.upload('offsets', np.ascontiguousarray(offsets))
+        c.launch('cast_static', n, [*self.gpu, rays, ct.c_int(n), ct.c_float(MAX_RANGE), bt, ct.c_int(len(boxes)), st, ot,
+                                    self.out_fr, self.out_flag], 128)
+        return c.download(self.out_fr, np.empty(n, np.float32)), c.download(self.out_flag, np.empty(n, np.uint8))
 
     def measure(self, timestamp=None):
         """One range frame at the simulator's current camera pose.  ``timestamp``: the observation clock when the
