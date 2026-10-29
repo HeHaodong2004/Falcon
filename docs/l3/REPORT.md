@@ -415,3 +415,10 @@ length (official: 3D Euclidean steps).  Fixed (`BranchState.psc_official_steps`,
 measures) on 10 dev episodes: actions identical 10/10; success, SPL and the corrected PSC equal the official values in
 10/10; the old Euclidean PSC matched in 9/10 (0.8686 vs official 0.8723 once) -- earlier PSC values were biased low
 only slightly.  Numbers of record remain the official replays.
+
+**Label critic v0 (API step on 516 labelled states, fine-tuned from R10's network; paired dev, 72 per configuration).**
+DWA 55.6% vs floor 48.6% (12 wins / 7 losses, p = 0.36), ORCA 51.4% vs 47.2% (11 / 8, p = 0.65); pooled 23 / 15
+(p = 0.26).  R10 v100 pooled over three configurations 26 / 20 (p = 0.46).  Both learned policies sit modestly above the
+floor (+2 to +8 points), not yet significant, far from the gate.  The rollout reference's remaining failures are
+deadlocks: in its 3 timeouts, NO candidate followed by the default succeeds at any of 32-35 decisions -- one-step
+improvement cannot fix them; they need multi-step escapes (or are infeasible).
