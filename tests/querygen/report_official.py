@@ -17,7 +17,8 @@ from collections import Counter, defaultdict
 
 SUITES = {'dev': 'docs/querygen/suites.json', 'unseen': 'docs/querygen/suites_unseen.json',
           'unseen2': 'docs/querygen/suites_unseen2.json', 'unseen3': 'docs/querygen/suites_unseen3.json',
-          'unseen4': 'docs/querygen/suites_unseen4.json', 'unseen5': 'docs/querygen/suites_unseen5.json'}
+          'unseen4': 'docs/querygen/suites_unseen4.json', 'unseen5': 'docs/querygen/suites_unseen5.json',
+          'unseen6': 'docs/querygen/suites_unseen6.json'}
 
 
 def suite_keys(name):

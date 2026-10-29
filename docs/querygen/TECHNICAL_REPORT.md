@@ -1,6 +1,6 @@
 # Falcon query-space foundation: technical report
 
-Snapshot: 2026-10-28, ~15:15 GMT. Branch `research/querygen-oracle-20261026`.
+Snapshot: 2026-10-29 (final). Branch `research/querygen-oracle-20261026`.
 Scope: the planner / dynamics / executor / query-generator / Oracle stack in `eventwm_graph/querygen/`, its
 evaluation tools, and its results under the **official Falcon benchmark rules**.
 
@@ -10,21 +10,27 @@ are partial and will change).
 
 ---
 
-## 0. Status in one page
+## 0. Status in one page (final, 2026-10-29)
 
 | item | status |
 |---|---|
-| Evaluation rules | Official Falcon definitions only (Section 1), adopted 2026-10-28 by user decision. |
-| Gate (>= 95 % Oracle success over every episode not proven natively infeasible, per configuration) | **Not yet formally established.** The held-out test (third unseen suite, frozen code) is [in progress]. Every finished test episode passes so far: ORCA K=10 40/40, ORCA K=6 36/36, DWA K=10 28/28, out of 58 episodes not proven infeasible. |
-| Development set (DEV + unseen 1 + unseen 2, 125 episodes not proven infeasible) | [in progress], same frozen code. Finished episodes: ORCA K=10 98/99 (99.0 %), ORCA K=6 100/103 (97.1 %), DWA K=10 82/83 (98.8 %). |
-| Proven natively infeasible (exact certificates, officially verified) | 5: development 5Poh4Qz68hd, sKLMLpTHeUy, AMEM2eWycTq; test sWAdxSLVPQC, q28T9C3q2dv. [verified] |
-| Default policy alone (no selection, "floor") | v10 ~18 %; v12 candidate ~56 % with the planners kept distinct ([in progress]). |
-| Layer-3 learnability | Pilot results only (Section 13.4). The scaled readiness study waits for the v12 Oracle runs. |
-| Layer 3 (learned policy) | Not trained (out of scope by instruction). |
+| Evaluation rules | Official Falcon definitions only (Section 1), adopted 2026-10-28 by user decision. Every gate claim is query level: the v13 privileged witness fallback is never used (user, 19:10). |
+| Gate: at least one configuration >= 95 % Oracle success over every held-out episode not proven natively infeasible | **Met on three untouched suites with frozen code** [verified]. v12 ORCA K=10: 58 / 60 = 96.7 % (fourth unseen suite). v13: 58 / 58 in ORCA K=10, ORCA K=6 and DWA K=10 (fifth). v14 (sixth): <!-- V14S0:BEGIN -->ORCA K=10 **59 / 59 = 100.0 %**, ORCA K=6 **58 / 59 = 98.3 %**, DWA K=10 **59 / 59 = 100.0 %**<!-- V14S0:END -->. Sections 16.3 and 17.5. |
+| Current frozen system | v14: tag `querygen-freeze-v14` = e8fb1c77, package sha256 21cc7deb..., chosen over v15 by a pre-registered rule (17.3). |
+| Development (DEV + unseen 1-4; 242 episodes not proven infeasible) | v14: 235 (97.1 %), SPL 0.915, PSC 0.928, no human collisions, mean Oracle search 8.3 min. v12: 94.0 %, 18.4 min. Section 17.2. |
+| Route quality | SPL on solved episodes 0.89-0.95 in every test configuration; no human collision in any solution. |
+| Decision robustness | v14 solutions: 5.4 distinct choices per decision state, 4.8 viable, 3.2 recoverable by the default policy; a single viable choice in 0.7 % of states (17.4). |
+| Speed | Expert benchmark (1,500-edge cap): P50 46 s, mean 152 s per episode. Held-out v14 test, ORCA K=10: <!-- V14SPEED:BEGIN -->mean Oracle search 4.8 min per episode (P50 1.0, P95 19.3)<!-- V14SPEED:END -->. |
+| Proven natively infeasible (exact certificates, officially verified) | 9. Development: 5Poh4Qz68hd, sKLMLpTHeUy, AMEM2eWycTq, 2n8kARJN3HM, q28T9C3q2dv, sWAdxSLVPQC. Tests: wrq3kiEU4VR, Uxmj2M2itWa (fifth suite), kAMF2R7PCqX (sixth). |
+| Default policy alone (no selection, "floor") | v14: ORCA 63 %, DWA 60 % of the 248 development episodes; sixth unseen suite ORCA <!-- V14FLOOR:BEGIN -->78.0 %, DWA 71.2 % of 59<!-- V14FLOOR:END -->. |
+| Layer 3 (learned policy) | Not trained (out of scope by instruction). The Oracle solutions and the decision-robustness data are its training material. |
 
-Frozen systems: tag `querygen-freeze-v10-official` = commit `2786115d`, querygen package sha256 `bcecb8e8...`
-(the gate system); tag `querygen-freeze-v10` (declared-rule era, superseded); earlier tags `querygen-freeze-v1`,
-`querygen-freeze-v9`.
+Sections 2-15 were written at the v10 / v11 stage. Later versions keep the component architecture they describe; the
+changes are listed in 16.1, 16.2 and 17.1. Their results (Section 13) are historical. Sections 16-17 cover v12-v15
+and the final tests.
+
+Earlier frozen systems: `querygen-freeze-v13` = 95585f5f, `querygen-freeze-v12` = b0f3c1a3,
+`querygen-freeze-v10-official` = 2786115d (superseded), `querygen-freeze-v10`, `querygen-freeze-v9`, `querygen-freeze-v1`.
 
 ---
 
@@ -628,27 +634,145 @@ SPL unchanged (0.92), fewer turn reversals (1.5-2.3 vs 2.0-3.2 per 100 steps).
   A takeover option (hand control back to the default policy as early as possible) exists but is off: on
   VqCaAuuoeWk it saved 30 of 94 primitive decisions for SPL 0.989 -> 0.909.
 
-### 16.3 Gate tests of v12 and v13 [gate met; last episodes in progress]
-* **Gate met at the query level (no privileged fallback):** frozen v12, ORCA K=10, fourth unseen suite: 57 / 60
-  official PASS (95.0%) with 3 episodes still running; SPL 0.910, PSC 0.945, no human collision among solved.
-* Fifth unseen suite (v13 test; its ordinary search is v12's, the fallback was never used): ORCA K=10 56 / 58
-  (96.6%), ORCA K=6 56 / 58 (96.6%); 2 episodes certified natively infeasible (wrq3kiEU4VR, Uxmj2M2itWa).
-* Frozen v10 (third unseen suite, final): ORCA K=10 53/57 (93.0%), DWA K=10 53/57 (93.0%), ORCA K=6 51-52/57 -- gate
-  missed (VqCaAuuoeWk, p32JzpQyhPk: native witnesses weave past humans; s8pcmisQ38h: STOP rule; tEafuWwhhwr).
-* Frozen v12 on the fourth unseen suite (`output/runs/official/test_v12/`), ORCA K=10 primary: running.
-* Frozen v13 on the fifth unseen suite (`output/runs/official/test_v13/`), ORCA K=10 and K=6: running.
-  wrq3kiEU4VR is certified natively infeasible (every first action meets a human at step 1; official verification
-  of all 3 sequences).
+### 16.3 Gate tests of v12 and v13 [verified, final]
+Untouched suites, frozen code snapshots, official rules, query level (the v13 witness fallback never fired):
+
+| test | configuration | PASS | certified infeasible | PASS rate over the denominator | SPL (passes) | PSC | human collisions | Oracle edges P50 / P95 |
+|---|---|---|---|---|---|---|---|---|
+| v12, fourth unseen suite (60) | ORCA K=10 (primary) | 58 | 0 | **58 / 60 = 96.7%** | 0.906 | 0.941 | 0 | 91 / 5,000 |
+| v13, fifth unseen suite (60) | ORCA K=10 | 58 | 2 | **58 / 58 = 100%** | 0.904 | 0.934 | 0 | 94 / 2,526 |
+| v13, fifth unseen suite | ORCA K=6 | 58 | 2 | **58 / 58 = 100%** | 0.894 | 0.933 | 0 | 80 / 2,659 |
+| v13, fifth unseen suite | DWA K=10 | 58 | 2 | **58 / 58 = 100%** | 0.950 | 0.921 | 0 | 81 / 2,831 |
+
+* v12 failures, both FAIL_SEARCH, both kept in the denominator. yqNxxJnA3iL (closest 0.48 m) is natively feasible:
+  the witness search found and officially verified a 135-step solution (SPL 0.956). For oKFJo8jpzRW the native
+  witness search was inconclusive (400,000 simulations; best geodesic 6.23 m).
+* v13's infeasible episodes are wrq3kiEU4VR and Uxmj2M2itWa. Both carry exact native certificates with official
+  verification.
+* Earlier: frozen v10 on the third unseen suite reached 53/57 (93.0%) with ORCA K=10 and DWA K=10, and 51-52/57 with
+  ORCA K=6. The gate was missed.
 * v13 fallback on v12's development failures (`output/runs/official/v13fb`, ordinary search skipped -- it is the
   v12 search): VqCaAuuoeWk SPL 0.989, p32JzpQyhPk 0.975, ANmWrL7Kz7h 0.959, Nfvxx8J5NCo 1.0, FXuXGH9YQTW 0.98 -- all
-  official PASS; 94-159 primitive decisions each.
+  official PASS; 94-159 primitive decisions each.  Not used for any gate claim (user, 19:10: last resort).
 
-### 16.4 Decision robustness of the v12 solutions [in progress, 28 of 35 episodes]
-`querygen/decision_robustness.py` (`output/runs/official/decision_v12`): at every decision state of an Oracle
-solution all K candidates are executed for one interval; near-duplicates (same outcome, end time +-3 steps, end
-pose 0.25 m / 20 deg, path 0.25 m) are merged into choices; each choice is continued by the default policy ("easy")
-or a bounded minimum-intervention Oracle ("clever", 200 edges) or found dead.  110 states: 5.3 distinct choices of
-10 candidates, 4.9 viable, 3.5 recoverable by the default policy alone, 3.8 with good SPL (>= 90% of the best
-choice); a single viable choice in 0.9% of states, a single good-SPL choice in 13.6%.  Of 451 suboptimal choices
-(not the Oracle's), 64% are recovered by the default policy, 27% need a clever continuation, 9% are dead; mean SPL
-loss 0.108.  The good-SPL shortfall mostly reflects the default policy's own route efficiency (success SPL ~0.81).
+### 16.4 Decision robustness of the v12 solutions [final]
+`querygen/decision_robustness.py` (`output/runs/official/decision_v12`) works on the decision states of the Oracle
+solutions:
+* At each state, all K candidates are executed for one interval.
+* Near-duplicates (same outcome, end time +-3 steps, end pose 0.25 m / 20 deg, path 0.25 m) are merged into choices.
+* Each choice is continued by the default policy ("easy") or by a bounded minimum-intervention Oracle ("clever",
+  200 edges), or found dead.
+
+Results, 34 solutions and 134 states:
+* 5.4 distinct choices out of 10 candidates; 4.7 viable; 3.1 recoverable by the default policy alone; 3.6 with good
+  SPL (>= 90% of the best choice).
+* A single viable choice in 1.5% of states; a single good-SPL choice in 13.4%.
+* Of 557 suboptimal choices (not the Oracle's), 57% are recovered by the default policy, 28% need a clever
+  continuation and 15% are dead; mean SPL loss 0.109.
+* The good-SPL shortfall mostly reflects the default policy's own route efficiency.
+
+## 17. Versions v14 and v15; the frozen v14 system (2026-10-28 night)
+
+### 17.1 What changed (all legal; query level -- the privileged witness fallback is not used, user 19:10)
+* **v14 = v12 plus four changes:**
+  * the exact fast legal sensor;
+  * generator `goal_unknown_cost=1.25` (goal queries price unobserved cells 1.25x instead of 2.5x);
+  * Oracle path-aware SPL refinement (`improve_edges=300`, `improve_lambda=1`, below path efficiency 0.85);
+  * contact-tolerant `_th` goal copies replacing the `_vc` copies in the K=10 configurations.
+
+  The `_th` copies (`executor._ThruLegal`) treat observed wall-band cells as soft obstacles: body checks are
+  optimistic and routes cost x6, except at proprioceptive bump-memory discs. Long-tail analysis showed why: every
+  hard development witness crosses wall-band cells at body height. The legal band is visual (wall hits 0.2-1.4 m
+  above the base, dilated 0.25 m), while Falcon's kinematic, navmesh-bound Spot clips through furniture (static
+  contact is legal).
+* **v15 = v14 + short-interval goal copies near tracked humans** (`short_human_m=2.5`, `short_steps=4`; Oracle edges
+  of 4 steps). VqCaAuuoeWk was solved in 280 edges (v14: 7,154).
+* Tested and not adopted: `xc_variants` (committed contact-level copies) and `maneuver_thru` (thru semantics for
+  manoeuvres).
+
+### 17.2 Development results (DEV + unseen 1-4; official rules; query level)
+
+| version | episodes not proven infeasible | PASS | SPL (passes) | PSC | human collisions | Oracle edges P50 / P90 (solved) | mean search |
+|---|---|---|---|---|---|---|---|
+| v12 | 182 (DEV + unseen 1-3) | 171 (94.0%) | 0.900 | 0.932 | 0 | 78 / 983 | 18.4 min |
+| v14 | 242 (DEV + unseen 1-4) | 235 (97.1%) | 0.915 | 0.928 | 0 | 71 / 887 | 8.3 min |
+| v15 (complete 02:05, after the freeze) | 242 (DEV + unseen 1-4) | 233 (96.3%) | 0.918 | 0.928 | 0 | 69 / 846 | 7.6 min |
+
+(Final recomputation from the complete runs: edge percentiles over solved episodes, P90 = sorted[floor(0.9 (n-1))].
+Earlier drafts and `FINAL_PROTOCOL_V14.md` quote interim edge percentiles of all finished episodes, failures
+included -- e.g. v14 77 / 1,493 -- which are not comparable.)
+
+* **v14 vs v12, all 242 episodes paired** (v12's development runs plus its unseen4 test):
+  * PASS 229 -> 235;
+  * gained VqCaAuuoeWk, p32JzpQyhPk, Nfvxx8J5NCo, YRUkbU5xsYj, Pm6F8kyY3z2, jh4fc5c5qoQ and uNb9QFRL6hY;
+  * lost FXuXGH9YQTW: a 7,008-edge v12 solution that uses no `_vc` copy, so this is search-order sensitivity;
+  * SPL on both-pass 0.901 -> 0.917; median edges on both-pass 74 -> 68.5; mean minutes 17.8 -> 8.3.
+* **Remaining v14 development failures:**
+  * 3t8DB4Uzvkt, ANmWrL7Kz7h, FXuXGH9YQTW, tEafuWwhhwr: human timing / band.
+  * nMeXfQU4PMS: native witness search inconclusive.
+  * oKFJo8jpzRW: witness inconclusive.
+  * yqNxxJnA3iL: natively feasible, verified witness; the query-level search stops 0.48 m short.
+* Expert benchmark (1,500-edge cap, query level): 64 / 68 feasible solved (v12-era fast sensor: 63 / 68). P50 46 s,
+  mean 152 s, P95 676 s per episode, under a heavier machine load.
+
+### 17.3 Freeze
+Pre-registered rule (PROGRESS.md, 22:58; freeze time declared 23:53, before the last v15 results):
+* freeze v15 iff its paired PASS >= v14's and its mean search time is lower; otherwise v14.
+
+Result on 246 paired development episodes:
+* PASS 233 (v14) / 232 (v15; jh4fc5c5qoQ PASS -> FAIL); mean minutes 7.85 / 6.50; SPL 0.917 / 0.919.
+* The two v15 episodes still running were v14 PASS and could not change the outcome.
+* After the freeze v15 finished them: VLzqgDo317F failed as well. Complete, over the 242 episodes not proven
+  infeasible: PASS 235 (v14) / 233 (v15), mean minutes 8.3 / 7.6.
+
+**v14 frozen.** Tag `querygen-freeze-v14` points to e8fb1c77, the code snapshot every v14 development episode
+imported (package sha256 21cc7deb...). Protocol: `FINAL_PROTOCOL_V14.md`; launcher: `scripts/querygen_test_v14.sh`.
+
+### 17.4 Decision robustness of the v14 solutions
+`output/runs/official/decision_v14` uses the protocol of 16.4: 35 v14 development solutions, 137 decision states, 10
+candidates each.
+
+| measure | v14 | v12 (34 solutions, 134 states) |
+|---|---|---|
+| distinct choices per state | 5.4 | 5.4 |
+| viable choices | 4.8 | 4.7 |
+| recoverable by the default policy | 3.2 | 3.1 |
+| good-SPL choices | 3.6 | 3.6 |
+| single viable choice | 0.7% of states | 1.5% |
+| single good-SPL choice | 11.7% | 13.4% |
+| suboptimal choices recovered / clever / dead | 57% / 30% / 13% (578) | 57% / 28% / 15% (557) |
+| mean SPL loss of a suboptimal choice | 0.121 | 0.109 |
+| search cost per state | 98 s | 193 s |
+
+* On the 76 critical states (the Oracle chose a non-default query), the mean is 3.6 good choices; a single good
+  choice occurs in 13%.
+* The query space is not knife-edge: a learner has several good choices at almost every state.
+
+### 17.5 Held-out test of the frozen v14 (sixth unseen suite, 60 HM3D episodes, never run or inspected before)
+<!-- V14TEST:BEGIN -->
+Protocol `FINAL_PROTOCOL_V14.md` (binding); launcher `scripts/querygen_test_v14.sh`, which checks the package hash 21cc7deb...; code = tag `querygen-freeze-v14`. Official rules, query level. Launched 2026-10-29 00:20, finished 03:17. [verified, final]
+
+| configuration | PASS | certified infeasible | PASS rate over the denominator | SPL (passes) | PSC | human collisions | Oracle edges P50 / P95 | Oracle search min, mean / P50 / P95 | non-default decisions per solution, median |
+|---|---|---|---|---|---|---|---|---|---|
+| ORCA K=10 (primary) | 59 | 1 | **59 / 59 = 100.0%** | 0.908 | 0.933 | 0 | 99 / 1,785 | 4.8 / 1.0 / 19.3 | 3 |
+| ORCA K=6 | 58 | 1 | **58 / 59 = 98.3%** | 0.895 | 0.943 | 0 | 218 / 870 | 5.7 / 1.3 / 10.2 | 3.5 |
+| DWA K=10 | 59 | 1 | **59 / 59 = 100.0%** | 0.929 | 0.921 | 0 | 74 / 2,781 | 5.5 / 1.0 / 31.8 | 2 |
+
+* **Gate: met** by all three configurations.
+* Certified infeasible (1): kAMF2R7PCqX. Every first action (forward, turn left, turn right) ends the episode with an official human contact, and STOP is 27.5 m from the goal. The exact native certificate is officially verified (`output/runs/native_cert/unseen6/`).
+* ORCA K=6 failures (kept in the denominator): j2EJhFEQGCL.
+* Default policy alone (no selection) on the same suite: ORCA 46 / 59 (78.0%; 8 human collisions, 5 timeouts), DWA 42 / 59 (71.2%; 13 human collisions, 4 timeouts).
+* Episodes the Oracle solves and the matching default policy does not: ORCA K=10 13, ORCA K=6 12, DWA K=10 17.
+<!-- V14TEST:END -->
+
+* j2EJhFEQGCL (ORCA K=6) is natively feasible: the ORCA K=10 and DWA K=10 solutions pass the official replay. The
+  K=6 search stopped at the 12,000-edge cap after 178 min. Both K=10 solutions rely on contact-tolerant goal copies
+  (`goal_th`, `st_goal_th`), which the frozen K=6 candidate set does not offer (it keeps only `goal_tc`). This is a
+  coverage limit of the compact set; adding a `_th` copy is the natural fix for a next version.
+* Apart from that episode, the long tail is in search cost, not success. The longest solved searches were cFqWyQ4Y9hT
+  (ORCA K=10: 7,458 edges, 59 min; DWA K=10: 7,111 edges, 80 min) and j2EJhFEQGCL (1,785 edges / 36 min with ORCA K=10,
+  3,285 / 69 min with DWA K=10).
+* Media (results page): two held-out episodes, default policy vs Oracle (`output/runs/official/media_v14/`).
+  * Hsk3jDzNySy: the default policy collides with a person at step 23; the Oracle turns in place and creeps while the
+    person passes.
+  * D5dEbkUphhr: the default policy collides at the goal; the Oracle selects squeeze copies of the goal query.

@@ -617,6 +617,52 @@ in stuck mode.  Not applicable to the frozen gate system.
   (`short_human_m=2.5`, 4-step edges; `output/runs/official/v15sh`).
 - v12 dev final tail: 8 failures among 185 finished (Nfvx, 3t8D, jh4f, ANmW, p32J, VqCa, tEaf, Pm6F).
 
+## 2026-10-28 ~21:00-23:00: held-out tests final; v14 vs v15
+- **Frozen v12 test FINAL** (untouched fourth unseen suite, ORCA K=10): **58 / 60 = 96.7%** (SPL 0.876 over all,
+  PSC 0.941, 0 human collisions, mean Oracle 948 s); failures oKFJo8jpzRW (final geodesic 6.79 m) and yqNxxJnA3iL
+  (0.48 m), both FAIL_SEARCH; native witness searches (protocol accounting, 1 h each) running in
+  `output/runs/witness_native/unseen4`.  The gate holds whatever their verdict (>= 58/60).
+- **Frozen v13 test FINAL** (untouched fifth unseen suite; v13's ordinary search = v12's, the fallback never
+  fired): ORCA K=10, ORCA K=6 and DWA K=10 all **58 / 60 = 58 / 58 feasible** (wrq3kiEU4VR, Uxmj2M2itWa certified
+  infeasible).  Every configuration meets the gate.
+- v14 dev (`output/runs/official/v14`, hard episodes first), paired with v12 on 205 finished episodes: PASS 188 -> 194
+  (gained VqCaAuuoeWk, p32JzpQyhPk, Nfvxx8J5NCo, YRUkbU5xsYj, Pm6F8kyY3z2, jh4fc5c5qoQ, uNb9QFRL6hY; lost FXuXGH9YQTW,
+  a 7,008-edge v12 solution that uses no '_vc' copy -- search-order sensitivity), SPL on both-pass 0.896 -> 0.914,
+  median edges 82 -> 77, mean search minutes 16.8 -> 7.5.  Open: 3t8DB4Uzvkt, ANmWrL7Kz7h, FXuXGH9YQTW, tEafuWwhhwr,
+  nMeXfQU4PMS (nMeX: 30 min native witness search inconclusive, best geodesic 5.66 m).
+- v15 candidate = v14 + short-interval goal copies near humans (generator `short_human_m=2.5`, `short_steps=4`):
+  3,000-edge probe solved VqCaAuuoeWk in 280 edges (v14: 7,154) and Pm6F8kyY3z2 in 749; full dev run launched 21:05
+  (`output/runs/official/v15`).  Interim paired with v14: 66 episodes, PASS 63 / 63, SPL 0.906 / 0.907, mean search
+  minutes 13.3 / 10.1.  Freeze rule pre-registered at 22:58: freeze v15 iff its paired PASS >= v14's and its mean
+  search time is lower; otherwise v14.  The held-out test of the frozen version runs on the untouched sixth suite.
+- Freeze time declared 23:53 (before the remaining v15 episodes finished): the rule is applied to the episodes paired
+  at the earlier of v15 completion and 00:45.  Interim 23:51: 230 paired, PASS 218 (v14) / 217 (v15; flip
+  jh4fc5c5qoQ PASS -> FAIL), mean search minutes 7.10 / 5.86, SPL 0.919 / 0.920.
+- **Freeze (00:20): v14** by the pre-registered rule: 246 paired development episodes, PASS 233 (v14) / 232 (v15;
+  jh4fc5c5qoQ PASS -> FAIL); the two v15 episodes still running are v14 PASS and cannot change it.  v15 is ~17%
+  faster (mean 6.50 vs 7.85 min) at equal SPL.  Tag `querygen-freeze-v14` -> e8fb1c77 (code snapshot of every v14
+  development episode, sha256 21cc7deb...).  Held-out test on the untouched sixth unseen suite launched:
+  ORCA K=10 (primary), ORCA K=6, DWA K=10, default-policy floors (`output/runs/official/test_v14/`).
+
+## 2026-10-29 00:20-<!-- V14END:BEGIN -->03:17<!-- V14END:END -->: held-out test of the frozen v14 -- FINAL; v15 development complete
+- Sixth unseen suite (60 HM3D episodes, never run or inspected before the freeze), frozen v14 (`querygen-freeze-v14`
+  = e8fb1c77, package sha256 21cc7deb...), `scripts/querygen_test_v14.sh`, official rules, query level.
+- kAMF2R7PCqX is certified infeasible (exact native certificate, official verification): every first action ends the
+  episode with an official human contact, and STOP is 27.5 m from the goal.
+- **ORCA K=10 (primary): 59 / 59 = 100%**, SPL 0.908, PSC 0.933, no human collisions; Oracle edges P50 99 / P95
+  1,785; mean search 4.8 min (P95 19.3).  **DWA K=10: 59 / 59 = 100%**, SPL 0.929.  **ORCA K=6: <!-- V14K6:BEGIN -->58 / 59, SPL 0.895<!-- V14K6:END -->**.
+- ORCA K=6's failure j2EJhFEQGCL (12,000-edge cap, 178 min) is natively feasible: the ORCA K=10 and DWA K=10
+  solutions pass the official replay, and both use contact-tolerant goal copies (`goal_th`, `st_goal_th`) that the
+  frozen K=6 set lacks.  It stays in the denominator.
+- Default policy alone on the suite: ORCA 46 / 59 (78.0%), DWA 42 / 59 (71.2%).  The Oracle solves 13 (ORCA K=10) /
+  17 (DWA K=10) episodes the matching default policy does not.
+- **Gate met by every configuration.**  With frozen v12 (96.7%) and v13 (100%), three untouched suites in a row.
+- v15 development run complete (VLzqgDo317F finished 02:05): 242 paired episodes not proven infeasible, PASS v14 235 /
+  v15 233 (jh4fc5c5qoQ and VLzqgDo317F PASS -> FAIL), mean search minutes 8.34 / 7.59.  The v14 freeze holds with a
+  two-episode margin.
+- Media: `output/runs/official/media_v14/` (held-out Hsk3jDzNySy and D5dEbkUphhr, default policy vs Oracle);
+  `render_topdown` reserves a title band (tall maps let panel captions overlap it).
+
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,
    with the gate restated over certificate-filtered episodes.

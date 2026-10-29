@@ -94,9 +94,10 @@ def main():
     # panel size follows the plotted region's aspect ratio (wide corridors are not padded into squares)
     aspect = (ylim[0]-ylim[1])/max(1e-6, xlim[1]-xlim[0])
     pw = 5.4 if aspect >= 0.6 else 7.2
-    ph = min(7.0, max(1.8, pw*aspect))+0.75+(0.35 if a.title else 0.)
     import textwrap
     title = '\n'.join(textwrap.wrap(a.title, width=int(13*pw*n))) if a.title else ''
+    title_h = 0.32*(title.count('\n')+1) if title else 0.          # inches reserved above the panels
+    ph = min(7.0, max(1.8, pw*aspect))+0.75+title_h
     for t in list(range(0, T, a.every))+[T-1]:
         fig, axes = plt.subplots(1, n, figsize=(pw*n, ph), dpi=100, squeeze=False)
         for k, (ax, r) in enumerate(zip(axes[0], runs)):
@@ -127,9 +128,9 @@ def main():
             status = r['outcome'] if done else f'{act}'
             ax.set_title(f"{r['label']}\nstep {tt:3d}   distance {r['traj'][tt][3]:5.2f} m   {status}", fontsize=9,
                          color='#0b0b0b', loc='left')
-        if title:
-            fig.suptitle(title, fontsize=10, color='#0b0b0b', x=0.01, ha='left')
-        fig.tight_layout()
+        if title:     # the title gets its own band: tight_layout alone lets tall panels' captions overlap it
+            fig.suptitle(title, fontsize=10, color='#0b0b0b', x=0.01, y=1-0.06/ph, ha='left', va='top')
+        fig.tight_layout(rect=(0, 0, 1, 1-title_h/ph))
         fig.canvas.draw()
         img = np.asarray(fig.canvas.buffer_rgba())[..., :3]
         H16, W16 = -(-img.shape[0]//16)*16, -(-img.shape[1]//16)*16     # pad to the codec's block size
