@@ -55,6 +55,8 @@ def main():
     ap.add_argument('--worker-gpus', default='0,1', help='GPUs for the actors\' range sensors (round robin)')
     ap.add_argument('--nice', type=int, default=0)
     ap.add_argument('--tag', default=None)
+    ap.add_argument('--eval-workers', type=int, default=0, help='extra actors running the greedy policy on dev (eval_spool)')
+    ap.add_argument('--eval-args', default='--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
     (run/'fleet_args.json').write_text(json.dumps(vars(a)))
@@ -96,9 +98,12 @@ def main():
         args = ['--run', str(run), '--worker', str(i), '--seed', str(restarts)]
         if servers:
             args += ['--server', servers[i % len(servers)][0]]
-        args += shlex.split(a.actor_args)
+        if i >= a.workers:            # evaluation actor (greedy policy on dev; its own spool and configuration)
+            args += shlex.split(a.actor_args)+shlex.split(a.eval_args)
+        else:
+            args += shlex.split(a.actor_args)
         procs[i] = (spawn('eventwm_graph.l3.actor', args, run/('actor_%02d.out' % i), env=env, nice=a.nice), restarts)
-    for i in range(a.workers):
+    for i in range(a.workers+a.eval_workers):
         start_actor(i)
         time.sleep(0.5)
     t0 = time.time()

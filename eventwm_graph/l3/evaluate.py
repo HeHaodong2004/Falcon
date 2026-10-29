@@ -138,10 +138,17 @@ def replay_one(item):
     from .env import ConfigSpec
     m = item
     cfg = ConfigSpec.parse(m['config'])
+    # the generator's constructor sets the process-wide legal executor options (bump memory radius, blocked-target
+    # relaxation) that the recorded episode ran with: build it before replaying
+    from eventwm_graph.sandbox.episode import generator
+    generator(cfg.gen, cfg.dynamics)
     decs = [dict(query=_query(d), cont=d['cont'], horizon=d['horizon']) for d in m['decision_list']]
     rp = replay(EpisodeSpec(**m['spec']), cfg.planner, FAMILIES[cfg.dynamics], decs, lean=True)
     om = rp['metrics']
+    norm = lambda acts: [x if isinstance(x, str) else [float(v) for v in x] for x in acts]
+    same = norm(rp['actions']) == m['actions'] if 'actions' in m else None
     return dict(key=m['key'], config=m['config'], branch_outcome=m['outcome'], branch_success=m['success'],
+                actions_identical=same,
                 official_success=om.get('success'), official_spl=om.get('spl'), official_psc=om.get('psc'),
                 official_human_collision=om.get('human_collision'), steps=rp['steps'], branch_steps=m['steps'])
 
@@ -153,7 +160,9 @@ def replay_all(a):
     with get_context('spawn').Pool(a.procs, initializer=_init_worker) as pool:
         res = pool.map(replay_one, items, chunksize=1)
     agree = sum(int(r['official_success'] == r['branch_success']) for r in res)
-    s = dict(episodes=len(res), success_agreement=agree, by_config={})
+    s = dict(episodes=len(res), success_agreement=agree,
+             actions_identical=sum(int(bool(r['actions_identical'])) for r in res),
+             actions_unknown=sum(int(r['actions_identical'] is None) for r in res), by_config={})
     by = {}
     for r in res:
         by.setdefault(r['config'], []).append(r)

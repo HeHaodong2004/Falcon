@@ -124,7 +124,8 @@ def load(name, path=PATH):
     """EpisodeSpecs of a Layer 3 suite (``train``, ``train_querygen``, ``dev``, ``test``, ``test_full``)."""
     from eventwm_graph.querygen.native import EpisodeSpec
     data = json.loads(Path(path).read_text())
-    return [EpisodeSpec(r['dataset'], r['split'], r['scene'], r['episode_id'], r['seed']) for r in data[name]]
+    rows = data['train']+data['train_querygen'] if name == 'train_all' else data[name]
+    return [EpisodeSpec(r['dataset'], r['split'], r['scene'], r['episode_id'], r['seed']) for r in rows]
 
 
 def rows(name, path=PATH):

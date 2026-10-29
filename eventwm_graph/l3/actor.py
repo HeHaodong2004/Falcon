@@ -142,6 +142,7 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
         m['truncated'] = not ep.over
         m['diverged'] = diverged
         m['decision_list'] = _decisions_json(ep.decision_list())
+        m['actions'] = [x if isinstance(x, str) else [float(v) for v in x] for x in ep.ep.state.actions]
         m['wall_s'] = time.perf_counter()-t0
         m['setup_s'] = ep.setup_s
         m['perf'] = {k: float(v) for k, v in ep.ep.perf.items()}
@@ -171,19 +172,33 @@ def read_episode(path):
 
 
 class Curriculum:
-    """Configuration x episode sampler.  ``configs``: list of (ConfigSpec, weight)."""
+    """Configuration x episode sampler.  ``configs``: list of (ConfigSpec, weight).
 
-    def __init__(self, configs, episodes, seed):
+    Scene-sticky: a worker draws a scene uniformly, then ``stick`` episodes of that scene (each with a fresh
+    configuration draw) before moving on -- habitat keeps the scene's assets loaded, so a same-scene episode starts
+    ~4x faster (measured 20 s -> 5 s), and the human tape of a repeated episode is cached."""
+
+    def __init__(self, configs, episodes, seed, stick=3):
         self.configs = [c for c, _ in configs]
         w = np.asarray([w for _, w in configs], np.float64)
         self.w = w/w.sum()
-        self.episodes = episodes
+        self.by_scene = {}
+        for e in episodes:
+            self.by_scene.setdefault((e.dataset, e.scene), []).append(e)
+        self.scenes = sorted(self.by_scene)
         self.rng = np.random.default_rng(seed)
+        self.stick = int(stick)
+        self.left = 0
+        self.scene = None
 
     def sample(self):
         c = self.configs[int(self.rng.choice(len(self.configs), p=self.w))]
-        e = self.episodes[int(self.rng.integers(len(self.episodes)))]
-        return c, e
+        if self.left <= 0:
+            self.scene = self.scenes[int(self.rng.integers(len(self.scenes)))]
+            self.left = self.stick
+        self.left -= 1
+        eps = self.by_scene[self.scene]
+        return c, eps[int(self.rng.integers(len(eps)))]
 
 
 def main():
@@ -205,6 +220,7 @@ def main():
     ap.add_argument('--oracle-map', default=None, help='JSON {key|config: [labels]} for --selector oracle (warm-up replays)')
     ap.add_argument('--jobs', default=None, help='JSON list of [suite_key, config] jobs (sequential); overrides suite x configs')
     ap.add_argument('--blind', action='store_true', help='no imagination: no Sandbox, no range frames (floors, no-WM ablation)')
+    ap.add_argument('--spool', default='spool', help='output sub-directory (eval actors use eval_spool: never ingested)')
     a = ap.parse_args()
     import torch
     torch.set_num_threads(1)
@@ -212,8 +228,8 @@ def main():
     from .env import ConfigSpec
     from . import suites
     run = Path(a.run)
-    spool = run/'spool'; spool.mkdir(parents=True, exist_ok=True)
-    logf = open(run/('actor_%02d.log' % a.worker), 'a')
+    spool = run/a.spool; spool.mkdir(parents=True, exist_ok=True)
+    logf = open(run/('%s_%02d.log' % ('actor' if a.spool == 'spool' else a.spool, a.worker)), 'a')
     sbcfg = SandboxConfig(materialize=False)
     if a.blind:
         sb = None
@@ -227,7 +243,7 @@ def main():
     for item in a.configs.split(','):
         name, _, w = item.partition(':')
         configs.append((ConfigSpec.parse(name), float(w or 1)))
-    specs = suites.load(a.suite) if a.suite in ('train', 'train_querygen', 'dev', 'test', 'test_full') else None
+    specs = suites.load(a.suite) if a.suite in ('train', 'train_all', 'train_querygen', 'dev', 'test', 'test_full') else None
     if specs is None:
         from eventwm_graph.querygen import suites as qs
         specs = qs.load(a.suite)

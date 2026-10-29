@@ -48,7 +48,8 @@ class Learner:
     def __init__(self, run, device='cuda:1', capacity=1_500_000, nstep=3, batch=256, lr=3e-4, model_cfg=None,
                  weights=None, polyak=0.005, replay_ratio=32., min_size=2000, publish_every=200, seed=0,
                  head_w=None, tau_sched=(1.0, 0.25, 300_000), eps_sched=(0.05, 0.02, 300_000), cf_w=(1.0, 0.1, 100_000),
-                 margin_w=(0.5, 0.05, 100_000), margin=1.0, warm_steps=0, demo_frac=0.25):
+                 margin_w=(0.5, 0.05, 100_000), margin=1.0, warm_steps=0, demo_frac=0.25, demo_floor=0.03,
+                 demo_decay=200_000):
         self.run = Path(run)
         self.dev = torch.device(device)
         self.ring = Ring(capacity, nstep)
@@ -70,7 +71,7 @@ class Learner:
         self.tau_sched, self.eps_sched = tau_sched, eps_sched
         self.cf_w, self.margin_w, self.margin = cf_w, margin_w, margin
         self.warm_steps = warm_steps
-        self.demo_frac = demo_frac
+        self.demo_frac, self.demo_floor, self.demo_decay = demo_frac, demo_floor, demo_decay
         self.updates = 0
         self.version = 0
         self.loaded = set()
@@ -145,8 +146,11 @@ class Learner:
         ring = self.ring
         B = self.batch
         has_demo = bool((ring.source[ring.valid] == 1).any())
-        has_online = bool((ring.source[ring.valid] == 0).any())
-        nd = B if not has_online else (int(B*self.demo_frac) if has_demo else 0)
+        n_online = int((ring.source[ring.valid] == 0).sum())
+        has_online = n_online > 0
+        # demonstrations: a fixed share of every batch at first, decaying to a floor as online data accumulates
+        frac = max(self.demo_floor, self.demo_frac*(1.-n_online/self.demo_decay))
+        nd = B if not has_online else (int(B*frac) if has_demo else 0)
         idx_parts = []
         if nd:
             i1 = ring.sample(nd, self.rng, source=1)
