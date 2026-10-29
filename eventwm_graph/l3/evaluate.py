@@ -110,6 +110,8 @@ def run(a):
         actor += ' --oracle-map %s' % shlex.quote(a.oracle_map)
     if a.blind:
         actor += ' --blind'
+    if a.margin:
+        actor += ' --margin %g' % a.margin
     cmd = [sys.executable, str(ROOT/'scripts/l3_run.py'), 'eventwm_graph.l3.fleet', '--run', str(out), '--servers',
            str(a.servers), '--server-devices', a.server_devices, '--workers', str(a.workers), '--sequential',
            '--actor-args', actor, '--tag', a.tag or out.name]
@@ -183,9 +185,30 @@ def _init_worker():
     os.chdir(ROOT)
 
 
+def matrix(dirs, names=None, keys=('sr', 'spl', 'psc', 'h_coll'), common=True):
+    """Markdown table: configurations x methods (evaluation directories), restricted to the episodes every method
+    finished (paired) when ``common``."""
+    runs = [load_results(d) for d in dirs]
+    names = names or [Path(d).name for d in dirs]
+    cfgs = sorted({r['config'] for rows in runs for r in rows})
+    lines = ['| configuration | n | '+' | '.join('%s %s' % (n, k.upper()) for n in names for k in keys)+' |',
+             '|---|---|'+'---|'*(len(names)*len(keys))]
+    for c in cfgs:
+        sets = [{r['key']: r for r in rows if r['config'] == c} for rows in runs]
+        keyset = set.intersection(*[set(x) for x in sets]) if common else set.union(*[set(x) for x in sets])
+        if not keyset:
+            continue
+        cells = []
+        for x in sets:
+            v = aggregate([x[k] for k in keyset if k in x]).get(c, {})
+            cells += ['%.3f' % v[k] if k in v else '' for k in keys]
+        lines.append('| %s | %d | %s |' % (c, len(keyset), ' | '.join(cells)))
+    return '\n'.join(lines)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['run', 'summarize', 'replay'])
+    ap.add_argument('mode', choices=['run', 'summarize', 'replay', 'matrix'])
     ap.add_argument('--out', required=True)
     ap.add_argument('--suite', default='dev')
     ap.add_argument('--configs', default='orca-native-k10')
@@ -200,8 +223,13 @@ def main():
     ap.add_argument('--tag', default=None)
     ap.add_argument('--paired', default=None)
     ap.add_argument('--blind', action='store_true')
+    ap.add_argument('--names', default=None)
+    ap.add_argument('--margin', type=float, default=0.)
     ap.add_argument('--procs', type=int, default=16)
     a = ap.parse_args()
+    if a.mode == 'matrix':
+        print(matrix(a.out.split(','), a.names.split(',') if a.names else None))
+        return
     if a.mode == 'run':
         run(a)
     elif a.mode == 'summarize':

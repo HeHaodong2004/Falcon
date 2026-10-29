@@ -96,7 +96,7 @@ def cumulants(r):
 
 
 def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compiler=None, record=True, max_decisions=400,
-                oracle_seq=None, imagination=True):
+                oracle_seq=None, imagination=True, margin=0.):
     from .env import L3Episode
     from .batch import pack
     t0 = time.perf_counter()
@@ -113,6 +113,8 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
             if selector == 'policy':
                 qv, heads = policy.scores(packed)
                 a, p = choose(qv, n, tau, eps, rng)
+                if margin > 0 and tau <= 0 and a != d.default and qv[a] < qv[d.default]+margin:
+                    a = d.default          # conservative deviation: leave the default only for a clear value gain
             elif selector == 'default':
                 a, p = d.default, 1.
             elif selector == 'random':
@@ -221,6 +223,7 @@ def main():
     ap.add_argument('--jobs', default=None, help='JSON list of [suite_key, config] jobs (sequential); overrides suite x configs')
     ap.add_argument('--blind', action='store_true', help='no imagination: no Sandbox, no range frames (floors, no-WM ablation)')
     ap.add_argument('--spool', default='spool', help='output sub-directory (eval actors use eval_spool: never ingested)')
+    ap.add_argument('--margin', type=float, default=0., help='greedy evaluation: deviate from the default only if Q gain > margin')
     a = ap.parse_args()
     import torch
     torch.set_num_threads(1)
@@ -286,7 +289,7 @@ def main():
                 continue
             seq = oracle_map.get('%s|%s' % (spec.key, cfg.name)) if a.selector == 'oracle' else None
             m, rows = run_episode(spec, cfg, sb, a.selector, policy, rng, tau=tau, eps=eps, record=not a.no_record,
-                                  oracle_seq=seq, imagination=not a.blind)
+                                  oracle_seq=seq, imagination=not a.blind, margin=a.margin)
             extra = dict(spec=spec.asdict(), config=cfg.name, selector=a.selector, version=policy.version, tau=tau,
                          eps=eps, worker=a.worker)
             write_episode(spool, name, m, rows if not a.no_record else {k: v for k, v in rows.items() if k != 'packed'}, extra)

@@ -403,6 +403,9 @@ def main():
     ap.add_argument('--eps', default='0.05,0.02,300000')
     ap.add_argument('--mc-mix', default=None, help='start,end,decisions: Monte Carlo share of the value targets')
     ap.add_argument('--seed-spool', default=None, help='ingest the episodes of another run first (off-policy reuse)')
+    ap.add_argument('--offline-updates', type=int, default=0,
+                    help='offline mode: train this many updates on the seeded + warm data (no actors), publish, exit')
+    ap.add_argument('--seed-limit', type=int, default=0, help='ingest at most this many seed episodes (0 = all)')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
     mc = json.loads(a.model)
@@ -420,7 +423,10 @@ def main():
         L.load_init(a.init)
     if a.seed_spool:
         n = 0
-        for p in sorted(Path(a.seed_spool).glob('*.ep')):
+        files = sorted(Path(a.seed_spool).glob('*.ep'), key=lambda p: p.stat().st_mtime)
+        if a.seed_limit:
+            files = files[:a.seed_limit]
+        for p in files:
             try:
                 n += L.ingest_file(p, 0)
             except Exception as exc:
@@ -430,6 +436,19 @@ def main():
         L.warm_dir, L.cf_dir = a.warm, a.cf
         n = L.ingest_warm()
         print('warm-up transitions', n, 'cf mismatches', getattr(L, 'cf_mismatch', 0), flush=True)
+    if a.offline_updates:
+        acc = {}
+        for i in range(a.pretrain+a.offline_updates):
+            info = L.train_step()
+            for k, v in (info or {}).items():
+                acc.setdefault(k, []).append(v)
+            if (i+1) % 1000 == 0:
+                L._log(acc, phase='offline'); acc = {}
+            if (i+1) % 5000 == 0:
+                L.publish()
+        L.publish()
+        L.save_full()
+        return
     L.loop(max_seconds=a.max_seconds, pretrain_updates=a.pretrain)
 
 
