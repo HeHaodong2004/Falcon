@@ -658,3 +658,57 @@ or a bounded minimum-intervention Oracle ("clever", 200 edges) or found dead.  1
 choice); a single viable choice in 0.9% of states, a single good-SPL choice in 13.6%.  Of 451 suboptimal choices
 (not the Oracle's), 64% are recovered by the default policy, 27% need a clever continuation, 9% are dead; mean SPL
 loss 0.108.  The good-SPL shortfall mostly reflects the default policy's own route efficiency (success SPL ~0.81).
+
+## 17. Versions v14 and v15; the frozen v14 system (2026-10-28 night)
+
+### 17.1 What changed (all legal; query level -- the privileged witness fallback is not used, user 19:10)
+* **v14 = v12 plus four changes:**
+  * the exact fast legal sensor;
+  * generator `goal_unknown_cost=1.25` (goal queries price unobserved cells 1.25x instead of 2.5x);
+  * Oracle path-aware SPL refinement (`improve_edges=300`, `improve_lambda=1`, below path efficiency 0.85);
+  * contact-tolerant `_th` goal copies replacing the `_vc` copies in the K=10 configurations.
+
+  The `_th` copies (`executor._ThruLegal`) treat observed wall-band cells as soft obstacles: body checks are
+  optimistic and routes cost x6, except at proprioceptive bump-memory discs. Long-tail analysis showed why: every
+  hard development witness crosses wall-band cells at body height. The legal band is visual (wall hits 0.2-1.4 m
+  above the base, dilated 0.25 m), while Falcon's kinematic, navmesh-bound Spot clips through furniture (static
+  contact is legal).
+* **v15 = v14 + short-interval goal copies near tracked humans** (`short_human_m=2.5`, `short_steps=4`; Oracle edges
+  of 4 steps). VqCaAuuoeWk was solved in 280 edges (v14: 7,154).
+* Tested and not adopted: `xc_variants` (committed contact-level copies) and `maneuver_thru` (thru semantics for
+  manoeuvres).
+
+### 17.2 Development results (DEV + unseen 1-4; official rules; query level)
+
+| version | episodes not proven infeasible | PASS | SPL (passes) | PSC | human collisions | Oracle edges P50 / P90 | mean search |
+|---|---|---|---|---|---|---|---|
+| v12 | 182 (DEV + unseen 1-3) | 171 (94.0%) | 0.900 | 0.932 | 0 | 87 / 2,255 | 18.4 min |
+| v14 | 242 (DEV + unseen 1-4) | 235 (97.1%) | 0.915 | 0.928 | 0 | 77 / 1,493 | 8.3 min |
+| v15 | 240 of 242 finished at freeze | 232 of 240 paired | 0.919 | 0.930 | 0 | 71 / 1,155 | 6.1 min |
+
+* **v14 vs v12, 205 paired episodes:**
+  * PASS 188 -> 194;
+  * gained VqCaAuuoeWk, p32JzpQyhPk, Nfvxx8J5NCo, YRUkbU5xsYj, Pm6F8kyY3z2, jh4fc5c5qoQ and uNb9QFRL6hY;
+  * lost FXuXGH9YQTW: a 7,008-edge v12 solution that uses no `_vc` copy, so this is search-order sensitivity;
+  * SPL on both-pass 0.896 -> 0.914; median edges 82 -> 77; mean minutes 16.8 -> 7.5.
+* **Remaining v14 development failures:**
+  * 3t8DB4Uzvkt, ANmWrL7Kz7h, FXuXGH9YQTW, tEafuWwhhwr: human timing / band.
+  * nMeXfQU4PMS: native witness search inconclusive.
+  * oKFJo8jpzRW: witness inconclusive.
+  * yqNxxJnA3iL: natively feasible, verified witness; the query-level search stops 0.48 m short.
+* Expert benchmark (1,500-edge cap, query level): 64 / 68 feasible solved (v12-era fast sensor: 63 / 68). P50 46 s,
+  mean 152 s, P95 676 s per episode, under a heavier machine load.
+
+### 17.3 Freeze
+Pre-registered rule (PROGRESS.md, 22:58; freeze time declared 23:53, before the last v15 results):
+* freeze v15 iff its paired PASS >= v14's and its mean search time is lower; otherwise v14.
+
+Result on 246 paired development episodes:
+* PASS 233 (v14) / 232 (v15; jh4fc5c5qoQ PASS -> FAIL); mean minutes 7.85 / 6.50; SPL 0.917 / 0.919.
+* The two v15 episodes still running were v14 PASS and could not change the outcome.
+
+**v14 frozen.** Tag `querygen-freeze-v14` points to e8fb1c77, the code snapshot every v14 development episode
+imported (package sha256 21cc7deb...). Protocol: `FINAL_PROTOCOL_V14.md`; launcher: `scripts/querygen_test_v14.sh`.
+
+### 17.4 Held-out test of the frozen v14 (sixth unseen suite, 60 HM3D episodes, never run or inspected before)
+<!-- V14TEST -->
