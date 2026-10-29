@@ -432,6 +432,12 @@ class GraphCompiler:
             s0, i0 = CAND.index(CAND_SEM[0]), CAND.index(CAND_INFO[0])
             if LAYOUT == 'v4':
                 r0 = CAND.index(CAND_ROUTE[0])
+                # intention scored over the bank's own horizon (Stage 1: 3 s; the analysis-only true-future bank may be
+                # longer, L3_ORACLE_BANK_STEPS)
+                HPr = HP
+                nb = int(getattr(bank, 'long_steps', 0) or 0)
+                if nb > len(rel) and len(keys):
+                    HPr = np.asarray(bank.sandbox_positions(np.arange(1, nb+1)*STEP_SECONDS), np.float64)
                 vh = np.asarray(legal.poses[-24:], np.float64)
                 sp = np.hypot(np.diff(vh[:, 0]), np.diff(vh[:, 2])) if len(vh) > 1 else np.zeros(0)
                 step_m = float(np.median(sp[sp > 0.02])) if (sp > 0.02).sum() >= 3 else 0.15
@@ -444,7 +450,7 @@ class GraphCompiler:
                     ro = c.rollout
                     moving = np.hypot(np.diff(ro.poses[:, 0]), np.diff(ro.poses[:, 2])) if len(ro.poses) > 1 else np.zeros(0)
                     v = float(moving[moving > 0.02].mean()) if (moving > 0.02).sum() >= 3 else step_m
-                    cand[k, r0:r0+len(CAND_ROUTE)] = route_features(info, ro, field, legal, HP, W, keys, unseen, v)
+                    cand[k, r0:r0+len(CAND_ROUTE)] = route_features(info, ro, field, legal, HPr, W, keys, unseen, v)
         # ------------------------------------------------------- human-side statistics against all worlds
         Nb = HP.shape[2]
         if K and Nb and len(rel):

@@ -13,7 +13,7 @@ from eventwm_graph.querygen.dynamics import STEP_SECONDS
 
 
 class OracleBank:
-    def __init__(self, tape_positions, index, legal, mode='tracked', horizon_steps=63):
+    def __init__(self, tape_positions, index, legal, mode='tracked', horizon_steps=63, long_steps=0):
         P = np.asarray(tape_positions, np.float64)                      # [S, N, 3] true positions per env step
         self.P, self.index = P, int(index)
         N = P.shape[1]
@@ -35,6 +35,7 @@ class OracleBank:
         self.weights = np.ones(1)
         self.present = np.ones((1, len(self.cols)), bool)
         self.times = np.arange(1, horizon_steps)*STEP_SECONDS
+        self.long_steps = int(long_steps)        # > 62: the intention (route) features use this longer true horizon
 
     def sandbox_positions(self, rel):
         idx = np.minimum(self.index+np.round(np.asarray(rel, np.float64)/STEP_SECONDS).astype(int), len(self.P)-1)
