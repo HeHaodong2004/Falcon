@@ -157,7 +157,7 @@ def imagined_rollout_index(result, legal, default, slack_p=0.05, slack_m=0.5, ra
     keys = list(getattr(bank, 'track_keys', ()))
     pcol = np.zeros(len(seqs))
     if len(keys):
-        horizon = float(bank.times[-1])
+        horizon = max(float(bank.times[-1]), float(getattr(bank, 'long_steps', 0) or 0)*step_s)   # analysis bank: longer
         rel = np.arange(1, T+1)*step_s
         inside = rel[rel <= horizon+1e-9]
         HP = np.asarray(bank.sandbox_positions(inside), np.float64)              # [W, Tb, N, 2]
