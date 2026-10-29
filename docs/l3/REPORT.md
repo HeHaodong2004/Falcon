@@ -57,6 +57,21 @@ while 7 of the 10 alternatives succeed with the default continuation; at decisio
 collides (doomed).  First 18 labelled failures: 40-50% of the native-robot failures have such a one-deviation fix
 within the last 4 decisions; for momentum robots the default continuation itself mostly fails (few positive labels).
 
+**R5b (15:12)**: R5 restarted in place (spool, labels, learner state carry over) with dense counterfactual
+supervision (the value heads regress on every labelled candidate's exact outcome, weight 0.5, next to TD), a
+6-decision critical window and 14 labellers / 14 actors.  Label statistics after 314 labelled failure states: in 55
+the chosen candidate fails while another succeeds; the failing choice is mostly `continue` (16) or a fresh `goal`
+(8), the fixes mostly OTHER goal variants (goal_tc 24, goal 21, st_goal_tc 13, st_goal 12, goal_th 12) or a short
+wait (11) -- different execution styles of "go to the goal" near people, separable only through their imagined
+consequences.  Fixable failures (one deviation + default, within the labelled window): native 47-57%, slowturn ~50%,
+momentum 19-45%.
+
+**Speed (exact optimisations).** The legal sensor's per-cell support certificates are pure functions of the scene
+geometry under `pure_caches` but were recomputed in every episode (~100 us per cell through ~10 native pathfinder
+calls).  `sensorcache.py` shares them across episodes and processes (disk, ~12-24 MB per scene): sensor 61 -> 40-45
+ms/step on revisited cells; actions, legal map and tracks identical (checked).  Remaining sensor cost: native
+support-probe raycasts (18 ms/step, the next candidate for GPU emulation).
+
 **Measured actor cost per decision (R5, loaded machine):** Sandbox round trip with imagination 1.33 s, legal sensor
 0.59 s, range frames (Stage 2 input only) 0.44 s, real executor 0.23 s, simulator 0.22 s, compiler + generator +
 policy 0.10 s; total ~2.95 s.  ~3-3.5 decisions/s for 16 actors next to 10 labellers.
