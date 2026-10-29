@@ -37,3 +37,27 @@ def progress_index(graph):
     at_goal = c[:, _I['at_goal']] > 0.5
     score = c[:, _I['ctg_gain']].astype(np.float64)+2.0*(stop & at_goal)-5.0*(stop & ~at_goal)
     return int(np.argmax(score))
+
+
+_E = None
+
+
+def escape_index(graph):
+    """Progress, with a stall breaker: when the robot has been stalled (< 0.3 m over 48 steps) and no candidate
+    shows route progress, take the non-continue candidate whose imagined interval moves the robot the most
+    (route alternatives / retreats / exploration first, then any motion); otherwise the largest route progress."""
+    global _E
+    from .compiler import EGO
+    if _E is None:
+        _E = {c: EGO.index(c) for c in EGO}
+    c = graph['cand']
+    e = graph['ego']
+    gain = c[:, _I['ctg_gain']].astype(np.float64)
+    if e[_E['stall_48']] > 0.5 and gain.max() <= 0.02:
+        disp = np.hypot(c[:, _I['disp_fwd']], c[:, _I['disp_left']]).astype(np.float64)
+        cont = c[:, _I['intent_continue']] > 0.5
+        stop = c[:, _I['intent_stop']] > 0.5
+        score = np.where(cont | stop, -1., disp)
+        if score.max() > 0.05:
+            return int(np.argmax(score))
+    return progress_index(graph)
