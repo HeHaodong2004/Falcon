@@ -31,3 +31,13 @@ planners with the K=10 / K=6 candidate sets.  Every other dynamics family (`slow
 `heavy_brake`, `slowturn_heavy`) uses the continuous base-velocity action: **modified robot dynamics, outside the
 official benchmark**, reported separately.  Held-out (never trained) combinations are declared in `docs/l3/REPORT.md`
 before the first training run.
+
+## Observation legality (amended 2026-10-29 19:00 at the user's direction)
+Primary benchmark = the legal 90-degree jaw camera (people and static map certified only inside its frustum with
+occlusion), the robot's own legal history, and Layer 2 predictions from legal inputs.  Not allowed in the primary
+benchmark: privileged future information, hidden scene geometry / navmesh, unrestricted 360-degree sensing
+(`QG_HUMAN_360` runs are analysis only).  The Oracle and every privileged quantity (counterfactual labels, the human
+tape) are training supervision or analysis only, never policy input.  Layer 3 may ACT to observe (scan queries:
+in-place rotations); what it then sees is legal.  Milestone dev evaluations: `scripts/l3_milestone.sh RUN VERSION
+LAYOUT WORKERS [evaluate.py args]` (all 14 configurations; selection by mean SR over the 7 seen ones; margin and value
+weights are dev-selected settings of the same checkpoint).
