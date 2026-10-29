@@ -186,3 +186,18 @@ configurations): candidates move but make no route progress 24, no candidate mov
 within 2.5 m 9, no legal route 1 -- the candidate set offers no escape in these states.  R6 (360 + Compiler v2
 continuation imagination) cost 3.56 s of Sandbox time per decision (R5: 1.33 s) and was stopped; R7 = 360-degree
 sensing + v1b features + warm start from R5, 20 actors, 4 labellers.
+
+**Stall-breaking heuristic (360-degree sensing, dev):** "progress, but when stalled with no progress on offer take the
+candidate that moves the most" -- DWA 47.0%, ORCA 52.8%, SFM 50.0% (floor 45.5 / 52.8 / 54.2%, progress 59.1 / 52.8 /
+55.6%): fewer timeouts (ORCA 25% -> 19%) but more collisions; naive deadlock escapes do not pay.
+
+**Identifiability at the Oracle's critical decisions (offline, episode-level split; seed 0, 19 held-out critical
+states so far, labelling continues):** where the default fails and an alternative succeeds, a critic trained on the
+legal consequence graph picks a succeeding candidate in 37% (random alternative 54%, the Oracle's own choice with
+the default continuation 58%), AUC 0.52; at mixed states the critic (78%) is below simply keeping the default (87%).
+
+**Assessment (2026-10-29 ~18:00, given to the user):** the gap to the Oracle is mainly an information limit (unseen
+people, danger visible only 1.5-2.5 s ahead, timing chaos at critical moments; ~75-80% confidence), with a smaller
+fixable design component (the learned policy deviates at ~60% of decisions and breaks as many episodes as it fixes).
+Expected Layer 3 ceiling with the current inputs: floor + 10-15 points; 85% SR judged ~5% likely (~10% with
+360-degree sensing and query-space escape options).
