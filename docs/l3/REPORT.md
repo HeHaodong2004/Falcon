@@ -352,3 +352,11 @@ recovers completely (final, 72 paired episodes per configuration): DWA floor 48.
 inheritance 48.6%; ORCA 47.2% / 43.1% / 50.0%.  No bug in
 the loop mechanics was found (continue / decision-boundary handling is identical in reality, imagination and replay;
 intervals end early when a query finishes).  R10 (20:55) = R9's method + the fix, warm start from R9's network.
+
+**First learnable signal for candidate evaluation (v4 features, 21:05).**  Identifiability on R9's on-policy labelled
+states (317 states / 61 scenes, 92 critical, 4 seeds, scene split): at failure-bound states the critic's top pick
+succeeds 35.0% vs 30.2% for a random alternative (v1-v3 features: at or below random); at mixed states 46.8% vs 31.1%
+for keeping the default; gated deviation 22% vs 16% (labels: failure-heavy states, default success 16%).  With the
+rollout-policy reference (exact one-step evaluation over the default; analysis only) at 4/4 vs the floor's 2/4 on the
+first paired dev episodes, the lever is an accurate per-candidate evaluator.  R10 restarted in place as R10b (21:09):
+8 labellers (failures over the whole episode, successes with p 0.5), 16 actors, cf_reg 0.25 / cf_frac 0.25 / cf_rank 0.3.
