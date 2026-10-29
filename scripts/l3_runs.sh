@@ -119,7 +119,7 @@ case $name in
     unset QG_HUMAN_360
     export L3_LAYOUT=v4
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R9 --servers 3 --server-devices 0,0,1 --workers 22 \
-      --eval-workers 2 --labelers 2 --labeler-args "--k 6 --cap 500 --p-success 0.25 --spread" --tag R9b \
+      --eval-workers 4 --labelers 2 --labeler-args "--k 6 --cap 500 --p-success 0.25 --spread" --tag R9b \
       --actor-args "--configs $SEEN --suite train_all --selector policy --scan --compiler '{\"brake_tail\":true}' --sandbox '{\"route\":true}' --curriculum output/curriculum_90.json" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R9/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.15 --cf-floor 0.5 --cf-reg 0.25 --per 0.6,0.4,1.0,300000 --cf-rank 0.5 --explore risk" ;;
