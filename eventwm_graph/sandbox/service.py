@@ -52,6 +52,15 @@ RANGE_KEYS = ('timestamp', 'camera_origin', 'camera_rotation', 'sensor_protocol'
 FLUSH_FRAMES = 64          # a worker ships buffered frames at the latest after this many (bounded worker memory)
 
 
+EXIT_ON_CUDA_FAULT = os.environ.get('SANDBOX_EXIT_ON_CUDA_FAULT', '0') == '1'     # opt-in (Layer 3 fleets)
+
+
+def cuda_fault(exc):
+    """An exception that leaves the process's CUDA context unusable (illegal access, launch failure, ECC)."""
+    m = '%s %s' % (type(exc).__name__, exc)
+    return 'CUDA error' in m or 'illegal memory access' in m or 'CUBLAS_STATUS' in m or 'cuDNN error' in m
+
+
 class RemoteError(RuntimeError):
     """An unexpected exception in the sandbox server (its type, message and traceback)."""
 
@@ -213,14 +222,20 @@ class SandboxServer:
                     conn.send(('ok', True))
                     self.stopping.set()
                     break
+                fatal = False
                 try:
                     reply = ('ok', self.submit(conn_id, op, kw))
                 except Exception as exc:
                     reply = ('error', type(exc).__name__, str(exc), traceback.format_exc())
+                    fatal = cuda_fault(exc)
                 try:
                     conn.send(reply)
                 except Exception as exc:                     # pickling failed before anything was sent
                     conn.send(('error', type(exc).__name__, 'reply not transferable: %s' % exc, traceback.format_exc()))
+                if fatal and EXIT_ON_CUDA_FAULT:
+                    # the CUDA context is unusable after an illegal access: exit so the fleet restarts the server
+                    print('CUDA fault: server exits (%s)' % str(reply[2])[:200], flush=True)
+                    os._exit(17)
         finally:
             if not self.stopping.is_set():                   # a vanished worker's streams are released
                 for name in [n for n, c in list(self.owner.items()) if c == conn_id]:

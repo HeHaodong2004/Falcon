@@ -75,6 +75,7 @@ def main():
     servers, ready = [], []
     base_env = dict(os.environ)
     base_env['CUDA_VISIBLE_DEVICES'] = '0,1'
+    base_env['SANDBOX_EXIT_ON_CUDA_FAULT'] = '1'          # a faulted server exits and is restarted (below)
     for i in range(a.servers):
         f = run/('server%d.ready' % i)
         if f.exists():
@@ -85,6 +86,7 @@ def main():
     if servers:
         wait_ready(ready, [p for _, p in servers], timeout=900)
         print('servers ready', flush=True)
+    server_restarts = [0]*len(servers)
     learner = None
     learner_restarts = [0]
     if a.learner_args is not None:
@@ -128,19 +130,31 @@ def main():
             if a.sequential and rc == 0:
                 done.add(i); del procs[i]
                 continue
-            if restarts < 50:
+            if restarts < 1000:
                 start_actor(i, restarts+1)
             else:
                 del procs[i]
         for j, (p, restarts) in list(labelers.items()):
-            if p.poll() is not None and restarts < 50:
+            if p.poll() is not None and restarts < 1000:
                 start_labeler(j, restarts+1)
         if a.sequential and not procs:
             break
-        for addr, p in servers:
+        for si, (addr, p) in enumerate(list(servers)):
             if p.poll() is not None:
-                print('server exited', addr, p.returncode, flush=True)
-                stopping[0] = True
+                # a server exits on a CUDA fault (service.cuda_fault): start it again on the same address; its workers'
+                # connections fail, they restart and reconnect (service.Connection waits for the address)
+                if server_restarts[si] < 20 and not stopping[0]:
+                    print('server exited', addr, p.returncode, '-> restart', flush=True)
+                    f = run/('server%d.ready' % si)
+                    if f.exists():
+                        f.unlink()
+                    p2 = start_server(addr, f, log=run/('server%d.log' % si), map_device='cuda:%d' % devs[si % len(devs)],
+                                      env=base_env)
+                    servers[si] = (addr, p2)
+                    server_restarts[si] += 1
+                else:
+                    print('server exited', addr, p.returncode, flush=True)
+                    stopping[0] = True
         if learner is not None and learner.poll() is not None:
             print('learner exited', learner.returncode, flush=True)
             state = run/'learner_state.pt'
