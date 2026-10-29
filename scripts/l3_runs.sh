@@ -62,6 +62,18 @@ case $name in
       --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}' --sandbox '{\"continuation\":24}'" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R5/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.15 --cf-floor 0.5 --cf-reg 0.25" ;;
+  R7)  # main (pending the user's sensing decision): 360-degree people detection, Graph Compiler v1b (no continuation
+       # imagination: it cost 2.7x Sandbox time in R6 and true-future scoring of imagined continuations did not predict
+       # success), warm start from R5's full learner state, 20 actors, 4 labellers (labels at collision moments are
+       # mostly timing noise), weaker counterfactual regression.  NEAR_INTERVAL (default 0) enables adaptive frequency.
+    export QG_HUMAN_360=1
+    unset L3_LAYOUT
+    NI=${NEAR_INTERVAL:-0}
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R7 --servers 3 --server-devices 0,0,1 --workers 20 \
+      --eval-workers 2 --labelers 4 --labeler-args "--k 6 --cap 160 --p-success 0.25" --tag R7 \
+      --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}' --near-interval $NI" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R5/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.1 --cf-floor 0.5 --cf-reg 0.25" ;;
   B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
