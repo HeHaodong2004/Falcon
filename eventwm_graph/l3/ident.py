@@ -54,6 +54,9 @@ def _row(g, labels, cands, default):
     y = np.zeros((K, 3), np.float32)
     sem = np.zeros((K, len(SEM)), np.float32)
     for k, c in enumerate(cands[:K]):
+        if c.get('skipped'):
+            y[k] = [0., 0., 1.]                      # unlabelled placeholder: excluded like a cut continuation
+            continue
         y[k] = [c['outcome'] == 'success', c['outcome'] == 'human_collision', bool(c.get('alive'))]
     for k, l in enumerate(labels[:K]):
         sem[k] = query_semantics(l)

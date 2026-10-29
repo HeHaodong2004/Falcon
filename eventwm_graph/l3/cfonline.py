@@ -55,7 +55,7 @@ def targets_for(m, T, k, p_success, rng, spread=False):
     return []
 
 
-def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None, spread=False):
+def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None, spread=False, skip=()):
     from eventwm_graph.querygen.native import EpisodeSpec, MAX_EPISODE_STEPS
     from eventwm_graph.querygen.episode import EpisodeRuntime
     from eventwm_graph.querygen.dynamics import FAMILIES
@@ -98,6 +98,10 @@ def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None, spread=
                     break
                 cands = []
                 for q in queries:
+                    if skip and str(q.label).startswith(skip):
+                        # families that (almost) never save an episode are not labelled (placeholder keeps indices)
+                        cands.append(dict(label=q.label, skipped=True))
+                        continue
                     cont = q.kind == 'continue'
                     h = min(horizon_for(q, H) if not cont else 16, MAX_EPISODE_STEPS-st.index)
                     child = rt.run(st, None if cont else q, horizon=h, cont=cont, geodesic=False)
@@ -134,6 +138,7 @@ def main():
     ap.add_argument('--p-success', type=float, default=0.25)
     ap.add_argument('--seconds', type=float, default=1e12)
     ap.add_argument('--spread', action='store_true', help='failures: last 2 + k-2 earlier decisions (default: last k)')
+    ap.add_argument('--skip', default='', help='comma list of label prefixes not to label (placeholders)')
     a = ap.parse_args()
     hot = Path(a.run)/'cf_config.json'                       # hot override (labellers restarted by the fleet pick it up)
     if hot.exists():
@@ -166,7 +171,8 @@ def main():
             time.sleep(10)
             continue
         try:
-            rec = label_episode(todo, out, a.k, a.cap, a.p_success, rng, spread=a.spread)
+            rec = label_episode(todo, out, a.k, a.cap, a.p_success, rng, spread=a.spread,
+                                skip=tuple(x for x in (a.skip or '').split(',') if x))
             if rec['states']:
                 tmp = out/('.%s.tmp' % todo.name)
                 tmp.write_text(json.dumps(rec))

@@ -223,6 +223,8 @@ class Learner:
                             continue
                         i = idx[t]
                         for k, c in enumerate(st['candidates'][:KMAX]):
+                            if c.get('skipped'):
+                                continue
                             # a continuation cut at the labeller's cap ('alive') is no outcome: success -1 marks it
                             # (lower-bound hinge only, no regression)
                             succ = -1. if c.get('alive') else float(c['outcome'] == 'success')

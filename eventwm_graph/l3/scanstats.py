@@ -69,12 +69,12 @@ def main():
                 continue
             labels = st['labels']
             dflt = labels.index('continue') if 'continue' in labels else (labels.index('goal') if 'goal' in labels else 0)
-            done = [c for c in cands if not c.get('alive')]
+            done = [c for c in cands if not c.get('alive') and not c.get('skipped')]
             if not done:
                 continue
             cf['states'] += 1
             for lab, c in zip(labels, cands):
-                if c.get('alive'):
+                if c.get('alive') or c.get('skipped'):
                     continue
                 s = c['outcome'] == 'success'
                 if is_look(lab):
@@ -82,11 +82,11 @@ def main():
                 else:
                     cf['other_cands'] += 1; cf['other_succ'] += int(s)
             d = cands[dflt]
-            if d.get('alive') or d['outcome'] == 'success':
+            if d.get('alive') or d.get('skipped') or d['outcome'] == 'success':
                 continue
             cf['critical'] += 1
             for j, (lab, c) in enumerate(zip(labels, cands)):
-                if j == dflt or c.get('alive'):
+                if j == dflt or c.get('alive') or c.get('skipped'):
                     continue
                 s = c['outcome'] == 'success'
                 if is_look(lab):

@@ -41,6 +41,8 @@ def collect(runs):
                 lab = np.zeros((KMAX, 5), np.float32)
                 msk = np.zeros((KMAX, 2), bool)          # [complete continuation, any outcome]
                 for k, c in enumerate(st['candidates'][:KMAX]):
+                    if c.get('skipped'):
+                        continue
                     alive = bool(c.get('alive'))
                     lab[k] = [float(c['outcome'] == 'success'), float(c['outcome'] == 'human_collision'),
                               c['steps']/CUM_SCALE[2], c['path']/CUM_SCALE[3], c['social']/CUM_SCALE[4]]
