@@ -638,6 +638,11 @@ in stuck mode.  Not applicable to the frozen gate system.
 - Freeze time declared 23:53 (before the remaining v15 episodes finished): the rule is applied to the episodes paired
   at the earlier of v15 completion and 00:45.  Interim 23:51: 230 paired, PASS 218 (v14) / 217 (v15; flip
   jh4fc5c5qoQ PASS -> FAIL), mean search minutes 7.10 / 5.86, SPL 0.919 / 0.920.
+- **Freeze (00:20): v14** by the pre-registered rule: 246 paired development episodes, PASS 233 (v14) / 232 (v15;
+  jh4fc5c5qoQ PASS -> FAIL); the two v15 episodes still running are v14 PASS and cannot change it.  v15 is ~17%
+  faster (mean 6.50 vs 7.85 min) at equal SPL.  Tag `querygen-freeze-v14` -> e8fb1c77 (code snapshot of every v14
+  development episode, sha256 21cc7deb...).  Held-out test on the untouched sixth unseen suite launched:
+  ORCA K=10 (primary), ORCA K=6, DWA K=10, default-policy floors (`output/runs/official/test_v14/`).
 
 ## Next steps (REVISE)
 1. Evaluate revision v7b (root probes, branch-pure caches, goal test) on a *new* untouched split,

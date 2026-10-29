@@ -13,7 +13,7 @@ if [ -z "${QG_LAUNCH_COPY:-}" ]; then
 fi
 CFG=${1:?config}; ROOT=${2:?out root}; W=${3:-8}; SUITE=${4:-unseen6}
 TAG=querygen-freeze-v14
-HASH_EXPECTED=__V14_HASH__
+HASH_EXPECTED=21cc7deb8790e4eb81fc4797daf174de3873fba1ff084da13e27dfa2298dc61a
 PY=/home/haodong/miniforge3/envs/eventwm-falcon/bin/python
 cd "$QG_REPO"
 export QG_TAPE_CACHE="$QG_REPO/output/runs/official/tapes"     # exact human-tape cache

@@ -1,6 +1,11 @@
-# Held-out test: frozen v14 system under the OFFICIAL Falcon rules (DRAFT -- declared before any run on the sixth unseen suite)
+# Held-out test: frozen v14 system under the OFFICIAL Falcon rules (declared before any run on the sixth unseen suite)
 
-Drafted 2026-10-28 ~19:30.  Binding once the tag below exists.
+Drafted 2026-10-28 ~19:30; binding since 2026-10-29 00:20 (tag created).
+
+**Choice v14 vs v15** (pre-registered rule, PROGRESS.md 2026-10-28 22:58, freeze time declared 23:53): on the 246
+development episodes finished by both runs, PASS v14 233 vs v15 232 (flip: jh4fc5c5qoQ v14 PASS -> v15 FAIL_SEARCH);
+mean search minutes 7.85 vs 6.50; SPL on both-pass 0.917 vs 0.919.  The two v15 episodes still running at freeze
+(kdFEfVoT1WE, VLzqgDo317F) are v14 PASS, so they cannot change the outcome: **v14 is frozen**.
 
 ## Purpose
 v14 improves the query-level system (no privileged fallback: user, 2026-10-28 19:10 -- the fallback is the last
@@ -11,8 +16,13 @@ authoritative continuous replay with the unchanged `habitat.Env.step` reproduces
 official `success` measure is 1.
 
 ## Frozen system
-Tag `querygen-freeze-v14` (to be created after the v14 development run), launcher
+Tag `querygen-freeze-v14` -> commit e8fb1c77 (the querygen package every v14 development episode imported: code
+snapshot sha256 21cc7deb8790e4eb81fc4797daf174de3873fba1ff084da13e27dfa2298dc61a), launcher
 `scripts/querygen_test_v14.sh CONFIG OUT_ROOT [WORKERS]` (git archive of the tag, package hash check).
+
+Development evidence (official rules, query level, no fallback; DEV + unseen 1-4 = 248 episodes, 242 not proven
+infeasible): **235 / 242 = 97.1%** PASS, SPL 0.915, PSC 0.928, 0 human collisions, Oracle edges P50 77 / P90 1,493,
+mean search 8.3 min (v12 on its 182: 94.0%, 18.4 min).
 
 v14 = v12 (FINAL_PROTOCOL_V12.md) + exact fast legal sensor (`QG_FAST_SENSE=1`, identical observations) +
 * generator `goal_unknown_cost=1.25`: the goal queries' legal route prices unobserved cells 1.25x instead of 2.5x
