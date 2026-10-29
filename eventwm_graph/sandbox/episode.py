@@ -162,7 +162,10 @@ class RealEpisode:
                 raise RuntimeError('nothing to continue')
             self.execution.decision_boundary()
         else:
+            prev = self.execution
             self.execution = QueryExecution(query, make_planner(self.planner), self.dyn)
+            if QueryExecution.INHERIT and prev is not None:
+                self.execution.inherit(prev)
         ex = self.execution
         rec = dict(query=ex.query, cont=query is None, horizon=int(horizon), start=self.task.steps)
         n = 0

@@ -375,6 +375,29 @@ class QueryExecution:
     def copy(self):
         return copy.deepcopy(self)
 
+    # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_INHERIT=1): a NEW goal query issued
+    # while another goal query is running inherits the running execution's history toward the same target -- the
+    # stillness / 'unstick' streak and its escalation (with the kept static plan, 'ukeep') and the recent goal
+    # distances of the stuck-STOP rule -- so that interrupting a query is not a hidden reset (measured on dev:
+    # re-issuing a fresh goal query every interval instead of continuing costs 5-8 SR points, timeouts 13% -> 27%).
+    # Route caches are re-derived as at any decision boundary.  Applied identically by the branch runtime, the
+    # Sandbox imagination, the counterfactual labellers and the official replay.
+    INHERIT = __import__('os').environ.get('L3_INHERIT') == '1'
+
+    def inherit(self, prev):
+        if prev is None or getattr(prev, 'status', None) != 'running':
+            return
+        if not (self.query.kind == 'goal' and prev.query.kind == 'goal' and not self.query.via and not prev.query.via):
+            return
+        self.recent = list(prev.recent)
+        self._still, self._last_xz, self._still_psi = prev._still, prev._last_xz, list(prev._still_psi)
+        mq = self.query.meta or {}
+        if prev.escalated and mq.get('unstick'):
+            self.escalated = True
+            self.reason = 'unstick'
+            if mq.get('ukeep') and (prev.query.meta or {}).get('ukeep') and prev.plan is not None:
+                self.plan, self.plan_i, self.plan_age = copy.deepcopy(prev.plan), prev.plan_i, prev.plan_age
+
     def decision_boundary(self):
         """Drop derived caches (route view/field, static plan) at a decision.
 

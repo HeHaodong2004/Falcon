@@ -130,6 +130,8 @@ class EpisodeRuntime:
             ex.decision_boundary()
         else:
             ex = self.new_execution(query, planner_name, dyn)
+            if QueryExecution.INHERIT and st.execution is not None:
+                ex.inherit(st.execution)
         st.execution = ex
         record = dict(query=ex.query, start=st.index, cont=bool(cont), horizon=int(horizon))
         sim, sensor = self.sim, self.sensor
@@ -319,7 +321,10 @@ def replay(spec, planner_name, dyn, decisions, planner_kw=None, verbose=False, p
                     raise RuntimeError('Replay cannot continue a finished execution')
                 ex.decision_boundary()
             else:
+                prev_ex = ex
                 ex = QueryExecution(rec['query'], make_planner(planner_name, **(planner_kw or {})), dyn)
+                if QueryExecution.INHERIT and prev_ex is not None:
+                    ex.inherit(prev_ex)
             n = 0
             for _ in range(rec['horizon']):
                 if task.episode_over:

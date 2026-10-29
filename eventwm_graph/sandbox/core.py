@@ -44,7 +44,8 @@ class Candidate:
     """One Query to imagine, with ITS executing planner and dynamics family (heterogeneous per candidate).
 
     ``query``: a querygen ``Query`` (any kind the executor accepts) or None with ``execution`` set (continue the
-    running execution: a deep copy is imagined).  ``horizon``: imagined steps (None = the configuration's rule).
+    running execution: a deep copy is imagined).  With a query AND ``execution`` set, the new query inherits the
+    running execution's history when the Layer 3 option ``QueryExecution.INHERIT`` is on (otherwise ignored).  ``horizon``: imagined steps (None = the configuration's rule).
     ``level``: the robot's current speed level (stateful dynamics families; 0 for native / instant robots).
     """
     query: Any = None
@@ -265,9 +266,12 @@ class WorldModelSandbox:
         if getattr(cand.query, 'kind', None) == 'continue':
             raise SandboxError("'continue' candidates pass the running execution (query=None, execution=...)")
         try:
-            return new_execution(cand.query, cand.planner, dyn, cand.planner_kw), dyn
+            ex = new_execution(cand.query, cand.planner, dyn, cand.planner_kw)
         except Exception as exc:                        # this candidate's executor cannot start: recorded, not raised
             return exc, dyn
+        if cand.execution is not None and getattr(type(ex), 'INHERIT', False):
+            ex.inherit(cand.execution)                  # Layer 3 option: history of the running query (executor.py)
+        return ex, dyn
 
     # ------------------------------------------------------------------ evaluate
     def imagine_all(self, legal, candidates, humans, memoize=None):
