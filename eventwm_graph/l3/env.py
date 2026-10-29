@@ -23,6 +23,7 @@ import time
 import numpy as np
 
 HORIZON = 16
+ORACLE_BANK = __import__('os').environ.get('L3_ORACLE_BANK')    # analysis only: 'tracked' | 'all' (oraclebank.py)
 
 
 @dataclass(frozen=True)
@@ -138,6 +139,12 @@ class L3Episode:
             t = T()
             result = self.sb.evaluate(state, ep.legal, cands)
             tm['sandbox_ms'] = 1000*(T()-t)
+            if ORACLE_BANK:
+                # ANALYSIS ONLY (privileged): true human futures in place of Stage 1's bank (oraclebank.py)
+                import dataclasses
+                from .oraclebank import OracleBank
+                result = dataclasses.replace(result, humans=OracleBank(self.rt.tape.positions, ep.state.index, ep.legal,
+                                                                       ORACLE_BANK))
             t = T()
             graph = self.compiler.compile(result, ep.legal, queries, diag, ep.steps, running=running)
             tm['compile_ms'] = 1000*(T()-t)

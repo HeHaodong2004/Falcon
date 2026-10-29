@@ -83,3 +83,47 @@ def routesafe_index(graph, default, thr=0.15, ratio=0.5):
         pool = safe if len(safe) else idx
         return int(pool[np.argmax(c[pool, _I['ctg_gain']]-0.5*risk[pool])])
     return d
+
+
+def routesafe_progress_index(graph, default, thr=0.15, slack=0.1):
+    """Like ``routesafe_index`` but never trades progress for safety: deviate from the default only to a candidate whose
+    interval + intention risk is below ``thr`` and half the default's AND whose legal route progress over the interval
+    is at least the default's minus ``slack`` (feature units: 0.1 = 0.3 m); otherwise keep the default."""
+    c = graph['cand']
+    n = len(c)
+    risk = np.maximum(c[:, _I['pcol']], c[:, _I['r_pcol']]).astype(np.float64)
+    d = int(default)
+    if risk[d] < thr:
+        return d
+    stop = c[:, _I['intent_stop']] > 0.5
+    at_goal = c[:, _I['at_goal']] > 0.5
+    scan = c[:, _I['q_fam_scan']] > 0.5 if 'q_fam_scan' in _I else np.zeros(n, bool)
+    gain = c[:, _I['ctg_gain']].astype(np.float64)
+    ok = (risk < min(thr, 0.5*risk[d])) & ~(stop & ~at_goal) & ~scan & (gain >= gain[d]-slack)
+    if ok.any():
+        idx = np.flatnonzero(ok)
+        return int(idx[np.argmax(gain[idx]-0.5*risk[idx])])
+    return d
+
+
+def routesafe_bank_index(graph, default, thr=0.15, slack=0.1):
+    """``routesafe_progress_index`` with every risk taken from the compiler's bank-derived columns (waypoint P(contact)
+    over the interval and the intention's P(contact)), so the same rule can run on Stage 1's bank or, for analysis, on
+    the true human futures (L3_ORACLE_BANK)."""
+    from .compiler import TRAJ
+    c = graph['cand']
+    n = len(c)
+    ip = graph['traj'][:, :, TRAJ.index('p_col')].max(1).astype(np.float64) if n else np.zeros(0)
+    risk = np.maximum(ip, c[:, _I['r_pcol']].astype(np.float64))
+    d = int(default)
+    if risk[d] < thr:
+        return d
+    stop = c[:, _I['intent_stop']] > 0.5
+    at_goal = c[:, _I['at_goal']] > 0.5
+    scan = c[:, _I['q_fam_scan']] > 0.5 if 'q_fam_scan' in _I else np.zeros(n, bool)
+    gain = c[:, _I['ctg_gain']].astype(np.float64)
+    ok = (risk < min(thr, 0.5*risk[d])) & ~(stop & ~at_goal) & ~scan & (gain >= gain[d]-slack)
+    if ok.any():
+        idx = np.flatnonzero(ok)
+        return int(idx[np.argmax(gain[idx]-0.5*risk[idx])])
+    return d

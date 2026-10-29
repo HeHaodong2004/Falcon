@@ -150,6 +150,12 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
             elif selector == 'routesafe':
                 from .heuristics import routesafe_index
                 a, p = routesafe_index(d.graph, d.default), 1.
+            elif selector == 'routesafe2':
+                from .heuristics import routesafe_progress_index
+                a, p = routesafe_progress_index(d.graph, d.default), 1.
+            elif selector == 'routesafe3':
+                from .heuristics import routesafe_bank_index
+                a, p = routesafe_bank_index(d.graph, d.default), 1.
             elif selector == 'oracle':
                 want = oracle_seq[ep.decisions] if ep.decisions < len(oracle_seq) else None
                 if want in d.labels:
