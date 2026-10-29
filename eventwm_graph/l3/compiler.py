@@ -245,6 +245,8 @@ class GraphCompiler:
         self.brake_tail = bool(brake_tail)
         if self.brake_tail:
             self.schema = SCHEMA+'b'
+        if LAYOUT == 'v2':
+            self.schema = 'l3_graph_v2'+('b' if self.brake_tail else '')
 
     def compile(self, result, legal, queries, diag=None, steps=0):
         diag = diag or {}
