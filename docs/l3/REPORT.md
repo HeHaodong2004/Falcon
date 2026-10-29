@@ -38,6 +38,8 @@ the continuous base-velocity action (modified robot dynamics, outside the offici
 | B1 | no-imagination ablation, R1 learner | stopped with R1 (28 episodes) |
 | R2 | R1 + Monte Carlo target mixing (0.5 -> 0.1 over 300k decisions) + replay ratio 64; seeded with R1's episodes | running since 13:20 |
 | B2 | no-imagination ablation with the R2 learner, seeded with B1's episodes | running since 13:20 |
+| R2 | (see above) | learner aborted after 5 min with a native heap corruption (`malloc(): invalid size`) while its ingestion thread wrote the ring; fleet stopped (no saved state yet) |
+| R3 | R2 settings, thread-free learner (ingestion on the main loop), state saved every 10 min, auto-restart; seeded with all R1 + R2 episodes | running since 13:37 (main run) |
 
 **R1 diagnosis.** After warm-up on the Oracle demonstrations (all successful episodes) the success head predicted
 P(success) = 0.98 for the chosen candidate against an actual 0.36 (per decision, versions 0-2), still 0.86 vs 0.34 at
@@ -74,6 +76,12 @@ PSC 89.6 / H-Coll 43.0, Social-MP3D SR 55.1 (arXiv 2409.13244); NavThinker Socia
 H-Coll 39.1 (arXiv 2603.15359).
 
 ## 3. Evaluation plan
+
+**Pre-registered checkpoint selection (2026-10-29 13:45, before any dev evaluation of a learned policy).**
+Milestone dev evaluations (all 72 dev episodes x the 14 configurations, greedy policy) of the main run's checkpoints.
+The final shared policy is the checkpoint with the highest mean dev SR over the SEVEN SEEN configurations (ties: mean
+SPL); the held-out configurations never influence selection.  The conservative-deviation margin (0, 0.25, 0.5, 1.0)
+is chosen the same way on dev for that checkpoint.  The same rule selects the checkpoints of the ablation runs.
 
 * E1 main: the shared policy vs the floor, the hand-written imagination heuristic (`heuristics.greedy_index`), and
   the Oracle where available, on the official configurations, test split (after the freeze; official replay).
