@@ -228,6 +228,10 @@ class ImaginedRollout:
     tail: Optional[np.ndarray] = None   # [B, 4] imagined emergency stop from the end pose (straight ahead, braking at the
                                         # family's limit); empty for robots without speed state.  Not part of the
                                         # trajectory given to Layer 2 (a consequence summary for the Graph Compiler).
+    cont: Optional[np.ndarray] = None   # [C, 4] continuation (SandboxConfig.continuation > 0): what the robot would do
+                                        # after the interval under the default policy -- keep the running query, else the
+                                        # goal query -- same executor, planner, dynamics and nominal humans.  Not given
+                                        # to Layer 2; the Graph Compiler scores it against the Stage 1 worlds.
 
     @property
     def end_level(self):
@@ -267,7 +271,7 @@ def frozen_map(gmap):
     return g
 
 
-def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None):
+def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuation=0, cont_query=None, planner=None):
     """Roll ``execution`` (a fresh or copied ``QueryExecution``; consumed) forward for at most ``steps`` imagined
     steps from the legal state ``legal`` at t, against the nominal humans.  Returns an ``ImaginedRollout``.
     ``gmap``: the decision's frozen map alias (default: ``legal.map`` itself)."""
@@ -315,6 +319,10 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None):
         if execution.status != 'running':
             ended = 'done' if execution.status == 'done' else 'failed'
             break
+    cont = None
+    if continuation > 0 and not stop and error is None and cont_query is not None:
+        cont = _continue(sl, execution, dyn, humans, len(poses)-1, int(continuation), int(levels[-1]), cont_query,
+                         planner)
     P = np.asarray(poses)
     g = np.asarray(legal.goal, np.float64)
     d0 = float(math.hypot(g[0]-P[0, 0], g[2]-P[0, 2]))
@@ -325,7 +333,41 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None):
                            ended_by=ended, stop=stop, goal_distance=d1, progress=d0-d1, path_length=float(seg.sum()),
                            blocked_steps=int(blocked), nominal_clearance=float(clearance),
                            planner_ms=(time.perf_counter()-tick)*1000, error=error,
-                           tail=brake_tail(P[-1], levels[-1], dyn) if not stop else np.zeros((0, 4)))
+                           tail=brake_tail(P[-1], levels[-1], dyn) if not stop else np.zeros((0, 4)), cont=cont)
+
+
+def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner):
+    """Continue the imagination for ``n`` steps under the default policy (keep the running query at a decision
+    boundary, else the goal query; the goal query again when the running one ends).  Returns poses [<=n, 4]."""
+    out = []
+    ex = execution
+    if ex.status == 'running':
+        ex.decision_boundary()
+    else:
+        ex = new_execution(goal_query, planner, dyn)
+    for j in range(n):
+        sl.tracks = humans.tracks(k0+j)
+        try:
+            prim, level = ex.step(sl, level)
+            if prim == 'stop':
+                break
+            p = advance(sl.pose, dyn, command_for(dyn, prim))
+        except Exception:
+            break
+        if not np.isfinite(p).all():
+            break
+        sl.time += STEP_SECONDS
+        sl.pose = p
+        sl.poses.append(p); sl.times.append(sl.time)
+        if len(sl.poses) > HISTORY_TAIL:
+            del sl.poses[0]; del sl.times[0]
+        sl.steps += 1
+        out.append(p)
+        if ex.status != 'running':
+            if ex.query is goal_query:
+                break
+            ex = new_execution(goal_query, planner, dyn)
+    return np.asarray(out, np.float64).reshape(-1, 4)
 
 
 def brake_tail(pose, level, dyn, max_steps=24):

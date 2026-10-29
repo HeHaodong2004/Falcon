@@ -78,6 +78,8 @@ class SandboxConfig:
     memoize: bool = True             # exact per-decision caches on the frozen map (accel.py; bit-identical rollouts)
     prefetch_maps: bool = False      # warm Stage 2's legal-map context (graph compile, range voxel map) on a worker
                                      # thread while Stage 1 and the rollouts run (Layer 2 outputs are cache-independent)
+    continuation: int = 0            # Layer 3 option: imagined steps after each candidate's interval under the default
+                                     # policy (ImaginedRollout.cont; not given to Layer 2).  0 = off (the released core)
 
     def steps_for(self, cand):
         if cand.query is None and cand.execution is None:
@@ -280,7 +282,12 @@ class WorldModelSandbox:
                 if isinstance(ex, Exception):
                     out.append(failed_rollout(legal, '%s: %s' % (type(ex).__name__, ex)))
                     continue
-                out.append(imagine(legal, ex, dyn, humans, steps, level=int(c.level), gmap=gmap))
+                cq = None
+                if self.config.continuation:
+                    from .episode import default_query
+                    cq = self._cont_query = getattr(self, '_cont_query', None) or default_query()
+                out.append(imagine(legal, ex, dyn, humans, steps, level=int(c.level), gmap=gmap,
+                                   continuation=self.config.continuation, cont_query=cq, planner=c.planner))
         self.last_cache = cache.summary() if cache is not None else {}
         return out
 
@@ -308,7 +315,8 @@ class WorldModelSandbox:
         b0 = time.perf_counter()
         bank = self.l2.predict_humans(state, worlds=cfg.worlds, seed=cfg.seed)
         b1 = time.perf_counter()
-        humans = NominalHumans(legal.tracks, legal.time, max(steps, default=0), bank=bank, mode=cfg.nominal)
+        humans = NominalHumans(legal.tracks, legal.time, max(steps, default=0)+int(cfg.continuation), bank=bank,
+                               mode=cfg.nominal)
         b2 = time.perf_counter()
         # 2. imagined executions
         rollouts = self.imagine_all(legal, cands, humans)

@@ -28,6 +28,7 @@ Legality: inputs are the legal state at t, the generator's legal candidates and 
 any legal map.  No simulator, navmesh, geodesic, true future or Oracle quantity is read.
 """
 import math
+import os
 
 import numpy as np
 
@@ -64,6 +65,12 @@ CAND = ([f'intent_{k}' for k in INTENTS]
         + ['pcol', 'psoc', 'soc_dur', 'soc_sev', 'mind_q10', 'mind_q50', 'mind_q90', 'p_nohum', 'tcol', 'nom_clear']
         + ['x_pcol', 'x_psoc', 'x_soc_dur', 'x_mind_q10', 'x_mind_q50', 'x_tcol']
         + ['m_cells', 'm_free', 'm_blk', 'm_free_goal', 'm_blk_goal', 'm_blk_ahead', 'm_hard_free', 'm_hard_blk'])
+# v2 layout (L3_LAYOUT=v2): consequences of the imagined CONTINUATION after the interval (SandboxConfig.continuation):
+# risk of interval + continuation (then the braking tail / hold) against every Stage 1 world, continuation progress
+CAND_V2 = ['y_pcol', 'y_psoc', 'y_soc_dur', 'y_mind_q10', 'y_tcol', 'y_ctg_gain', 'y_disp', 'y_steps']
+LAYOUT = os.environ.get('L3_LAYOUT', 'v1')
+if LAYOUT == 'v2':
+    CAND = CAND+CAND_V2
 TRAJ = ['t', 'active', 'fwd', 'left', 'hcos', 'hsin', 'speed', 'm_free', 'm_unk', 'm_blk', 'clear', 'ctg_gain',
         'p_soc', 'p_col', 'mind_q10', 'mind_q50', 'nom_clear']
 HUM = ['fwd', 'left', 'vfwd', 'vleft', 'speed', 'dist', 'bcos', 'bsin', 'age', 'visible', 'closing',
@@ -72,6 +79,7 @@ HFUT = ['fwd', 'left', 'spread', 'presence', 'dist']
 PAIR = ['dfwd', 'dleft', 'dist_mean', 'p_1m', 'p_col', 'dmin_q10']
 
 # feature groups (for ablations): column names per group and node type
+IMAGINATION_GROUPS = ('motion', 'progress', 'static', 'human', 'map')
 GROUPS = {
     'intent': dict(cand=[c for c in CAND if c.startswith('intent_')]+['continued', 'via_fwd', 'via_left', 'via_dist', 'duration']),
     'motion': dict(cand=['steps', 'end_horizon', 'end_done', 'end_stop', 'end_failed', 'end_error', 'disp_fwd', 'disp_left',
@@ -87,7 +95,9 @@ GROUPS = {
                   ego=['resid_near_1s', 'resid_near_3s', 'resid_mass', 'hold_pcol', 'hold_psoc', 'hold_mind_q10']),
     'map': dict(cand=['m_cells', 'm_free', 'm_blk', 'm_free_goal', 'm_blk_goal', 'm_blk_ahead', 'm_hard_free', 'm_hard_blk']),
 }
-IMAGINATION_GROUPS = ('motion', 'progress', 'static', 'human', 'map')
+if LAYOUT == 'v2':
+    GROUPS['continuation'] = dict(cand=list(CAND_V2))
+    IMAGINATION_GROUPS = IMAGINATION_GROUPS+('continuation',)
 
 
 def column_index(names, cols):
@@ -260,6 +270,7 @@ class GraphCompiler:
         slot = {k[len('track:'):]: n for n, k in enumerate(keys) if k.startswith('track:')}
         # ------------------------------------------------------- per candidate
         cand_rows, traj_rows, robots_ext, lengths_ext = [], [], [], []
+        robots_cont, cand_v2_progress = [], []
         sample_xy = np.zeros((K, P, 2))                                  # world (x, z) at the sample steps
         sample_active = np.zeros((K, P), bool)
         for k, c in enumerate(cands):
@@ -344,7 +355,8 @@ class GraphCompiler:
                       mq[0]/5., mq[1]/5., mq[2]/5., float(h.get('p_no_humans', 1.)), tcol/3.,
                       _clip(ro.nominal_clearance if np.isfinite(ro.nominal_clearance) else 10., 0, 10)/5.]
                    + [0.]*6
-                   + mfeat)
+                   + mfeat
+                   + ([0.]*len(CAND_V2) if LAYOUT == 'v2' else []))
             cand_rows.append(row)
             # waypoints
             idx = np.minimum(SAMPLE_STEPS, T)
@@ -367,6 +379,20 @@ class GraphCompiler:
                               _clip(field.start-field.at(sp[p_, 0], sp[p_, 2]), -6, 6)/3.,
                               0., 0., 0., 0., 0.])
             traj_rows.append(trows)
+            if LAYOUT == 'v2':
+                cont = getattr(ro, 'cont', None)
+                cont = np.zeros((0, 4)) if cont is None else np.asarray(cont, np.float64)
+                cseq = np.concatenate([poses[1:], cont]) if len(cont) else poses[1:]
+                ctail = getattr(ro, 'tail', None)
+                cext = np.zeros((len(rel), 4))
+                nn_ = min(len(cseq), len(rel))
+                cext[:nn_] = cseq[:nn_]
+                cext[nn_:] = cseq[nn_-1] if nn_ else poses[-1]
+                robots_cont.append(cext)
+                cend = cont[-1] if len(cont) else poses[-1]
+                cand_v2_progress.append([_clip(ctg_end-field.at(cend[0], cend[2]), -6, 6)/3.,
+                                         _clip(math.hypot(cend[0]-poses[-1, 0], cend[2]-poses[-1, 2]), 0, 6)/3.,
+                                         len(cont)/32.])
             # hold extension: imagined poses then the end pose held for the remaining Stage 1 horizon
             ext = np.zeros((len(rel), 4))
             seq = poses[1:]
@@ -421,6 +447,25 @@ class GraphCompiler:
                 cand[k, CAND.index('x_tcol')] = 1.
             traj[:, :, TRAJ.index('mind_q10')] = 2.
             traj[:, :, TRAJ.index('mind_q50')] = 2.
+        if LAYOUT == 'v2' and K:
+            for k in range(K):
+                cand[k, CAND.index('y_ctg_gain')], cand[k, CAND.index('y_disp')], cand[k, CAND.index('y_steps')] = cand_v2_progress[k]
+            if Nb and len(rel):
+                from eventwm_graph.layer2.reduction import aggregate_joint
+                red = aggregate_joint(HP, np.stack(robots_cont), np.asarray([len(rel)]*K), W)
+                fcm = red['first_collision_mass']
+                tt = np.arange(1, fcm.shape[1]+1)*STEP_SECONDS
+                for k in range(K):
+                    mq = [float(x) if x is not None and np.isfinite(x) else 10. for x in red['minimum_quantiles'][k]]
+                    cand[k, CAND.index('y_pcol')] = red['p_collision'][k]
+                    cand[k, CAND.index('y_psoc')] = red['p_social'][k]
+                    cand[k, CAND.index('y_soc_dur')] = min(float(red['expected_social_duration'][k]), 3.)
+                    cand[k, CAND.index('y_mind_q10')] = mq[0]/5.
+                    cand[k, CAND.index('y_tcol')] = (float((fcm[k]*tt).sum()/max(fcm[k].sum(), 1e-9)) if fcm[k].sum() > 0 else 3.)/3.
+            else:
+                for k in range(K):
+                    cand[k, CAND.index('y_mind_q10')] = 2.
+                    cand[k, CAND.index('y_tcol')] = 1.
         # nominal clearance at the sample times (the people the imagined planner perceived)
         nom = result.nominal
         if K and nom.positions.shape[1]:
