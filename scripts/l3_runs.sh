@@ -44,6 +44,14 @@ case $name in
       --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}'" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --pretrain 0 --init output/runs/R4/learner_state.pt --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.25 --cf-floor 0.5 --v1b --seed-spool output/runs/R4/spool,output/runs/R1/spool,output/runs/R2/spool,output/runs/R3/spool" ;;
+  R5b) # R5 restarted IN PLACE (same run directory: its spool, labels and learner state carry over) with dense
+       # counterfactual supervision (--cf-reg 0.5: the value heads regress on every labelled candidate's exact outcome
+       # next to TD), labels over the last 6 decisions of failures, 14 labellers / 14 training actors.
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R5 --servers 3 --server-devices 0,0,1 --workers 14 \
+      --eval-workers 2 --labelers 14 --labeler-args "--k 6 --cap 160 --p-success 0.25" --tag R5b \
+      --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}'" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --pretrain 0 --init output/runs/R5/learner_state.pt --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.25 --cf-floor 0.5 --cf-reg 0.5 --v1b --seed-spool output/runs/R4/spool,output/runs/R1/spool,output/runs/R2/spool,output/runs/R3/spool" ;;
   B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \

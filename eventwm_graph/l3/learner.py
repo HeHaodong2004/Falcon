@@ -87,6 +87,7 @@ class Learner:
         self.online_slots, self.cf_applied, self.cf_online_states = {}, set(), 0
         self.cf_floor = 0.5               # counterfactual lower-bound hinge never decays below this weight
         self.cf_frac = 0.0                # share of each batch drawn from counterfactually labelled states
+        self.cf_reg = 0.0                 # permanent weight of the counterfactual regression of the value heads
         self.poll_every = 5.
         self.t0 = time.time()
 
@@ -332,11 +333,13 @@ class Learner:
                 - self.w.path*10*cfl[..., 3]-self.w.social*50*cfl[..., 4]
             hinge = Fn.relu(ycf-q)[cfm].pow(2).mean()
             reg = 0.
-            if self.updates < self.warm_steps:
+            if self.updates < self.warm_steps or self.cf_reg > 0:
                 lab = {h: cfl[..., j] for j, h in enumerate(HEADS)}
                 pr = {h: out[h][cfm] for h in HEADS}
                 lb = {h: lab[h][cfm] for h in HEADS}
                 reg = sum(self.head_w[h]*v for h, v in head_loss(pr, lb).items())
+                if self.updates >= self.warm_steps:
+                    reg = reg*self.cf_reg/max(wcf, 1e-6)      # permanent dense supervision at weight cf_reg
             loss = loss+wcf*(0.1*hinge+reg)
             info['cf_hinge'] = float(hinge)
             # ---------------- Oracle margin against counterfactual failures
@@ -477,6 +480,7 @@ def main():
     ap.add_argument('--cf-frac', type=float, default=0., help='share of each batch from counterfactually labelled states')
     ap.add_argument('--v1b', action='store_true', help='seed only v1b graphs for robots with speed state')
     ap.add_argument('--cf-floor', type=float, default=0.5, help='minimum weight of the counterfactual hinge')
+    ap.add_argument('--cf-reg', type=float, default=0., help='permanent counterfactual regression weight on the value heads')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
     import signal
@@ -495,7 +499,7 @@ def main():
     (run/'learner_args.json').write_text(json.dumps(vars(a)))
     if a.anchor:
         L.anchor = tuple(float(x) for x in a.anchor.split(','))
-    L.cf_frac, L.cf_floor = a.cf_frac, a.cf_floor
+    L.cf_frac, L.cf_floor, L.cf_reg = a.cf_frac, a.cf_floor, a.cf_reg
     if a.init:
         L.load_init(a.init)
     if a.seed_spool:
