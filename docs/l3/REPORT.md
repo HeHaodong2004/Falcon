@@ -294,3 +294,14 @@ From 19:45 the learner adds a conservative-Q regulariser (`--cql 0.05`: logsumex
 candidate's value, online data).  First on-policy counterfactual labels with whole-episode targets (104 states): at
 the 88 states where the default fails, a scan / look candidate saves the episode in 10.3% of cases (21/204), other
 alternatives in 6.9% (49/712).
+
+**Prediction vs decision (paired dev, ORCA / DWA native; 46-59 episodes each, 20:05).**  The progress-preserving
+route-safe rule (deviate only to a candidate with < half the default's interval + intention contact risk and no loss
+of route progress): SR DWA 56.5% / ORCA 42.4% vs floor 56.5% / 45.8%, collisions 28 -> 24% / 39 -> 32%.  The same rule
+on the TRUE 3 s futures of the tracked people (analysis-only bank, `l3/oraclebank.py`): 50.0% / 45.8%.  Better
+predictions of seen people do not help a one-step rule; safety is converted into stalls.  The missing piece is
+multi-step behaviour (wait / yield / pass at the right time while keeping progress) -- the learned policy's job.
+Throughput profile (in-process, per decision): imagination of ~12 candidates 420 ms, Stage 1 90 ms, Stage 2 70 ms,
+compile 120 ms, generator 45 ms; sensing + range frames ~1 s.  Only 8% of decisions are trivially safe (no person
+within 6 m, no hidden mass, default continuing), so decision skipping is not worth it.  From 20:00 R9's learner also
+ingests the Oracle solutions replayed under v4 (supervision data, off-policy, 380 episodes being generated).
