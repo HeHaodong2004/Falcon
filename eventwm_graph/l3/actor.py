@@ -153,6 +153,10 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
             elif selector == 'routesafe2':
                 from .heuristics import routesafe_progress_index
                 a, p = routesafe_progress_index(d.graph, d.default), 1.
+            elif selector == 'restart':
+                # control experiment: the floor's intent, but a FRESH goal query at every decision instead of continuing
+                # the running one (the executor -- route, planner and recovery state -- restarts every interval)
+                a, p = (d.labels.index('goal') if 'goal' in d.labels else d.default), 1.
             elif selector == 'routesafe3':
                 from .heuristics import routesafe_bank_index
                 a, p = routesafe_bank_index(d.graph, d.default), 1.
