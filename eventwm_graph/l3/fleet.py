@@ -132,17 +132,20 @@ def main():
         if learner is not None and learner.poll() is not None:
             print('learner exited', learner.returncode, flush=True)
             state = run/'learner_state.pt'
-            if learner_restarts[0] < 5 and state.exists():
-                # resume from the last full state (the spool is re-ingested; no pre-training)
+            if learner_restarts[0] < 5:
+                # resume from the last full state if there is one (the spool is re-ingested; no pre-training),
+                # otherwise start the learner again from its original arguments
                 largs = [x for x in shlex.split(a.learner_args)]
-                if '--pretrain' in largs:
-                    i = largs.index('--pretrain'); largs[i+1] = '0'
-                if '--init' in largs:
-                    i = largs.index('--init'); largs[i+1] = str(state)
-                else:
-                    largs += ['--init', str(state)]
+                if state.exists():
+                    if '--pretrain' in largs:
+                        i = largs.index('--pretrain'); largs[i+1] = '0'
+                    if '--init' in largs:
+                        i = largs.index('--init'); largs[i+1] = str(state)
+                    else:
+                        largs += ['--init', str(state)]
                 learner = spawn('eventwm_graph.l3.learner', ['--run', str(run)]+largs, run/'learner.log', env=base_env)
                 learner_restarts[0] += 1
+                print('learner restarted (%d)' % learner_restarts[0], flush=True)
             else:
                 stopping[0] = True
         if time.time()-last > 60:

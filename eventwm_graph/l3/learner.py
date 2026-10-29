@@ -82,6 +82,8 @@ class Learner:
         self.warm_dir, self.cf_dir, self.warm_loaded = None, None, set()
         self.warm_slots, self.warm_keys = {}, {}
         self.warm_inserted = 0
+        self._last_warm = self._last_poll = 0.
+        self.poll_every = 5.
         self.t0 = time.time()
 
     # ------------------------------------------------------------------ data
@@ -177,30 +179,35 @@ class Learner:
             self.warm_slots[name] = (idx, ep_id, labels, True)
         return n
 
-    def watch_spool(self, stop):
-        spool = self.run/'spool'
-        last_warm = time.time()
-        while not stop.is_set():
-            if time.time()-last_warm > 600:
-                try:
-                    k = self.ingest_warm()
-                    u = self.update_cf()
-                    if k or u:
-                        print('late warm-up: %d transitions, %d states labelled' % (k, u), flush=True)
-                except Exception as exc:
-                    print('warm ingest failed', exc, flush=True)
-                last_warm = time.time()
-            n = 0
-            for p in sorted(spool.glob('*.ep')):
-                if p.name in self.loaded:
-                    continue
-                try:
-                    n += self.ingest_file(p, 0)
-                except Exception as exc:
-                    print('ingest failed', p, exc, flush=True)
-                self.loaded.add(p.name)
-            if n == 0:
-                time.sleep(2.)
+    def poll_spool(self, budget_s=1.0):
+        """One ingestion pass on the MAIN thread (no background thread: R2's learner died of a native heap
+        corruption while a watcher thread wrote into the ring and the main thread gathered batches).  New spool
+        files every ``poll_every`` seconds (at most ``budget_s`` per pass); late warm-up data every 10 minutes."""
+        now = time.time()
+        if now-self._last_warm > 600:
+            try:
+                k = self.ingest_warm()
+                u = self.update_cf()
+                if k or u:
+                    print('late warm-up: %d transitions, %d states labelled' % (k, u), flush=True)
+            except Exception as exc:
+                print('warm ingest failed', exc, flush=True)
+            self._last_warm = now
+        if now-self._last_poll < self.poll_every:
+            return 0
+        self._last_poll = now
+        n = 0
+        with os.scandir(self.run/'spool') as it:
+            new = sorted(e.name for e in it if e.name.endswith('.ep') and e.name not in self.loaded)
+        for name in new:
+            try:
+                n += self.ingest_file(self.run/'spool'/name, 0)
+            except Exception as exc:
+                print('ingest failed', name, exc, flush=True)
+            self.loaded.add(name)
+            if time.time()-now > budget_s:
+                break
+        return n
 
     # ------------------------------------------------------------------ schedules
     @staticmethod
@@ -314,9 +321,11 @@ class Learner:
             torch.save(ck, self.run/'checkpoints'/('policy_v%05d.pt' % self.version))
 
     def save_full(self, name='learner_state.pt'):
+        tmp = self.run/('.%s.tmp' % name)
         torch.save(dict(net=self.net.state_dict(), tgt=self.tgt.state_dict(), opt=self.opt.state_dict(),
                         updates=self.updates, version=self.version, model_config=asdict(self.mcfg),
-                        weights=asdict(self.w)), self.run/name)
+                        weights=asdict(self.w)), tmp)
+        os.replace(tmp, self.run/name)
 
     def load_init(self, path):
         ck = torch.load(path, map_location=self.dev)
@@ -329,10 +338,7 @@ class Learner:
             self.version = int(ck.get('version', 0))
 
     def loop(self, max_updates=10**12, max_seconds=1e12, pretrain_updates=0):
-        stop = threading.Event()
-        th = threading.Thread(target=self.watch_spool, args=(stop,), daemon=True)
-        th.start()
-        last_log = time.time()
+        last_log = last_save = time.time()
         acc = {}
         try:
             if pretrain_updates:
@@ -346,6 +352,7 @@ class Learner:
             self.publish()
             base = self.updates                      # replay ratio counts online updates against online data only
             while self.updates < max_updates and time.time()-self.t0 < max_seconds:
+                self.poll_spool()
                 online = int((self.ring.source[self.ring.valid] == 0).sum())
                 online_in = self.ring.inserted-self.warm_inserted
                 if online < self.min_size or (self.updates-base)*self.batch > self.replay_ratio*max(online_in, 1):
@@ -359,10 +366,10 @@ class Learner:
                 if time.time()-last_log > 60:
                     self._log(acc); acc = {}
                     last_log = time.time()
-                    if self.updates and self.version % 10 == 0:
-                        self.save_full()
+                if time.time()-last_save > 600:
+                    self.save_full()                      # the fleet restarts a dead learner from this state
+                    last_save = time.time()
         finally:
-            stop.set()
             self.save_full()
             self.publish()
 
@@ -423,7 +430,7 @@ def main():
         L.load_init(a.init)
     if a.seed_spool:
         n = 0
-        files = sorted(Path(a.seed_spool).glob('*.ep'), key=lambda p: p.stat().st_mtime)
+        files = sorted((p for d in a.seed_spool.split(',') for p in Path(d).glob('*.ep')), key=lambda p: p.stat().st_mtime)
         if a.seed_limit:
             files = files[:a.seed_limit]
         for p in files:

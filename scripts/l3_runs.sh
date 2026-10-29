@@ -22,6 +22,12 @@ case $name in
       --eval-workers 2 --tag R2 --actor-args "--configs $SEEN --suite train_all --selector policy" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --seed-spool output/runs/R1/spool" ;;
+  R3)  # main, third attempt: R2 settings with the thread-free learner (R2's learner aborted on a native heap
+       # corruption after 5 min); seeded with every episode R1 and R2 collected
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R3 --servers 3 --server-devices 0,0,1 --workers 20 \
+      --eval-workers 2 --tag R3 --actor-args "--configs $SEEN --suite train_all --selector policy" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --seed-spool output/runs/R1/spool,output/runs/R2/spool" ;;
   B1)  # ablation: no imagination (current legal observation + query descriptors only; no Sandbox, no range frames)
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B1 --servers 0 --workers 6 --eval-workers 1 --tag B1 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
