@@ -376,7 +376,8 @@ class QueryExecution:
         return copy.deepcopy(self)
 
     # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_INHERIT=1): a NEW goal query issued
-    # while another goal query is running inherits the running execution's history toward the same target -- the
+    # while another goal query is running (or after non-goal queries interrupted one: ``suspended``) inherits that goal
+    # execution's history toward the same target -- the
     # stillness / 'unstick' streak and its escalation (with the kept static plan, 'ukeep') and the recent goal
     # distances of the stuck-STOP rule -- so that interrupting a query is not a hidden reset (measured on dev:
     # re-issuing a fresh goal query every interval instead of continuing costs 5-8 SR points, timeouts 13% -> 27%).
@@ -384,19 +385,33 @@ class QueryExecution:
     # Sandbox imagination, the counterfactual labellers and the official replay.
     INHERIT = __import__('os').environ.get('L3_INHERIT') == '1'
 
+    def _goal_like(self):
+        return self.query.kind == 'goal' and not self.query.via
+
     def inherit(self, prev):
-        if prev is None or getattr(prev, 'status', None) != 'running':
+        """Layer 3 option (``INHERIT``): take over the history of the goal query that ``prev`` interrupted or was.
+        A goal query interrupted by non-goal queries (scans, waits, rotations) is remembered across them
+        (``suspended``) and its history resumes when a goal query is issued again."""
+        if prev is None:
             return
-        if not (self.query.kind == 'goal' and prev.query.kind == 'goal' and not self.query.via and not prev.query.via):
+        if prev._goal_like() and prev.status == 'running':
+            src = prev
+        else:
+            src = getattr(prev, 'suspended', None)
+        if not self._goal_like():
+            if src is not None:
+                self.suspended = src                     # carried across the interlude (never stepped again)
             return
-        self.recent = list(prev.recent)
-        self._still, self._last_xz, self._still_psi = prev._still, prev._last_xz, list(prev._still_psi)
+        if src is None:
+            return
+        self.recent = list(src.recent)
+        self._still, self._last_xz, self._still_psi = src._still, src._last_xz, list(src._still_psi)
         mq = self.query.meta or {}
-        if prev.escalated and mq.get('unstick'):
+        if src.escalated and mq.get('unstick'):
             self.escalated = True
             self.reason = 'unstick'
-            if mq.get('ukeep') and (prev.query.meta or {}).get('ukeep') and prev.plan is not None:
-                self.plan, self.plan_i, self.plan_age = copy.deepcopy(prev.plan), prev.plan_i, prev.plan_age
+            if mq.get('ukeep') and (src.query.meta or {}).get('ukeep') and src.plan is not None:
+                self.plan, self.plan_i, self.plan_age = copy.deepcopy(src.plan), src.plan_i, src.plan_age
 
     def decision_boundary(self):
         """Drop derived caches (route view/field, static plan) at a decision.

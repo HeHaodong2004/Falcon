@@ -128,7 +128,7 @@ class L3Episode:
             queries = list(queries)+scan_queries(ep.legal, self.gen.dyn, [q.label for q in queries])
         tm['generator_ms'] = 1000*(T()-t)
         labels = [q.label for q in queries]
-        running = ep.execution if (ep.execution is not None and ep.execution.status == 'running') else None
+        running = ep.execution            # any status: a resumed goal query inherits what the last one suspended
         cands = [Candidate(None, cfg.planner, cfg.dynamics, execution=ep.execution, level=ep.level, query_id='continue')
                  if q.kind == 'continue' else Candidate(q, cfg.planner, cfg.dynamics, level=ep.level, query_id=q.label,
                                                         execution=running)
