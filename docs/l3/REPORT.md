@@ -411,5 +411,7 @@ success.  PSC was NOT: the benchmark config composes `psc` with `use_geo_distanc
 distance < 1 m, 3D Euclidean when no path), while the branch runtime counted planar Euclidean centre distance --
 stricter, so every PSC reported before 22:40 is biased LOW.  SPL used the official start geodesic but a planar path
 length (official: 3D Euclidean steps).  Fixed (`BranchState.psc_official_steps`, `path_length_3d`; L3 metrics `psc` /
-`spl` now official, `psc_euclid` / `spl_planar` kept); a per-episode comparison against official replays is running.
-Numbers of record remain the official replays.
+`spl` now official, `psc_euclid` / `spl_planar` kept).  Verified against official replays (unchanged `Env.step`, Falcon's
+measures) on 10 dev episodes: actions identical 10/10; success, SPL and the corrected PSC equal the official values in
+10/10; the old Euclidean PSC matched in 9/10 (0.8686 vs official 0.8723 once) -- earlier PSC values were biased low
+only slightly.  Numbers of record remain the official replays.
