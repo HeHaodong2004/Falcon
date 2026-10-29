@@ -21,7 +21,8 @@ them.  K and N vary per decision; arrays are stored unpadded and padded at batch
 Agnosticism: nothing identifies the planner, the dynamics family or the robot.  Candidates enter only through what
 their execution is imagined to DO (the same executor + planner + dynamics that will execute them; different robots
 produce different consequences for the same Query) and through a coarse intent class that exists for every robot.
-Execution-style modifiers of the generator (tight / close / thru copies, dynamics-specific subsets) are not encoded.
+Execution-style modifiers of the generator (tight / close / thru copies, dynamics-specific subsets) are not encoded in
+v1/v2; v3 encodes the Query itself (kind, family, execution flags) and the robot's information state (infofeat.py).
 
 Legality: inputs are the legal state at t, the generator's legal candidates and diagnostics, and the Sandbox result
 (hypothetical predictions from legal inputs).  Predicted map cells are used as features only and never merged into
@@ -71,6 +72,13 @@ CAND_V2 = ['y_pcol', 'y_psoc', 'y_soc_dur', 'y_mind_q10', 'y_tcol', 'y_ctg_gain'
 LAYOUT = os.environ.get('L3_LAYOUT', 'v1')
 if LAYOUT == 'v2':
     CAND = CAND+CAND_V2
+# v3 layout (L3_LAYOUT=v3): the query itself (kind, family, execution-style flags) and the robot's information state
+# (camera view history, unseen-person mass by direction, lost tracks) with what each imagined execution would see
+# (infofeat.py)
+if LAYOUT == 'v3':
+    from .infofeat import CAND_SEM, CAND_INFO, EGO_INFO
+    CAND = CAND+CAND_SEM+CAND_INFO
+    EGO = EGO+EGO_INFO
 TRAJ = ['t', 'active', 'fwd', 'left', 'hcos', 'hsin', 'speed', 'm_free', 'm_unk', 'm_blk', 'clear', 'ctg_gain',
         'p_soc', 'p_col', 'mind_q10', 'mind_q50', 'nom_clear']
 HUM = ['fwd', 'left', 'vfwd', 'vleft', 'speed', 'dist', 'bcos', 'bsin', 'age', 'visible', 'closing',
@@ -98,6 +106,9 @@ GROUPS = {
 if LAYOUT == 'v2':
     GROUPS['continuation'] = dict(cand=list(CAND_V2))
     IMAGINATION_GROUPS = IMAGINATION_GROUPS+('continuation',)
+if LAYOUT == 'v3':
+    GROUPS['query'] = dict(cand=list(CAND_SEM))
+    GROUPS['info'] = dict(cand=list(CAND_INFO), ego=list(EGO_INFO))
 
 
 def column_index(names, cols):
@@ -247,8 +258,10 @@ class GraphCompiler:
             self.schema = SCHEMA+'b'
         if LAYOUT == 'v2':
             self.schema = 'l3_graph_v2'+('b' if self.brake_tail else '')
+        if LAYOUT == 'v3':
+            self.schema = 'l3_graph_v3'+('b' if self.brake_tail else '')
 
-    def compile(self, result, legal, queries, diag=None, steps=0):
+    def compile(self, result, legal, queries, diag=None, steps=0, running=None):
         diag = diag or {}
         F = Frame(legal.pose)
         field = LegalField(legal)
@@ -358,7 +371,8 @@ class GraphCompiler:
                       _clip(ro.nominal_clearance if np.isfinite(ro.nominal_clearance) else 10., 0, 10)/5.]
                    + [0.]*6
                    + mfeat
-                   + ([0.]*len(CAND_V2) if LAYOUT == 'v2' else []))
+                   + ([0.]*len(CAND_V2) if LAYOUT == 'v2' else [])
+                   + ([0.]*(len(CAND_SEM)+len(CAND_INFO)) if LAYOUT == 'v3' else []))
             cand_rows.append(row)
             # waypoints
             idx = np.minimum(SAMPLE_STEPS, T)
@@ -408,6 +422,16 @@ class GraphCompiler:
             lengths_ext.append(len(rel))
         cand = np.asarray(cand_rows, np.float32).reshape(K, len(CAND))
         traj = np.asarray(traj_rows, np.float32).reshape(K, P, len(TRAJ))
+        info = None
+        if LAYOUT == 'v3':
+            from .infofeat import InfoState, query_semantics
+            info = InfoState(legal, F, keys, unseen, HP, W)
+            s0, i0 = CAND.index(CAND_SEM[0]), CAND.index(CAND_INFO[0])
+            for k, c in enumerate(cands):
+                q = queries[k] if k < len(queries) else None
+                cont = bool(c.candidate.get('continued')) or (q is not None and q.kind == 'continue')
+                cand[k, s0:s0+len(CAND_SEM)] = query_semantics(running if cont else q, F, continued=cont)
+                cand[k, i0:i0+len(CAND_INFO)] = info.cand(np.asarray(c.rollout.poses, np.float64))
         # ------------------------------------------------------- human-side statistics against all worlds
         Nb = HP.shape[2]
         if K and Nb and len(rel):
@@ -565,6 +589,8 @@ class GraphCompiler:
         pair = np.stack(pair, 2) if N else np.zeros((K, P, 0, len(PAIR)), np.float32)   # [K, P, N, Dp]
         # ------------------------------------------------------- ego
         out['ego'] = self._ego(legal, F, field, diag, steps, K, tracks, keys, unseen, HP, W, rel)
+        if info is not None:
+            out['ego'] = np.concatenate([out['ego'], info.ego()]).astype(np.float32)
         out.update(cand=cand, traj=traj, hum=hum, hfut=hfut, pair=pair.astype(np.float32))
         return out
 
@@ -665,7 +691,7 @@ class _NoBank:
         return np.zeros((1, len(rel), 0, 2))
 
 
-def compile_blind(legal, queries, diag=None, steps=0):
+def compile_blind(legal, queries, diag=None, steps=0, running=None):
     """The NO-IMAGINATION input (ablation): the same graph layout built from the legal state and the candidates'
     query descriptors only -- no imagined execution, no Stage 1 / Stage 2 output.  Candidate nodes carry the coarse
     intent, the continued flag, the via-point geometry and the requested duration; waypoint and interaction tensors are
@@ -687,6 +713,10 @@ def compile_blind(legal, queries, diag=None, steps=0):
             cand[k, CAND.index('via_left')] = _clip(vl, -8, 8)/5.
             cand[k, CAND.index('via_dist')] = _clip(math.hypot(float(vf), float(vl)), 0, 10)/5.
         cand[k, CAND.index('duration')] = _clip((q.duration or 0)/48., 0, 1)
+        if LAYOUT == 'v3':
+            from .infofeat import query_semantics
+            s0 = CAND.index(CAND_SEM[0])
+            cand[k, s0:s0+len(CAND_SEM)] = query_semantics(running if continued else q, F, continued=continued)
     tracks = [t for t in legal.tracks if t.get('valid', True)]
     rel = np.arange(1, HOLD_STEPS+1)*STEP_SECONDS
     hum_rows, hfut_rows = [], []
@@ -712,6 +742,9 @@ def compile_blind(legal, queries, diag=None, steps=0):
     N = len(hum_rows)
     ego = comp._ego(legal, F, field, diag or {}, steps, K, tracks, [], np.zeros(0, bool), np.zeros((1, 0, 0, 2)),
                     np.ones(1), rel)
+    if LAYOUT == 'v3':
+        from .infofeat import InfoState
+        ego = np.concatenate([ego, InfoState(legal, F).ego()]).astype(np.float32)
     return dict(ego=ego, cand=cand, traj=np.zeros((K, P, len(TRAJ)), np.float32),
                 hum=np.asarray(hum_rows, np.float32).reshape(N, len(HUM)),
                 hfut=np.asarray(hfut_rows, np.float32).reshape(N, P, len(HFUT)),

@@ -92,7 +92,7 @@ def main():
                             s = min(k0+j, len(tape)-1)
                             true_min = min(true_min, rect_dist(p, tape[s][:, [0, 2]]))
                         # predicted: Stage 1 worlds (min over time per world; weighted P(< 0.3 m) and mean of mins)
-                        rel = np.arange(1, min(len(seq), 62)+1)*STEP_SECONDS
+                        rel = np.arange(1, min(len(seq)-1, 62)+1)*STEP_SECONDS
                         HP = np.asarray(bank.sandbox_positions(rel), np.float64) if len(bank.track_keys) else None
                         pred_min, p_close = 10., 0.
                         if HP is not None and HP.shape[2]:

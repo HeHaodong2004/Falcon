@@ -414,7 +414,10 @@ class Learner:
             elif w.shape == v.shape:
                 new[k] = w
             elif w.dim() == v.dim():
-                t = v.clone()
+                # input layers that gained columns: the new columns start at zero, so the warm-started network computes
+                # exactly the old function and learns to use the new inputs
+                grown_inputs = w.dim() == 2 and w.shape[0] == v.shape[0] and v.shape[1] > w.shape[1]
+                t = torch.zeros_like(v) if grown_inputs else v.clone()
                 sl = tuple(slice(0, min(a, b)) for a, b in zip(w.shape, v.shape))
                 t[sl] = w[sl]
                 new[k] = t

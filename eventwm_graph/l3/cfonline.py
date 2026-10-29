@@ -84,6 +84,9 @@ def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None):
                 break
             if i in targets:
                 queries, _ = gen.propose(st.legal, st.execution)
+                if d.get('scan'):
+                    from .env import scan_queries
+                    queries = list(queries)+scan_queries(st.legal, gen.dyn, [q.label for q in queries])
                 labels = [q.label for q in queries]
                 if labels != rows['labels'][i]:
                     rec['states'][i] = dict(error='candidate set differs from the recorded one')

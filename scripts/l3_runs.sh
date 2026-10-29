@@ -74,6 +74,19 @@ case $name in
       --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}' --near-interval $NI" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R5/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.1 --cf-floor 0.5 --cf-reg 0.25" ;;
+  R8)  # main (legal 90-degree sensing; the user's primary benchmark): Graph Compiler v3 (L3_LAYOUT=v3: query semantics
+       # -- kind, family, execution-style flags -- and the robot's information state: camera view age by sector, Stage 1
+       # unseen-person mass by direction, lost tracks, and per candidate what its imagined camera would see) + v1b
+       # braking tail; Layer 3 scan queries (look left / right, look at a lost person: the Oracle never needs to look,
+       # the 90-degree robot must learn when to); warm start from R5's network with the new input columns at zero (starts
+       # as R5); no Oracle demonstrations (v1b graphs; they never look around); 6 on-policy labellers (scans included).
+    unset QG_HUMAN_360
+    export L3_LAYOUT=v3
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R8 --servers 3 --server-devices 0,0,1 --workers 18 \
+      --eval-workers 2 --labelers 6 --labeler-args "--k 6 --cap 160 --p-success 0.25" --tag R8 \
+      --actor-args "--configs $SEEN --suite train_all --selector policy --scan --compiler '{\"brake_tail\":true}'" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R5/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.15 --cf-floor 0.5 --cf-reg 0.25" ;;
   B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \

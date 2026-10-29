@@ -12,7 +12,7 @@ import torch
 
 from . import compiler as C
 
-KMAX = 10
+KMAX = 13 if C.LAYOUT == 'v3' else 10       # v3: + Layer 3 scan queries (env.scan_queries)
 NMAX = 8
 CUM = ('succ', 'coll', 'steps', 'path', 'soc')          # cumulants of the value heads (network units, see model.SCALE)
 CUM_SCALE = np.array([1., 1., 100., 10., 50.], np.float32)

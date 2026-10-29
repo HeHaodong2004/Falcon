@@ -63,7 +63,7 @@ def default_index(labels):
 
 class L3Episode:
     def __init__(self, spec, cfg, sandbox, compiler=None, range_sensor='fast-driver', stream=None, horizon=HORIZON,
-                 gc_freeze=True, imagination=True, near_interval=0, near_m=3.0):
+                 gc_freeze=True, imagination=True, near_interval=0, near_m=3.0, scan=False):
         from eventwm_graph.sandbox.episode import BranchEpisode, generator
         from .compiler import GraphCompiler
         t0 = time.perf_counter()
@@ -74,6 +74,7 @@ class L3Episode:
         self.base_horizon = int(horizon)
         # adaptive decision frequency: a shorter interval while a tracked person is within near_m (legal tracks only)
         self.near_interval, self.near_m = int(near_interval), float(near_m)
+        self.scan = bool(scan)
         self.imagination = bool(imagination)
         self.gen = generator(cfg.gen, cfg.dynamics)
         if not self.imagination:
@@ -121,12 +122,15 @@ class L3Episode:
             self.sb.config.interval = self.horizon        # imagine the interval that will be executed
         t = T()
         queries, diag = self.gen.propose(ep.legal, ep.execution)
+        if self.scan:
+            queries = list(queries)+scan_queries(ep.legal, self.gen.dyn, [q.label for q in queries])
         tm['generator_ms'] = 1000*(T()-t)
         labels = [q.label for q in queries]
         cands = [Candidate(None, cfg.planner, cfg.dynamics, execution=ep.execution, level=ep.level, query_id='continue')
                  if q.kind == 'continue' else Candidate(q, cfg.planner, cfg.dynamics, level=ep.level, query_id=q.label)
                  for q in queries]
         result, graph = None, None
+        running = ep.execution.query if ep.execution is not None else None
         if self.imagination and self.sb is not None:
             t = T()
             state = ep.decision_state()
@@ -135,11 +139,11 @@ class L3Episode:
             result = self.sb.evaluate(state, ep.legal, cands)
             tm['sandbox_ms'] = 1000*(T()-t)
             t = T()
-            graph = self.compiler.compile(result, ep.legal, queries, diag, ep.steps)
+            graph = self.compiler.compile(result, ep.legal, queries, diag, ep.steps, running=running)
             tm['compile_ms'] = 1000*(T()-t)
         else:
             t = T()
-            graph = self.compiler.compile_blind(ep.legal, queries, diag, ep.steps)
+            graph = self.compiler.compile_blind(ep.legal, queries, diag, ep.steps, running=running)
             tm['compile_ms'] = 1000*(T()-t)
         d = Decision(queries=queries, candidates=cands, labels=labels, graph=graph, diag=diag, result=result, timing=tm,
                      index=self.decisions, steps=ep.steps, default=default_index(labels))
@@ -198,6 +202,33 @@ class L3Episode:
         except Exception:
             pass
         self.ep.close()
+
+
+SCAN_DEG = 80.
+
+
+def scan_queries(legal, dyn, labels):
+    """Layer 3 information-gathering queries (``scan``): in-place rotations by SCAN_DEG to either side (one decision
+    interval reaches ~76 deg for the native turn rate; slower robots continue them), and a rotation toward the most
+    recently lost tracked person when the generator did not offer one.  The Oracle never needs them (it knows every
+    person); under the 90 deg camera they are how the robot looks around."""
+    from eventwm_graph.querygen.executor import Query
+    from eventwm_graph.querygen.control import wrap
+    pose = legal.pose
+    yaw = float(pose[3])
+    out = []
+    for side, sgn in (('left', 1.), ('right', -1.)):
+        n = int(math.ceil(math.radians(SCAN_DEG)/dyn.turn_rad))+1
+        out.append(Query('rotate', heading=wrap(yaw+sgn*math.radians(SCAN_DEG)), duration=n, label=f'scan_{side}',
+                         meta=dict(direction=side)))
+    if 'look_lost_human' not in labels:
+        lost = [t for t in legal.tracks if not t.get('visible_now') and legal.time-float(t['last_seen_time']) < 5.0]
+        if lost:
+            t = min(lost, key=lambda t: math.hypot(t['position'][0]-pose[0], t['position'][2]-pose[2]))
+            ldir = math.atan2(-(t['position'][2]-pose[2]), t['position'][0]-pose[0])
+            if abs(wrap(ldir-yaw)) > math.radians(35):
+                out.append(Query('rotate', heading=ldir, duration=40, label='look_lost_human'))
+    return out
 
 
 class _H:

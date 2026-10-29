@@ -120,6 +120,8 @@ def run(a):
         actor += ' --near-interval %d --near-m %g' % (a.near_interval, a.near_m)
     if a.sandbox:
         actor += ' --sandbox %s' % shlex.quote(a.sandbox)
+    if getattr(a, 'scan', False):
+        actor += ' --scan'
     cmd = [sys.executable, str(ROOT/'scripts/l3_run.py'), 'eventwm_graph.l3.fleet', '--run', str(out), '--servers',
            str(a.servers), '--server-devices', a.server_devices, '--workers', str(a.workers), '--sequential',
            '--actor-args', actor, '--tag', a.tag or out.name]
@@ -238,6 +240,7 @@ def main():
     ap.add_argument('--near-interval', type=int, default=0)
     ap.add_argument('--near-m', type=float, default=3.0)
     ap.add_argument('--sandbox', default=None)
+    ap.add_argument('--scan', action='store_true', help='Layer 3 information-gathering queries')
     ap.add_argument('--procs', type=int, default=16)
     a = ap.parse_args()
     if a.mode == 'matrix':
