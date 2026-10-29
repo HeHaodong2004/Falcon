@@ -348,6 +348,7 @@ stuck-STOP memory were lost and re-detected every interval.  Our learned policie
 "one-step rules do not help even with perfect prediction" results are confounded.  Fix (`QueryExecution.INHERIT`,
 L3_INHERIT=1, default off): a goal query issued while a goal query is running inherits that history, identically in
 the branch runtime, official replay, sandbox runner and Sandbox imagination.  With it the same restart control
-recovers: SR 51.4%, timeouts 15.3% (72 episodes so far; ORCA 50.0% vs floor 47.4%, DWA 50.0% vs 56.2%).  No bug in
+recovers completely (final, 72 paired episodes per configuration): DWA floor 48.6% / restart 43.1% / restart with
+inheritance 48.6%; ORCA 47.2% / 43.1% / 50.0%.  No bug in
 the loop mechanics was found (continue / decision-boundary handling is identical in reality, imagination and replay;
 intervals end early when a query finishes).  R10 (20:55) = R9's method + the fix, warm start from R9's network.
