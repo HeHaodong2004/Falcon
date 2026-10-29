@@ -147,6 +147,17 @@ case $name in
       --actor-args "--configs $SEEN --suite train_all --selector policy --scan --compiler '{\"brake_tail\":true}' --sandbox '{\"route\":true}' --curriculum output/curriculum_90.json" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R10/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.25 --cf-floor 0.5 --cf-reg 0.25 --per 0.6,0.4,1.0,300000 --cf-rank 0.3 --explore risk" ;;
+  R10L) # R10 restarted IN PLACE as a LABEL FACTORY for approximate policy iteration: the exact one-step rollout policy
+       # over the default reaches 13/15 vs the floor's 9/15, while the RL learner stays at / below the floor; exact
+       # per-candidate labels are the clean signal.  6 training actors (on-policy states), 18 labellers (cheap families
+       # skipped via output/runs/R10/cf_config.json), 2 greedy evaluators; the learner keeps training on what arrives.
+    unset QG_HUMAN_360
+    export L3_LAYOUT=v4 L3_INHERIT=1
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R10 --servers 2 --server-devices 0,1 --workers 6 \
+      --eval-workers 2 --labelers 18 --labeler-args "--k 6 --cap 500 --p-success 0.5 --spread" --tag R10L \
+      --actor-args "--configs $SEEN --suite train_all --selector policy --scan --compiler '{\"brake_tail\":true}' --sandbox '{\"route\":true}' --curriculum output/curriculum_90.json" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R10/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.25 --cf-floor 0.5 --cf-reg 0.25 --per 0.6,0.4,1.0,300000 --cf-rank 0.3 --explore risk" ;;
   B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
