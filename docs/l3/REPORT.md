@@ -305,3 +305,12 @@ Throughput profile (in-process, per decision): imagination of ~12 candidates 420
 compile 120 ms, generator 45 ms; sensing + range frames ~1 s.  Only 8% of decisions are trivially safe (no person
 within 6 m, no hidden mass, default continuing), so decision skipping is not worth it.  From 20:00 R9's learner also
 ingests the Oracle solutions replayed under v4 (supervision data, off-policy, 380 episodes being generated).
+
+**What the counterfactual labels can and cannot teach (R9, 159 failure-bound labelled states, whole-episode targets).**
+Where the default is heading to failure, one deviation followed by the default saves the episode in only ~5-14% of
+cases for any family (early and late decisions alike; social manoeuvres ~0%).  The labels measure Q under the DEFAULT
+continuation, which undervalues alternatives whose benefit needs good follow-up decisions -- the multi-step behaviour
+we need.  From 20:10 R9 keeps them as lower bounds (hinge) but regresses on them at 0.05 (was 0.25) and ranks at 0.2
+(was 0.5); the on-policy returns drive the values.  Final paired dev result of the progress-preserving route-safe rule
+(72 episodes per configuration): DWA 48.6% / ORCA 45.8% / SFM 47.2% vs floor 48.6 / 47.2 / 47.2%; collisions 36 -> 35%,
+39 -> 31%, 39 -> 36%.
