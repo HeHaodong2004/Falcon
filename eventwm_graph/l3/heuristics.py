@@ -5,6 +5,8 @@
 legally BLOCKED cells), take the largest legal route-cost reduction; STOP only when the imagined end is at the goal;
 if nothing is predicted safe, take the smallest predicted collision risk.
 """
+import math
+
 import numpy as np
 
 from .compiler import CAND
@@ -127,3 +129,62 @@ def routesafe_bank_index(graph, default, thr=0.15, slack=0.1):
         idx = np.flatnonzero(ok)
         return int(idx[np.argmax(gain[idx]-0.5*risk[idx])])
     return d
+
+
+def imagined_rollout_index(result, legal, default, slack_p=0.05, slack_m=0.5, radius=0.75, step_s=0.048):
+    """LEGAL rollout policy (no learning, no privileged input): every candidate's imagined interval + its imagined
+    default continuation (SandboxConfig.continuation: keep the running query, else the goal query; the executor and
+    planner in the loop against the nominal Stage 1 people) is scored against the 40 Stage 1 worlds -- the bank's 3 s,
+    then each world's people continue at their last velocity -- for P(contact) (centre distance < ``radius``), and
+    against the CURRENT legal map for route progress at the end of the imagined horizon.  The least risky candidates
+    (within ``slack_p`` of the minimum) compete on progress; the default is kept unless another one is clearly better
+    (more than ``slack_m`` metres of progress or lower risk beyond the slack)."""
+    from .compiler import LegalField
+    bank = result.humans
+    W = np.asarray(bank.weights, np.float64)
+    W = W/W.sum() if W.sum() > 0 else W
+    field = LegalField(legal)
+    seqs = []
+    for c in result.candidates:
+        ro = c.rollout
+        poses = np.asarray(ro.poses, np.float64)
+        cont = getattr(ro, 'cont', None)
+        seq = np.concatenate([poses[1:], cont]) if cont is not None and len(cont) else poses[1:]
+        if not len(seq):
+            seq = poses[:1]
+        seqs.append(seq)
+    T = max(len(s) for s in seqs)
+    keys = list(getattr(bank, 'track_keys', ()))
+    pcol = np.zeros(len(seqs))
+    if len(keys):
+        horizon = float(bank.times[-1])
+        rel = np.arange(1, T+1)*step_s
+        inside = rel[rel <= horizon+1e-9]
+        HP = np.asarray(bank.sandbox_positions(inside), np.float64)              # [W, Tb, N, 2]
+        if len(inside) < T:
+            if HP.shape[1] >= 2:
+                vel = (HP[:, -1]-HP[:, -2])/step_s
+            else:
+                vel = np.zeros_like(HP[:, -1])
+            extra = np.arange(1, T-len(inside)+1)*step_s
+            ext = HP[:, -1][:, None]+extra[None, :, None, None]*vel[:, None]
+            HP = np.concatenate([HP, ext], 1)
+        with np.errstate(invalid='ignore'):
+            for k, seq in enumerate(seqs):
+                n = len(seq)
+                d = np.hypot(HP[:, :n, :, 0]-seq[None, :, None, 0], HP[:, :n, :, 1]-seq[None, :, None, 2])
+                d = np.where(np.isfinite(d), d, np.inf)
+                hit = (d.min(axis=(1, 2)) < radius)
+                pcol[k] = float((W*hit).sum())
+    prog = np.asarray([field.start-field.at(s[-1, 0], s[-1, 2]) for s in seqs])
+    stop = np.asarray([bool(c.rollout.stop) for c in result.candidates])
+    at_goal = np.asarray([math.hypot(s[-1, 0]-legal.goal[0], s[-1, 2]-legal.goal[2]) < 0.3 for s in seqs])
+    bad_stop = stop & ~at_goal
+    pc = np.where(bad_stop, 1.0, pcol)
+    d = int(default)
+    best_p = float(pc.min())
+    pool = np.flatnonzero(pc <= best_p+slack_p)
+    k = int(pool[np.argmax(prog[pool])])
+    if pc[d] <= best_p+slack_p and prog[d] >= prog[k]-slack_m:
+        return d
+    return k
