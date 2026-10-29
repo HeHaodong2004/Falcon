@@ -61,3 +61,25 @@ def escape_index(graph):
         if score.max() > 0.05:
             return int(np.argmax(score))
     return progress_index(graph)
+
+
+def routesafe_index(graph, default, thr=0.15, ratio=0.5):
+    """Default unless its imagined interval or its INTENTION (v4 route columns) carries a predicted contact risk above
+    ``thr``; then the candidate with the most route progress among those whose risk is below ``ratio`` x the default's
+    (never STOP away from the goal, never a scan), else the least risky one.  Needs L3_LAYOUT=v4."""
+    c = graph['cand']
+    n = len(c)
+    risk = np.maximum(c[:, _I['pcol']], c[:, _I['r_pcol']]).astype(np.float64)
+    d = int(default)
+    if risk[d] < thr:
+        return d
+    stop = c[:, _I['intent_stop']] > 0.5
+    at_goal = c[:, _I['at_goal']] > 0.5
+    scan = c[:, _I['q_fam_scan']] > 0.5 if 'q_fam_scan' in _I else np.zeros(n, bool)
+    ok = (risk < ratio*risk[d]) & ~(stop & ~at_goal) & ~scan
+    if ok.any():
+        idx = np.flatnonzero(ok)
+        safe = idx[risk[idx] < thr]
+        pool = safe if len(safe) else idx
+        return int(pool[np.argmax(c[pool, _I['ctg_gain']]-0.5*risk[pool])])
+    return d

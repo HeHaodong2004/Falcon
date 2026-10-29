@@ -129,7 +129,7 @@ def main():
         print(json.dumps(r), flush=True)
         if n >= a.limit:
             break
-    ok = [r for r in rows if r.get('outcome') == 'human_collision']
+    ok = [r for r in rows if r.get('outcome') == 'human_collision' and 'motion' in r]
     if ok:
         from collections import Counter
         mot = Counter(r['motion'] for r in ok)
