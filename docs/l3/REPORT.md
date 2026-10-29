@@ -377,7 +377,8 @@ status so imagined goal candidates inherit exactly as reality does.  Official re
 branch runtime's actions exactly (2/2 smoke episodes).  R10 restarted in place with it (21:26).
 
 **Rollout-policy reference, first 8 paired dev episodes (ORCA-native, analysis only):** exact one-step evaluation over
-the default succeeds in 7/8 vs the floor's 4/8 on the same episodes; its deviations are almost all goal-execution
+the default succeeds in 7/8 vs the floor's 4/8 on the same episodes (12 episodes: 10/12 vs 7/12, both failures
+timeouts, no collisions); its deviations are almost all goal-execution
 variants (goal_th 5, st_goal_tc 5, st_goal 4, goal 3, st_goal_th 3, goal_tc 2, turn_left 2).  The right one or two
 choices from the pool do exist; the hard part is evaluating near-identical variants legally -- the label critic's
 job.  Labellers now skip the families that almost never save an episode (pass / yield / sidestep / frontier /
