@@ -286,3 +286,11 @@ are safe but make no progress -- the same safety/progress trap as 360-degree sen
 R9's value scalarisation (success 10, collision 5, path 0.3/m) paid +5 for turning a collision into a timeout, which
 is the wrong trade with SR first; from 19:25 R9's learner uses collision 2 and path 0.15/m (hot override
 `learner_config.json`; the decomposed heads are unchanged, the target policy and the actors' choices follow).
+
+**R9, first hour.**  The greedy dev policy of versions 0-19 deviated from the default at 90% of decisions (single-step
+rotations, scans, turns, waits; median claimed gain +0.5 reward units, top quarter +2 to +4 -- maximisation bias over
+~13 candidates with new actions and inputs) and was well below the floor (ORCA 29%, DWA 25%, SFM 23%, n = 12-14).
+From 19:45 the learner adds a conservative-Q regulariser (`--cql 0.05`: logsumexp over candidates minus the taken
+candidate's value, online data).  First on-policy counterfactual labels with whole-episode targets (104 states): at
+the 88 states where the default fails, a scan / look candidate saves the episode in 10.3% of cases (21/204), other
+alternatives in 6.9% (49/712).
