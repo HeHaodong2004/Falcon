@@ -135,10 +135,12 @@ DWA-native 48.4% vs 50.0%, ORCA-native 46.9% vs 46.9%, ORCA-native-K6 32.8% vs 4
 
 **Reference points recomputed.** The querygen suites behind "Oracle ~100%, floor 78%" contain 28-40% episodes WITHOUT
 people (unseen6: 17 of 60).  The official val split (our test) and the L3 dev/train suites contain only 2-6-person
-episodes.  On the human-only subsets: privileged Oracle 88-98%, floor 58-67% (unseen6), 47-57% on L3 dev.  On L3
+episodes.  Privileged v14 Oracle on the episodes WITH people: 94-100% of the episodes not proven infeasible (held-out
+unseen6: 42/42 for ORCA and DWA K=10), 88-98% when proven-infeasible episodes count as failures (official SR; unseen2
+has 3 among its 43 people episodes).  Floor on the same people episodes: 58-67% (unseen6); 47-57% on L3 dev.  On L3
 dev, 7 of 72 episodes were never solved by any run (3 collide within 5 steps in all 30 runs: spawn collisions), and the
-Oracle with the expert budget solves 82-84% of the dev episodes searched so far.  The 85-90% target therefore
-coincides with the privileged ceiling.
+Oracle with the expert budget solves 82-84% of the dev episodes searched so far.  An 85% target therefore requires a
+legal policy to close ~75-85% of the gap between the floor and an Oracle that knows every person's future.
 
 **Collisions.** (306 collision episodes of the policy) at the last decision before contact 32% had no tracked person
 and only 50% a tracked person within 2 m; privileged check (25 collisions): the colliding person was never inside
