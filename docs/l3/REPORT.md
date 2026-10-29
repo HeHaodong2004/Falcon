@@ -126,3 +126,53 @@ is chosen the same way on dev for that checkpoint.  The same rule selects the ch
   human futures, waypoint/interaction nodes (flat), imagination entirely -- each then evaluated online on dev).
 * E4 throughput and resources (measured).
 * E5 the decomposed heads (calibration of P(success) and P(collision)).
+
+## 4. Diagnostics: what limits a legal high-level selector (2026-10-29 afternoon)
+
+**Paired dev evaluation, learned selector R5 (version ~160, greedy) vs the floor (64 episodes per configuration):**
+DWA-native 48.4% vs 50.0%, ORCA-native 46.9% vs 46.9%, ORCA-native-K6 32.8% vs 40.6%, SFM-native (held-out) 51.6% vs
+43.8%; policy-only / floor-only successes 6-11 each -- the policy reshuffles outcomes rather than improving them.
+
+**Reference points recomputed.** The querygen suites behind "Oracle ~100%, floor 78%" contain 28-40% episodes WITHOUT
+people (unseen6: 17 of 60).  The official val split (our test) and the L3 dev/train suites contain only 2-6-person
+episodes.  On the human-only subsets: privileged Oracle 88-98%, floor 58-67% (unseen6), 47-57% on L3 dev.  On L3
+dev, 7 of 72 episodes were never solved by any run (3 collide within 5 steps in all 30 runs: spawn collisions), and the
+Oracle with the expert budget solves 82-84% of the dev episodes searched so far.  The 85-90% target therefore
+coincides with the privileged ceiling.
+
+**Collisions.** (306 collision episodes of the policy) at the last decision before contact 32% had no tracked person
+and only 50% a tracked person within 2 m; privileged check (25 collisions): the colliding person was never inside
+the jaw camera frustum during the last 2 s in 28% (briefly in 12%); bearing at contact front 48% / side 32% / behind
+20%.  The predicted state-level danger is informative (AUC 0.79 for a collision in the current interval; P(social)
+0.81) but it appears only 2-3 decisions (1.5-2.5 s) before contact: from T-4 back it equals that of successful
+episodes.
+
+**Critical decisions are dominated by timing chaos.**  At labelled critical states (some candidates succeed with the
+default continuation, others fail), scoring every candidate's imagined trajectory (interval + 1.2 s continuation)
+against the TRUE human future (privileged) does not separate them: within-state AUC 0.475 (predicted clearance
+0.494, Stage 1 risk ~0.50), and picking the candidate with the largest true clearance succeeds in 36% (random 40%).
+Candidate pairs with near-identical imagined motion (< 6 cm, continuation included) still differ in outcome 15% of
+the time (33% for arbitrary pairs).  The counterfactual "one-deviation fixes" (47-57% of native failures) are mostly
+other goal-execution variants -- i.e. largely luck that the privileged Oracle can exploit and a legal selector cannot.
+The only consistently informative candidate features at these states are progress-type ones (continuation route
+gain 0.62, route gain 0.59, goal query 0.60, moving share 0.59).
+
+**What moves SR (72 paired dev episodes):**
+
+| configuration | floor 90 deg | floor 360 deg | progress heuristic 90 deg | progress heuristic 360 deg |
+|---|---|---|---|---|
+| DWA-native-K10 | 48.6% | 50.0% | 47.2% | 59.7% |
+| ORCA-native-K10 | 47.2% | 52.8% | 54.2% | 52.8% |
+| SFM-native-K10 | 46.5% | 53.5% | -- | 56% |
+
+360-degree people detection (option `QG_HUMAN_360`: people detected all around with the same occlusion test; map
+certification unchanged) cuts the floor's collisions by ~40% relative (ORCA 39% -> 22%) and turns them into
+timeouts (14% -> 25%), which are deadlocks (in the last 150 steps the robot moves forward ~15% of the time; ~63% fully
+stuck) -- systematic failures a selector can address.  The hand-written safe-greedy heuristic is worse than the floor
+(DWA 38.6%).
+
+**Consequences for the method.** (1) With jaw-camera-only perception, a legal selector over this query space is
+expected to top out near the floor plus ~10 points; (2) the decisions that matter are systematic deadlock escapes
+and exposure (progress), not the timing lottery at the last seconds before contact; (3) labels at collision moments
+are mostly noise -- their regression weight is reduced in R6.  Experimental run R6: 360-degree detection + Compiler
+v2 (continuation imagination) + warm start from R5 (pending the user's decision on the sensing).
