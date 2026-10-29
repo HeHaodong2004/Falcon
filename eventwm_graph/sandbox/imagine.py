@@ -228,6 +228,9 @@ class ImaginedRollout:
     tail: Optional[np.ndarray] = None   # [B, 4] imagined emergency stop from the end pose (straight ahead, braking at the
                                         # family's limit); empty for robots without speed state.  Not part of the
                                         # trajectory given to Layer 2 (a consequence summary for the Graph Compiler).
+    route: Optional[np.ndarray] = None  # [M, 2] world (x, z) remaining executor route from the end pose (SandboxConfig.route):
+                                        # the running query's planned path beyond the interval (its intention); None for
+                                        # queries without a route (rotate / wait / finished).  Graph Compiler v4 only.
     cont: Optional[np.ndarray] = None   # [C, 4] continuation (SandboxConfig.continuation > 0): what the robot would do
                                         # after the interval under the default policy -- keep the running query, else the
                                         # goal query -- same executor, planner, dynamics and nominal humans.  Not given
@@ -271,7 +274,24 @@ def frozen_map(gmap):
     return g
 
 
-def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuation=0, cont_query=None, planner=None):
+def remaining_route(execution, pose, max_m=12.):
+    """The execution's last planned route (world polyline) from the point nearest ``pose`` on, at most ``max_m``
+    long; None when the query is not running or has no route."""
+    r = getattr(execution, 'route', None)
+    if r is None or getattr(execution, 'status', 'running') != 'running':
+        return None
+    r = np.asarray(r, np.float64).reshape(-1, 2)
+    if len(r) < 2:
+        return None
+    i = int(np.argmin(np.hypot(r[:, 0]-pose[0], r[:, 1]-pose[2])))
+    r = np.concatenate([[[pose[0], pose[2]]], r[i+1:]]) if i+1 < len(r) else np.asarray([[pose[0], pose[2]], r[-1]])
+    seg = np.hypot(np.diff(r[:, 0]), np.diff(r[:, 1]))
+    keep = np.searchsorted(np.cumsum(seg), max_m)+2
+    return r[:keep]
+
+
+def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuation=0, cont_query=None, planner=None,
+            route=False):
     """Roll ``execution`` (a fresh or copied ``QueryExecution``; consumed) forward for at most ``steps`` imagined
     steps from the legal state ``legal`` at t, against the nominal humans.  Returns an ``ImaginedRollout``.
     ``gmap``: the decision's frozen map alias (default: ``legal.map`` itself)."""
@@ -319,6 +339,7 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
         if execution.status != 'running':
             ended = 'done' if execution.status == 'done' else 'failed'
             break
+    rroute = remaining_route(execution, poses[-1]) if route and not stop and error is None else None
     cont = None
     if continuation > 0 and not stop and error is None and cont_query is not None:
         cont = _continue(sl, execution, dyn, humans, len(poses)-1, int(continuation), int(levels[-1]), cont_query,
@@ -333,7 +354,8 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
                            ended_by=ended, stop=stop, goal_distance=d1, progress=d0-d1, path_length=float(seg.sum()),
                            blocked_steps=int(blocked), nominal_clearance=float(clearance),
                            planner_ms=(time.perf_counter()-tick)*1000, error=error,
-                           tail=brake_tail(P[-1], levels[-1], dyn) if not stop else np.zeros((0, 4)), cont=cont)
+                           tail=brake_tail(P[-1], levels[-1], dyn) if not stop else np.zeros((0, 4)), cont=cont,
+                           route=rroute)
 
 
 def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner):

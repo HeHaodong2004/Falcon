@@ -75,9 +75,9 @@ if LAYOUT == 'v2':
 # v3 layout (L3_LAYOUT=v3): the query itself (kind, family, execution-style flags) and the robot's information state
 # (camera view history, unseen-person mass by direction, lost tracks) with what each imagined execution would see
 # (infofeat.py)
-if LAYOUT == 'v3':
-    from .infofeat import CAND_SEM, CAND_INFO, EGO_INFO
-    CAND = CAND+CAND_SEM+CAND_INFO
+if LAYOUT in ('v3', 'v4'):
+    from .infofeat import CAND_SEM, CAND_INFO, EGO_INFO, CAND_ROUTE
+    CAND = CAND+CAND_SEM+CAND_INFO+(CAND_ROUTE if LAYOUT == 'v4' else [])
     EGO = EGO+EGO_INFO
 TRAJ = ['t', 'active', 'fwd', 'left', 'hcos', 'hsin', 'speed', 'm_free', 'm_unk', 'm_blk', 'clear', 'ctg_gain',
         'p_soc', 'p_col', 'mind_q10', 'mind_q50', 'nom_clear']
@@ -106,9 +106,11 @@ GROUPS = {
 if LAYOUT == 'v2':
     GROUPS['continuation'] = dict(cand=list(CAND_V2))
     IMAGINATION_GROUPS = IMAGINATION_GROUPS+('continuation',)
-if LAYOUT == 'v3':
+if LAYOUT in ('v3', 'v4'):
     GROUPS['query'] = dict(cand=list(CAND_SEM))
     GROUPS['info'] = dict(cand=list(CAND_INFO), ego=list(EGO_INFO))
+if LAYOUT == 'v4':
+    GROUPS['route'] = dict(cand=list(CAND_ROUTE))
 
 
 def column_index(names, cols):
@@ -258,8 +260,8 @@ class GraphCompiler:
             self.schema = SCHEMA+'b'
         if LAYOUT == 'v2':
             self.schema = 'l3_graph_v2'+('b' if self.brake_tail else '')
-        if LAYOUT == 'v3':
-            self.schema = 'l3_graph_v3'+('b' if self.brake_tail else '')
+        if LAYOUT in ('v3', 'v4'):
+            self.schema = 'l3_graph_%s' % LAYOUT+('b' if self.brake_tail else '')
 
     def compile(self, result, legal, queries, diag=None, steps=0, running=None):
         diag = diag or {}
@@ -372,7 +374,8 @@ class GraphCompiler:
                    + [0.]*6
                    + mfeat
                    + ([0.]*len(CAND_V2) if LAYOUT == 'v2' else [])
-                   + ([0.]*(len(CAND_SEM)+len(CAND_INFO)) if LAYOUT == 'v3' else []))
+                   + ([0.]*(len(CAND_SEM)+len(CAND_INFO)) if LAYOUT in ('v3', 'v4') else [])
+                   + ([0.]*len(CAND_ROUTE) if LAYOUT == 'v4' else []))
             cand_rows.append(row)
             # waypoints
             idx = np.minimum(SAMPLE_STEPS, T)
@@ -423,15 +426,25 @@ class GraphCompiler:
         cand = np.asarray(cand_rows, np.float32).reshape(K, len(CAND))
         traj = np.asarray(traj_rows, np.float32).reshape(K, P, len(TRAJ))
         info = None
-        if LAYOUT == 'v3':
-            from .infofeat import InfoState, query_semantics
+        if LAYOUT in ('v3', 'v4'):
+            from .infofeat import InfoState, query_semantics, route_features
             info = InfoState(legal, F, keys, unseen, HP, W)
             s0, i0 = CAND.index(CAND_SEM[0]), CAND.index(CAND_INFO[0])
+            if LAYOUT == 'v4':
+                r0 = CAND.index(CAND_ROUTE[0])
+                vh = np.asarray(legal.poses[-24:], np.float64)
+                sp = np.hypot(np.diff(vh[:, 0]), np.diff(vh[:, 2])) if len(vh) > 1 else np.zeros(0)
+                step_m = float(np.median(sp[sp > 0.02])) if (sp > 0.02).sum() >= 3 else 0.15
             for k, c in enumerate(cands):
                 q = queries[k] if k < len(queries) else None
                 cont = bool(c.candidate.get('continued')) or (q is not None and q.kind == 'continue')
                 cand[k, s0:s0+len(CAND_SEM)] = query_semantics(running if cont else q, F, continued=cont)
                 cand[k, i0:i0+len(CAND_INFO)] = info.cand(np.asarray(c.rollout.poses, np.float64))
+                if LAYOUT == 'v4':
+                    ro = c.rollout
+                    moving = np.hypot(np.diff(ro.poses[:, 0]), np.diff(ro.poses[:, 2])) if len(ro.poses) > 1 else np.zeros(0)
+                    v = float(moving[moving > 0.02].mean()) if (moving > 0.02).sum() >= 3 else step_m
+                    cand[k, r0:r0+len(CAND_ROUTE)] = route_features(info, ro, field, legal, HP, W, keys, unseen, v)
         # ------------------------------------------------------- human-side statistics against all worlds
         Nb = HP.shape[2]
         if K and Nb and len(rel):
@@ -713,7 +726,7 @@ def compile_blind(legal, queries, diag=None, steps=0, running=None):
             cand[k, CAND.index('via_left')] = _clip(vl, -8, 8)/5.
             cand[k, CAND.index('via_dist')] = _clip(math.hypot(float(vf), float(vl)), 0, 10)/5.
         cand[k, CAND.index('duration')] = _clip((q.duration or 0)/48., 0, 1)
-        if LAYOUT == 'v3':
+        if LAYOUT in ('v3', 'v4'):
             from .infofeat import query_semantics
             s0 = CAND.index(CAND_SEM[0])
             cand[k, s0:s0+len(CAND_SEM)] = query_semantics(running if continued else q, F, continued=continued)
@@ -742,7 +755,7 @@ def compile_blind(legal, queries, diag=None, steps=0, running=None):
     N = len(hum_rows)
     ego = comp._ego(legal, F, field, diag or {}, steps, K, tracks, [], np.zeros(0, bool), np.zeros((1, 0, 0, 2)),
                     np.ones(1), rel)
-    if LAYOUT == 'v3':
+    if LAYOUT in ('v3', 'v4'):
         from .infofeat import InfoState
         ego = np.concatenate([ego, InfoState(legal, F).ego()]).astype(np.float32)
     return dict(ego=ego, cand=cand, traj=np.zeros((K, P, len(TRAJ)), np.float32),

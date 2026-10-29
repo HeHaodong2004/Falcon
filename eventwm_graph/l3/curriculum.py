@@ -50,14 +50,29 @@ def weight(entry):
     return 0.25+3.*p*(1.-p)
 
 
-class EpisodeWeights:
-    """Sampling weights for a list of EpisodeSpecs (``prior``: JSON table path; ``run``: the current run, re-read)."""
+def cached_tapes():
+    """Flattened episode keys whose human tape is in the shared tape cache (a miss records the tape: 30-70 s)."""
+    import os
+    d = Path(os.environ.get('QG_TAPE_CACHE', Path(__file__).resolve().parents[2]/'output/sandbox_cache/tapes'))
+    out = set()
+    if d.exists():
+        for p in d.iterdir():
+            k = p.name.rsplit('_s', 1)[0] if '_s' in p.name else None
+            if k:
+                out.add(k)
+    return out
 
-    def __init__(self, specs, prior=None, run=None, refresh_s=600.):
+
+class EpisodeWeights:
+    """Sampling weights for a list of EpisodeSpecs (``prior``: JSON table path; ``run``: the current run, re-read).
+    ``miss``: weight factor of episodes whose human tape is not cached yet (recording costs about one episode)."""
+
+    def __init__(self, specs, prior=None, run=None, refresh_s=600., miss=0.3):
         self.specs = specs
         self.prior = json.loads(Path(prior).read_text()) if prior else {}
         self.run = run
         self.refresh_s = refresh_s
+        self.miss = float(miss)
         self.t = 0.
         self.w = None
         self.refresh(force=True)
@@ -68,7 +83,10 @@ class EpisodeWeights:
         table = {k: tuple(v) for k, v in self.prior.items()}
         if self.run is not None:
             table = scan_logs([self.run], table)
-        self.w = np.asarray([weight(table.get(s.key.replace('/', '_'))) for s in self.specs], np.float64)
+        cached = cached_tapes() if self.miss < 1 else set()
+        keys = [s.key.replace('/', '_') for s in self.specs]
+        self.w = np.asarray([weight(table.get(k))*(1. if (self.miss >= 1 or k in cached) else self.miss)
+                             for k in keys], np.float64)
         self.t = time.time()
         return True
 

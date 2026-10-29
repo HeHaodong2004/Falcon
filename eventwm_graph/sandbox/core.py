@@ -80,6 +80,8 @@ class SandboxConfig:
                                      # thread while Stage 1 and the rollouts run (Layer 2 outputs are cache-independent)
     continuation: int = 0            # Layer 3 option: imagined steps after each candidate's interval under the default
                                      # policy (ImaginedRollout.cont; not given to Layer 2).  0 = off (the released core)
+    route: bool = False              # Layer 3 option: keep each rollout's remaining executor route (ImaginedRollout.route;
+                                     # not given to Layer 2).  False = off (the released core)
 
     def steps_for(self, cand):
         if cand.query is None and cand.execution is None:
@@ -287,7 +289,8 @@ class WorldModelSandbox:
                     from .episode import default_query
                     cq = self._cont_query = getattr(self, '_cont_query', None) or default_query()
                 out.append(imagine(legal, ex, dyn, humans, steps, level=int(c.level), gmap=gmap,
-                                   continuation=self.config.continuation, cont_query=cq, planner=c.planner))
+                                   continuation=self.config.continuation, cont_query=cq, planner=c.planner,
+                                   route=bool(getattr(self.config, 'route', False))))
         self.last_cache = cache.summary() if cache is not None else {}
         return out
 

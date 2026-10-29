@@ -300,10 +300,10 @@ def main():
     compiler = GraphCompiler(**json.loads(a.compiler))
     rng = np.random.default_rng(1000+a.worker+7919*a.seed)
     ew = None
-    if a.curriculum and not a.sequential:
+    if a.curriculum and not a.sequential and a.spool == 'spool':      # training actors only (evaluation stays uniform)
         from .curriculum import EpisodeWeights
         ew = EpisodeWeights(specs, prior=a.curriculum if a.curriculum != 'none' else None, run=run)
-    cur = Curriculum(configs, specs, 17+a.worker+7919*a.seed, weights=ew)
+    cur = Curriculum(configs, specs, 17+a.worker+7919*a.seed, weights=ew, stick=6 if ew is not None else 3)
     t_start = time.time()
     n_ep = 0
     jobs = None

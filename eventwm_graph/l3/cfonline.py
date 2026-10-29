@@ -36,11 +36,16 @@ def default_continue(rt, st, goal, until):
     return st
 
 
-def targets_for(m, T, k, p_success, rng):
+def targets_for(m, T, k, p_success, rng, spread=False):
     o = m['outcome']
     if T == 0:
         return []
     if o in ('human_collision', 'stop_fail'):
+        if spread and T > k:
+            # the last two decisions plus k-2 uniformly drawn EARLIER ones: failures are often decided long before the
+            # contact, and the decisions that avoid them are the early ones
+            early = rng.choice(T-2, size=min(k-2, T-2), replace=False)
+            return sorted({T-2, T-1} | {int(x) for x in early})
         return sorted(range(max(0, T-k), T))
     if o == 'timeout':
         step = max(1, T//k)
@@ -50,7 +55,7 @@ def targets_for(m, T, k, p_success, rng):
     return []
 
 
-def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None):
+def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None, spread=False):
     from eventwm_graph.querygen.native import EpisodeSpec, MAX_EPISODE_STEPS
     from eventwm_graph.querygen.episode import EpisodeRuntime
     from eventwm_graph.querygen.dynamics import FAMILIES
@@ -62,7 +67,7 @@ def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None):
     d = read_episode(path)
     m, rows = d['metrics'], d['rows']
     T = len(rows['actions'])
-    targets = targets_for(m, T, k, p_success, rng)
+    targets = targets_for(m, T, k, p_success, rng, spread=spread)
     rec = dict(episode=Path(path).name, outcome=m['outcome'], config=d['config'], targets=targets, states={})
     if not targets or 'decision_list' not in m:
         return rec
@@ -128,7 +133,12 @@ def main():
     ap.add_argument('--cap', type=int, default=160)
     ap.add_argument('--p-success', type=float, default=0.25)
     ap.add_argument('--seconds', type=float, default=1e12)
+    ap.add_argument('--spread', action='store_true', help='failures: last 2 + k-2 earlier decisions (default: last k)')
     a = ap.parse_args()
+    hot = Path(a.run)/'cf_config.json'                       # hot override (labellers restarted by the fleet pick it up)
+    if hot.exists():
+        for kk, v in json.loads(hot.read_text()).items():
+            setattr(a, kk.replace('-', '_'), v)
     os.environ.setdefault('QG_FAST_SENSE', '1')             # the actors' exact fast legal sensor (identical rows)
     import numpy as np
     from eventwm_graph.querygen import native
@@ -156,7 +166,7 @@ def main():
             time.sleep(10)
             continue
         try:
-            rec = label_episode(todo, out, a.k, a.cap, a.p_success, rng)
+            rec = label_episode(todo, out, a.k, a.cap, a.p_success, rng, spread=a.spread)
             if rec['states']:
                 tmp = out/('.%s.tmp' % todo.name)
                 tmp.write_text(json.dumps(rec))

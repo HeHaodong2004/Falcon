@@ -39,6 +39,8 @@ CAND_SEM = ([f'q_kind_{k}' for k in KINDS] + [f'q_fam_{f}' for f in FAMILIES] + 
                'q_dir_right', 'q_n_via'])
 CAND_INFO = ['i_sweep_left', 'i_sweep_right', 'i_stale_frac', 'i_stale_abs', 'i_resid_see', 'i_lost_see',
              'i_resid_end']
+CAND_ROUTE = ['r_len', 'r_pcol', 'r_psoc', 'r_q10', 'r_tcol', 'r_pcol_hidden', 'r_unknown', 'r_clear', 'r_stale',
+              'r_turn', 'r_has']
 EGO_INFO = ([f'stale{s}_{r}' for s in range(8) for r in ('n', 'f')] + [f'age{s}' for s in range(8)]
             + [f'rsec{s}' for s in range(8)]
             + ['n_lost', 'lost_fwd', 'lost_left', 'lost_dist', 'lost_age', 't_since_vis', 'n_seen', 'cover_2s',
@@ -162,19 +164,20 @@ def _blocked_lookup(g):
 
 def _los(blocked, ox, oz, px, pz, step=0.15):
     """Clear legal-map line of sight from (ox, oz) to (px, pz) (arrays of equal shape): no BLOCKED cell strictly
-    between (the last 0.3 m before the target are not tested: the person's own cell may be marked)."""
+    between (the last 0.3 m before the target are not tested: the person's own cell may be marked).  One vectorised
+    lookup of every sample of every segment."""
     dx, dz = px-ox, pz-oz
     L = np.hypot(dx, dz)
-    n = int(np.ceil(max(float(L.max()) if L.size else 0., 0.)/step))
-    clear = np.ones(L.shape, bool)
-    for s in range(1, n):
-        f = s*step/np.maximum(L, 1e-6)
-        live = (s*step < L-0.3)
-        if not live.any():
-            break
-        hit = blocked(ox+f*dx, oz+f*dz) & live
-        clear &= ~hit
-    return clear
+    if not L.size:
+        return np.ones(L.shape, bool)
+    n = int(np.ceil(float(L.max())/step))
+    if n <= 1:
+        return np.ones(L.shape, bool)
+    sd = np.arange(1, n)*step                                               # [S]
+    live = sd[None, :] < (L-0.3)[:, None]                                    # [N, S]
+    f = sd[None, :]/np.maximum(L, 1e-6)[:, None]
+    hit = blocked(ox[:, None]+f*dx[:, None], oz[:, None]+f*dz[:, None]) & live
+    return ~hit.any(1)
 
 
 @np.errstate(invalid='ignore')
@@ -199,8 +202,10 @@ class InfoState:
         fw, lf = frame.rel(wx, wz)
         rr = np.hypot(fw, lf)
         ang = np.arctan2(lf, fw)
-        age = view_age(legal, wx, wz, self.blocked)/STALE_CAP
         free = (st == FREE) & (rr > 0.3) & (rr <= VIEW_M)
+        age = np.zeros(wx.shape)
+        if free.any():
+            age[free] = view_age(legal, wx[free], wz[free], self.blocked)/STALE_CAP
         self.age_feats = []
         sec8 = ((ang+math.pi)/(2*math.pi)*8).astype(int) % 8
         for s in range(8):
@@ -213,6 +218,8 @@ class InfoState:
             self.age_feats.append(float(age[m].mean()) if m.any() else 0.)   # mean age of the sector's free cells
         # stale free mass (the candidates' imagined camera removes what it sees)
         self.wx, self.wz = wx, wz
+        self.age = age
+        self.res = g.res
         self.mass = age*free
         self.mass_tot = float(self.mass.sum())
         # Stage 1 bank: residual (unseen) and tracked-but-not-visible slots
@@ -283,10 +290,13 @@ class InfoState:
         T = len(poses)-1
         stale_frac = stale_abs = 0.
         if self.mass_tot > 0 and T > 0:
-            seen = np.zeros(self.mass.shape, bool)
+            if not hasattr(self, '_sx'):
+                m = self.mass > 0
+                self._sx, self._sz, self._sm = self.wx[m], self.wz[m], self.mass[m]
+            seen = np.zeros(len(self._sm), bool)
             for s in sorted({min(x, T) for x in rel_steps}):
-                seen |= seen_mask(poses[s, 0], poses[s, 2], poses[s, 3], self.wx, self.wz, self.blocked)
-            got = float(self.mass[seen].sum())
+                seen |= seen_mask(poses[s, 0], poses[s, 2], poses[s, 3], self._sx, self._sz, self.blocked)
+            got = float(self._sm[seen].sum())
             stale_frac = got/self.mass_tot
             stale_abs = min(got/300., 2.)
         resid_see = lost_see = resid_end = 0.
@@ -315,3 +325,84 @@ class InfoState:
                 else:
                     lost_see = p
         return [sweep_l, sweep_r, stale_frac, stale_abs, resid_see, lost_see, min(resid_end, 3.)]
+
+
+def _resample(poly, step=0.25, max_m=12.):
+    """Points every ``step`` metres along a polyline [M, 2] (from its start), at most ``max_m``; cumulative lengths."""
+    poly = np.asarray(poly, np.float64).reshape(-1, 2)
+    if len(poly) < 2:
+        return poly[:1], np.zeros(min(len(poly), 1))
+    seg = np.hypot(np.diff(poly[:, 0]), np.diff(poly[:, 1]))
+    cum = np.concatenate([[0.], np.cumsum(seg)])
+    L = min(float(cum[-1]), max_m)
+    d = np.arange(0., L+1e-9, step)
+    x = np.interp(d, cum, poly[:, 0])
+    z = np.interp(d, cum, poly[:, 1])
+    return np.stack([x, z], 1), d
+
+
+def route_features(info, ro, field, legal, HP, W, keys, unseen, step_m):
+    """CAND_ROUTE: the candidate's INTENTION after its interval -- the running query's remaining executor route
+    (ImaginedRollout.route), else (query finished) the default continuation's legal goal route from the end pose, else
+    (rotation / wait still running) standing at the end pose -- followed at ``step_m`` metres per step for the rest of
+    Stage 1's horizon and scored against every Stage 1 world (tracked and hidden people), plus its legal-map exposure."""
+    poses = np.asarray(ro.poses, np.float64)
+    T = len(poses)-1
+    end = poses[-1]
+    route = getattr(ro, 'route', None)
+    moving = True
+    if route is None:
+        if ro.status == 'running' and ro.ended_by == 'horizon':
+            poly, moving = np.asarray([[end[0], end[2]]]), False          # rotation / wait continues in place
+        else:
+            poly = field.view.route(field.field, (float(end[0]), float(end[2])))
+            poly = np.asarray([[end[0], end[2]]]) if poly is None else np.asarray(poly, np.float64).reshape(-1, 2)
+    else:
+        poly = np.asarray(route, np.float64).reshape(-1, 2)
+    pts, dist = _resample(poly)
+    has = float(len(pts) > 1)
+    L = float(dist[-1]) if len(dist) else 0.
+    # static exposure along the first 6 m
+    near = pts[dist <= 6.] if len(pts) else pts
+    if len(near):
+        st = np.asarray([legal.map.state_at(x, z) for x, z in near])
+        from eventwm_graph.querygen.legal import UNKNOWN
+        unk = float((st == UNKNOWN).mean())
+        clr = float(min(field.clearance(x, z) for x, z in near))
+        n = info.wx.shape[0]
+        i0 = np.floor(info.wx[0, 0]/info.res)
+        j0 = np.floor(info.wz[0, 0]/info.res)
+        ii = (np.floor(near[:, 0]/info.res)-i0).astype(int)
+        jj = (np.floor(near[:, 1]/info.res)-j0).astype(int)
+        ok = (ii >= 0) & (ii < n) & (jj >= 0) & (jj < info.wx.shape[1])
+        stale = float((info.age[ii[ok], jj[ok]] > 0.5).mean()) if ok.any() else 1.
+        hd = np.arctan2(np.diff(near[:, 1]), np.diff(near[:, 0])) if len(near) > 1 else np.zeros(0)
+        turn = float(np.abs(np.angle(np.exp(1j*np.diff(hd)))).sum())/math.pi if len(hd) > 1 else 0.
+    else:
+        unk, clr, stale, turn = 0., 2., 1., 0.
+    # human risk of following the intention for the rest of the Stage 1 horizon
+    pcol = psoc = phid = 0.
+    q10, tcol = 10., 3.
+    if HP is not None and HP.shape[2] and HP.shape[1] > T:
+        J = HP.shape[1]-T
+        s_along = np.minimum(np.arange(1, J+1)*(step_m if moving else 0.), L)
+        rx = np.interp(s_along, dist, pts[:, 0]) if len(pts) > 1 else np.full(J, end[0])
+        rz = np.interp(s_along, dist, pts[:, 1]) if len(pts) > 1 else np.full(J, end[2])
+        H = HP[:, T:]                                                        # [W, J, Nb, 2]
+        with np.errstate(invalid='ignore'):
+            d = np.hypot(H[..., 0]-rx[None, :, None], H[..., 1]-rz[None, :, None])
+        d = np.where(np.isfinite(d), d, np.inf)
+        dmin_t = d.min(2)                                                    # [W, J]
+        dmin = dmin_t.min(1)                                                 # [W]
+        pcol = float((W*(dmin < 0.55)).sum())
+        psoc = float((W*(dmin < 1.0)).sum())
+        hid = np.asarray(unseen, bool)
+        if hid.any():
+            phid = float((W*(d[..., hid].min(axis=(1, 2)) < 0.55)).sum())
+        from .compiler import _wquant
+        q10 = _wquant(np.where(np.isfinite(dmin), dmin, 10.), W, (0.1,))[0]
+        hit = dmin_t < 0.55
+        first = np.where(hit.any(1), hit.argmax(1), J)
+        tcol = float((W*np.minimum(first, J)).sum())*STEP_SECONDS
+    return [min(L, 10.)/5., pcol, psoc, min(q10, 10.)/5., min(tcol, 3.)/3., phid, unk, min(clr, 2.)/2., stale,
+            min(turn, 4.)/2., has]
