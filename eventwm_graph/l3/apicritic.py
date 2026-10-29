@@ -64,7 +64,29 @@ def main():
     ap.add_argument('--lr', type=float, default=3e-4)
     ap.add_argument('--eval-every', type=int, default=1000)
     ap.add_argument('--freeze-encoders', action='store_true', help='fine-tune only the message passing and the head')
+    ap.add_argument('--members', type=int, default=1, help='ensemble members (different scene hold-outs and seeds)')
     a = ap.parse_args()
+    if a.members > 1:
+        import copy as _copy
+        members, losses = [], []
+        for m in range(a.members):
+            b = _copy.copy(a); b.members = 1; b.seed = a.seed+m; b.out = a.out+'.member%d' % m
+            sd, l = train_one(b)
+            members.append(sd); losses.append(l)
+        import torch
+        from dataclasses import asdict
+        from .model import ModelConfig, Weights
+        ck = dict(state_dict=members[0], ensemble=members, model_config=asdict(ModelConfig()),
+                  weights=asdict(Weights(collision=2., path=0.15)), version=1, updates=a.steps, tau=0., epsilon=0.,
+                  anchor=0., time=0., cfg_ids={}, explore=None, note='Q^default critic ensemble (apicritic.py)',
+                  holdout_losses=losses)
+        torch.save(ck, a.out)
+        print('saved ensemble', a.out, losses, flush=True)
+        return
+    sd, l = train_one(a)
+
+
+def train_one(a):
     import torch
     import torch.nn.functional as Fn
     from dataclasses import asdict
@@ -132,6 +154,7 @@ def main():
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     torch.save(ck, a.out)
     print('saved', a.out, 'holdout', best, flush=True)
+    return best_sd, best
 
 
 if __name__ == '__main__':

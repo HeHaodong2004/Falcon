@@ -28,11 +28,38 @@ from pathlib import Path
 import numpy as np
 
 
+class _Ensemble:
+    """Several critics of the same layout; heads are averaged (success / collision in probability space)."""
+
+    def __init__(self, nets):
+        self.nets = nets
+
+    def __call__(self, b):
+        import torch
+        outs = [n(b) for n in self.nets]
+        avg = {}
+        for k in outs[0]:
+            if k in ('succ', 'coll'):
+                p = torch.stack([torch.sigmoid(o[k]) for o in outs]).mean(0).clamp(1e-6, 1-1e-6)
+                avg[k] = torch.log(p/(1-p))
+            else:
+                avg[k] = torch.stack([o[k] for o in outs]).mean(0)
+        return avg
+
+    def eval(self):
+        return self
+
+
 def load_policy(path, device='cpu'):
     import torch
     from .model import ConsequenceGraphNet, ModelConfig, Weights
     ck = torch.load(path, map_location=device)
     cfg = ModelConfig(**ck['model_config'])
+    if ck.get('ensemble'):
+        nets = []
+        for sd in ck['ensemble']:
+            n = ConsequenceGraphNet(cfg); n.load_state_dict(sd); n.eval(); nets.append(n)
+        return _Ensemble(nets), Weights(**ck['weights']), int(ck.get('version', 0)), ck
     net = ConsequenceGraphNet(cfg)
     net.load_state_dict(ck['state_dict'])
     net.eval()
