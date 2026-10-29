@@ -422,3 +422,6 @@ DWA 55.6% vs floor 48.6% (12 wins / 7 losses, p = 0.36), ORCA 51.4% vs 47.2% (11
 floor (+2 to +8 points), not yet significant, far from the gate.  The rollout reference's remaining failures are
 deadlocks: in its 3 timeouts, NO candidate followed by the default succeeds at any of 32-35 decisions -- one-step
 improvement cannot fix them; they need multi-step escapes (or are infeasible).
+Legal imagined rollout (`imagroll`, partial paired dev 120 episodes): ORCA 48.6% vs floor 47.1% (7 / 6), DWA 50.0% vs
+56.0% (4 / 7) -- no gain: imagining 6 s of default continuation against Stage 1 (constant velocity beyond 3 s) does
+not reproduce the exact reference's choices.  Direction dropped.
