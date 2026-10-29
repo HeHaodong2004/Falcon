@@ -189,12 +189,43 @@ def main():
             top.append(float(s_[k])); rnd.append(float(s_[alt].mean()))
             pos, neg = p[j][m & s_], p[j][m & ~s_]
             auc.append(float((pos[:, None] > neg[None, :]).mean()+0.5*(pos[:, None] == neg[None, :]).mean()))
+        # across states: does the critic know WHEN the default fails?  (AUC of the default's predicted success) and a
+        # gated policy: deviate to the critic's best (or a random) alternative only when P(default succeeds) < theta
+        dsc, dlab, gate = [], [], {}
+        rng_g = np.random.default_rng(100+seed)
+        for j in range(len(Yt)):
+            m = Mk[j]
+            if not m[Dt[j]] or m.sum() < 2:
+                continue
+            s_ = Yt[j, :, 0] > 0.5
+            dsc.append(p[j, Dt[j]]); dlab.append(float(s_[Dt[j]]))
+            alt = m.copy(); alt[Dt[j]] = False
+            kb = int(np.argmax(np.where(alt, p[j], -1)))
+            kr = int(rng_g.choice(np.flatnonzero(alt)))
+            for th in (0.0, 0.2, 0.35, 0.5, 0.65):
+                dev = p[j, Dt[j]] < th
+                g = gate.setdefault(th, [[], [], 0])
+                g[0].append(float(s_[kb] if dev and p[j, kb] > p[j, Dt[j]] else s_[Dt[j]]))
+                g[1].append(float(s_[kr] if dev else s_[Dt[j]]))
+                g[2] += int(dev)
+        dsc, dlab = np.asarray(dsc), np.asarray(dlab)
+        if len(dlab) and 0 < dlab.sum() < len(dlab):
+            pos, neg = dsc[dlab > 0.5], dsc[dlab < 0.5]
+            d_auc = float((pos[:, None] > neg[None, :]).mean()+0.5*(pos[:, None] == neg[None, :]).mean())
+        else:
+            d_auc = None
         out.append(dict(seed=seed, critical=len(top), critic_top1=float(np.mean(top)) if top else None,
                         random_alt=float(np.mean(rnd)) if rnd else None, auc=float(np.mean(auc)) if auc else None,
                         mixed=len(top_mixed), mixed_top1=float(np.mean(top_mixed)) if top_mixed else None,
-                        mixed_default=float(np.mean(dflt_mixed)) if dflt_mixed else None))
+                        mixed_default=float(np.mean(dflt_mixed)) if dflt_mixed else None,
+                        default_auc=d_auc, n_default=int(len(dlab)), default_success=float(dlab.mean()) if len(dlab) else None,
+                        gate={str(th): dict(critic=round(float(np.mean(g[0])), 4), random=round(float(np.mean(g[1])), 4),
+                                            deviate=round(g[2]/max(len(g[0]), 1), 3)) for th, g in gate.items()}))
         print(json.dumps(out[-1]), flush=True)
-    agg = {k: float(np.mean([o[k] for o in out if o[k] is not None])) for k in ('critic_top1', 'random_alt', 'auc', 'mixed_top1', 'mixed_default')}
+    agg = {k: float(np.mean([o[k] for o in out if o.get(k) is not None])) for k in
+           ('critic_top1', 'random_alt', 'auc', 'mixed_top1', 'mixed_default', 'default_auc', 'default_success')}
+    agg['gate'] = {th: {k: float(np.mean([o['gate'][th][k] for o in out])) for k in ('critic', 'random', 'deviate')}
+                   for th in out[0]['gate']}
     agg['critical_states'] = int(sum(o['critical'] for o in out))
     print('MEAN', json.dumps(agg), flush=True)
 

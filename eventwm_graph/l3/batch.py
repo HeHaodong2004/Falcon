@@ -84,6 +84,8 @@ class Ring:
         self.cf = np.zeros((self.cap, KMAX, len(CUM)), np.float32)    # counterfactual labels per candidate
         self.cf_mask = np.zeros((self.cap, KMAX), bool)
         self.source = np.zeros(self.cap, np.int8)                    # 0 online RL, 1 oracle demo, 2 other
+        self.prio = np.zeros(self.cap, np.float32)                   # prioritised replay (learner --per)
+        self.max_prio = 1.0
         self.valid = np.zeros(self.cap, bool)
         self.head = 0
         self.size = 0
@@ -125,6 +127,7 @@ class Ring:
             else:
                 self.cf_mask[idx] = False
             self.source[idx] = source
+            self.prio[idx] = self.max_prio                               # new decisions are replayed at least once soon
             self.valid[idx] = True
             self.head = (self.head+T) % self.cap
             self.size = min(self.size+T, self.cap)
@@ -141,6 +144,26 @@ class Ring:
         if not len(cand):
             return None
         return cand[rng.integers(0, len(cand), n)]
+
+    def sample_prio(self, n, rng, alpha=0.6, source=0, where=None):
+        """Prioritised sample (p ~ prio^alpha) of valid decisions; returns (indices, sampling probabilities, N)."""
+        with self.lock:
+            ok = self.valid & (self.source == source)
+            if where is not None:
+                ok = ok & where
+            cand = np.flatnonzero(ok)
+            if not len(cand):
+                return None, None, 0
+            pr = self.prio[cand].astype(np.float64)**alpha
+        pr /= pr.sum()
+        j = rng.choice(len(cand), size=n, p=pr)
+        return cand[j], pr[j], len(cand)
+
+    def update_prio(self, idx, err, eps=0.02):
+        p = np.abs(np.asarray(err, np.float32))+eps
+        with self.lock:
+            self.prio[idx] = p
+            self.max_prio = max(self.max_prio*0.999, float(p.max()))
 
     def gather(self, idx):
         """Graph arrays of ring indices (boot indices -1 -> zero graphs, masked by the caller)."""

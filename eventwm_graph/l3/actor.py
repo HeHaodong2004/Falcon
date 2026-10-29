@@ -16,6 +16,7 @@ floor), ``random``, ``greedy`` (hand-written sandbox heuristic baseline, ``heuri
 """
 import argparse
 import json
+import math
 import os
 import pickle
 import random
@@ -62,7 +63,7 @@ class PolicyHandle:
                 if self.override:
                     from dataclasses import replace
                     self.w = replace(self.w, **self.override)
-                self.meta = {k: ck.get(k) for k in ('tau', 'epsilon', 'version', 'anchor')}
+                self.meta = {k: ck.get(k) for k in ('tau', 'epsilon', 'version', 'anchor', 'explore')}
                 self.mtime = m
                 return True
             except Exception:
@@ -105,7 +106,8 @@ def cumulants(r):
 
 
 def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compiler=None, record=True, max_decisions=400,
-                oracle_seq=None, imagination=True, margin=0., anchor=0., near_interval=0, near_m=3.0, scan=False):
+                oracle_seq=None, imagination=True, margin=0., anchor=0., near_interval=0, near_m=3.0, scan=False,
+                explore=None):
     from .env import L3Episode
     from .batch import pack
     t0 = time.perf_counter()
@@ -122,7 +124,14 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
             qv = heads = None
             if selector == 'policy':
                 qv, heads = policy.scores(packed)
-                a, p = choose(qv, n, tau, eps, rng, anchor=anchor, default=d.default)
+                t_eff, a_eff = tau, anchor
+                if explore == 'risk' and tau > 0:
+                    # explore where it matters: the predicted failure risk of the default sets the temperature and the
+                    # default anchor (risky states: broader search; safe states: mostly keep the default)
+                    r = 1.-1./(1.+math.exp(-float(heads['succ'][d.default])))
+                    t_eff = tau*(0.5+1.5*r)
+                    a_eff = min(max(anchor*(1.5-r), 0.), 0.9)
+                a, p = choose(qv, n, t_eff, eps, rng, anchor=a_eff, default=d.default)
                 if margin > 0 and tau <= 0 and a != d.default and qv[a] < qv[d.default]+margin:
                     a = d.default          # conservative deviation: leave the default only for a clear value gain
             elif selector == 'default':
@@ -196,27 +205,38 @@ class Curriculum:
     configuration draw) before moving on -- habitat keeps the scene's assets loaded, so a same-scene episode starts
     ~4x faster (measured 20 s -> 5 s), and the human tape of a repeated episode is cached."""
 
-    def __init__(self, configs, episodes, seed, stick=3):
+    def __init__(self, configs, episodes, seed, stick=3, weights=None):
         self.configs = [c for c, _ in configs]
         w = np.asarray([w for _, w in configs], np.float64)
         self.w = w/w.sum()
         self.by_scene = {}
-        for e in episodes:
-            self.by_scene.setdefault((e.dataset, e.scene), []).append(e)
+        for i, e in enumerate(episodes):
+            self.by_scene.setdefault((e.dataset, e.scene), []).append(i)
+        self.episodes = episodes
         self.scenes = sorted(self.by_scene)
         self.rng = np.random.default_rng(seed)
         self.stick = int(stick)
         self.left = 0
         self.scene = None
+        self.ew = weights            # curriculum.EpisodeWeights (None: uniform)
 
     def sample(self):
         c = self.configs[int(self.rng.choice(len(self.configs), p=self.w))]
+        if self.ew is not None:
+            self.ew.refresh()
         if self.left <= 0:
-            self.scene = self.scenes[int(self.rng.integers(len(self.scenes)))]
+            if self.ew is not None:
+                sw = np.asarray([self.ew.w[self.by_scene[s]].sum() for s in self.scenes])
+                self.scene = self.scenes[int(self.rng.choice(len(self.scenes), p=sw/sw.sum()))]
+            else:
+                self.scene = self.scenes[int(self.rng.integers(len(self.scenes)))]
             self.left = self.stick
         self.left -= 1
-        eps = self.by_scene[self.scene]
-        return c, eps[int(self.rng.integers(len(eps)))]
+        idx = self.by_scene[self.scene]
+        if self.ew is not None:
+            pw = self.ew.w[idx]
+            return c, self.episodes[idx[int(self.rng.choice(len(idx), p=pw/pw.sum()))]]
+        return c, self.episodes[idx[int(self.rng.integers(len(idx)))]]
 
 
 def main():
@@ -246,6 +266,7 @@ def main():
     ap.add_argument('--near-m', type=float, default=3.0)
     ap.add_argument('--sandbox', default='{}', help='SandboxConfig overrides (JSON), e.g. {"continuation": 24}')
     ap.add_argument('--scan', action='store_true', help='Layer 3 information-gathering queries (env.scan_queries)')
+    ap.add_argument('--curriculum', default=None, help='episode-weight prior (curriculum.py JSON); the run\'s own logs update it')
     a = ap.parse_args()
     import torch
     torch.set_num_threads(1)
@@ -278,7 +299,11 @@ def main():
     from .compiler import GraphCompiler
     compiler = GraphCompiler(**json.loads(a.compiler))
     rng = np.random.default_rng(1000+a.worker+7919*a.seed)
-    cur = Curriculum(configs, specs, 17+a.worker+7919*a.seed)
+    ew = None
+    if a.curriculum and not a.sequential:
+        from .curriculum import EpisodeWeights
+        ew = EpisodeWeights(specs, prior=a.curriculum if a.curriculum != 'none' else None, run=run)
+    cur = Curriculum(configs, specs, 17+a.worker+7919*a.seed, weights=ew)
     t_start = time.time()
     n_ep = 0
     jobs = None
@@ -315,7 +340,8 @@ def main():
             seq = oracle_map.get('%s|%s' % (spec.key, cfg.name)) if a.selector == 'oracle' else None
             m, rows = run_episode(spec, cfg, sb, a.selector, policy, rng, tau=tau, eps=eps, record=not a.no_record,
                                   oracle_seq=seq, imagination=not a.blind, margin=a.margin, compiler=compiler,
-                                  anchor=anchor, near_interval=a.near_interval, near_m=a.near_m, scan=a.scan)
+                                  anchor=anchor, near_interval=a.near_interval, near_m=a.near_m, scan=a.scan,
+                                  explore=policy.meta.get('explore') if a.selector == 'policy' and tau > 0 else None)
             extra = dict(spec=spec.asdict(), config=cfg.name, selector=a.selector, version=policy.version, tau=tau,
                          eps=eps, anchor=anchor, worker=a.worker, compiler=compiler.schema, scan=bool(a.scan))
             write_episode(spool, name, m, rows if not a.no_record else {k: v for k, v in rows.items() if k != 'packed'}, extra)

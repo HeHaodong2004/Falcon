@@ -87,6 +87,19 @@ case $name in
       --actor-args "--configs $SEEN --suite train_all --selector policy --scan --compiler '{\"brake_tail\":true}'" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R5/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.15 --cf-floor 0.5 --cf-reg 0.25" ;;
+  R8b) # R8 restarted IN PLACE (spool, labels and learner state carry over) with the training changes: prioritised
+       # replay of online decisions (alpha 0.6, IS beta 0.4 -> 1), within-state ranking loss on counterfactual labels,
+       # risk-directed exploration (the default's predicted failure risk sets temperature and anchor), and an episode
+       # curriculum (uncertain episodes weighted up, always/never-solved down, spawn collisions ~excluded; prior from
+       # R1-R5 actor logs, updated from R8's own outcomes).
+    unset QG_HUMAN_360
+    export L3_LAYOUT=v3
+    INIT=output/runs/R8/learner_state.pt
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R8 --servers 3 --server-devices 0,0,1 --workers 18 \
+      --eval-workers 2 --labelers 6 --labeler-args "--k 6 --cap 160 --p-success 0.25" --tag R8b \
+      --actor-args "--configs $SEEN --suite train_all --selector policy --scan --compiler '{\"brake_tail\":true}' --curriculum output/curriculum_90.json" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init $INIT --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.15 --cf-floor 0.5 --cf-reg 0.25 --per 0.6,0.4,1.0,300000 --cf-rank 0.5 --explore risk" ;;
   B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \

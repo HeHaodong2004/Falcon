@@ -33,14 +33,15 @@ from .batch import Ring, CUM, CUM_SCALE, KMAX, GRAPH_KEYS, to_torch
 from .model import ConsequenceGraphNet, ModelConfig, Weights, HEADS
 
 
-def head_loss(pred, y):
-    """pred, y: dict head -> [B]; returns dict of per-head mean losses."""
+def head_loss(pred, y, w=None):
+    """pred, y: dict head -> [B]; returns dict of per-head (importance-weighted) mean losses."""
     out = {}
     for h in HEADS:
         if h in ('succ', 'coll'):
-            out[h] = Fn.binary_cross_entropy_with_logits(pred[h], y[h].clamp(0, 1))
+            l = Fn.binary_cross_entropy_with_logits(pred[h], y[h].clamp(0, 1), reduction='none')
         else:
-            out[h] = Fn.smooth_l1_loss(pred[h], y[h], beta=0.5)
+            l = Fn.smooth_l1_loss(pred[h], y[h], beta=0.5, reduction='none')
+        out[h] = l.mean() if w is None else (w*l).sum()/w.sum()
     return out
 
 
@@ -88,6 +89,9 @@ class Learner:
         self.cf_floor = 0.5               # counterfactual lower-bound hinge never decays below this weight
         self.cf_frac = 0.0                # share of each batch drawn from counterfactually labelled states
         self.cf_reg = 0.0                 # permanent weight of the counterfactual regression of the value heads
+        self.cf_rank = 0.0                # within-state ranking loss on counterfactual labels (success > failure)
+        self.per = None                   # (alpha, beta start, beta end, online decisions): prioritised replay
+        self.explore = None               # actors' exploration mode (policy meta), e.g. 'risk' 
         self.poll_every = 5.
         self.t0 = time.time()
 
@@ -295,8 +299,20 @@ class Learner:
             icf = ring.sample(ncf, self.rng, source=0, where=ring.cf_mask.any(1)) if ncf else None
             if icf is not None:
                 idx_parts.append(icf)
+        isw = None
         if B-sum(len(x) for x in idx_parts) > 0 and has_online:
-            i0 = ring.sample(B-sum(len(x) for x in idx_parts), self.rng, source=0)
+            n0 = B-sum(len(x) for x in idx_parts)
+            if self.per:
+                alpha, b0, b1, nb = self.per
+                i0, p0, N = ring.sample_prio(n0, self.rng, alpha=alpha)
+                if i0 is not None:
+                    beta = b0+(b1-b0)*min(1., (ring.inserted-self.warm_inserted)/max(nb, 1.))
+                    w0 = (N*p0)**(-beta)
+                    w0 = w0/w0.max()
+                    isw = np.concatenate([np.ones(sum(len(x) for x in idx_parts)), w0]).astype(np.float32)
+                    per_slice = slice(B-n0, B)
+            else:
+                i0 = ring.sample(n0, self.rng, source=0)
             if i0 is not None:
                 idx_parts.append(i0)
         if not idx_parts:
@@ -323,9 +339,15 @@ class Learner:
                 y[h] = ret[:, j]+has_boot.float()*bv
                 if beta > 0:            # mix in the Monte Carlo return (fast calibration; decays to pure n-step TD)
                     y[h] = (1.-beta)*y[h]+beta*mc[:, j]
-        losses = head_loss(pred, y)
+        wt = torch.as_tensor(isw, device=self.dev) if isw is not None else None
+        losses = head_loss(pred, y, wt)
         loss = sum(self.head_w[h]*losses[h] for h in HEADS)
         info = {('td_'+h): float(v) for h, v in losses.items()}
+        if isw is not None:
+            with torch.no_grad():
+                err = (torch.sigmoid(pred['succ'])-y['succ'].clamp(0, 1)).abs()+(torch.sigmoid(pred['coll'])-y['coll'].clamp(0, 1)).abs()
+            ring.update_prio(idx[per_slice], err[per_slice].cpu().numpy())
+            info['per_err'] = float(err[per_slice].mean())
         # ---------------- counterfactual lower-bound labels (warm-up states)
         cfm = torch.as_tensor(ring.cf_mask[idx], device=self.dev) & g['cand_mask']
         wcf = max(self.sched(self.cf_w, self.updates), self.cf_floor)
@@ -346,6 +368,17 @@ class Learner:
                     reg = reg*self.cf_reg/max(wcf, 1e-6)      # permanent dense supervision at weight cf_reg
             loss = loss+wcf*(0.1*hinge+reg)
             info['cf_hinge'] = float(hinge)
+            if self.cf_rank > 0:
+                # within-state ranking: every labelled success above every labelled failure of the same state
+                ys = cfl[..., 0]
+                pos = cfm & (ys > 0.5)
+                neg = cfm & (ys < 0.5) & (ys >= 0)
+                pair = pos.unsqueeze(2) & neg.unsqueeze(1)                      # [B, K, K]
+                if bool(pair.any()):
+                    diff = q.unsqueeze(2)-q.unsqueeze(1)
+                    rl = Fn.softplus(1.-diff)[pair].mean()
+                    loss = loss+self.cf_rank*rl
+                    info['cf_rank'] = float(rl)
             # ---------------- Oracle margin against counterfactual failures
             wm = self.sched(self.margin_w, self.updates)
             orc = torch.as_tensor(ring.oracle[idx].astype(np.int64), device=self.dev)
@@ -377,7 +410,7 @@ class Learner:
                   updates=self.updates, tau=self.sched(self.tau_sched, self.ring.inserted-self.warm_inserted),
                   epsilon=self.sched(self.eps_sched, self.ring.inserted-self.warm_inserted), time=time.time(),
                   anchor=self.sched(self.anchor, self.ring.inserted-self.warm_inserted) if self.anchor else 0.,
-                  cfg_ids=self.cfg_ids)
+                  cfg_ids=self.cfg_ids, explore=self.explore)
         tmp = self.run/'.policy.pt.tmp'
         torch.save(ck, tmp)
         os.replace(tmp, self.run/'policy.pt')
@@ -510,6 +543,9 @@ def main():
     ap.add_argument('--v1b', action='store_true', help='seed only v1b graphs for robots with speed state')
     ap.add_argument('--cf-floor', type=float, default=0.5, help='minimum weight of the counterfactual hinge')
     ap.add_argument('--cf-reg', type=float, default=0., help='permanent counterfactual regression weight on the value heads')
+    ap.add_argument('--cf-rank', type=float, default=0., help='within-state ranking loss on counterfactual labels')
+    ap.add_argument('--per', default=None, help='alpha,beta0,beta1,decisions: prioritised replay of online data')
+    ap.add_argument('--explore', default=None, help="actors' exploration mode published in the policy meta ('risk')")
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
     import signal
@@ -529,6 +565,10 @@ def main():
     if a.anchor:
         L.anchor = tuple(float(x) for x in a.anchor.split(','))
     L.cf_frac, L.cf_floor, L.cf_reg = a.cf_frac, a.cf_floor, a.cf_reg
+    L.cf_rank = a.cf_rank
+    if a.per:
+        L.per = tuple(float(x) for x in a.per.split(','))
+    L.explore = a.explore
     if a.init:
         L.load_init(a.init)
     if a.seed_spool:
