@@ -81,6 +81,8 @@ class L3Episode:
         self.ep = BranchEpisode(spec, cfg.planner, cfg.dynamics, range_sensor=range_sensor, gc_freeze=gc_freeze,
                                 stream=stream)
         self.rt = self.ep.rt
+        from . import sensorcache
+        sensorcache.attach(self.rt)          # exact cross-episode support-certificate cache (sensorcache.py)
         self.start_geodesic = float(self.rt.start_geodesic)
         self.state = self.ep.state
         self.state.geodesic = self.start_geodesic
@@ -172,6 +174,11 @@ class L3Episode:
         return self.ep.state.decisions
 
     def close(self):
+        from . import sensorcache
+        try:
+            sensorcache.save(self.rt)
+        except Exception:
+            pass
         self.ep.close()
 
 

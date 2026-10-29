@@ -71,6 +71,8 @@ def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None):
     rt = EpisodeRuntime(EpisodeSpec(**d['spec']), cfg.planner, dyn, strict=False)
     rt.sim.check_static = False
     rt.prefix_cache = 48
+    from . import sensorcache
+    sensorcache.attach(rt)
     gen = generator(cfg.gen, cfg.dynamics)          # also sets the process-wide executor options
     goal = default_query()
     H = type('H', (), {'horizon': 16})()
@@ -105,6 +107,10 @@ def label_episode(path, out_dir, k=4, cap=160, p_success=0.25, rng=None):
                     rec['states'] = {j: s for j, s in rec['states'].items() if j <= i}
                     break
     finally:
+        try:
+            sensorcache.save(rt)
+        except Exception:
+            pass
         rt.close()
     rec['seconds'] = round(time.perf_counter()-t0, 1)
     return rec
