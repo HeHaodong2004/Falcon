@@ -91,7 +91,8 @@ class Learner:
         self.cf_reg = 0.0                 # permanent weight of the counterfactual regression of the value heads
         self.cf_rank = 0.0                # within-state ranking loss on counterfactual labels (success > failure)
         self.per = None                   # (alpha, beta start, beta end, online decisions): prioritised replay
-        self.explore = None               # actors' exploration mode (policy meta), e.g. 'risk' 
+        self.explore = None               # actors' exploration mode (policy meta), e.g. 'risk'
+        self.cql = 0.0                    # conservative Q: logsumexp_k Q(s, k) - Q(s, a_data) on online decisions
         self.poll_every = 5.
         self.t0 = time.time()
 
@@ -343,6 +344,14 @@ class Learner:
         losses = head_loss(pred, y, wt)
         loss = sum(self.head_w[h]*losses[h] for h in HEADS)
         info = {('td_'+h): float(v) for h, v in losses.items()}
+        if self.cql > 0:
+            # conservative regulariser (CQL): candidates the data does not support may not look better than the taken one
+            qa = self.w.scalarize(out).masked_fill(~g['cand_mask'], -1e9)
+            on = torch.as_tensor(ring.source[idx] == 0, device=self.dev)
+            if bool(on.any()):
+                c = torch.logsumexp(qa[on], 1)-qa[on].gather(1, a[on][:, None]).squeeze(1)
+                loss = loss+self.cql*c.mean()
+                info['cql'] = float(c.mean())
         if isw is not None:
             with torch.no_grad():
                 err = (torch.sigmoid(pred['succ'])-y['succ'].clamp(0, 1)).abs()+(torch.sigmoid(pred['coll'])-y['coll'].clamp(0, 1)).abs()
@@ -546,6 +555,7 @@ def main():
     ap.add_argument('--cf-rank', type=float, default=0., help='within-state ranking loss on counterfactual labels')
     ap.add_argument('--per', default=None, help='alpha,beta0,beta1,decisions: prioritised replay of online data')
     ap.add_argument('--explore', default=None, help="actors' exploration mode published in the policy meta ('risk')")
+    ap.add_argument('--cql', type=float, default=0., help='conservative Q regulariser weight (online decisions)')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
     hot = run/'learner_config.json'                 # hot override (a learner restarted by the fleet picks it up)
@@ -574,6 +584,7 @@ def main():
     if a.per:
         L.per = tuple(float(x) for x in a.per.split(','))
     L.explore = a.explore
+    L.cql = a.cql
     if a.init:
         L.load_init(a.init)
     if a.seed_spool:
