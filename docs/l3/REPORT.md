@@ -269,3 +269,12 @@ with the uncertainty-only curriculum), 6 episodes per scene, spawn collisions (c
 dropped after one occurrence.  Labellers now label failures over the whole episode (last 2 + 4 earlier decisions,
 continuations to the episode end).  R9 = v4 + scans + prioritised replay + ranking + risk-directed exploration +
 curriculum, warm start from R8b's network, 18 actors + 2 dev evaluators + 6 labellers.
+
+**Collision context under the legal 90-degree floor (privileged replay, analysis only; `l3/collctx.py`; 60 dev
+collisions of ORCA / DWA / SFM native K=10).**  6 spawn collisions (contact at step 0).  Of the other 54: 32 while the
+robot was moving -- 84% of the colliding people had been a visible legal track within the last 3 s (94% at some time),
+typically ~4 m away 2 s before contact, contact front 13 / side 16 / behind 3; 22 while rotating in place -- 73% seen
+within 3 s, ~2 m away 2 s before contact, contact side 12 / front 8 / behind 2; none while standing.  24 of 54 in the
+first 80 steps (leaving the spawn).  So ~80% of collisions are with people the robot had seen 2-3 decisions earlier at
+2-4 m: decision failures with the information in hand (route / timing choice against seen people's predicted motion),
+not an information limit; active perception addresses the remaining ~20% (mostly during in-place rotations).
