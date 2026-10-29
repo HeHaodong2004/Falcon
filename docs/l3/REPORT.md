@@ -201,3 +201,55 @@ people, danger visible only 1.5-2.5 s ahead, timing chaos at critical moments; ~
 fixable design component (the learned policy deviates at ~60% of decisions and breaks as many episodes as it fixes).
 Expected Layer 3 ceiling with the current inputs: floor + 10-15 points; 85% SR judged ~5% likely (~10% with
 360-degree sensing and query-space escape options).
+
+## 5. Revised direction (2026-10-29 evening, after the user's review)
+
+**User feedback.** The 18:00 assessment over-read the evidence: a critic that is *worse* than random at critical
+states is a learning/representation failure, not proof of missing information (an uninformed critic is ~random); the
+privileged-clearance AUC 0.48 scored ~2 s of motion against outcomes decided up to 8 s later (horizon mismatch);
+near-identical first intervals continue as different queries (the default continuation keeps the candidate's query
+running), so their outcomes legitimately differ; RL had not converged, and matching the floor is not acceptable.
+Primary benchmark: legal 90-degree jaw camera only (no 360-degree sensing, no privileged future, no hidden geometry);
+Oracle information for training supervision only.  The Oracle never needs to look around, so its behaviour carries no
+information gathering -- under partial observability the robot must learn when and where to look.  Three directions:
+active perception, query-centric features, better training (focus compute on informative decisions).
+
+**Identifiability with query semantics (offline, R5 on-policy + Oracle-state counterfactual labels, 1,794 labelled
+states / 186 scenes, scene-level split, 5 seeds, 316 held-out critical states).**  Critic top-1 success at critical
+states: v1 graph 31.5%, + label-derived query semantics 37.6%, random alternative 38.1%; within-state AUC 0.53 ->
+0.55; mixed states 68% -> 71% (keeping the default 72%).  Up-weighting critical states (25% of batches + ranking)
+did not help (32.8%).  Across states the critic does know WHEN the default is failing (AUC 0.80 for the default's
+outcome over 454 held-out labelled states), but deviating where it predicts failure gains nothing (51-52% vs 51%):
+most of those states are already lost -- only ~15% of labelled states are fixable by one deviation.  Reading: the
+decisions that matter come earlier than the labelled window (the last 4-6 decisions before a failure); the policy
+must avoid getting into these states (information, exposure, route choice), which only whole-episode RL with an
+adequate representation can learn.
+
+**Graph Compiler v3 (`L3_LAYOUT=v3`, `l3/infofeat.py`).**
+* Query-centric candidate descriptor from the Query object itself: kind, label family (goal / st_goal / pass / yield /
+  sidestep / retreat / alt_route / frontier / turn / rot / scan / ...), the generator's execution-style flags
+  (tight, close, vclose, thru, commit, short, unknown_cost, ...), duration, speed, relative heading; the 'continue'
+  candidate is described by the RUNNING query.  Goal-execution variants are no longer collapsed into one intent.
+* Information state (ego): camera view age per 8 robot-frame sectors x 2 rings (stale free area and mean age), Stage 1
+  hidden-person mass per sector (Stage 1's residual slots are a learned prior conditioned on the visibility history),
+  lost tracks (count, nearest extrapolated position, age), time since anyone was visible, people seen so far, recent
+  sweep coverage.  Pitfall found: the legal map's `last_seen` is the FIRST certification time (static cells are
+  certified once), so the view age is recomputed from the robot's own pose history with legal-map occlusion.
+* What each candidate would see (cand): yaw sweep left/right, stale free area its imagined camera uncovers (occlusion
+  on the legal map), probability over the Stage 1 worlds that a hidden person / a lost tracked person enters its
+  imagined frustum with a clear line of sight, hidden-person mass in view at its end pose.
+* Compile time 92 -> 120 ms per decision (median, 25 captured decisions); all compiler / ring tests pass under v3.
+
+**Layer 3 scan queries (`env.scan_queries`, `--scan`).**  In-place rotations of 80 degrees to either side (~76 degrees
+in one native interval; slower robots continue them) and a rotation toward the most recently lost person when the
+generator did not offer one.  The counterfactual labellers rebuild the same candidate sets, so scans are labelled.
+
+**Training changes (`R8b`).**  Prioritised replay of online decisions (priority = success + collision prediction
+error, alpha 0.6, IS beta 0.4 -> 1); within-state ranking loss on counterfactual labels; risk-directed exploration
+(the default's predicted failure risk sets the Boltzmann temperature x(0.5 + 1.5 r) and the default anchor x(1.5 - r));
+episode curriculum (`l3/curriculum.py`: weight 0.25 + 3 s(1-s) from the episode's smoothed success rate across
+earlier runs and the run's own outcomes, 0.8 unseen, 0.03 for spawn collisions); partial warm start now zero-inits
+new input columns (the v3 network starts exactly as R5).
+
+**Runs.**  R8 = v3 + scans + warm start from R5, legal 90-degree sensing, 7 seen configurations, 18 actors + 2 dev
+evaluators + 6 labellers (5.4-7.2 decisions/s); restarted in place as R8b with the training changes after 15 min.
