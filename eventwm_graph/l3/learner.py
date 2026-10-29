@@ -395,12 +395,34 @@ class Learner:
     def load_init(self, path):
         ck = torch.load(path, map_location=self.dev)
         sd = ck.get('net') or ck.get('state_dict')
-        self.net.load_state_dict(sd)
-        self.tgt.load_state_dict(ck.get('tgt') or sd)
-        if 'opt' in ck:                       # a full learner state (restart): continue counters and optimiser
-            self.opt.load_state_dict(ck['opt'])
-            self.updates = int(ck.get('updates', 0))
-            self.version = int(ck.get('version', 0))
+        own = self.net.state_dict()
+        if all(k in sd and sd[k].shape == v.shape for k, v in own.items()):
+            self.net.load_state_dict(sd)
+            self.tgt.load_state_dict(ck.get('tgt') or sd)
+            if 'opt' in ck:                       # a full learner state (restart): continue counters and optimiser
+                self.opt.load_state_dict(ck['opt'])
+                self.updates = int(ck.get('updates', 0))
+                self.version = int(ck.get('version', 0))
+            return
+        # warm start across input layouts (e.g. v1b -> v2 adds candidate columns): copy every matching tensor and the
+        # overlapping block of tensors whose shapes differ (new input columns keep their fresh initialisation)
+        new = {}
+        for k, v in own.items():
+            w = sd.get(k)
+            if w is None:
+                new[k] = v
+            elif w.shape == v.shape:
+                new[k] = w
+            elif w.dim() == v.dim():
+                t = v.clone()
+                sl = tuple(slice(0, min(a, b)) for a, b in zip(w.shape, v.shape))
+                t[sl] = w[sl]
+                new[k] = t
+            else:
+                new[k] = v
+        self.net.load_state_dict(new)
+        self.tgt.load_state_dict(new)
+        print('partial warm start from', path, flush=True)
 
     def loop(self, max_updates=10**12, max_seconds=1e12, pretrain_updates=0):
         last_log = last_save = time.time()

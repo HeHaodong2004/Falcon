@@ -52,6 +52,16 @@ case $name in
       --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}'" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --pretrain 0 --init output/runs/R5/learner_state.pt --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.25 --cf-floor 0.5 --cf-reg 0.5 --v1b --seed-spool output/runs/R4/spool,output/runs/R1/spool,output/runs/R2/spool,output/runs/R3/spool" ;;
+  R6)  # EXPERIMENTAL (perception): 360-degree people detection (QG_HUMAN_360=1; map sensing unchanged) + Graph Compiler v2
+       # (continuation imagination, 24 steps) + v1b braking tail; warm start from R5's network (partial transfer for the
+       # new columns); no Oracle demonstrations (they were recorded with the 90-degree sensor); weaker counterfactual
+       # regression (labels at collision moments proved largely unpredictable).
+    export QG_HUMAN_360=1 L3_LAYOUT=v2
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R6 --servers 3 --server-devices 0,0,1 --workers 18 \
+      --eval-workers 2 --labelers 8 --labeler-args "--k 6 --cap 160 --p-success 0.25" --tag R6 \
+      --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}' --sandbox '{\"continuation\":24}'" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "--device cuda:1 --pretrain 0 --min-size 2000 --replay-ratio 64 --tau 0.4,0.15,300000 --eps 0.05,0.02,300000 --init output/runs/R5/learner_state.pt --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.15 --cf-floor 0.5 --cf-reg 0.25" ;;
   B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
