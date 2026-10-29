@@ -162,7 +162,13 @@ class SandboxServer:
         return True
 
     def op_stats(self, conn_id):
-        return dict(self.stats, streams=len(self.streams), pid=os.getpid(), now=time.time())
+        out = dict(self.stats, streams=len(self.streams), pid=os.getpid(), now=time.time())
+        try:
+            import torch
+            out.update(gpu_reserved_gb=torch.cuda.memory_reserved()/1e9, gpu_max_reserved_gb=torch.cuda.max_memory_reserved()/1e9)
+        except Exception:
+            pass
+        return out
 
     # ------------------------------------------------------------------ connections
     def dispatch(self, conn_id, op, kw):

@@ -71,6 +71,7 @@ def make_stream(stream, spec, global_graph=False):
 
 
 def close_stream(stream):
+    """Close a stream or sensor that holds resources (a remote stream's server state, a range sensor's GPU buffers)."""
     close = getattr(stream, 'close', None)
     if close is not None:
         close()
@@ -202,6 +203,7 @@ class RealEpisode:
     def close(self):
         self.task.close()
         close_stream(self.stream)
+        close_stream(self.ranges)
         if self.gc_freeze:
             thaw_gc()
 
@@ -310,5 +312,6 @@ class BranchEpisode:
     def close(self):
         self.rt.close()
         close_stream(self.stream)
+        close_stream(self.ranges)
         if self.gc_freeze:
             thaw_gc()

@@ -260,9 +260,20 @@ class DriverCuda:
     then holds ~0.3 GB of GPU memory instead of a PyTorch CUDA context's ~0.7 GB (torch 1.12 / CUDA 11.3: no lazy
     module loading).  Same kernel, same inputs, same launch shape: outputs identical to the torch backend (tested)."""
 
+    _shared = {}           # (device, source) -> (driver functions, context, module, functions): one per process
+
     def __init__(self, source, device=0):
         import ctypes as ct
         self.ct = ct
+        self.buffers = {}
+        key = (int(device), hashlib.sha256(source.encode()).hexdigest())
+        shared = DriverCuda._shared.get(key)
+        if shared is None:
+            shared = DriverCuda._shared[key] = self._open(source, int(device))
+        self.f, self.ctx, self.module, self.functions = shared
+
+    def _open(self, source, device):
+        ct = self.ct
         cu = ct.CDLL('libcuda.so.1')
         P, U64, SZ, I, U = ct.c_void_p, ct.c_uint64, ct.c_size_t, ct.c_int, ct.c_uint
         sig = dict(cuInit=[U], cuDeviceGet=[ct.POINTER(I), I], cuDevicePrimaryCtxRetain=[ct.POINTER(P), I],
@@ -275,16 +286,28 @@ class DriverCuda:
             fn = getattr(cu, name); fn.argtypes = types; fn.restype = I
             self.f[name] = fn
         self._ck('cuInit', 0)
-        dev = I(); self._ck('cuDeviceGet', ct.byref(dev), int(device))
+        dev = I(); self._ck('cuDeviceGet', ct.byref(dev), device)
         self.ctx = P(); self._ck('cuDevicePrimaryCtxRetain', ct.byref(self.ctx), dev)
         self._ck('cuCtxSetCurrent', self.ctx)
         major, minor = I(), I()
         self._ck('cuDeviceGetAttribute', ct.byref(major), 75, dev)      # COMPUTE_CAPABILITY_MAJOR
         self._ck('cuDeviceGetAttribute', ct.byref(minor), 76, dev)      # COMPUTE_CAPABILITY_MINOR
-        self.module = P()
-        self._ck('cuModuleLoadData', ct.byref(self.module), ct.create_string_buffer(kernel_ptx(source, (major.value, minor.value))))
-        self.functions = {}
-        self.buffers = {}
+        module = P()
+        self._ck('cuModuleLoadData', ct.byref(module), ct.create_string_buffer(kernel_ptx(source, (major.value, minor.value))))
+        return self.f, self.ctx, module, {}
+
+    def close(self):
+        """Free this sensor's device buffers (the shared context and module stay loaded for the process)."""
+        buffers, self.buffers = self.buffers, {}
+        for ptr, _ in buffers.values():
+            try:
+                self.current()
+                self._ck('cuMemFree_v2', ptr)
+            except Exception:
+                pass
+
+    def __del__(self):
+        self.close()
 
     def _ck(self, name, *args):
         code = self.f[name](*args)
@@ -369,6 +392,11 @@ class FastRangeSensor:
         self.check_every = int(check_every)
         self.frames = 0
         self.stats = dict(frames=0, rays=0, native_rays=0, human_rays=0, ambiguous_rays=0, gpu_s=0., native_s=0., host_s=0.)
+
+    def close(self):
+        """Release the device buffers (driver backend; torch tensors are freed with the object)."""
+        if self.backend == 'driver':
+            self.cuda.close()
 
     def human_capsules(self):
         """Index-frame collision capsules of every active human (one per URDF collision box: the box's long axis,

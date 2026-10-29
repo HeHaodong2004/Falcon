@@ -101,8 +101,9 @@ Graph Compiler.
 
 In-process, every worker holds Layer 2 (~2.5 GB of GPU memory), which caps an RL loop at 6-7 workers per GPU while
 the loop itself is CPU-bound. In split mode Layer 2 runs in a few server processes and each worker keeps only the
-environment, its sensors, the generator and the imagined rollouts (~0.8 GB of GPU memory: CUDA context, simulator,
-range buffers):
+environment, its sensors, the generator and the imagined rollouts. A worker's only GPU use is the fast range sensor:
+0.30 GB with its torch-free driver backend (`range_sensor='fast-driver'`, bit-identical frames), 0.73 GB with the
+PyTorch one (a full CUDA context; torch 1.12 has no lazy module loading). The simulator itself uses no GPU memory.
 
 ```python
 from eventwm_graph.sandbox.service import RemoteSandbox, start_server, wait_ready
@@ -110,7 +111,7 @@ from eventwm_graph.sandbox.service import RemoteSandbox, start_server, wait_read
 srv = start_server('wm0', 'wm0.ready')         # or: scripts/sandbox_run.py eventwm_graph.sandbox.service serve --address wm0
 wait_ready(['wm0.ready'], [srv])               # ~20 s (Layer 2 build)
 sb = RemoteSandbox('wm0', SandboxConfig())     # in each worker; several workers share a server
-ep = BranchEpisode(spec, 'orca', 'native', stream=sb.open_stream(spec.key))
+ep = BranchEpisode(spec, 'orca', 'native', range_sensor='fast-driver', stream=sb.open_stream(spec.key))
 res = sb.evaluate(ep.decision_state(), ep.legal, cands)   # the same SandboxResult as in process
 ```
 
