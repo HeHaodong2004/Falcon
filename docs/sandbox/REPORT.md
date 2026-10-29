@@ -15,31 +15,39 @@ each summary records its load), branch-simulator episodes unless marked "real".
   * one batched Stage 2 call for the K trajectories (map increments and complete hypothetical future graphs);
   * collision / social risk of every trajectory scored against all 40 worlds;
   * structured, JSON-ready, hypothetical outputs for the future Graph Compiler.
-* **Correctness.** 18 tests pass on real Falcon episodes. They cover:
+* **Correctness.** 18 + 6 tests pass on real Falcon episodes. They cover:
   * formats, clocks and coordinates; legality, including rejection of hypothetical inputs; the real legal state
     untouched;
   * batched == individual; one shared bank; failure isolation;
   * every planner × dynamics family;
   * exactness of all accelerations (bit-identical rollouts);
-  * the fast range sensor against the native one.
+  * the fast range sensor against the native one;
+  * split-process mode: results bit-identical to in-process, also with workers interleaved on one server; the
+    torch-free range backend bit-identical to the PyTorch one.
 * **Speed** (warm, 8 episodes, branch environment):
   * K=10: sandbox P50 432 ms, P95 1,375 ms. Imagination 355 ms, Stage 2 52 ms, Stage 1 20 ms, risk 7 ms.
   * K=6: P50 286 ms, P95 982 ms.
   * DWA under inertia, K=10: P50 874 ms.
 * **Throughput, one GPU, 6 processes:** ~10 K=10 or ~20 K=6 sandbox decisions/s. That is 1.7-2.6 M (K=10) or
   3.5-5.3 M (K=6) calls in 2-3 days, which meets the target.
-* **The full RL loop is environment-bound:** ~2.0 decisions/s with 6 workers on one GPU. The sandbox is ~21% of a
-  decision; the rest is the environment's sensing (legal sensor ≈ 35-40%, range frames ≈ 25%) and stepping.
+* **The full RL loop (environment + sensing + generator + sandbox), one GPU, this 18-core host:** 5.6 K=10 / 6.0 K=6
+  decisions/s in split-process mode (`service.py`: 3 Layer 2 servers, 24 environment workers; bit-identical
+  results). That is ~0.49-0.52 M decisions per day, 1.0-1.5 M in 2-3 days. In process, GPU memory caps the loop at
+  6-7 workers: 2.0 decisions/s.
+* **The loop is now CPU-bound:** ~3.5 CPU-s per decision. The environment's sensing (legal sensor and range frames)
+  is ~65% of it, imagination ~17%, the server ~9%.
 * **Optimisations, all measured:**
   * exact per-decision caches plus exact numba helpers: imagination 2.0× faster, bit-identical;
   * fast range sensor: 1.2 ms GPU kernel per 256 × 256 frame, 15.7 ms per frame P50 including native recasts near
     people, against 840 ms native (54×); identical hit masks on 100 frames, ≤ 8.8e-5 m;
   * compact static updates plus GC freezing: no growth of live objects with history, no 150–215 ms collection
     pauses;
-  * exact branch-simulator driver: simulator steps 6× cheaper than habitat.Env.
+  * exact branch-simulator driver: simulator steps 6× cheaper than habitat.Env;
+  * split-process mode plus a torch-free range backend: a worker needs 0.3 GB of GPU memory instead of ~2.5 GB, so
+    one GPU serves 24+ workers (2.8× the in-process loop).
 * **Known limits.** Stage 2's own accuracy gate is unmet (0.4831 < 0.50; unchanged). Imagination has no new map
   evidence and no navmesh sliding (fidelity: §4). The fast range sensor is ulp-level, not bit-identical.
-  Environment-side sensing dominates the RL budget (§6).
+  Environment-side sensing dominates the RL budget (§6); the host's CPU, not the GPU, now bounds the loop.
 
 ## 2. What was built
 
@@ -189,10 +197,10 @@ window; the host also ran this project's niced Oracle searches (load 20-28).
 | sandbox only (re-evaluating 10 stored decision states per worker) | 1 / 4 / 6 | 0.87 / 6.8 / 9.9 | 0.87 / 1.7 / 1.66 | ~0.6 | -- | -- |
 | sandbox only, K=6 | 6 | 20.5 | 3.4 | ~0.29 | -- | -- |
 
-* **GPU memory, not compute, caps the processes per GPU.**
+* **In process, GPU memory, not compute, caps the processes per GPU** (the split-process mode below removes this cap).
   * Each sandbox process holds ~2.4-2.6 GB: Layer 2 with Stage 2's captured CUDA graphs for 3 lanes × 8 input sizes,
     plus the range buffers.
-  * The 8th process OOMed beside the other GPU0 users (~2.5 GB). Plan at most 6-7 processes per 24 GB GPU.
+  * The 8th process OOMed beside the other GPU0 users (~2.5 GB). Plan at most 6-7 in-process sandboxes per 24 GB GPU.
   * GPU compute per decision is ~70 ms: Stage 2 ~50 ms plus 16 range kernels × 1.3 ms.
 * **The sandbox alone sustains ~10 K=10 or ~20 K=6 decisions/s on one GPU** (6 processes). That is ~0.86 M or ~1.8 M
   decisions per day, i.e. 1.7-2.6 M (K=10) or 3.5-5.3 M (K=6) sandbox calls in 2-3 days. It meets the "millions of
@@ -201,19 +209,65 @@ window; the host also ran this project's niced Oracle searches (load 20-28).
 * **The full RL inner loop is environment-bound.**
   * One worker spends ~2.5-3.8 CPU-s per decision on the 16 environment steps, mostly the legal sensor and the range
     frames, against ~0.6-0.8 s in the sandbox.
-  * Six workers on one GPU give ~2.0 decisions/s with the exact fast legal sensor: ~0.17 M per day, 1 M in ~6 days.
-    With the reference observer it was ~1.5 decisions/s on 7 workers.
-* **What it takes to reach millions in 2-3 days end to end:**
+  * Six in-process workers on one GPU give ~2.0 decisions/s with the exact fast legal sensor: ~0.17 M per day, 1 M
+    in ~6 days. With the reference observer it was ~1.5 decisions/s on 7 workers. Split mode: 5.6 (K=10) / 6.0 (K=6).
+* **What it takes to reach millions in 2-3 days end to end** (the split-process mode below reaches 1.0-1.5 M on one
+  host; beyond that):
   * cheaper environment sensing. In the exact fast legal sensor (19-41 ms per step on 3 measured episodes) the
     native support-probe rays are 25-48% of the time. Emulating them on the GPU (exact booleans, native fallback near
     the 0.015 m cutoff or near people) would bound the gain at 1.3-1.9× on the sensor, ~10-20% end to end. The rest
     is the sensor's Python/numpy bookkeeping (frustum tests, probe-index lookups, tracker, wall band), which would
     need a vectorised re-implementation of the observer.
-  * the second GPU.
-  * a smaller Stage 2 graph footprint, to fit more processes per GPU. A first measurement under concurrent GPU
-    load: `lanes=1` reserves 0.86 GB vs 1.30 GB of torch memory per process, at Stage 2 P50 51 vs 45 ms. That is
-    about one more process per 24 GB GPU.
+  * more hosts (the second GPU of this host adds GPU memory, which split mode no longer needs; the CPU is the limit).
+  * (in-process mode only, made unnecessary by split mode) a smaller Stage 2 graph footprint: `lanes=1` reserves
+    0.86 GB vs 1.30 GB of torch memory per process, at Stage 2 P50 51 vs 45 ms, about one more process per GPU.
 
+
+### Split-process mode (`service.py`)
+
+In process, GPU memory caps the loop, because every worker holds Layer 2 (~2.5 GB). In split mode, 2-3 server
+processes hold Layer 2 and serve every worker over Unix sockets, with results bit-identical to in-process (section 3,
+`tests/sandbox/test_service.py`). A worker keeps the environment, sensors, generator and imagination. Its only GPU use
+is the fast range sensor: 0.27-0.30 GB with the torch-free driver backend (`range_sensor='fast-driver'`, bit-identical
+frames), 0.73 GB with PyTorch's CUDA context. The setup matches the in-process runs: the same 8 episodes, branch
+environment, ORCA, 300 s. The host also ran 2-4 of this project's Oracle searches.
+
+| run | K | servers | workers | range backend | decisions/s | per worker | worker s per decision: environment / sandbox (server wait) | server busy | server ms per decision: frames / Stage 1 / Stage 2 + risk | GPU used (GB) | load |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| tp_full_k10_w6_fs | 10 | - | 6 | torch | 2.00 | 0.33 | 1.98 / 0.54 (-) | - | - | - | 16 |
+| tp_split_k10_s2_w16 | 10 | 2 | 16 | torch | 4.42 | 0.28 | 2.13 / 0.99 (0.45) | 55-56% | 108 / 83 / 66 | 17.9 | 18 |
+| tp_split_k10_s2_w24_drv | 10 | 2 | 24 | driver | 5.19 | 0.22 | 2.52 / 1.46 (0.86) | 75% | 124 / 100 / 70 | - | 23 |
+| tp_split_k10_s3_w16 | 10 | 3 | 16 | torch | 4.43 | 0.28 | 2.19 / 0.93 (0.37) | 35-42% | 113 / 81 / 68 | 20.9 | 19 |
+| tp_split_k10_s3_w24_drv | 10 | 3 | 24 | driver | 5.45 | 0.23 | 2.57 / 1.14 (0.53) | 54-56% | 131 / 101 / 73 | - | 23 |
+| tp_split_k10_s3_w24_drv2 | 10 | 3 | 24 | driver | 5.63 | 0.23 | 2.48 / 1.13 (0.54) | 54-55% | 125 / 99 / 73 | 16.3 | 23 |
+| tp_split_k6_s3_w24_drv | 6 | 3 | 24 | driver | 5.85 | 0.24 | 2.53 / 0.92 (0.51) | 54-55% | 128 / 100 / 56 | - | 24 |
+| tp_split_k6_s3_w24_drv2 | 6 | 3 | 24 | driver | 5.98 | 0.25 | 2.46 / 0.89 (0.49) | 53-54% | 122 / 95 / 55 | 19.5 | 24 |
+| tp_split_k6_s3_w24_drv_b | 6 | 3 | 24 | driver | 5.82 | 0.24 | 2.52 / 0.91 (0.50) | 53-54% | 125 / 99 / 55 | - | 22 |
+
+(GPU used: free memory of GPU0 at start minus 120 s into the run, all processes of the run; not shown for the first driver-backend runs, whose range sensor leaked buffers per episode)
+
+* **Throughput.** K=10: **5.6 decisions/s** with 3 servers and 24 workers, against 2.0 in process with 6 workers.
+  K=6: **6.0**. That is 0.49 / 0.52 M decisions per day: 1.0-1.5 M in 2-3 days on one host with one GPU. Workers are
+  independent, so a second host doubles it.
+* **Servers.** A decision costs ~0.28-0.3 s of server work:
+  * rebuilding the decision state from the 16 new frames (~0.12 s, mostly the causal partial-graph update; 3.7-4.4 ms
+    per frame unloaded);
+  * Stage 1 on the new state (~0.1 s);
+  * Stage 2 + risk (~0.06-0.07 s).
+
+  One server feeds 8 workers at ~55% busy. At 12 workers per server (2 servers, 24 workers) it reached 75%, and the
+  workers waited 0.86 s per decision instead of 0.53 s.
+* **Workers.** A decision costs a worker ~2.5 s of environment (simulator, legal sensor, range frames), ~0.6 s of
+  imagination, and the server wait. The environment time per decision rose from 1.98 s (6 workers) to ~2.5 s
+  (24 workers + 3 servers on 18 physical cores / 36 hyperthreads). The host's CPU is the limit now: ~3.5 CPU-s per
+  decision, i.e. at most ~6-6.5 decisions/s on this host.
+* **GPU memory.** 3 servers + 24 workers used 16.3 GB of GPU0 at K=10 and 19.5 GB at K=6. The servers take ~2.5 GB
+  each at start-up and grow with Stage 2's cached allocations (1.4-1.6 GB reserved at K=10, 2.5 GB at K=6); the
+  workers take ~0.3 GB each. CPU cores, not GPU memory, now bound the loop. The first driver-backend version leaked
+  range buffers per episode. It is fixed (one context and module per process, buffers freed at episode close; flat
+  0.27-0.30 GB over 6 episodes), and only the re-measured runs report memory.
+* **Not yet done.** Frames are shipped with the decision's first request. Shipping them during the interval would take
+  the ~0.12 s frame update off the worker's critical path (~4% of a decision).
 
 ## 7. Limits and next steps
 
@@ -254,5 +308,9 @@ $PY scripts/sandbox_run.py eventwm_graph.sandbox.validate ranges --out output/va
     --episodes dev:0,dev:7,unseen:31,unseen2:47 --steps 48 --every 2
 $PY scripts/sandbox_run.py eventwm_graph.sandbox.validate fidelity --out output/validate/fidelity \
     --episodes dev:0,dev:7,unseen:31,unseen3:5 --decisions 6
+$PY scripts/sandbox_run.py tests/sandbox/test_service.py                       # split-process tests (~2 min)
+$PY scripts/sandbox_run.py eventwm_graph.sandbox.benchmark throughput --out output/bench/tp_split_k10_s3_w24_drv2 \
+    --workers 24 --servers 3 --range fast-driver --episodes dev:0,dev:2,dev:7,unseen:31,unseen:32,unseen2:47,unseen3:5,unseen4:4 \
+    --seconds 300 --env branch --work full                                    # add --config k6 for K=6
 $PY scripts/sandbox_run.py eventwm_graph.sandbox.report output/bench output/validate     # the tables of this report
 ```

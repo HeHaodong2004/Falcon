@@ -248,6 +248,7 @@ def throughput(a):
     n = sum(1 for t in stamps if lo <= t <= hi)
     comp = {k: sum(r['components'][k] for r in recs) for k in recs[0]['components']}
     summ = dict(workers=a.workers, servers=a.servers, work=a.work, env=a.env, config=a.config, planner=a.planner, dynamics=a.dynamics,
+                range=a.range,
                 decisions=len(stamps), window_s=hi-lo, decisions_per_s=n/max(hi-lo, 1e-9),
                 per_worker=[len(r['stamps']) for r in recs], component_seconds=comp, load=os.getloadavg(),
                 gpu_free_gb=memory, server_wait_s=sum(r.get('server_wait_s') or 0. for r in recs),
