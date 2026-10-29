@@ -16,11 +16,22 @@ case $name in
       --eval-workers 2 --tag R1 --actor-args "--configs $SEEN --suite train_all --selector policy" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "$LEARN --warm output/warm/replay/spool" ;;
+  R2)  # main, second attempt: R1 + Monte Carlo target mixing (0.5 -> 0.1 over 300k decisions, fixes the warm-up
+       # over-optimism measured in R1) + replay ratio 64; R1's episodes seed the buffer (off-policy reuse)
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R2 --servers 3 --server-devices 0,0,1 --workers 20 \
+      --eval-workers 2 --tag R2 --actor-args "--configs $SEEN --suite train_all --selector policy" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --seed-spool output/runs/R1/spool" ;;
   B1)  # ablation: no imagination (current legal observation + query descriptors only; no Sandbox, no range frames)
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B1 --servers 0 --workers 6 --eval-workers 1 --tag B1 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
       --eval-args "--blind --suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "$LEARN --warm output/warm/replay_blind/spool" ;;
+  B2)  # no-imagination ablation with the R2 learner (MC mixing, replay ratio 64), seeded with B1's episodes
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B2 --servers 0 --workers 6 --eval-workers 1 --tag B2 \
+      --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
+      --eval-args "--blind --suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay_blind/spool --mc-mix 0.5,0.1,300000 --seed-spool output/runs/B1/spool" ;;
   S1)  # ablation: specialist (ORCA x native x K=10 only), otherwise as R1
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/S1 --servers 2 --server-devices 0,1 --workers 10 \
       --eval-workers 1 --tag S1 --actor-args "--configs orca-native-k10:1 --suite train_all --selector policy" \

@@ -49,7 +49,7 @@ class Learner:
                  weights=None, polyak=0.005, replay_ratio=32., min_size=2000, publish_every=200, seed=0,
                  head_w=None, tau_sched=(1.0, 0.25, 300_000), eps_sched=(0.05, 0.02, 300_000), cf_w=(1.0, 0.1, 100_000),
                  margin_w=(0.5, 0.05, 100_000), margin=1.0, warm_steps=0, demo_frac=0.25, demo_floor=0.03,
-                 demo_decay=200_000):
+                 demo_decay=200_000, mc_mix=None):
         self.run = Path(run)
         self.dev = torch.device(device)
         self.ring = Ring(capacity, nstep)
@@ -72,6 +72,7 @@ class Learner:
         self.cf_w, self.margin_w, self.margin = cf_w, margin_w, margin
         self.warm_steps = warm_steps
         self.demo_frac, self.demo_floor, self.demo_decay = demo_frac, demo_floor, demo_decay
+        self.mc_mix = mc_mix              # (start, end, online decisions) weight of the Monte Carlo return in targets
         self.updates = 0
         self.version = 0
         self.loaded = set()
@@ -247,9 +248,13 @@ class Learner:
             a2 = q2.argmax(1)
             t2 = self._heads_at(self.tgt(g2), a2)
             y = {}
+            beta = self.sched(self.mc_mix, self.ring.inserted-self.warm_inserted) if self.mc_mix else 0.
+            mc = torch.as_tensor(ring.mc[idx], device=self.dev) if beta > 0 else None
             for j, h in enumerate(HEADS):
                 bv = torch.sigmoid(t2[h]) if h in ('succ', 'coll') else t2[h]
                 y[h] = ret[:, j]+has_boot.float()*bv
+                if beta > 0:            # mix in the Monte Carlo return (fast calibration; decays to pure n-step TD)
+                    y[h] = (1.-beta)*y[h]+beta*mc[:, j]
         losses = head_loss(pred, y)
         loss = sum(self.head_w[h]*losses[h] for h in HEADS)
         info = {('td_'+h): float(v) for h, v in losses.items()}
@@ -396,6 +401,8 @@ def main():
     ap.add_argument('--weights', default='{}')
     ap.add_argument('--tau', default='1.0,0.25,300000')
     ap.add_argument('--eps', default='0.05,0.02,300000')
+    ap.add_argument('--mc-mix', default=None, help='start,end,decisions: Monte Carlo share of the value targets')
+    ap.add_argument('--seed-spool', default=None, help='ingest the episodes of another run first (off-policy reuse)')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
     mc = json.loads(a.model)
@@ -406,10 +413,19 @@ def main():
     L = Learner(run, a.device, nstep=a.nstep, batch=a.batch, lr=a.lr, model_cfg=ModelConfig(**mc),
                 weights=Weights(**json.loads(a.weights)), replay_ratio=a.replay_ratio, min_size=a.min_size,
                 tau_sched=(tau[0], tau[1], int(tau[2])), eps_sched=(eps[0], eps[1], int(eps[2])),
-                warm_steps=a.pretrain)
+                warm_steps=a.pretrain,
+                mc_mix=tuple(float(x) for x in a.mc_mix.split(',')) if a.mc_mix else None)
     (run/'learner_args.json').write_text(json.dumps(vars(a)))
     if a.init:
         L.load_init(a.init)
+    if a.seed_spool:
+        n = 0
+        for p in sorted(Path(a.seed_spool).glob('*.ep')):
+            try:
+                n += L.ingest_file(p, 0)
+            except Exception as exc:
+                print('seed ingest failed', p, exc, flush=True)
+        print('seeded online transitions', n, 'from', a.seed_spool, flush=True)
     if a.warm:
         L.warm_dir, L.cf_dir = a.warm, a.cf
         n = L.ingest_warm()
