@@ -278,3 +278,11 @@ within 3 s, ~2 m away 2 s before contact, contact side 12 / front 8 / behind 2; 
 first 80 steps (leaving the spawn).  So ~80% of collisions are with people the robot had seen 2-3 decisions earlier at
 2-4 m: decision failures with the information in hand (route / timing choice against seen people's predicted motion),
 not an information limit; active perception addresses the remaining ~20% (mostly during in-place rotations).
+
+**Route-safe heuristic (v4 features, no learning; first 81 paired dev episodes):** keeping the default unless its
+interval or intention risk exceeds 0.15 and switching to a much safer candidate cuts collisions (38% -> 32%) but
+doubles timeouts (13% -> 27%): SR 41% vs the floor's 48%.  It deviates to turns, yields and alternative routes that
+are safe but make no progress -- the same safety/progress trap as 360-degree sensing.  Consequence for the learner:
+R9's value scalarisation (success 10, collision 5, path 0.3/m) paid +5 for turning a collision into a timeout, which
+is the wrong trade with SR first; from 19:25 R9's learner uses collision 2 and path 0.15/m (hot override
+`learner_config.json`; the decomposed heads are unchanged, the target policy and the actors' choices follow).

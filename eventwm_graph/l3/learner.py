@@ -548,6 +548,11 @@ def main():
     ap.add_argument('--explore', default=None, help="actors' exploration mode published in the policy meta ('risk')")
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
+    hot = run/'learner_config.json'                 # hot override (a learner restarted by the fleet picks it up)
+    if hot.exists():
+        for k, v in json.loads(hot.read_text()).items():
+            setattr(a, k.replace('-', '_'), v if not isinstance(v, dict) else json.dumps(v))
+        print('learner_config.json overrides', hot.read_text(), flush=True)
     import signal
     import sys
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))      # run the loop's finally (state save, final publish)
