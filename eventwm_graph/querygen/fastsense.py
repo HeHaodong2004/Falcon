@@ -24,6 +24,7 @@ Numerical note: every array operation here was checked to be row-independent in 
 import copy
 import functools
 import math
+import os
 import time
 from collections import OrderedDict
 
@@ -131,6 +132,12 @@ def _lookup(index, keys, observer, height):
     return selected, index.array[rows], h[rows], rows
 
 
+# Layer 3 perception option (default off = the accepted sensor): people are detected all around the robot (10 m range,
+# same occlusion ray from the camera origin) instead of only inside the 90 deg jaw frustum -- a body-camera / lidar
+# people detector.  The static legal map is still certified by the jaw frustum only.  QG_HUMAN_360=1 enables it.
+HUMAN_360 = os.environ.get('QG_HUMAN_360') == '1'
+
+
 @functools.lru_cache(maxsize=None)
 def fast_observer_class(base):
     """Observer class with the exact fast paths on top of ``base`` (a FastGeometryObserver subclass)."""
@@ -224,7 +231,8 @@ def fast_observer_class(base):
             for i, ids in enumerate(self.human_ids, 1):
                 p = np.asarray(self.sim.get_agent_data(i).articulated_agent.base_pos, dtype=float)
                 target = p+[0, self.config.torso_height_m, 0]
-                if in_frustum(target[None], origin, rotation, self.config)[0]:
+                if (np.linalg.norm(target-origin) <= self.config.max_range_m if HUMAN_360 else
+                        in_frustum(target[None], origin, rotation, self.config)[0]):
                     self.performance['human_rays'] += 1
                     if self._clear_many(origin, target[None], ids)[0]:
                         detections.append(HumanDetection(t, tuple(p.tolist())))

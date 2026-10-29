@@ -28,3 +28,12 @@ def greedy_index(graph, p_max=0.15, x_max=0.3):
         return int(idx[np.argmax(score[idx])])
     risk = pcol+0.5*xcol
     return int(np.argmin(risk))
+
+
+def progress_index(graph):
+    """Pure progress: the largest legal route-cost reduction of the imagined interval (ties: the earlier candidate)."""
+    c = graph['cand']
+    stop = c[:, _I['intent_stop']] > 0.5
+    at_goal = c[:, _I['at_goal']] > 0.5
+    score = c[:, _I['ctg_gain']].astype(np.float64)+2.0*(stop & at_goal)-5.0*(stop & ~at_goal)
+    return int(np.argmax(score))

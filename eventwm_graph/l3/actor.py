@@ -132,6 +132,9 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
             elif selector == 'greedy':
                 from .heuristics import greedy_index
                 a, p = greedy_index(d.graph), 1.
+            elif selector == 'progress':
+                from .heuristics import progress_index
+                a, p = progress_index(d.graph), 1.
             elif selector == 'oracle':
                 want = oracle_seq[ep.decisions] if ep.decisions < len(oracle_seq) else None
                 if want in d.labels:
