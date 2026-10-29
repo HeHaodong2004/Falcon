@@ -112,6 +112,10 @@ def run(a):
         actor += ' --blind'
     if a.margin:
         actor += ' --margin %g' % a.margin
+    if a.weights:
+        actor += ' --weights %s' % shlex.quote(a.weights)
+    if a.compiler:
+        actor += ' --compiler %s' % shlex.quote(a.compiler)
     cmd = [sys.executable, str(ROOT/'scripts/l3_run.py'), 'eventwm_graph.l3.fleet', '--run', str(out), '--servers',
            str(a.servers), '--server-devices', a.server_devices, '--workers', str(a.workers), '--sequential',
            '--actor-args', actor, '--tag', a.tag or out.name]
@@ -225,6 +229,8 @@ def main():
     ap.add_argument('--blind', action='store_true')
     ap.add_argument('--names', default=None)
     ap.add_argument('--margin', type=float, default=0.)
+    ap.add_argument('--weights', default=None)
+    ap.add_argument('--compiler', default=None)
     ap.add_argument('--procs', type=int, default=16)
     a = ap.parse_args()
     if a.mode == 'matrix':

@@ -39,10 +39,12 @@ def load_policy(path, device='cpu'):
 
 
 class PolicyHandle:
-    """CPU policy with hot reload."""
+    """CPU policy with hot reload.  ``weights``: optional override of the value scalarisation (evaluation only; the
+    decomposed heads make it possible without retraining)."""
 
-    def __init__(self, path):
+    def __init__(self, path, weights=None):
         self.path = Path(path) if path else None
+        self.override = weights
         self.net = self.w = None
         self.version = -1
         self.mtime = None
@@ -57,6 +59,9 @@ class PolicyHandle:
         for _ in range(3):
             try:
                 self.net, self.w, self.version, ck = load_policy(self.path)
+                if self.override:
+                    from dataclasses import replace
+                    self.w = replace(self.w, **self.override)
                 self.meta = {k: ck.get(k) for k in ('tau', 'epsilon', 'version', 'anchor')}
                 self.mtime = m
                 return True
@@ -229,6 +234,7 @@ def main():
     ap.add_argument('--spool', default='spool', help='output sub-directory (eval actors use eval_spool: never ingested)')
     ap.add_argument('--margin', type=float, default=0., help='greedy evaluation: deviate from the default only if Q gain > margin')
     ap.add_argument('--compiler', default='{}', help='GraphCompiler options (JSON), e.g. {"brake_tail": true}')
+    ap.add_argument('--weights', default=None, help='evaluation: override the value scalarisation (JSON of model.Weights fields)')
     a = ap.parse_args()
     import torch
     torch.set_num_threads(1)
@@ -257,7 +263,7 @@ def main():
         specs = qs.load(a.suite)
     if a.episodes:
         specs = [specs[int(i)] for i in a.episodes.split(',')]
-    policy = PolicyHandle(run/'policy.pt' if a.selector == 'policy' else None)
+    policy = PolicyHandle(run/'policy.pt' if a.selector == 'policy' else None, json.loads(a.weights) if a.weights else None)
     from .compiler import GraphCompiler
     compiler = GraphCompiler(**json.loads(a.compiler))
     rng = np.random.default_rng(1000+a.worker+7919*a.seed)
