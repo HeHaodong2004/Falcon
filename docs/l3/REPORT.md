@@ -362,3 +362,12 @@ first paired dev episodes, the lever is an accurate per-candidate evaluator.  R1
 8 labellers (failures over the whole episode, successes with p 0.5), 16 actors, cf_reg 0.25 / cf_frac 0.25 / cf_rank 0.3.
 Route-safe (progress-preserving) re-tested with inheritance: identical to the run without it on ORCA / DWA (it
 deviates at ~6% of decisions, mostly to non-goal queries), so its floor-level result was not caused by the reset cost.
+
+**What saves a failing episode (R9 + R10 labels, 119 critical states, 376 fixing vs 1,052 failing alternatives;
+standardised mean differences).**  Fixing candidates are more often in-place rotations (rotate kind d = 0.46; scans
+27% of fixes vs 13% of failing alternatives), have a later predicted conflict along their intention (r_tcol d = 0.61)
+and a larger 10% distance quantile (d = 0.37), reveal more of the map in Stage 2's prediction (m_cells d = 0.69,
+m_blk 0.51, m_free 0.39 -- rotations expose new cells), run at full speed (slow variants rarely fix) and are less
+often via-point manoeuvres (goto d = -0.33: pass / yield / sidestep / alternative routes).  At the decisive moments,
+stopping to look around is often what saves the episode -- active perception -- and the v4 inputs carry it.  The
+Stage 2 map-gain columns carry signal here, so dropping Stage 2 for speed is not advisable.
