@@ -49,7 +49,8 @@ def evaluate(net, w, ring, idx, device):
     from .heuristics import greedy_index
     from . import compiler as C
     res = dict(states=0, mixed=0, top1=[], auc=[], regret=[], default_top1=[], greedy_top1=[], oracle_top1=[],
-               random_top1=[], default_regret=[], oracle_regret=[], greedy_regret=[])
+               random_top1=[], default_regret=[], oracle_regret=[], greedy_regret=[],
+               crit_top1=[], crit_random=[], crit_oracle=[], crit_auc=[], critical=0)
     with torch.no_grad():
         for s in range(0, len(idx), 512):
             ii = idx[s:s+512]
@@ -88,11 +89,19 @@ def evaluate(net, w, ring, idx, device):
                     res['random_top1'].append(float(succ[:n][lab].mean()))
                     pos = qq[succ[:n] & lab]; neg = qq[(~succ[:n]) & lab]
                     res['auc'].append(float((pos[:, None] > neg[None, :]).mean()+0.5*(pos[:, None] == neg[None, :]).mean()))
+                if mixed and not succ[dflt]:
+                    # critical: the default fails and some candidate succeeds -- can the critic find one?
+                    res['critical'] += 1
+                    res['crit_top1'].append(float(succ[pick])); res['crit_oracle'].append(float(succ[orc]))
+                    alt = lab.copy(); alt[dflt] = False
+                    res['crit_random'].append(float(succ[:n][alt].mean()) if alt.any() else 0.)
+                    pos = qq[succ[:n] & lab]; neg = qq[(~succ[:n]) & lab]
+                    res['crit_auc'].append(float((pos[:, None] > neg[None, :]).mean()+0.5*(pos[:, None] == neg[None, :]).mean()))
                 for name, k in (('regret', pick), ('default_regret', dflt), ('oracle_regret', orc), ('greedy_regret', gr)):
                     r = reg(k)
                     if r is not None:
                         res[name].append(r)
-    out = dict(states=res['states'], mixed=res['mixed'])
+    out = dict(states=res['states'], mixed=res['mixed'], critical=res['critical'])
     for k, v in res.items():
         if isinstance(v, list):
             out[k] = round(float(np.mean(v)), 4) if v else None
