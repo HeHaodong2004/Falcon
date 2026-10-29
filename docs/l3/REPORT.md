@@ -331,3 +331,10 @@ proven-infeasible ones); the only known-infeasible dev episodes are the 3 spawn 
 ~88-90% of the reachable rate, not ~97%.  The schedule also allows extended exploration before a final 2-3 day
 training run.  Revised confidence: 85% on the best configuration ~20%; 70% on the other native configurations ~30%;
 70% on modified-dynamics robots ~5-10% (their full-budget ceilings are unmeasured).
+
+**Why choosing 1 of ~10 is hard (R9 labels, 204 failure-bound states).**  Where the default is heading to failure, 31%
+(early decisions) / 34% (last two) of the states have at least one alternative that saves the episode (followed by
+the default), and those that do typically have ONE (0.7-0.9 of ~10 alternatives).  The one-step rule on the TRUE 3 s
+future of the tracked people (final, 72 + 71 paired episodes): ORCA 47.2% vs floor 47.2%, DWA 43.7% vs 47.9%.  So
+the needle is real (an exact evaluator applied at every decision would get several chances per failing episode) but
+3 s of perfect prediction does not find it; next test: the same rule with the true future of everyone over 9 s.
