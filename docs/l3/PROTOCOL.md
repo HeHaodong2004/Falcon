@@ -41,3 +41,11 @@ tape) are training supervision or analysis only, never policy input.  Layer 3 ma
 in-place rotations); what it then sees is legal.  Milestone dev evaluations: `scripts/l3_milestone.sh RUN VERSION
 LAYOUT WORKERS [evaluate.py args]` (all 14 configurations; selection by mean SR over the 7 seen ones; margin and value
 weights are dev-selected settings of the same checkpoint).
+
+## Execution-loop option (amended 2026-10-29 21:10)
+From R10 on, every Layer 3 process -- actors, labellers, evaluations AND the official replay of Layer 3 episodes --
+runs with `L3_INHERIT=1` (`QueryExecution.INHERIT`): a goal query issued while a goal query is running inherits the
+running execution's stall / unstick / stuck-STOP history (measured: without it, interrupting a running goal query
+cost 4-5.5 SR points on dev).  The option is part of the Layer 3 interface (how a selection is applied), identical in
+the branch runtime, the Sandbox imagination and the official replay; released components default to OFF.  Oracle
+solution replays keep it OFF (their sequences were found without it).
