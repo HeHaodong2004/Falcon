@@ -30,7 +30,7 @@ def outcome_key(fin, st0, goal_xz):
     return (0, int(fin.index-st0.index))                 # collision / STOP failure: later is (slightly) better
 
 
-def run_episode(spec, cfg, cap):
+def run_episode(spec, cfg, cap, scan=False):
     from eventwm_graph.querygen.native import EpisodeSpec, MAX_EPISODE_STEPS
     from eventwm_graph.querygen.episode import EpisodeRuntime
     from eventwm_graph.querygen.dynamics import FAMILIES
@@ -52,6 +52,9 @@ def run_episode(spec, cfg, cap):
     try:
         while not st.terminal and st.index < MAX_EPISODE_STEPS:
             queries, _ = gen.propose(st.legal, st.execution)
+            if scan:
+                from .env import scan_queries
+                queries = list(queries)+scan_queries(st.legal, gen.dyn, [q.label for q in queries])
             best = None
             scores = []
             for q in queries:
@@ -88,6 +91,7 @@ def main():
     ap.add_argument('--cap', type=int, default=320)
     ap.add_argument('--shard', type=int, default=0)
     ap.add_argument('--shards', type=int, default=1)
+    ap.add_argument('--scan', action='store_true', help='also evaluate the Layer 3 scan queries')
     a = ap.parse_args()
     os.environ.setdefault('QG_FAST_SENSE', '1')
     from eventwm_graph.querygen import native
@@ -104,7 +108,7 @@ def main():
         if (out/name).exists():
             continue
         try:
-            r = run_episode(dict(s.asdict()), ConfigSpec.parse(c), a.cap)
+            r = run_episode(dict(s.asdict()), ConfigSpec.parse(c), a.cap, scan=a.scan)
         except Exception as exc:
             import traceback
             r = dict(error=repr(exc), tb=traceback.format_exc()[-1500:])
