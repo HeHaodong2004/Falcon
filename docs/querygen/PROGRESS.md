@@ -644,13 +644,16 @@ in stuck mode.  Not applicable to the frozen gate system.
   development episode, sha256 21cc7deb...).  Held-out test on the untouched sixth unseen suite launched:
   ORCA K=10 (primary), ORCA K=6, DWA K=10, default-policy floors (`output/runs/official/test_v14/`).
 
-## 2026-10-29 00:20-<!-- V14END:BEGIN -->02:15<!-- V14END:END -->: held-out test of the frozen v14 (ORCA K=10 and DWA K=10 final); v15 development complete
+## 2026-10-29 00:20-<!-- V14END:BEGIN -->03:17<!-- V14END:END -->: held-out test of the frozen v14 -- FINAL; v15 development complete
 - Sixth unseen suite (60 HM3D episodes, never run or inspected before the freeze), frozen v14 (`querygen-freeze-v14`
   = e8fb1c77, package sha256 21cc7deb...), `scripts/querygen_test_v14.sh`, official rules, query level.
 - kAMF2R7PCqX is certified infeasible (exact native certificate, official verification): every first action ends the
   episode with an official human contact, and STOP is 27.5 m from the goal.
 - **ORCA K=10 (primary): 59 / 59 = 100%**, SPL 0.908, PSC 0.933, no human collisions; Oracle edges P50 99 / P95
-  1,785; mean search 4.8 min (P95 19.3).  **DWA K=10: 59 / 59 = 100%**, SPL 0.929.  **ORCA K=6: <!-- V14K6:BEGIN -->>= 58 / 59 (j2EJhFEQGCL still searching at 02:15), SPL 0.895<!-- V14K6:END -->**.
+  1,785; mean search 4.8 min (P95 19.3).  **DWA K=10: 59 / 59 = 100%**, SPL 0.929.  **ORCA K=6: <!-- V14K6:BEGIN -->58 / 59, SPL 0.895<!-- V14K6:END -->**.
+- ORCA K=6's failure j2EJhFEQGCL (12,000-edge cap, 178 min) is natively feasible: the ORCA K=10 and DWA K=10
+  solutions pass the official replay, and both use contact-tolerant goal copies (`goal_th`, `st_goal_th`) that the
+  frozen K=6 set lacks.  It stays in the denominator.
 - Default policy alone on the suite: ORCA 46 / 59 (78.0%), DWA 42 / 59 (71.2%).  The Oracle solves 13 (ORCA K=10) /
   17 (DWA K=10) episodes the matching default policy does not.
 - **Gate met by every configuration.**  With frozen v12 (96.7%) and v13 (100%), three untouched suites in a row.
