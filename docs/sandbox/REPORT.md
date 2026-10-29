@@ -32,8 +32,8 @@ each summary records its load), branch-simulator episodes unless marked "real".
   rest is the environment's sensing (legal sensor ≈ 40%, range frames ≈ 25%) and stepping.
 * **Optimisations, all measured:**
   * exact per-decision caches plus exact numba helpers: imagination 2.0× faster, bit-identical;
-  * fast range sensor: 1.2 ms GPU kernel per 256 × 256 frame instead of 1.5 s native, identical hit masks,
-    ≤ 3.1e-5 m;
+  * fast range sensor: 1.2 ms GPU kernel per 256 × 256 frame, 15.7 ms per frame P50 including native recasts near
+    people, against 840 ms native (54×); identical hit masks on 100 frames, ≤ 8.8e-5 m;
   * compact static updates plus GC freezing: no growth of live objects with history, no 150–215 ms collection
     pauses;
   * exact branch-simulator driver: simulator steps 6× cheaper than habitat.Env.
@@ -73,11 +73,41 @@ Tests (`tests/sandbox/test_sandbox.py`, real episode hm3d/val/hkr2MGpHD6B with u
 | heterogeneity | rollouts for ORCA / SFM / DWA x native / slowturn / inertia / slowturn_inertia / heavy_brake / slowturn_heavy respect the family (no dynamics violation, speed <= v_max, turn <= turn_rad, translate-or-turn, straight ahead) |
 | exactness of accelerations | memoised == plain rollouts bit for bit across 6 planner x dynamics combinations (>100 rollouts); numba helpers == originals on 4,000 random poses |
 | failure handling | empty candidate set, STOP, an executor that cannot start (recorded), invalid candidates and mismatched legal state (raise) |
-| fast range sensor | identical mask, <= 1e-4 m vs the native frame |
+| fast range sensor | identical mask, <= 1e-4 m vs the native frame (validation: 100 frames of 4 episodes, see section 5) |
 
 Exactness evidence beyond the tests: 140 rollouts of 14 decision contexts (4 episodes) bit-identical with and without
 the caches; 84,000 body-axis and 42,000 blocked-sector checks identical; prefetching Stage 2 changes no output
 (10 decisions).
+
+## 4. Fidelity of the imagined executions (privileged validation only)
+
+`validate.py fidelity` covers 4 episodes (Nfvx, hkr2, JeFG MP3D, an unseen3 HM3D), 6 decision states each, all 240
+K=10 candidates. Each candidate is executed for real from the same state in querygen's exact branch simulator; those
+true poses and outcomes are labels only. It is also imagined three ways: with the Stage 1 nominal future (what the
+sandbox uses), with constant-velocity people, and with the true future of the tracked people.
+
+| imagined with | mean deviation P50 / mean / P90 (m) | end-point deviation mean / P90 (m) | mean yaw deviation (rad) | same length |
+|---|---|---|---|---|
+| Stage 1 nominal (default) | 0.00 / 0.099 / 0.30 | 0.26 / 0.86 | 0.044 | 95.8% |
+| constant velocity | 0.00 / 0.091 / 0.29 | 0.26 / 0.86 | 0.035 | 95.8% |
+| true future (privileged) | 0.00 / 0.083 / 0.26 | 0.23 / 0.65 | 0.037 | 95.4% |
+
+* Most imagined executions coincide with the real one (median deviation 0). The same executor with exact family
+  kinematics repeats the real decisions.
+* Deviations come from three sources:
+  * new map evidence during the real interval, which makes the real executor re-plan;
+  * navmesh sliding and contacts near walls (largest in hkr2's confined spawn: 0.16-0.26 m);
+  * the people's motion.
+* Human prediction explains only ~0.016 m of the 0.099 m mean deviation (Stage 1 nominal vs the true future).
+  Constant velocity is as good as the Stage 1 mean for the planner's perception, because the real planner itself
+  reacts to constant-velocity extrapolations of its observed tracks.
+* Decision-relevant quantities agree:
+  * imagined vs real goal progress: Pearson r 0.90;
+  * within-decision ranking: Kendall τ 0.79;
+  * the best-progress candidate is also the real best (within 0.05 m) in 67% of decisions.
+* Risk is informative. The 6 candidates whose real execution touched a person (human collision or body overlap)
+  had a predicted collision probability of 0.55 on average, against 0.30 for the others.
+
 
 ## 5. Performance
 
@@ -126,13 +156,11 @@ lattice every step (stateful families never reuse a plan) and DWA scores many co
 | change | effect | exactness |
 |---|---|---|
 | per-decision memoisation on the frozen map (map variants, views, fields, routes, lattice plans) + numba body-axis / blocked-sector helpers | imagination 2.0x faster (11.8 s -> 5.9 s on 14 contexts) | bit-identical rollouts (tests) |
-| fast range sensor (GPU Bullet emulation, native recast near humans / ambiguous) | kernel 1.2 ms per 65,536-ray frame (RTX 3090); frame 4.5 ms without people near, up to ~140 ms in crowds (native recast ~12 us per ray); native sensor 1.5 s | identical hit masks, <= 3.1e-5 m |
+| fast range sensor (GPU Bullet emulation, native recast near humans / ambiguous) | 100 frames, 4 episodes (2 HM3D, 2 MP3D): frame P50 15.7 ms / P95 53 ms vs native 840 / 1,149 ms (54x); kernel 1.2 ms per 65,536 rays (RTX 3090); 1.7% of rays recast natively (~12 us each; crowds up to ~140 ms per frame) | identical hit / no-hit masks on all 6.55 M pixels; max 8.7e-5 m; 47% bit-equal; all 19,717 human hits recast natively |
 | `CompactUpdates` + `gc.freeze` per episode | live objects stay ~314 k instead of growing to 754 k; no 150-215 ms full-collection pauses | identical frame content |
 | branch-simulator driver | simulator 189 ms vs 1,034 ms per 16 steps (habitat.Env) | the exact Env.step mirror (querygen) |
 | Stage 2 prefetch on a worker thread (`prefetch_maps`) | no gain (337 vs 322 ms): its candidate-independent part is only 3-9 ms | outputs identical; off by default |
 | shortened native recast for human rays | rejected: 1.6x cheaper but human-hit distances change up to 2.4 cm | -- |
-
-<!-- FIDELITY -->
 
 ## 6. Throughput and RL budget
 
@@ -164,7 +192,9 @@ window; the host also ran this project's niced Oracle searches (load 20-28).
   * cheaper environment sensing. The legal sensor's support-probe rays could be emulated on the GPU with exact
     booleans and native fallback near the 0.015 m cutoff or near people: est. 1.5-2.5× on the sensor.
   * the second GPU.
-  * a smaller Stage 2 graph footprint (lanes = 1) to fit more processes per GPU. Not yet measured.
+  * a smaller Stage 2 graph footprint, to fit more processes per GPU. A first measurement under concurrent GPU
+    load: `lanes=1` reserves 0.86 GB vs 1.30 GB of torch memory per process, at Stage 2 P50 51 vs 45 ms. That is
+    about one more process per 24 GB GPU.
 
 
 ## 7. Limits and next steps
@@ -187,8 +217,8 @@ window; the host also ran this project's niced Oracle searches (load 20-28).
 * **Stage 2 and Stage 1 are used as released.** Stage 2's own gate is still unmet (0.4831 < 0.50). Its
   probabilities are uncalibrated (expected gains ~17% high).
 * **Range values are ulp-level, not bit-identical.** Bullet's internal ray transform into the stage frame could not
-  be reproduced bit for bit. About half the pixels are bit-equal and the rest are a few ulps apart; the hit pattern
-  is identical.
+  be reproduced bit for bit. 47% of pixels are bit-equal and the rest are within 8.7e-5 m; the hit pattern is
+  identical.
 
 
 ## Reproduction

@@ -118,7 +118,7 @@ Graph Compiler.
   families, `test_memo_is_exact_across_planners_and_dynamics`).
 * `fastrange.py`: static rays are cast on the GPU with an exact float32 emulation of Bullet's triangle callback.
   Rays near a human's collision capsules, rays near a float32-ambiguous edge or 10 m decision, and grazing rays are
-  recast natively. Hit / no-hit masks are identical and range values agree within 3.1e-5 m (Bullet's own ray
+  recast natively. Hit / no-hit masks are identical and range values agree within 8.8e-5 m (100 frames, 4 episodes; Bullet's own ray
   transform is not reproduced bit for bit, so about half the pixels are bit-equal and the rest a few ulps apart).
 
 ## 5. Not in scope / known limits
