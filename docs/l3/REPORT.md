@@ -176,3 +176,11 @@ expected to top out near the floor plus ~10 points; (2) the decisions that matte
 and exposure (progress), not the timing lottery at the last seconds before contact; (3) labels at collision moments
 are mostly noise -- their regression weight is reduced in R6.  Experimental run R6: 360-degree detection + Compiler
 v2 (continuation imagination) + warm start from R5 (pending the user's decision on the sensing).
+
+**Further dev tests (72 paired episodes, progress heuristic, 360-degree sensing):** adaptive decision frequency
+(6-step intervals while a tracked person is within 3 m) DWA 51.4% / ORCA 55.6% vs fixed intervals 59.7% / 52.8% (more
+decisions per episode: ORCA 30 vs 18) -- no consistent gain, not used.  Deadlock categories (44 timeouts, 3
+configurations): candidates move but make no route progress 24, no candidate moves (nobody near) 10, a standing person
+within 2.5 m 9, no legal route 1 -- the candidate set offers no escape in these states.  R6 (360 + Compiler v2
+continuation imagination) cost 3.56 s of Sandbox time per decision (R5: 1.33 s) and was stopped; R7 = 360-degree
+sensing + v1b features + warm start from R5, 20 actors, 4 labellers.
