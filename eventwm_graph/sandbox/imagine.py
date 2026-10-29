@@ -225,6 +225,13 @@ class ImaginedRollout:
     planner_ms: float
     error: Optional[str] = None
     hypothetical: bool = True
+    tail: Optional[np.ndarray] = None   # [B, 4] imagined emergency stop from the end pose (straight ahead, braking at the
+                                        # family's limit); empty for robots without speed state.  Not part of the
+                                        # trajectory given to Layer 2 (a consequence summary for the Graph Compiler).
+
+    @property
+    def end_level(self):
+        return int(self.levels[-1]) if len(self.levels) else 0
 
     @property
     def steps(self):
@@ -317,7 +324,23 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None):
                            levels=np.asarray(levels, np.int16), status=execution.status, reason=execution.reason,
                            ended_by=ended, stop=stop, goal_distance=d1, progress=d0-d1, path_length=float(seg.sum()),
                            blocked_steps=int(blocked), nominal_clearance=float(clearance),
-                           planner_ms=(time.perf_counter()-tick)*1000, error=error)
+                           planner_ms=(time.perf_counter()-tick)*1000, error=error,
+                           tail=brake_tail(P[-1], levels[-1], dyn) if not stop else np.zeros((0, 4)))
+
+
+def brake_tail(pose, level, dyn, max_steps=24):
+    """Poses of an imagined emergency stop from ``pose`` at speed ``level``: straight ahead, braking by ``dyn.brake``
+    levels per step (the motion realiser's braking rule) until rest.  Empty for families without speed state."""
+    out = []
+    if not getattr(dyn, 'stateful', False):
+        return np.zeros((0, 4))
+    p = np.asarray(pose, np.float64)
+    lv = int(level)
+    while lv > 0 and len(out) < max_steps:
+        lv = max(0, lv-int(dyn.brake))
+        p = advance(p, dyn, dyn.to_command(dyn.levels[lv], 0.))
+        out.append(p)
+    return np.asarray(out, np.float64).reshape(-1, 4)
 
 
 def new_execution(query, planner, dyn, planner_kw=None):

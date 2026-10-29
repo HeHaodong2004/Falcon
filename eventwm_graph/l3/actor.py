@@ -224,6 +224,7 @@ def main():
     ap.add_argument('--blind', action='store_true', help='no imagination: no Sandbox, no range frames (floors, no-WM ablation)')
     ap.add_argument('--spool', default='spool', help='output sub-directory (eval actors use eval_spool: never ingested)')
     ap.add_argument('--margin', type=float, default=0., help='greedy evaluation: deviate from the default only if Q gain > margin')
+    ap.add_argument('--compiler', default='{}', help='GraphCompiler options (JSON), e.g. {"brake_tail": true}')
     a = ap.parse_args()
     import torch
     torch.set_num_threads(1)
@@ -253,6 +254,8 @@ def main():
     if a.episodes:
         specs = [specs[int(i)] for i in a.episodes.split(',')]
     policy = PolicyHandle(run/'policy.pt' if a.selector == 'policy' else None)
+    from .compiler import GraphCompiler
+    compiler = GraphCompiler(**json.loads(a.compiler))
     rng = np.random.default_rng(1000+a.worker+7919*a.seed)
     cur = Curriculum(configs, specs, 17+a.worker+7919*a.seed)
     t_start = time.time()
@@ -289,7 +292,7 @@ def main():
                 continue
             seq = oracle_map.get('%s|%s' % (spec.key, cfg.name)) if a.selector == 'oracle' else None
             m, rows = run_episode(spec, cfg, sb, a.selector, policy, rng, tau=tau, eps=eps, record=not a.no_record,
-                                  oracle_seq=seq, imagination=not a.blind, margin=a.margin)
+                                  oracle_seq=seq, imagination=not a.blind, margin=a.margin, compiler=compiler)
             extra = dict(spec=spec.asdict(), config=cfg.name, selector=a.selector, version=policy.version, tau=tau,
                          eps=eps, worker=a.worker)
             write_episode(spool, name, m, rows if not a.no_record else {k: v for k, v in rows.items() if k != 'packed'}, extra)

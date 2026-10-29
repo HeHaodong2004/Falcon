@@ -228,8 +228,13 @@ class GraphCompiler:
 
     schema = SCHEMA
 
-    def __init__(self, cv_ablation=False):
+    def __init__(self, cv_ablation=False, brake_tail=False):
         self.cv_ablation = bool(cv_ablation)
+        # v1b: the 3 s risk extension starts with the Sandbox's imagined emergency stop (robots with momentum cannot
+        # hold their imagined end pose instantly); identical to v1 for robots without speed state
+        self.brake_tail = bool(brake_tail)
+        if self.brake_tail:
+            self.schema = SCHEMA+'b'
 
     def compile(self, result, legal, queries, diag=None, steps=0):
         diag = diag or {}
@@ -364,9 +369,13 @@ class GraphCompiler:
             traj_rows.append(trows)
             # hold extension: imagined poses then the end pose held for the remaining Stage 1 horizon
             ext = np.zeros((len(rel), 4))
-            n_im = min(T, len(rel))
-            ext[:n_im] = poses[1:n_im+1]
-            ext[n_im:] = poses[-1]
+            seq = poses[1:]
+            tail = getattr(ro, 'tail', None) if self.brake_tail else None
+            if tail is not None and len(tail):
+                seq = np.concatenate([seq, tail])
+            n_im = min(len(seq), len(rel))
+            ext[:n_im] = seq[:n_im]
+            ext[n_im:] = seq[n_im-1] if n_im else poses[-1]
             robots_ext.append(ext)
             lengths_ext.append(len(rel))
         cand = np.asarray(cand_rows, np.float32).reshape(K, len(CAND))
