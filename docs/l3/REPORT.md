@@ -383,3 +383,19 @@ variants (goal_th 5, st_goal_tc 5, st_goal 4, goal 3, st_goal_th 3, goal_tc 2, t
 choices from the pool do exist; the hard part is evaluating near-identical variants legally -- the label critic's
 job.  Labellers now skip the families that almost never save an episode (pass / yield / sidestep / frontier /
 alternative routes / retreat / approach: placeholders keep candidate indices), roughly halving the cost per state.
+
+## 6. Night of 2026-10-29: approaches to a legal evaluator (the gate depends on it)
+
+Rollout-policy reference (exact one-step evaluation over the default, analysis only): 13/15 vs floor 9/15 on paired
+dev ORCA episodes -- choosing well among the ~10 queries suffices; the open problem is a LEGAL evaluator.  R10's RL
+learner at checkpoint v100 (paired dev, ~100 of 216 episodes): ORCA 47.1% vs 44.1%, SFM 31.4% vs 40.0% -- not above the
+floor.  Three attacks run in parallel overnight, each judged on the same paired dev episodes:
+1. Label critic (approximate policy iteration, `l3/apicritic.py`): R10 restarted as a label factory (6 actors, 18
+   labellers, rarely-saving families skipped); v0 (587 labelled states, fine-tuned from R10's network, best holdout
+   at step 200: 1.37 -> 1.14) is evaluated as a pipeline check; v1 / v2 follow with ~3k / ~6k labels.
+2. Legal imagined rollout (`heuristics.imagined_rollout_index`, selector `imagroll`): every candidate's imagined
+   interval + imagined default continuation (104 steps, executor and planner in the loop against the nominal Stage 1
+   people) scored against the 40 Stage 1 worlds (constant velocity beyond 3 s) for contact and against the legal map
+   for progress -- the closest legal copy of the exact reference, no learning.  Sandbox time per decision grows to
+   0.3-8 s (evaluation only).
+3. RL (R10's learner) continues on the same labels; milestone checks.
