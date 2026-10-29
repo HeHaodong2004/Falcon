@@ -108,6 +108,17 @@ sandbox uses), with constant-velocity people, and with the true future of the tr
 * Risk is informative. The 6 candidates whose real execution touched a person (human collision or body overlap)
   had a predicted collision probability of 0.55 on average, against 0.30 for the others.
 
+**DWA with inertia dynamics** (velocity commands, acceleration limits; 3 episodes, 10 decisions, 94 candidates):
+
+| imagined with | mean deviation P50 / mean / P90 (m) | end-point deviation mean / P90 (m) | same length |
+|---|---|---|---|
+| Stage 1 nominal | 0.00 / 0.014 / 0.028 | 0.075 / 0.21 | 91.5% |
+| constant velocity / true future | 0.00 / 0.014 / 0.028 | 0.074 / 0.21 | 91.5% |
+
+* Progress correlation is 0.94 and the within-decision Kendall τ is 0.75.
+* In this small sample the predicted collision probability did not separate the 8 candidates whose real execution
+  touched a person (0.11 vs 0.11). Risk discrimination for momentum dynamics needs a larger study.
+
 
 ## 5. Performance
 
