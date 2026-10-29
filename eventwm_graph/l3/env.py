@@ -191,13 +191,20 @@ class L3Episode:
         st = self.ep.state
         steps = max(int(st.index), 1)
         success = float(st.outcome == 'success')
-        L, Ls = float(st.path_length), self.start_geodesic
+        # official definitions (falcon benchmark config): SPL over the 3D path of the robot base, PSC with the navmesh
+        # geodesic robot-human distance (querygen BranchState.psc_official_steps); the planar / Euclidean variants are
+        # kept as psc_euclid / spl_planar
+        L, Ls = float(getattr(st, 'path_length_3d', 0.) or st.path_length), self.start_geodesic
         if not math.isfinite(Ls):
             spl = 0.                         # no navmesh path from the start: SPL undefined, counted as 0
         else:
             spl = success*Ls/max(L, Ls) if L > 0 else success
+        Lp = float(st.path_length)
+        spl_planar = (success*Ls/max(Lp, Ls) if Lp > 0 else success) if math.isfinite(Ls) else 0.
         return dict(key=self.spec.key, config=self.cfg.name, official=self.cfg.official, outcome=st.outcome or 'running',
-                    success=success, spl=spl, psc=1.-st.psc_steps/steps, human_collision=float(st.outcome == 'human_collision'),
+                    success=success, spl=spl, psc=1.-getattr(st, 'psc_official_steps', st.psc_steps)/steps,
+                    psc_euclid=1.-st.psc_steps/steps, spl_planar=spl_planar,
+                    human_collision=float(st.outcome == 'human_collision'),
                     steps=int(st.index), path=L, start_geodesic=Ls, decisions=self.decisions,
                     min_center_dist=float(st.min_center_dist) if math.isfinite(st.min_center_dist) else None)
 

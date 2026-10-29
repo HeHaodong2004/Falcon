@@ -40,6 +40,10 @@ class BranchState:
     geodesic: float = math.nan            # privileged distance-to-goal at this state
     escape_open: bool = False             # spawned in static contact (C0 non-empty)
     escape_contacts: int = 0              # exempt contact steps during the escape window
+    psc_official_steps: int = 0           # steps violating the OFFICIAL PSC (falcon PersonalSpaceCompliance with the
+                                          # benchmark's use_geo_distance=True: navmesh geodesic robot-human distance
+                                          # < 1 m, 3D Euclidean when no path exists)
+    path_length_3d: float = 0.            # official SPL path length (3D Euclidean steps of the robot base)
 
     def copy(self):
         return BranchState(self.robot, self.index, self.sensor, self.legal.copy(), self.dyn_state,
@@ -47,7 +51,7 @@ class BranchState:
                            list(self.decisions), list(self.actions), self.outcome, self.static_contacts,
                            self.body_overlaps, self.min_rect_dist,
                            self.min_center_dist, self.psc_steps, self.path_length, self.geodesic,
-                           self.escape_open, self.escape_contacts)
+                           self.escape_open, self.escape_contacts, self.psc_official_steps, self.path_length_3d)
 
     @property
     def terminal(self):
@@ -99,6 +103,20 @@ class EpisodeRuntime:
         # of re-simulating them.  0 = off; otherwise the number of most recent parents whose caches are kept.
         self.prefix_cache = 0
         self._pc_parents = []
+
+    def psc_distance(self, robot_xyz, human_xyz):
+        """Exactly falcon ``PersonalSpaceCompliance`` with the benchmark's ``use_geo_distance: True``: the navmesh
+        geodesic distance between the robot and the person when a path exists, else the 3D Euclidean distance."""
+        import habitat_sim
+        sim = self.task.sim
+        a = np.asarray(robot_xyz, np.float32)
+        b = np.asarray(human_xyz, np.float32)
+        path = habitat_sim.ShortestPath()
+        path.requested_start = a
+        path.requested_end = b
+        if sim.pathfinder.find_path(path):
+            return float(sim.geodesic_distance(a, b))
+        return float(np.linalg.norm(b-a))
 
     def new_execution(self, query, planner_name=None, dyn=None):
         return QueryExecution(query, make_planner(planner_name or self.planner_name, **self.planner_kw),
@@ -164,11 +182,17 @@ class EpisodeRuntime:
             st.actions.append(cmd if isinstance(cmd, str) else tuple(map(float, cmd)))
             prev = st.legal.pose
             st.path_length += float(math.hypot(res.pose[0]-prev[0], res.pose[2]-prev[2]))
+            st.path_length_3d += float(np.linalg.norm(np.asarray(res.pose[:3], float)-np.asarray(prev[:3], float)))
             hp = self.tape.positions[res.index]
             if len(hp):
                 d = np.hypot(hp[:, 0]-res.pose[0], hp[:, 2]-res.pose[2])
                 st.min_center_dist = min(st.min_center_dist, float(d.min()))
                 st.psc_steps += int(bool((d < 1.0).any()))
+                # official PSC: geodesic >= planar distance, so only people within 1 m planar can violate it
+                for j in np.flatnonzero(d < 1.0):
+                    if self.psc_distance(res.pose[:3], hp[j]) < 1.0:
+                        st.psc_official_steps += 1
+                        break
             static_violation = False
             if res.static_contact:
                 if escape_exempt(res.static_links, self.spawn_links, res.index, st.path_length):
