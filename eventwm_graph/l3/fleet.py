@@ -158,7 +158,7 @@ def main():
         if learner is not None and learner.poll() is not None:
             print('learner exited', learner.returncode, flush=True)
             state = run/'learner_state.pt'
-            if learner_restarts[0] < 5:
+            if learner_restarts[0] < 50:
                 # resume from the last full state if there is one (the spool is re-ingested; no pre-training),
                 # otherwise start the learner again from its original arguments
                 largs = [x for x in shlex.split(a.learner_args)]
