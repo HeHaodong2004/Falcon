@@ -338,3 +338,16 @@ the default), and those that do typically have ONE (0.7-0.9 of ~10 alternatives)
 future of the tracked people (final, 72 + 71 paired episodes): ORCA 47.2% vs floor 47.2%, DWA 43.7% vs 47.9%.  So
 the needle is real (an exact evaluator applied at every decision would get several chances per failing episode) but
 3 s of perfect prediction does not find it; next test: the same rule with the true future of everyone over 9 s.
+
+**Execution loop: interrupting a query had a hidden cost (user's question, 20:30).**  Controlled test on dev (blind,
+ORCA + DWA native): the floor's intent, but a FRESH goal query at every decision instead of continuing the running one
+-> SR 41.4% vs 48-52% for the floor on the same episodes, timeouts 13% -> 21% (140 episodes).  Each restart rebuilt
+the executor: the stall streak and the 'unstick' escalation (tight-map plan following), its kept plan and the
+stuck-STOP memory were lost and re-detected every interval.  Our learned policies interrupted the running query at
+60-90% of decisions (R9 greedy 65%), paying this tax constantly; every deviating heuristic paid it too, so the earlier
+"one-step rules do not help even with perfect prediction" results are confounded.  Fix (`QueryExecution.INHERIT`,
+L3_INHERIT=1, default off): a goal query issued while a goal query is running inherits that history, identically in
+the branch runtime, official replay, sandbox runner and Sandbox imagination.  With it the same restart control
+recovers: SR 51.4%, timeouts 15.3% (72 episodes so far; ORCA 50.0% vs floor 47.4%, DWA 50.0% vs 56.2%).  No bug in
+the loop mechanics was found (continue / decision-boundary handling is identical in reality, imagination and replay;
+intervals end early when a query finishes).  R10 (20:55) = R9's method + the fix, warm start from R9's network.
