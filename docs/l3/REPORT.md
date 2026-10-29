@@ -323,3 +323,11 @@ other native configurations ~10-15% each; 70% on modified-dynamics robots < 5% (
 63% on ORCA-inertia); all thirteen non-best settings >= 70% ~1-2%.  A realistic good outcome: best configuration
 60-65%, other native 55-60%, momentum robots 25-35% with one shared policy.  What would change this: a learned or
 search-based policy beating the floor by 10+ points on dev.
+
+**Correction (user, 20:25).**  The dev "ceiling" above used the expert search with a 1,500-edge budget: FAIL_SEARCH
+means the budget ran out, not that the episode is infeasible -- 21/24 (ORCA-native) and 15/24 (ORCA-inertia) are
+lower bounds.  With full budgets the privileged Oracle solved 94-100% of feasible people episodes (88-98% counting
+proven-infeasible ones); the only known-infeasible dev episodes are the 3 spawn collisions (4%).  85% is therefore
+~88-90% of the reachable rate, not ~97%.  The schedule also allows extended exploration before a final 2-3 day
+training run.  Revised confidence: 85% on the best configuration ~20%; 70% on the other native configurations ~30%;
+70% on modified-dynamics robots ~5-10% (their full-budget ceilings are unmeasured).
