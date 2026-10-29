@@ -33,7 +33,14 @@ Dense heterogeneous spatio-temporal graph (one decision; K candidates, P = 8 way
 | `pair` [K, P, N, 6] | same-time interaction traj(k, p) -- hfut(n, p): relative position in the waypoint frame, distance, P(< 1 m), P(contact envelope), q10 distance over the worlds |
 
 Relations are implied by tensor axes (membership, temporal order, same-time interaction, all-pairs candidate
-comparison).  `GROUPS` names the feature groups (intent, motion, progress, static, human, map) for ablations;
+comparison).
+
+**v1b (main run from R4).** Momentum is already inside each imagined interval (the robot's own executor, planner and
+dynamics produce the trajectory, and Layer 2's risk is computed on it).  The compiler's 3 s risk extension beyond the
+interval, however, assumed the robot freezes at the end pose -- impossible for a robot still moving with speed state.
+The Sandbox now also imagines the minimal-motion emergency stop with the robot's own braking limits (`imagine.brake_tail`,
+an additive output; Layer 2 inputs and all 18 sandbox tests unchanged) and the extension starts from where the robot
+can actually come to rest.  Identical to v1 for robots without speed state (native, slowturn).  `GROUPS` names the feature groups (intent, motion, progress, static, human, map) for ablations;
 `compile_blind` builds the no-imagination input (intent + via geometry + current observation only).
 Compile cost ~27 ms per K=10 decision (P50).
 
@@ -67,6 +74,13 @@ step), aligned with the official metrics (SR first, SPL through path length, PSC
   candidates whose counterfactual FAILS while the Oracle succeeds (other viable candidates are never pushed down);
   TD on the demonstrations' real returns.  All decay as online data accumulates.  Oracle information is supervision
   only, never input.
+* **Value targets** mix the episode's Monte Carlo return into the n-step target with a weight decaying 0.5 -> 0.1 over
+  300k decisions (R1 showed that 3-step bootstrapping alone left the success head at ~0.9 vs ~0.3 actual after the
+  all-success demonstrations); replay ratio 64.
+* **Default-anchored exploration**: during training the actor takes the default (no-selection) candidate with a
+  probability decaying 0.3 -> 0.05, otherwise Boltzmann(Q / tau) + epsilon.  Off-policy learning is unaffected; the
+  data stay near the floor's competent behaviour instead of thrashing among near-equivalent candidates (R3 on
+  momentum robots).  Greedy evaluation: argmax Q, optionally with a conservative deviation margin chosen on dev.
 * **Heterogeneous training from the start**: every actor episode samples a planner x dynamics x candidate-set
   configuration from the curriculum; the same network and buffer serve all of them.
 * **Throughput**: split-process Sandbox (Layer 2 servers on the GPUs, 20+ CPU actors with the torch-free range
