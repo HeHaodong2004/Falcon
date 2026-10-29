@@ -11,7 +11,7 @@ proven natively infeasible. Official rules (`OFFICIAL_RULES.md`); the privileged
 |---|---|---|---|---|---|
 | v12 (`querygen-freeze-v12`), fourth unseen suite | ORCA K=10 | 58 / 60 | **96.7%** | 0.906 | 0 |
 | v13 (`querygen-freeze-v13`; ordinary search = v12's), fifth unseen suite (2 certified infeasible) | ORCA K=10 / ORCA K=6 / DWA K=10 | 58 / 58 each | **100%** | 0.904 / 0.894 / 0.950 | 0 |
-| v14 (`querygen-freeze-v14`), sixth unseen suite | ORCA K=10 / ORCA K=6 / DWA K=10 | <!-- V14ROW --> | | | |
+| v14 (`querygen-freeze-v14`), sixth unseen suite (1 certified infeasible) | ORCA K=10 / ORCA K=6 / DWA K=10 | <!-- V14ROW:BEGIN -->59 / 59, >= 58 / 59, 59 / 59 | **100.0%** / **98.3%** / **100.0%** | 0.908 / 0.895 / 0.929 | 0<!-- V14ROW:END --> |
 
 * **Development** (DEV + unseen 1-4, 242 episodes not proven infeasible): v14 solves 97.1% (v12 94.0%) at SPL 0.915.
   Mean Oracle search is 8.3 min (v12 18.4 min). There are no human collisions in any solution.
