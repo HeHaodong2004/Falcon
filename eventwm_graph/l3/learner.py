@@ -78,6 +78,9 @@ class Learner:
         self.cfg_ids = {}
         self.ep_stats = []
         self.log = open(self.run/'learner.jsonl', 'a')
+        self.warm_dir, self.cf_dir, self.warm_loaded = None, None, set()
+        self.warm_slots, self.warm_keys = {}, {}
+        self.warm_inserted = 0
         self.t0 = time.time()
 
     # ------------------------------------------------------------------ data
@@ -107,18 +110,85 @@ class Learner:
                     cfl[t, k] = [float(c['outcome'] == 'success'), float(c['outcome'] == 'human_collision'),
                                  c['steps']/CUM_SCALE[2], c['path']/CUM_SCALE[3], c['social']/CUM_SCALE[4]]
                     cfm[t, k] = True
-        self.ring.add_episode(rows['packed'], rows['actions'], rows['probs'], np.stack(rows['cum']),
-                              cfg_id=self.cfg_id(data['config']), version=int(data.get('version', 0)), oracle=oracle,
-                              cf=cfl, cf_mask=cfm, source=source)
+        idx = self.ring.add_episode(rows['packed'], rows['actions'], rows['probs'], np.stack(rows['cum']),
+                                    cfg_id=self.cfg_id(data['config']), version=int(data.get('version', 0)), oracle=oracle,
+                                    cf=cfl, cf_mask=cfm, source=source)
+        if source == 1 and idx is not None:
+            self.warm_slots[Path(path).name] = (idx, self.ring.episode[idx[0]], rows['labels'], bool(cf))
+            self.warm_inserted += len(idx)
         m = data['metrics']
+        nd = sum(int(a != b) for a, b in zip(rows['actions'], rows['default']))
         self.ep_stats.append(dict(config=data['config'], outcome=m['outcome'], success=m['success'], spl=m['spl'],
                                   psc=m['psc'], decisions=m['decisions'], version=data.get('version', 0), source=source,
-                                  selector=data.get('selector')))
+                                  selector=data.get('selector'), non_default=nd))
         return T
+
+    def ingest_warm(self):
+        """Insert every warm-up episode (Oracle replay) not yet inserted, with its counterfactual labels if they exist;
+        labels that arrive later are written into the ring in place (``update_cf``)."""
+        if not getattr(self, 'warm_dir', None):
+            return 0
+        from .warmup import cf_index
+        from .actor import read_episode
+        cfi = cf_index(self.cf_dir) if self.cf_dir else {}
+        n = 0
+        for p in sorted(Path(self.warm_dir).glob('*.ep')):
+            if p.name in self.warm_loaded:
+                continue
+            data = read_episode(p)
+            m = data['metrics']
+            self.warm_loaded.add(p.name)
+            if m.get('diverged') or m['outcome'] != 'success':
+                continue
+            sp = data['spec']
+            key = '%s/%s/%s/%s|%s' % (sp['dataset'], sp['split'], sp['scene'], sp['episode_id'], data['config'])
+            self.warm_keys[p.name] = key
+            n += self.ingest_file(p, source=1, cf=cfi.get(key) or {})
+        return n
+
+    def update_cf(self):
+        """Write newly available counterfactual labels into the slots of warm episodes inserted without them."""
+        if not self.cf_dir:
+            return 0
+        from .warmup import cf_index
+        todo = [k for k, v in self.warm_slots.items() if not v[3]]
+        if not todo:
+            return 0
+        cfi = cf_index(self.cf_dir)
+        n = 0
+        for name in todo:
+            idx, ep_id, labels, _ = self.warm_slots[name]
+            cf = cfi.get(self.warm_keys.get(name))
+            if cf is None:
+                continue
+            with self.ring.lock:
+                if not (self.ring.valid[idx].all() and (self.ring.episode[idx] == ep_id).all()):
+                    continue
+                for t, i in enumerate(idx):
+                    lab = cf.get(t)
+                    if lab is None or lab['labels'] != labels[t]:
+                        continue
+                    for k, c in enumerate(lab['candidates'][:KMAX]):
+                        self.ring.cf[i, k] = [float(c['outcome'] == 'success'), float(c['outcome'] == 'human_collision'),
+                                              c['steps']/CUM_SCALE[2], c['path']/CUM_SCALE[3], c['social']/CUM_SCALE[4]]
+                        self.ring.cf_mask[i, k] = True
+                    n += 1
+            self.warm_slots[name] = (idx, ep_id, labels, True)
+        return n
 
     def watch_spool(self, stop):
         spool = self.run/'spool'
+        last_warm = time.time()
         while not stop.is_set():
+            if time.time()-last_warm > 600:
+                try:
+                    k = self.ingest_warm()
+                    u = self.update_cf()
+                    if k or u:
+                        print('late warm-up: %d transitions, %d states labelled' % (k, u), flush=True)
+                except Exception as exc:
+                    print('warm ingest failed', exc, flush=True)
+                last_warm = time.time()
             n = 0
             for p in sorted(spool.glob('*.ep')):
                 if p.name in self.loaded:
@@ -228,8 +298,9 @@ class Learner:
         self.version += 1
         sd = {k: v.detach().cpu() for k, v in self.net.state_dict().items()}
         ck = dict(state_dict=sd, model_config=asdict(self.mcfg), weights=asdict(self.w), version=self.version,
-                  updates=self.updates, tau=self.sched(self.tau_sched, self.ring.inserted),
-                  epsilon=self.sched(self.eps_sched, self.ring.inserted), time=time.time(), cfg_ids=self.cfg_ids)
+                  updates=self.updates, tau=self.sched(self.tau_sched, self.ring.inserted-self.warm_inserted),
+                  epsilon=self.sched(self.eps_sched, self.ring.inserted-self.warm_inserted), time=time.time(),
+                  cfg_ids=self.cfg_ids)
         tmp = self.run/'.policy.pt.tmp'
         torch.save(ck, tmp)
         os.replace(tmp, self.run/'policy.pt')
@@ -247,6 +318,10 @@ class Learner:
         sd = ck.get('net') or ck.get('state_dict')
         self.net.load_state_dict(sd)
         self.tgt.load_state_dict(ck.get('tgt') or sd)
+        if 'opt' in ck:                       # a full learner state (restart): continue counters and optimiser
+            self.opt.load_state_dict(ck['opt'])
+            self.updates = int(ck.get('updates', 0))
+            self.version = int(ck.get('version', 0))
 
     def loop(self, max_updates=10**12, max_seconds=1e12, pretrain_updates=0):
         stop = threading.Event()
@@ -264,9 +339,11 @@ class Learner:
                         self._log(acc, phase='pretrain'); acc = {}
                 self.publish()
             self.publish()
+            base = self.updates                      # replay ratio counts online updates against online data only
             while self.updates < max_updates and time.time()-self.t0 < max_seconds:
                 online = int((self.ring.source[self.ring.valid] == 0).sum())
-                if online < self.min_size or self.updates*self.batch > self.replay_ratio*max(self.ring.inserted, 1):
+                online_in = self.ring.inserted-self.warm_inserted
+                if online < self.min_size or (self.updates-base)*self.batch > self.replay_ratio*max(online_in, 1):
                     time.sleep(0.2)
                 else:
                     info = self.train_step()
@@ -294,7 +371,8 @@ class Learner:
             by.setdefault(e['config'], []).append(e)
         rec['recent'] = {c: dict(n=len(v), sr=round(float(np.mean([x['success'] for x in v])), 3),
                                  spl=round(float(np.mean([x['spl'] for x in v])), 3),
-                                 coll=round(float(np.mean([x['outcome'] == 'human_collision' for x in v])), 3))
+                                 coll=round(float(np.mean([x['outcome'] == 'human_collision' for x in v])), 3),
+                                 nondef=round(float(sum(x['non_default'] for x in v)/max(1, sum(x['decisions'] for x in v))), 3))
                          for c, v in sorted(by.items())}
         self.log.write(json.dumps(rec)+'\n'); self.log.flush()
         print(json.dumps(rec), flush=True)
@@ -333,9 +411,9 @@ def main():
     if a.init:
         L.load_init(a.init)
     if a.warm:
-        from .warmup import load_warm
-        n = load_warm(L, a.warm, a.cf)
-        print('warm-up transitions', n, flush=True)
+        L.warm_dir, L.cf_dir = a.warm, a.cf
+        n = L.ingest_warm()
+        print('warm-up transitions', n, 'cf mismatches', getattr(L, 'cf_mismatch', 0), flush=True)
     L.loop(max_seconds=a.max_seconds, pretrain_updates=a.pretrain)
 
 

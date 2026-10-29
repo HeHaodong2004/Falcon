@@ -84,6 +84,7 @@ def main():
         wait_ready(ready, [p for _, p in servers], timeout=900)
         print('servers ready', flush=True)
     learner = None
+    learner_restarts = [0]
     if a.learner_args is not None:
         learner = spawn('eventwm_graph.l3.learner', ['--run', str(run)]+shlex.split(a.learner_args), run/'learner.log',
                         env=base_env)
@@ -130,7 +131,20 @@ def main():
                 stopping[0] = True
         if learner is not None and learner.poll() is not None:
             print('learner exited', learner.returncode, flush=True)
-            stopping[0] = True
+            state = run/'learner_state.pt'
+            if learner_restarts[0] < 5 and state.exists():
+                # resume from the last full state (the spool is re-ingested; no pre-training)
+                largs = [x for x in shlex.split(a.learner_args)]
+                if '--pretrain' in largs:
+                    i = largs.index('--pretrain'); largs[i+1] = '0'
+                if '--init' in largs:
+                    i = largs.index('--init'); largs[i+1] = str(state)
+                else:
+                    largs += ['--init', str(state)]
+                learner = spawn('eventwm_graph.l3.learner', ['--run', str(run)]+largs, run/'learner.log', env=base_env)
+                learner_restarts[0] += 1
+            else:
+                stopping[0] = True
         if time.time()-last > 60:
             ne, nd = count_decisions(run, last)
             rec = dict(t=round(time.time()-t0), window_s=round(time.time()-last), episodes=ne, decisions=nd,

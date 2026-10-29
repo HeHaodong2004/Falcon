@@ -122,7 +122,7 @@ def main():
         L.ingest_file(p, source=1, cf=lab)
     test = Ring(100_000, 3)
     L2 = Learner.__new__(Learner)
-    L2.ring, L2.cfg_ids, L2.ep_stats = test, {}, []
+    L2.ring, L2.cfg_ids, L2.ep_stats, L2.warm_slots = test, {}, [], {}
     for p, lab in te:
         Learner.ingest_file(L2, p, source=1, cf=lab)
     if a.td == 0:
