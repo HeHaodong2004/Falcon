@@ -15,6 +15,7 @@ OUT=output/eval/${RUN}_v${VER}${TAG:+_$TAG}
 SANDBOX='{}'
 [ "$LAYOUT" = "v4" ] && SANDBOX='{"route": true}'
 export L3_LAYOUT=$LAYOUT
+export L3_INHERIT=${L3_INHERIT:-1}      # the execution-loop option of R10+ (docs/l3/PROTOCOL.md)
 unset QG_HUMAN_360
 exec $PY scripts/l3_run.py eventwm_graph.l3.evaluate run --suite dev --configs "$SEEN7,$HELD7" --policy "$CK" \
   --out "$OUT" --workers "$WORKERS" --servers 2 --server-devices 0,1 --nice 5 --tag "m${RUN}v${VER}" --scan \
