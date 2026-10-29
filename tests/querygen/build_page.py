@@ -14,7 +14,7 @@ import shutil
 
 CFG = [('c1k10', 'C1 ORCA K=10', 'var(--s1)'), ('c1k6', 'C1 ORCA K=6', 'var(--s2)'),
        ('c2k10', 'C2 DWA K=10', 'var(--s3)'), ('c1k10@v11', 'v11 C1 ORCA K=10', 'var(--s4)')]
-SUITES = [('dev', 'DEV'), ('unseen', 'Unseen 1'), ('unseen2', 'Unseen 2'), ('unseen3', 'Unseen 3')]
+SUITES = [('dev', 'DEV'), ('unseen', 'Unseen 1'), ('unseen2', 'Unseen 2'), ('unseen3', 'Unseen 3'), ('unseen4', 'Unseen 4')]
 OUTCOMES = [('success', 'success', 'var(--good)'), ('human_collision', 'human collision', 'var(--critical)'),
             ('timeout', 'timeout', 'var(--warning)'), ('other', 'other', 'var(--muted)')]
 

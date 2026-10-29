@@ -1,5 +1,28 @@
 # Query Generator + privileged Oracle on native Falcon: final report
 
+## 0. Current status (2026-10-29) -- official Falcon rules, query level: **GATE MET**
+
+This section supersedes the original v1 verdict below, which is kept for the record. Gate (user, 2026-10-28): at
+least one planner-dynamics configuration reaches an Oracle success rate >= 95% over every held-out episode not
+proven natively infeasible. Official rules (`OFFICIAL_RULES.md`); the privileged witness fallback is never used
+(user, 19:10).
+
+| held-out test (untouched suite, frozen code) | configuration | PASS | rate | SPL (passes) | human collisions |
+|---|---|---|---|---|---|
+| v12 (`querygen-freeze-v12`), fourth unseen suite | ORCA K=10 | 58 / 60 | **96.7%** | 0.906 | 0 |
+| v13 (`querygen-freeze-v13`; ordinary search = v12's), fifth unseen suite (2 certified infeasible) | ORCA K=10 / ORCA K=6 / DWA K=10 | 58 / 58 each | **100%** | 0.904 / 0.894 / 0.950 | 0 |
+| v14 (`querygen-freeze-v14`), sixth unseen suite | ORCA K=10 / ORCA K=6 / DWA K=10 | <!-- V14ROW --> | | | |
+
+* **Development** (DEV + unseen 1-4, 242 episodes not proven infeasible): v14 solves 97.1% (v12 94.0%) at SPL 0.915.
+  Mean Oracle search is 8.3 min (v12 18.4 min). There are no human collisions in any solution.
+* **The four requirements:** success rate (above); route quality (SPL 0.89-0.95 on passes); decision robustness
+  (`TECHNICAL_REPORT.md` 16.4 / 17); speed (v14 expert benchmark at a 1,500-edge cap: mean 152 s per episode, ~24 episodes per hour per worker, 64 / 68 feasible solved).
+* Details: `TECHNICAL_REPORT.md` sections 16-17, `PROGRESS.md`, protocols `FINAL_PROTOCOL_V12/V13/V14.md`.
+
+---
+
+## Original v1 report (2026-10-27)
+
 Worktree `eventwm-falcon-querygen-claude-20261026`, branch `research/querygen-oracle-20261026`,
 frozen system tag `querygen-freeze-v1` (commit 0d9eabb6). Protocol: `FINAL_PROTOCOL.md` (declared
 before HOLDOUT). Iteration log: `PROGRESS.md`. Generator / Oracle specifications: `GENERATOR.md`,
