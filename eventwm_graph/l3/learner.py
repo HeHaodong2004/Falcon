@@ -73,6 +73,7 @@ class Learner:
         self.warm_steps = warm_steps
         self.demo_frac, self.demo_floor, self.demo_decay = demo_frac, demo_floor, demo_decay
         self.mc_mix = mc_mix              # (start, end, online decisions) weight of the Monte Carlo return in targets
+        self.anchor = None                # (start, end, online decisions) actors' probability of the default candidate
         self.updates = 0
         self.version = 0
         self.loaded = set()
@@ -312,6 +313,7 @@ class Learner:
         ck = dict(state_dict=sd, model_config=asdict(self.mcfg), weights=asdict(self.w), version=self.version,
                   updates=self.updates, tau=self.sched(self.tau_sched, self.ring.inserted-self.warm_inserted),
                   epsilon=self.sched(self.eps_sched, self.ring.inserted-self.warm_inserted), time=time.time(),
+                  anchor=self.sched(self.anchor, self.ring.inserted-self.warm_inserted) if self.anchor else 0.,
                   cfg_ids=self.cfg_ids)
         tmp = self.run/'.policy.pt.tmp'
         torch.save(ck, tmp)
@@ -413,6 +415,8 @@ def main():
     ap.add_argument('--offline-updates', type=int, default=0,
                     help='offline mode: train this many updates on the seeded + warm data (no actors), publish, exit')
     ap.add_argument('--seed-limit', type=int, default=0, help='ingest at most this many seed episodes (0 = all)')
+    ap.add_argument('--seed-configs', default=None, help='only seed episodes of these configurations (comma list)')
+    ap.add_argument('--anchor', default=None, help='start,end,decisions: default-anchored exploration probability')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
     mc = json.loads(a.model)
@@ -426,6 +430,8 @@ def main():
                 warm_steps=a.pretrain,
                 mc_mix=tuple(float(x) for x in a.mc_mix.split(',')) if a.mc_mix else None)
     (run/'learner_args.json').write_text(json.dumps(vars(a)))
+    if a.anchor:
+        L.anchor = tuple(float(x) for x in a.anchor.split(','))
     if a.init:
         L.load_init(a.init)
     if a.seed_spool:
@@ -433,7 +439,10 @@ def main():
         files = sorted((p for d in a.seed_spool.split(',') for p in Path(d).glob('*.ep')), key=lambda p: p.stat().st_mtime)
         if a.seed_limit:
             files = files[:a.seed_limit]
+        keep = set(a.seed_configs.split(',')) if a.seed_configs else None
         for p in files:
+            if keep is not None and p.name.split('__')[1] not in keep:
+                continue
             try:
                 n += L.ingest_file(p, 0)
             except Exception as exc:

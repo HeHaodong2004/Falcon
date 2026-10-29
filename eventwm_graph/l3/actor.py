@@ -57,7 +57,7 @@ class PolicyHandle:
         for _ in range(3):
             try:
                 self.net, self.w, self.version, ck = load_policy(self.path)
-                self.meta = {k: ck.get(k) for k in ('tau', 'epsilon', 'version')}
+                self.meta = {k: ck.get(k) for k in ('tau', 'epsilon', 'version', 'anchor')}
                 self.mtime = m
                 return True
             except Exception:
@@ -74,8 +74,9 @@ class PolicyHandle:
         return q, heads
 
 
-def choose(q, n, tau, eps, rng):
-    """Boltzmann(tau) over the n valid candidates, mixed with epsilon-uniform.  Returns (index, prob of index)."""
+def choose(q, n, tau, eps, rng, anchor=0., default=0):
+    """Boltzmann(tau) over the n valid candidates, mixed with epsilon-uniform, and (training only) anchored: with
+    probability ``anchor`` the default candidate.  Returns (index, behaviour probability of index)."""
     q = np.asarray(q[:n], np.float64)
     if tau <= 0:
         p = np.zeros(n); p[int(np.argmax(q))] = 1.
@@ -83,6 +84,9 @@ def choose(q, n, tau, eps, rng):
         z = (q-q.max())/tau
         p = np.exp(z); p /= p.sum()
     p = (1-eps)*p+eps/n
+    if anchor > 0:
+        p = (1-anchor)*p
+        p[int(default)] += anchor
     a = int(rng.choice(n, p=p))
     return a, float(p[a])
 
@@ -96,7 +100,7 @@ def cumulants(r):
 
 
 def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compiler=None, record=True, max_decisions=400,
-                oracle_seq=None, imagination=True, margin=0.):
+                oracle_seq=None, imagination=True, margin=0., anchor=0.):
     from .env import L3Episode
     from .batch import pack
     t0 = time.perf_counter()
@@ -112,7 +116,7 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
             qv = heads = None
             if selector == 'policy':
                 qv, heads = policy.scores(packed)
-                a, p = choose(qv, n, tau, eps, rng)
+                a, p = choose(qv, n, tau, eps, rng, anchor=anchor, default=d.default)
                 if margin > 0 and tau <= 0 and a != d.default and qv[a] < qv[d.default]+margin:
                     a = d.default          # conservative deviation: leave the default only for a clear value gain
             elif selector == 'default':
@@ -282,8 +286,9 @@ def main():
                 continue
             tau = a.tau if a.tau is not None else float(policy.meta.get('tau') or 0.5)
             eps = a.eps if a.eps is not None else float(policy.meta.get('epsilon') or 0.03)
+            anchor = 0. if (a.tau is not None and a.tau <= 0) else float(policy.meta.get('anchor') or 0.)
         else:
-            tau, eps = 0., 0.
+            tau, eps, anchor = 0., 0., 0.
         name = ('%s__%s' % (spec.key.replace('/', '_'), cfg.name) if a.sequential else
                 '%s__%s__w%02d_s%d_%06d' % (spec.key.replace('/', '_'), cfg.name, a.worker, a.seed, n_ep))
         try:
@@ -292,9 +297,10 @@ def main():
                 continue
             seq = oracle_map.get('%s|%s' % (spec.key, cfg.name)) if a.selector == 'oracle' else None
             m, rows = run_episode(spec, cfg, sb, a.selector, policy, rng, tau=tau, eps=eps, record=not a.no_record,
-                                  oracle_seq=seq, imagination=not a.blind, margin=a.margin, compiler=compiler)
+                                  oracle_seq=seq, imagination=not a.blind, margin=a.margin, compiler=compiler,
+                                  anchor=anchor)
             extra = dict(spec=spec.asdict(), config=cfg.name, selector=a.selector, version=policy.version, tau=tau,
-                         eps=eps, worker=a.worker)
+                         eps=eps, anchor=anchor, worker=a.worker, compiler=compiler.schema)
             write_episode(spool, name, m, rows if not a.no_record else {k: v for k, v in rows.items() if k != 'packed'}, extra)
             logf.write(json.dumps(dict(t=time.time(), name=name, outcome=m['outcome'], decisions=m['decisions'],
                                        steps=m['steps'], wall_s=round(m['wall_s'], 1), setup_s=round(m['setup_s'], 1),

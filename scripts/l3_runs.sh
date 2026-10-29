@@ -28,6 +28,19 @@ case $name in
       --eval-workers 2 --tag R3 --actor-args "--configs $SEEN --suite train_all --selector policy" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --seed-spool output/runs/R1/spool,output/runs/R2/spool" ;;
+  R4)  # main, fourth attempt: R3 + Graph Compiler v1b (imagined braking tail in the 3 s risk extension) + default-
+       # anchored exploration (the actor takes the default candidate with probability 0.3 -> 0.05 over 300k decisions;
+       # R3 thrashed among manoeuvres on momentum robots).  Seeded with every earlier main-run episode of the
+       # configurations whose graphs v1b leaves unchanged (no speed state).
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R4 --servers 3 --server-devices 0,0,1 --workers 20 \
+      --eval-workers 2 --tag R4 --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}'" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --seed-spool output/runs/R1/spool,output/runs/R2/spool,output/runs/R3/spool --seed-configs orca-native-k10,dwa-native-k10,orca-native-k6,dwa-slowturn-k10" ;;
+  B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
+      --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
+      --eval-args "--blind --suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay_blind/spool --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --seed-spool output/runs/B1/spool,output/runs/B2/spool" ;;
   B1)  # ablation: no imagination (current legal observation + query descriptors only; no Sandbox, no range frames)
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B1 --servers 0 --workers 6 --eval-workers 1 --tag B1 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \
