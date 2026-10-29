@@ -314,3 +314,12 @@ we need.  From 20:10 R9 keeps them as lower bounds (hinge) but regresses on them
 (was 0.5); the on-policy returns drive the values.  Final paired dev result of the progress-preserving route-safe rule
 (72 episodes per configuration): DWA 48.6% / ORCA 45.8% / SFM 47.2% vs floor 48.6 / 47.2 / 47.2%; collisions 36 -> 35%,
 39 -> 31%, 39 -> 36%.
+
+**Gate outlook (2026-10-29 20:15, given to the user).**  Privileged Oracle ceiling on dev with the expert budget
+(24 episodes per configuration): ORCA-native-K10 21/24 (88%), DWA-slowturn 21/24 (88%), ORCA-inertia 15/24 (63%).
+Estimated confidence: 85% SR on the best configuration (legal 90-degree sensing) ~5% within days, ~10-15% eventually
+(85% is ~97% of the privileged ceiling; floor 47-49%; no legal method has yet moved SR by > 5 points); 70% on the
+other native configurations ~10-15% each; 70% on modified-dynamics robots < 5% (the privileged search itself reaches
+63% on ORCA-inertia); all thirteen non-best settings >= 70% ~1-2%.  A realistic good outcome: best configuration
+60-65%, other native 55-60%, momentum robots 25-35% with one shared policy.  What would change this: a learned or
+search-based policy beating the floor by 10+ points on dev.
