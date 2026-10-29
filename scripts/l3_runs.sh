@@ -36,6 +36,14 @@ case $name in
       --eval-workers 2 --tag R4 --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}'" \
       --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
       --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --seed-spool output/runs/R1/spool,output/runs/R2/spool,output/runs/R3/spool --seed-configs orca-native-k10,dwa-native-k10,orca-native-k6,dwa-slowturn-k10" ;;
+  R5)  # main, continued from R4's learner state (network, optimiser, counters) and data, plus 10 on-policy
+       # counterfactual labellers (every candidate at the critical states of the policy's own failed episodes,
+       # followed by the default policy; exact) and 25% of each batch from labelled states.  16 training actors.
+    exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/R5 --servers 3 --server-devices 0,0,1 --workers 16 \
+      --eval-workers 2 --labelers 10 --labeler-args "--k 4 --cap 160 --p-success 0.25" --tag R5 \
+      --actor-args "--configs $SEEN --suite train_all --selector policy --compiler '{\"brake_tail\":true}'" \
+      --eval-args "--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool --configs $EVAL" \
+      --learner-args "${LEARN/--replay-ratio 32/--replay-ratio 64} --pretrain 0 --init output/runs/R4/learner_state.pt --warm output/warm/replay/spool --mc-mix 0.5,0.1,300000 --anchor 0.3,0.05,300000 --cf-frac 0.25 --cf-floor 0.5 --v1b --seed-spool output/runs/R4/spool,output/runs/R1/spool,output/runs/R2/spool,output/runs/R3/spool" ;;
   B3)  # no-imagination ablation matching R4's learner and exploration, seeded with B1 + B2 episodes
     exec $PY scripts/l3_run.py eventwm_graph.l3.fleet --run output/runs/B3 --servers 0 --workers 6 --eval-workers 1 --tag B3 \
       --actor-args "--blind --configs $SEEN --suite train_all --selector policy" \

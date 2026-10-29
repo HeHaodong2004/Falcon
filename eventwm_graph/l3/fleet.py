@@ -56,6 +56,8 @@ def main():
     ap.add_argument('--nice', type=int, default=0)
     ap.add_argument('--tag', default=None)
     ap.add_argument('--eval-workers', type=int, default=0, help='extra actors running the greedy policy on dev (eval_spool)')
+    ap.add_argument('--labelers', type=int, default=0, help='on-policy counterfactual labellers (cfonline.py)')
+    ap.add_argument('--labeler-args', default='')
     ap.add_argument('--eval-args', default='--suite dev --selector policy --tau 0 --eps 0 --spool eval_spool')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
@@ -107,6 +109,13 @@ def main():
     for i in range(a.workers+a.eval_workers):
         start_actor(i)
         time.sleep(0.5)
+    labelers = {}
+
+    def start_labeler(j, restarts=0):
+        args = ['--run', str(run), '--worker', str(j), '--workers', str(a.labelers)]+shlex.split(a.labeler_args)
+        labelers[j] = (spawn('eventwm_graph.l3.cfonline', args, run/('labeler_%02d.out' % j), env=base_env), restarts)
+    for j in range(a.labelers):
+        start_labeler(j)
     t0 = time.time()
     last = time.time()
     flog = open(run/'fleet.jsonl', 'a')
@@ -123,6 +132,9 @@ def main():
                 start_actor(i, restarts+1)
             else:
                 del procs[i]
+        for j, (p, restarts) in list(labelers.items()):
+            if p.poll() is not None and restarts < 50:
+                start_labeler(j, restarts+1)
         if a.sequential and not procs:
             break
         for addr, p in servers:
@@ -156,6 +168,8 @@ def main():
             flog.write(json.dumps(rec)+'\n'); flog.flush()
             last = time.time()
     # shutdown
+    for j, (p, _) in labelers.items():
+        p.terminate()
     for i, (p, _) in procs.items():
         p.terminate()
     if learner is not None:

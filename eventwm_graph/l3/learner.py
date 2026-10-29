@@ -83,7 +83,10 @@ class Learner:
         self.warm_dir, self.cf_dir, self.warm_loaded = None, None, set()
         self.warm_slots, self.warm_keys = {}, {}
         self.warm_inserted = 0
-        self._last_warm = self._last_poll = 0.
+        self._last_warm = self._last_poll = self._last_cf = 0.
+        self.online_slots, self.cf_applied, self.cf_online_states = {}, set(), 0
+        self.cf_floor = 0.5               # counterfactual lower-bound hinge never decays below this weight
+        self.cf_frac = 0.0                # share of each batch drawn from counterfactually labelled states
         self.poll_every = 5.
         self.t0 = time.time()
 
@@ -93,12 +96,15 @@ class Learner:
             self.cfg_ids[name] = len(self.cfg_ids)
         return self.cfg_ids[name]
 
-    def ingest_file(self, path, source=0, cf=None):
+    def ingest_file(self, path, source=0, cf=None, require_v1b_momentum=False):
         from .actor import read_episode
         data = read_episode(path)
         rows = data['rows']
         if not rows.get('packed'):
             return 0
+        if require_v1b_momentum and data.get('compiler') != 'l3_graph_v1b' and \
+                data['config'].split('-')[1] in ('inertia', 'slowturn_inertia', 'heavy_brake', 'slowturn_heavy'):
+            return 0                        # v1 graphs of robots with speed state differ from v1b (braking tail)
         T = len(rows['packed'])
         oracle = np.asarray(rows['actions'], np.int16) if source == 1 else None
         cfl = cfm = None
@@ -120,6 +126,8 @@ class Learner:
         if source == 1 and idx is not None:
             self.warm_slots[Path(path).name] = (idx, self.ring.episode[idx[0]], rows['labels'], bool(cf))
             self.warm_inserted += len(idx)
+        elif source == 0 and idx is not None:
+            self.online_slots[Path(path).name] = (idx, self.ring.episode[idx[0]], rows['labels'])
         m = data['metrics']
         nd = sum(int(a != b) for a, b in zip(rows['actions'], rows['default']))
         self.ep_stats.append(dict(config=data['config'], outcome=m['outcome'], success=m['success'], spl=m['spl'],
@@ -180,6 +188,43 @@ class Learner:
             self.warm_slots[name] = (idx, ep_id, labels, True)
         return n
 
+    def apply_cf_online(self):
+        """Write on-policy counterfactual labels (``cfonline.py``: <run>/cf_online/<episode>.json) into the ring
+        slots of their episode's transitions (when the slots still hold that episode and the candidate sets match)."""
+        d = self.run/'cf_online'
+        if not d.exists():
+            return 0
+        n = 0
+        with os.scandir(d) as it:
+            new = [e.name for e in it if e.name.endswith('.json') and e.name not in self.cf_applied]
+        for name in new:
+            ep = name[:-len('.json')]
+            slot = self.online_slots.get(ep)
+            if slot is None:
+                if ep in self.loaded:
+                    self.cf_applied.add(name)          # episode already evicted or never inserted
+                continue
+            try:
+                rec = json.loads((d/name).read_text())
+            except Exception:
+                continue
+            idx, ep_id, labels = slot
+            with self.ring.lock:
+                if self.ring.valid[idx].all() and (self.ring.episode[idx] == ep_id).all():
+                    for t, st in rec['states'].items():
+                        t = int(t)
+                        if 'candidates' not in st or t >= len(idx) or st['labels'] != labels[t]:
+                            continue
+                        i = idx[t]
+                        for k, c in enumerate(st['candidates'][:KMAX]):
+                            self.ring.cf[i, k] = [float(c['outcome'] == 'success'), float(c['outcome'] == 'human_collision'),
+                                                  c['steps']/CUM_SCALE[2], c['path']/CUM_SCALE[3], c['social']/CUM_SCALE[4]]
+                            self.ring.cf_mask[i, k] = True
+                        n += 1
+            self.cf_applied.add(name)
+        self.cf_online_states += n
+        return n
+
     def poll_spool(self, budget_s=1.0):
         """One ingestion pass on the MAIN thread (no background thread: R2's learner died of a native heap
         corruption while a watcher thread wrote into the ring and the main thread gathered batches).  New spool
@@ -197,6 +242,12 @@ class Learner:
         if now-self._last_poll < self.poll_every:
             return 0
         self._last_poll = now
+        if now-self._last_cf > 60:
+            try:
+                self.apply_cf_online()
+            except Exception as exc:
+                print('cf online apply failed', exc, flush=True)
+            self._last_cf = now
         n = 0
         with os.scandir(self.run/'spool') as it:
             new = sorted(e.name for e in it if e.name.endswith('.ep') and e.name not in self.loaded)
@@ -235,6 +286,11 @@ class Learner:
             i1 = ring.sample(nd, self.rng, source=1)
             if i1 is not None:
                 idx_parts.append(i1)
+        if self.cf_frac > 0 and has_online:
+            ncf = int(B*self.cf_frac)
+            icf = ring.sample(ncf, self.rng, source=0, where=ring.cf_mask.any(1)) if ncf else None
+            if icf is not None:
+                idx_parts.append(icf)
         if B-sum(len(x) for x in idx_parts) > 0 and has_online:
             i0 = ring.sample(B-sum(len(x) for x in idx_parts), self.rng, source=0)
             if i0 is not None:
@@ -268,7 +324,7 @@ class Learner:
         info = {('td_'+h): float(v) for h, v in losses.items()}
         # ---------------- counterfactual lower-bound labels (warm-up states)
         cfm = torch.as_tensor(ring.cf_mask[idx], device=self.dev) & g['cand_mask']
-        wcf = self.sched(self.cf_w, self.updates)
+        wcf = max(self.sched(self.cf_w, self.updates), self.cf_floor)
         if wcf > 0 and bool(cfm.any()):
             cfl = torch.as_tensor(ring.cf[idx], device=self.dev)                 # [B, K, 5]
             q = self.w.scalarize(out)
@@ -378,6 +434,7 @@ class Learner:
     def _log(self, acc, phase='rl'):
         rec = dict(t=round(time.time()-self.t0, 1), phase=phase, updates=self.updates, version=self.version,
                    ring=int(self.ring.valid.sum()), inserted=int(self.ring.inserted), episodes=len(self.ep_stats),
+                   cf_online_states=self.cf_online_states,
                    **{k: round(float(np.mean(v)), 5) for k, v in acc.items()})
         recent = [e for e in self.ep_stats[-400:] if e['source'] == 0]
         by = {}
@@ -417,8 +474,14 @@ def main():
     ap.add_argument('--seed-limit', type=int, default=0, help='ingest at most this many seed episodes (0 = all)')
     ap.add_argument('--seed-configs', default=None, help='only seed episodes of these configurations (comma list)')
     ap.add_argument('--anchor', default=None, help='start,end,decisions: default-anchored exploration probability')
+    ap.add_argument('--cf-frac', type=float, default=0., help='share of each batch from counterfactually labelled states')
+    ap.add_argument('--v1b', action='store_true', help='seed only v1b graphs for robots with speed state')
+    ap.add_argument('--cf-floor', type=float, default=0.5, help='minimum weight of the counterfactual hinge')
     a = ap.parse_args()
     run = Path(a.run); run.mkdir(parents=True, exist_ok=True)
+    import signal
+    import sys
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))      # run the loop's finally (state save, final publish)
     mc = json.loads(a.model)
     if 'drop' in mc:
         mc['drop'] = tuple(mc['drop'])
@@ -432,6 +495,7 @@ def main():
     (run/'learner_args.json').write_text(json.dumps(vars(a)))
     if a.anchor:
         L.anchor = tuple(float(x) for x in a.anchor.split(','))
+    L.cf_frac, L.cf_floor = a.cf_frac, a.cf_floor
     if a.init:
         L.load_init(a.init)
     if a.seed_spool:
@@ -444,7 +508,7 @@ def main():
             if keep is not None and p.name.split('__')[1] not in keep:
                 continue
             try:
-                n += L.ingest_file(p, 0)
+                n += L.ingest_file(p, 0, require_v1b_momentum=a.v1b)
             except Exception as exc:
                 print('seed ingest failed', p, exc, flush=True)
         print('seeded online transitions', n, 'from', a.seed_spool, flush=True)
