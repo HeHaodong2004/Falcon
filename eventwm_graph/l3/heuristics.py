@@ -262,7 +262,7 @@ def _discovery_rollouts(sb, legal, d, humans, state, cont):
             truth = union if union is not None else (predicted_truth(legal.map, ds[0], pb, pf) if len(ds) == 1 else
                                                      predicted_truth_union(legal.map, ds, pb, pf))
             work = legal.map.copy()
-            hk = humans.fork(make_reveal(work, truth), _blocked_lookup(truth))
+            hk = humans.fork(make_reveal(work, truth, camera=state), _blocked_lookup(truth))
             new.append(imagine(legal, ex, dyn, hk, sb.config.steps_for(c), level=int(c.level), gmap=work,
                                continuation=int(cont), cont_query=cq, planner=c.planner,
                                route=bool(getattr(sb.config, 'route', False))))

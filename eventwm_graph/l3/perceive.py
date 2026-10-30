@@ -520,7 +520,9 @@ class ObserverReveal(Discovery):
       ``L3_CAM_MOUNT``.  Human occlusion of FREE probes and wall rays is not modelled.
     Same contract as ``Discovery`` (``work`` modified in place; ``reset`` restores the map at t)."""
 
-    def __init__(self, work, truth, free_min=None, free_max=None, wall_max=None, rays=None, sway=None, step=0.05):
+    def __init__(self, work, truth, free_min=None, free_max=None, wall_max=None, rays=None, sway=None, step=0.05,
+                 rig=None):
+        self.rig = rig              # CameraRig of the decision (L3_S2_RIG=1): the episode's real camera mount
         p = observer_params()
         self.free_min = float(p['free_min'] if free_min is None else free_min)
         self.free_max = float(p['free_max'] if free_max is None else free_max)
@@ -554,10 +556,15 @@ class ObserverReveal(Discovery):
     def reveal(self, pose, t):
         if not len(self.cx):
             return
-        c, s = math.cos(float(pose[3])), math.sin(float(pose[3]))
-        px = float(pose[0])+CAM_FWD*c+CAM_RIGHT*s
-        pz = float(pose[2])-CAM_FWD*s+CAM_RIGHT*c
-        pyaw = float(pose[3])+CAM_YAW
+        if self.rig is not None:
+            o, R = self.rig.pose(np.asarray(pose, np.float64))
+            look = R @ np.array([0., 0., -1.])
+            px, pz, pyaw = float(o[0]), float(o[2]), math.atan2(-float(look[2]), float(look[0]))
+        else:
+            c, s = math.cos(float(pose[3])), math.sin(float(pose[3]))
+            px = float(pose[0])+CAM_FWD*c+CAM_RIGHT*s
+            pz = float(pose[2])-CAM_FWD*s+CAM_RIGHT*c
+            pyaw = float(pose[3])+CAM_YAW
         dx, dz = self.cx-px, self.cz-pz
         near = np.flatnonzero((np.abs(dx) <= self.rng) & (np.abs(dz) <= self.rng))
         if not len(near):
@@ -611,12 +618,15 @@ class ObserverReveal(Discovery):
         self.revealed += len(idx)
 
 
-def make_reveal(work, truth, mode=None):
+def make_reveal(work, truth, mode=None, camera=None):
     """The imagined map stream for a (predicted) truth map: ``Discovery`` (mode 'frustum', the default) or
-    ``ObserverReveal`` ('observer'); mode None reads ``L3_S2_REVEAL``."""
-    mode = __import__('os').environ.get('L3_S2_REVEAL', 'frustum') if mode is None else mode
+    ``ObserverReveal`` ('observer'); mode None reads ``L3_S2_REVEAL``.  ``camera``: a legal row / DecisionState --
+    with ``L3_S2_RIG=1`` the observer reveal uses that decision's camera rig instead of the fixed mount constants."""
+    env = __import__('os').environ
+    mode = (env.get('L3_S2_REVEAL') or 'frustum') if mode is None else mode
     if mode == 'observer':
-        return ObserverReveal(work, truth)
+        rig = CameraRig.of(camera) if (env.get('L3_S2_RIG') == '1' and camera is not None) else None
+        return ObserverReveal(work, truth, rig=rig)
     if mode != 'frustum':
         raise ValueError('unknown reveal mode %r' % (mode,))
     return Discovery(work, truth)
