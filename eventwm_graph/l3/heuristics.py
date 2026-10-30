@@ -317,6 +317,17 @@ def _hazard_params(path):
         from .hazard import load_params
         _HAZARD[path] = load_params(path)
     return _HAZARD[path]
+_CONTACT = {}
+
+
+def _contact_model(path):
+    if path not in _CONTACT:
+        from .contactmodel import ContactModel
+        _CONTACT[path] = ContactModel(path)
+        m = _CONTACT[path]
+        print('mwroll: contact model %s (windows %s, thresholds %s)' % (
+            path, list(m.windows), [m.threshold(w) for w in m.windows]), flush=True)
+    return _CONTACT[path]
 
 
 def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048,
@@ -391,6 +402,19 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
         hz = UntrackedHazard(legal, hparams, steps=T)
         hthr = float(__import__('os').environ.get('L3_MW_HAZARD_THR', hparams['thr']))
         hz_p = np.zeros(K)
+    # calibrated official-contact model (L3_MW_CONTACT_MODEL=<model json>, default off; contactmodel.py): an imagined
+    # contact in a world is P(official contact within the model window | imagined geometry over that window) >=
+    # L3_MW_CONTACT_THR (default: the threshold chosen on TRAIN, stored with the model) instead of the distance rule;
+    # L3_MW_CONTACT_THR=soft scores the probability itself (expected contact share / expected outcome value).  Model
+    # window: L3_MW_CONTACT_W, else the smallest model window covering the scored steps, else the largest
+    cpath = __import__('os').environ.get('L3_MW_CONTACT_MODEL')
+    cm = _contact_model(cpath) if cpath else None
+    if cm is not None:
+        cm_w = cm.window(min(T, contact_steps), __import__('os').environ.get('L3_MW_CONTACT_W'))
+        cm_thr = __import__('os').environ.get('L3_MW_CONTACT_THR', '')
+        cm_soft = cm_thr == 'soft'
+        cm_thr = cm.threshold(cm_w) if cm_thr in ('', 'soft') else float(cm_thr)
+        pm = np.zeros(K)             # analysis: world-weighted model probability per candidate
     xs_ctx = None
     if vm is not None and 'Xs' in vm.keys:
         from .leafvalue import legal_features
@@ -428,14 +452,24 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                     stop_bad[k] = True
                 if HP is not None:
                     n = min(len(seq), HP.shape[1], contact_steps)
-                    if rect > 0:
+                    if cm is not None:
+                        n = min(n, cm_w)
+                        cf = cm.features(seq[:n], HP[w, :n])
+                        pk = cm.prob(cf, cm_w)
+                        hit = pk >= cm_thr
+                        pm[k] += ww[j]*pk
+                        with np.errstate(invalid='ignore'):
+                            dd = np.hypot(HP[w, :n, :, 0]-seq[:n, None, 0], HP[w, :n, :, 1]-seq[:n, None, 2])
+                    elif rect > 0:
                         dd = _rect_clearance(seq[:n], HP[w, :n])
                         hit = np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < rect if dd.size else False
                     else:
                         with np.errstate(invalid='ignore'):
                             dd = np.hypot(HP[w, :n, :, 0]-seq[:n, None, 0], HP[w, :n, :, 1]-seq[:n, None, 2])
                         hit = np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < radius if dd.size else False
-                    if hit:
+                    if cm is not None and cm_soft:
+                        pc[k] += ww[j]*pk
+                    elif hit:
                         pc[k] += ww[j]
                     if dbg and dd.size:
                         dmin[k] = min(dmin[k], float(np.nanmin(np.where(np.isfinite(dd), dd, np.inf))))
@@ -475,9 +509,23 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                     # better); category + a tie-break in [0, 0.5)
                     Tk = max(len(seq), 1)
                     near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= goal_r
-                    if HP is not None and hit:
-                        first = int(np.argmax(np.nanmin(np.where(np.isfinite(dd), dd, np.inf), axis=1) <
-                                              (rect if rect > 0 else radius)))
+                    if HP is not None and cm is not None and cm_soft:
+                        # expected outcome value: P(contact) x contact value (closest approach as the contact step)
+                        # + (1 - P) x the value without contact
+                        if ro.stop and not near:
+                            vn = 0.
+                        elif ro.stop and near:
+                            vn = 3.+0.5*(1.-Tk/max(steps+cont, 1))
+                        else:
+                            g = field.start-field.at(seq[-1, 0], seq[-1, 2])
+                            vn = 2.+0.5*float(np.clip(g/max(field.start, 1e-6), 0., 0.999))
+                        val = pk*(0.+0.5*int(cf['i_ca'])/max(n, 1))+(1.-pk)*vn
+                    elif HP is not None and hit:
+                        if cm is not None:
+                            first = int(cf['i_ca'])          # the model's contact step: the closest approach
+                        else:
+                            first = int(np.argmax(np.nanmin(np.where(np.isfinite(dd), dd, np.inf), axis=1) <
+                                                  (rect if rect > 0 else radius)))
                         if hz_hit:
                             first = min(first, hz_first)
                         val = 0.+0.5*first/max(n, 1)
@@ -510,6 +558,9 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                                       flagged=[int(x >= hthr) for x in hz_p], pc=[float(x) for x in pc],
                                       oc=[float(x) for x in oc], particles=int(len(hz.live)),
                                       build_ms=round(hz.build_ms, 1)))+'\n')
+        if cm is not None:
+            MW_DEBUG.update(pcontact=pm.tolist(), contact_model=dict(path=cm.path, w=int(cm_w), thr=float(cm_thr),
+                                                                     soft=bool(cm_soft)))
     dflt = int(d.default)
     if vm is not None:
         best = int(np.argmax(vs))
