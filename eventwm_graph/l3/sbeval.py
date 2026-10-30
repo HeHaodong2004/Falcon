@@ -41,6 +41,31 @@ class _NoLayer2:
         pass
 
 
+class TrueTracksCV:
+    """ANALYSIS ONLY (privileged): the legal tracks of ``oraclebank.CVBank`` at their TRUE future (the person nearest
+    to the constant-velocity estimate within 0.75 m), constant velocity when unmatched; nobody else -- the ceiling of a
+    tracked-people forecaster on the same states (``cl_frozen_truetrk``)."""
+
+    def __init__(self, item):
+        from .oraclebank import CVBank
+        self.cv = CVBank(item['legal'])
+        for k in ('track_keys', 'unseen', 'weights', 'present', 'times', 'long_steps'):
+            setattr(self, k, getattr(self.cv, k))
+        self.T = np.asarray(item['truth_people'], np.float64)                  # [65, N, 2], row j = t + j steps
+        self.match = {}
+        for n, p0 in enumerate(self.cv.P0):
+            d = np.hypot(self.T[0, :, 0]-p0[0], self.T[0, :, 1]-p0[1]) if self.T.shape[1] else np.zeros(0)
+            if len(d) and np.isfinite(d).any() and np.nanmin(d) < 0.75:
+                self.match[n] = int(np.nanargmin(d))
+
+    def sandbox_positions(self, rel):
+        P = np.array(self.cv.sandbox_positions(rel), np.float64)
+        idx = np.clip(np.round(np.asarray(rel, np.float64)/0.048).astype(int), 0, len(self.T)-1)
+        for n, j in self.match.items():
+            P[0, :, n] = self.T[idx, j]
+        return P
+
+
 class TrueTrackedBank:
     """ANALYSIS ONLY: the banked Stage 1 bank with every TRACKED slot replaced by its matched person's true future."""
 
@@ -115,6 +140,8 @@ VARIANTS = {
     # (weighted mean / top mode) or the 6 most probable joint mode combinations, weighted
     'cl_frozen_fc1': (dict(window=64, map_loop='off', worlds=1), 'fc1'),
     'cl_frozen_fck': (dict(window=64, map_loop='off', worlds=6), 'fck'),
+    # ANALYSIS ONLY (privileged): the same tracked people at their TRUE future (TrueTracksCV), nobody else
+    'cl_frozen_truetrk': (dict(window=64, map_loop='off', worlds=1), 'truetrk'),
     'cl_frozen_all': (dict(window=64, map_loop='off', perception='all'), 'stage1'),
     'cl_frozen_w12': (dict(window=64, map_loop='off', worlds=12), 'stage1'),
 }
@@ -148,6 +175,8 @@ def run_variant(sb, item, name):
         bank = CVBank(legal)
     elif people == 'truetracked':
         bank = TrueTrackedBank(item)
+    elif people == 'truetrk':
+        bank = TrueTracksCV(item)
     elif people in ('fc1', 'fck'):
         from .peoplemap import FCBank
         bank = FCBank(legal, mode=people, worlds=int(kw.get('worlds', 6)))

@@ -83,3 +83,19 @@ only (`l3/s2data.py`: floor decisions, every candidate's exact real branch as th
 only); their operating point (the class rule's BLOCKED threshold) is chosen on scene-disjoint TRAIN validation and
 stored in the checkpoint, so `L3_S2_PB` / `L3_S2_PF` unset use it and `L3_S2_PF=1.01` gives its walls-only stream.
 DEV is used once, for the frozen checkpoint's map metrics and fidelity probe.
+
+## People forecaster options (amended 2026-10-30 19:40)
+Legal, default off (`docs/l3/PEOPLE_FORECASTER.md`): `L3_MW_BANK=fc1|fck` replaces the constant-velocity people bank
+with the map-aware multimodal forecaster of the TRACKED people (`l3/peoplemap.py`; model `L3_FC_MODEL`, default
+`output/agents/people/fcmap/v1`).  Its inputs are the robot's legal track list, legal track log, legal map and clock.
+Tracks without a detection in the last 2 s keep constant velocity, and untracked people do not exist in the bank.
+`fc1` is one world: the weighted mean of the modes, chosen on TRAIN (`L3_FC1=top` gives the top mode).  `fck` gives
+the `L3_MW_WORLDS` most probable joint mode combinations with their weights; `L3_FC_MINW` drops light ones.
+`L3_FC_LOG=<jsonl>` is an analysis log.
+
+The model was trained on TRAIN replays only: the `output/runs/R10` spool, 131 TRAIN scenes.  Model selection and the
+`fc1` choice used a scene-grouped TRAIN validation split.  Labels come from the recorded tape, matched by the track's
+last detection; the older estimate-matched collection is used only for tracks detected at most 0.25 s ago.  The
+point-forecast NLL calibration of the CV / Stage 1 baselines was fitted on TRAIN.  DEV data (the DEV state bank and
+replays of the DEV floor run, `output/agents/people/dev_floor`) was used only for the final evaluation of the frozen
+model.

@@ -11,12 +11,14 @@ the person's legal track history AND a local patch of the robot's legal map arou
   tracker velocity, the age of the last detection, a PATCH x PATCH crop of the robot's legal map (FREE / BLOCKED /
   UNKNOWN, 0.1 m cells, rotated into the frame of the tracker velocity -- ``peoplefc.canonical``) and the true
   displacement every 2 steps over the next 64 steps (the recorded tape: labels only);
-* model (``fit``): a small CNN on the map patch + an MLP on history / velocity / age -> K weighted modes, each a
-  trajectory of knots every 4 steps (0 .. 64 steps = 0 .. 3.07 s) with per-knot isotropic spreads; trained by the
-  negative log-likelihood of the recorded future (a mixture over whole trajectories: a mode is one coherent future)
-  plus a small best-of-K regression term; scene-grouped validation on TRAIN;
-* offline evaluation (``evaluate``): DEV state bank tracked instances against constant velocity, Stage 1's mean world
-  and the history-only MDN (``peoplefc``);
+* model (``fit``): a small CNN on the map patch (final: ``--cnn-arch small``, 6.4 m at 0.2 m cells) + an MLP on
+  history / velocity / age -> K weighted modes, each a trajectory of knots every 4 steps (0 .. 64 steps = 0 .. 3.07 s)
+  with per-knot isotropic spreads; trained by the negative log-likelihood of the recorded future (a mixture over whole
+  trajectories: a mode is one coherent future) plus a small best-of-K regression term; scene-grouped validation on
+  TRAIN;
+* offline evaluation (``evaluate``): DEV tracked instances (the DEV state bank, or ``--data`` collected DEV replays)
+  against constant velocity, Stage 1's mean world and the history-only MDN (``peoplefc``); ``calib`` fits on TRAIN
+  the Gaussian scale mixtures that give the point forecasts (CV, Stage 1 mean) an NLL;
 * deployment (``FCBank``): the bank interface of ``oraclebank.CVBank`` -- legal tracks only, CV for a track without a
   usable detection history; ``mode='fc1'``: one world (the weighted mean of the modes or the top mode, chosen on
   TRAIN and stored with the model); ``mode='fck'``: the ``worlds`` most probable joint mode combinations of the
@@ -24,10 +26,12 @@ the person's legal track history AND a local patch of the robot's legal map arou
 
     L3_INHERIT=1 python scripts/l3_run.py eventwm_graph.l3.peoplemap collect --run output/runs/R10 \
         --out output/agents/people/data --shard i --shards 10 [--every 4 --until <unix time>]
-    python scripts/l3_run.py eventwm_graph.l3.peoplemap fit --data output/agents/people/data \
-        --save output/agents/people/fcmap/v1 --device cuda:0
+    python scripts/l3_run.py eventwm_graph.l3.peoplemap fit --data output/agents/people/data,output/agents/people/data2 \
+        --estimate-max-age 0.25 --save output/agents/people/fcmap/v1 --device cuda:1 \
+        --cnn-arch small --crop 64 --map-drop 0.5 --drop 0.2 --wd 1e-3
+    python scripts/l3_run.py eventwm_graph.l3.peoplemap calib
     python scripts/l3_run.py eventwm_graph.l3.peoplemap evaluate --model output/agents/people/fcmap/v1 \
-        --bank output/statebank/orca_dev
+        [--bank output/statebank/orca_dev | --data output/agents/people/dev_floor]
 """
 import argparse
 import glob
@@ -199,7 +203,8 @@ def collect(a):
     private_tapes = Path(a.out).resolve().parent/'tapes'
     files = sorted(Path(a.run, 'spool').glob('*.ep'))
     # shard by SCENE: a worker runs all episodes of its scenes back to back (habitat keeps the scene loaded)
-    files = [f for f in files if zlib.crc32(_scene(f).encode()) % a.shards == a.shard and _scene(f) not in EXCLUDE_SCENES]
+    files = [f for f in files if zlib.crc32(_scene(f).encode()) % a.shards == a.shard and _scene(f) not in EXCLUDE_SCENES
+             and all(g in f.name for g in str(a.grep or '').split(',') if g)]
     rng = np.random.default_rng(a.shard)
     scenes = sorted({_scene(f) for f in files})
     rng.shuffle(scenes)                                     # a deadline-cut collection still spans many scenes
@@ -333,7 +338,7 @@ def maneuvers(F, near=None):
     stop = moving & (np.hypot(*(F[:, 31]-F[:, 16]).T) < 0.5)
     start = (s0 < 0.2) & (np.hypot(*(F[:, 31]-F[:, 0]).T) > 1.0)
     out = dict(all=np.ones(len(F), bool), straight=moving & ~stop & ~turn, turn=turn, stop=stop, start=start,
-               still=(s0 < 0.2) & ~start, maneuver=turn | stop | start)
+               still=(s0 < 0.2) & ~start, maneuver=turn | stop | start, turn_stop=turn | stop)
     if near is not None:
         out['near'] = np.asarray(near, bool)
         out['near_maneuver'] = out['near'] & out['maneuver']
@@ -347,8 +352,12 @@ def near_robot(F, ref, robot, radius=2.5, steps=32):
     return d.min(1) < radius
 
 
-def load_data(dirs, min_valid=64):
-    """Collected instances (``collect``) with a full 64-step true future: canonical model inputs and targets."""
+def load_data(dirs, min_valid=64, estimate_max_age=None):
+    """Collected instances (``collect``) with a full 64-step true future: canonical model inputs and targets.
+    ``estimate_max_age`` (s): from files labelled by the older estimate match (``--match estimate``, or files written
+    before the option existed) keep only tracks detected at most this long ago -- there the estimate match and the
+    detection match pick the same person; for older tracks the estimate match drops people who turned or stopped
+    while unseen (label bias)."""
     keys = ('hist', 'vel', 'fut', 'frame', 'patch', 'age', 'kind', 'ref', 'robot')
     acc = {k: [] for k in keys}
     scene, epi = [], []
@@ -363,6 +372,8 @@ def load_data(dirs, min_valid=64):
             if int(z['n']) == 0:
                 continue
             ok = (z['valid'] >= min_valid) & np.isfinite(z['fut']).all((1, 2))
+            if estimate_max_age is not None and str(z['match'] if 'match' in z.files else 'estimate') == 'estimate':
+                ok &= z['age'] <= float(estimate_max_age)+1e-6
             if not ok.any():
                 continue
             for k in keys:
@@ -411,7 +422,12 @@ def ray_feats(patch):
     return torch.cat([first(v == 2), first(v == 0)], -1)
 
 
-def make_net(n_in=38, K=6, cnn=True, width=128, crop=96, rays=False, drop=0.):
+def make_net(n_in=38, K=6, cnn=True, width=128, crop=96, rays=False, drop=0., cnn_arch='v1', map_feat=64,
+             map_drop=0.):
+    """``cnn_arch``: 'v1' -- 4 strided convolutions at 0.1 m, flatten -> ``width`` features (~0.4 M parameters at
+    crop 96; it memorises the training scenes); 'small' -- the one-hot averaged to 0.2 m cells, three max-pooled 3x3
+    convolutions (16 / 32 / 32 channels), flatten -> ``map_feat`` features with dropout ``map_drop`` (~50 k parameters
+    at crop 64)."""
     torch = _torch()
     nn = torch.nn
 
@@ -422,7 +438,18 @@ def make_net(n_in=38, K=6, cnn=True, width=128, crop=96, rays=False, drop=0.):
             n0 = n_in+(2*RAYS if self.rays_on else 0)
             self.mlp = nn.Sequential(nn.Linear(n0, width), nn.ReLU(), nn.Linear(width, width), nn.ReLU())
             feat = width
-            if self.cnn_on:
+            if self.cnn_on and cnn_arch == 'small':
+                side = self.crop//2
+                for _ in range(3):
+                    side //= 2
+                self.cnn = nn.Sequential(
+                    nn.AvgPool2d(2),
+                    nn.Conv2d(3, 16, 3, padding=1), nn.ReLU(), nn.MaxPool2d(2),
+                    nn.Conv2d(16, 32, 3, padding=1), nn.ReLU(), nn.MaxPool2d(2),
+                    nn.Conv2d(32, 32, 3, padding=1), nn.ReLU(), nn.MaxPool2d(2),
+                    nn.Flatten(), nn.Linear(32*side*side, int(map_feat)), nn.ReLU(), nn.Dropout(float(map_drop)))
+                feat += int(map_feat)
+            elif self.cnn_on:
                 side = self.crop
                 for _ in range(4):
                     side = (side+1)//2
@@ -513,7 +540,7 @@ def augment(patch, hc, vc, Y, kind, gen):
 
 
 def fit(D, tr, va, device='cuda:0', epochs=25, lr=2e-3, batch=256, K=6, cnn=True, wta=0.5, seed=0, width=128,
-        crop=96, rays=False, drop=0., wd=1e-4, log=print):
+        crop=96, rays=False, drop=0., wd=1e-4, cnn_arch='v1', map_feat=64, map_drop=0., log=print):
     torch = _torch()
     torch.manual_seed(seed)
     dev = torch.device(device)
@@ -521,7 +548,8 @@ def fit(D, tr, va, device='cuda:0', epochs=25, lr=2e-3, batch=256, K=6, cnn=True
     T['Y'] = torch.as_tensor(D['futc'][np.concatenate([tr, va])][:, KNOT_STEPS//2])
     T = {k: v.to(dev) for k, v in T.items()}
     ntr = len(tr)
-    net = make_net(K=K, cnn=cnn, width=width, crop=crop, rays=rays, drop=drop).to(dev)
+    net = make_net(K=K, cnn=cnn, width=width, crop=crop, rays=rays, drop=drop, cnn_arch=cnn_arch, map_feat=map_feat,
+                   map_drop=map_drop).to(dev)
     opt = torch.optim.AdamW(net.parameters(), lr=lr, weight_decay=wd)
     steps = epochs*((ntr+batch-1)//batch)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.1)
@@ -565,7 +593,8 @@ def fit(D, tr, va, device='cuda:0', epochs=25, lr=2e-3, batch=256, K=6, cnn=True
             best_state = {k: v.detach().cpu().clone() for k, v in net.state_dict().items()}
     net.load_state_dict(best_state)
     net = net.cpu().eval()
-    return net, dict(K=K, cnn=bool(cnn), width=int(width), crop=int(crop), n_in=38, rays=bool(rays), drop=float(drop)), hist
+    return net, dict(K=K, cnn=bool(cnn), width=int(width), crop=int(crop), n_in=38, rays=bool(rays), drop=float(drop),
+                     cnn_arch=str(cnn_arch), map_feat=int(map_feat), map_drop=float(map_drop)), hist
 
 
 def predict(net, patch, hc, hvalid, vc, age, kind, device='cpu', batch=4096):
@@ -677,9 +706,14 @@ def fit_main(argv):
     ap.add_argument('--no-cnn', action='store_true', help='no CNN on the map patch')
     ap.add_argument('--rays', action='store_true', help='ray descriptor of the map patch (ray_feats)')
     ap.add_argument('--drop', type=float, default=0.)
+    ap.add_argument('--cnn-arch', default='v1', choices=['v1', 'small'], help='map encoder (make_net)')
+    ap.add_argument('--map-feat', type=int, default=64, help="'small' map encoder: output features")
+    ap.add_argument('--map-drop', type=float, default=0., help="'small' map encoder: dropout on its features")
     ap.add_argument('--wd', type=float, default=1e-4)
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--limit-train', type=int, default=0, help='learning curve: at most this many training instances')
+    ap.add_argument('--estimate-max-age', type=float, default=None,
+                    help='estimate-matched files: keep tracks detected at most this long ago (load_data)')
     a = ap.parse_args(argv)
     torch = _torch()
     out = Path(a.save); out.mkdir(parents=True, exist_ok=True)
@@ -689,14 +723,15 @@ def fit_main(argv):
         print(s, flush=True)
         logf.write(s+'\n'); logf.flush()
     t0 = time.time()
-    D = load_data(a.data)
+    D = load_data(a.data, estimate_max_age=a.estimate_max_age)
     tr, va, va_sc = scene_split(D['scene'])
     if a.limit_train and len(tr) > a.limit_train:
         tr = np.sort(np.random.default_rng(1).choice(tr, a.limit_train, replace=False))
     log('instances %d (train %d / val %d; scenes %d / %d), load %.0f s' % (
         len(D['scene']), len(tr), len(va), len(np.unique(D['scene'][tr])), len(va_sc), time.time()-t0))
     net, arch, hist = fit(D, tr, va, device=a.device, epochs=a.epochs, lr=a.lr, K=a.K, cnn=not a.no_cnn, wta=a.wta,
-                          seed=a.seed, width=a.width, crop=a.crop, rays=a.rays, drop=a.drop, wd=a.wd, log=log)
+                          seed=a.seed, width=a.width, crop=a.crop, rays=a.rays, drop=a.drop, wd=a.wd,
+                          cnn_arch=a.cnn_arch, map_feat=a.map_feat, map_drop=a.map_drop, log=log)
     rep = report_split(net, D, va, 'TRAIN-val', log=log)
     # the single world for L3_MW_BANK=fc1, chosen on TRAIN-val: weighted mean or top mode, by the mean over the three
     # horizons of (median + p90) error over all instances
@@ -706,6 +741,7 @@ def fit_main(argv):
     log('fc1 world (TRAIN-val): %s %s' % (one, json.dumps(score)))
     torch.save(dict(state=net.state_dict(), arch=arch), out/'model.pt')
     meta = dict(arch=arch, K=a.K, knots=KNOT_STEPS.tolist(), patch=PATCH, patch_res=PATCH_RES, data=a.data,
+                estimate_max_age=a.estimate_max_age,
                 n_train=int(len(tr)), n_val=int(len(va)), val_scenes=va_sc, fc1=one, fc1_score=score, epochs=a.epochs,
                 lr=a.lr, wta=a.wta, seed=a.seed, history=hist, train_val=rep)
     (out/'meta.json').write_text(json.dumps(meta, indent=1))
@@ -725,7 +761,8 @@ class Forecaster:
         ck = torch.load(Path(path, 'model.pt'), map_location='cpu')
         a = ck['arch']
         self.net = make_net(n_in=a.get('n_in', 38), K=a['K'], cnn=a['cnn'], width=a['width'], crop=a.get('crop', 96),
-                            rays=a.get('rays', False), drop=a.get('drop', 0.))
+                            rays=a.get('rays', False), drop=a.get('drop', 0.), cnn_arch=a.get('cnn_arch', 'v1'),
+                            map_feat=a.get('map_feat', 64), map_drop=a.get('map_drop', 0.))
         self.net.load_state_dict(ck['state'])
         self.net.eval()
         self.meta = json.loads(Path(path, 'meta.json').read_text())
@@ -893,9 +930,74 @@ def bank_instances(bank_dir, cache=None, max_files=0):
     return out
 
 
-def score_instances(rows, models, v2_path='output/peoplefc/v2'):
+def fit_scale_mixture(d, C=2, iters=300, sig_min=0.03):
+    """2-D isotropic Gaussian scale mixture centred on a point forecast, fitted by EM to its error distances ``d``
+    (gives a point forecast an NLL; fitted on TRAIN) -> (weights [C], variances [C]).  Spreads are floored at the
+    forecaster's own minimum (``sig_min`` = 0.03 m, ``make_net``): standing people give exactly-zero CV errors, and an
+    unfloored component collapses onto them."""
+    d2 = np.asarray(d, np.float64)[np.isfinite(d)]**2
+    s2 = np.quantile(d2, np.linspace(0.3, 0.9, C))/2.+1e-4
+    pi = np.full(C, 1./C)
+    for _ in range(iters):
+        lp = np.log(pi)[None]-np.log(2*np.pi*s2)[None]-d2[:, None]/(2*s2[None])
+        r = np.exp(lp-lp.max(1, keepdims=True))
+        r /= r.sum(1, keepdims=True)
+        pi = np.maximum(r.mean(0), 1e-6)
+        s2 = np.maximum((r*d2[:, None]).sum(0)/(2*np.maximum(r.sum(0), 1e-9)), sig_min**2)
+    return pi/pi.sum(), s2
+
+
+def scale_mixture_nll(d, pi, s2):
+    """NLL of 2-D errors of distance ``d`` under ``fit_scale_mixture``'s mixture."""
+    d2 = np.asarray(d, np.float64)[:, None]**2
+    pi, s2 = np.asarray(pi, np.float64), np.asarray(s2, np.float64)
+    lp = np.log(pi)[None]-np.log(2*np.pi*s2)[None]-d2/(2*s2[None])
+    m = lp.max(1)
+    return -(m+np.log(np.exp(lp-m[:, None]).sum(1)))
+
+
+def cv_errors(rows):
+    """Errors [M, 3] of the tracker's constant-velocity estimate (``oraclebank.CVBank``) at 0.77 / 1.5 / 3 s."""
+    fut = np.stack([r['fut'] for r in rows]).astype(np.float64)
+    ref = np.stack([np.asarray(r['ref'], np.float64) for r in rows])
+    Y = ref[:, None]+fut[:, [h//2 for h in EVAL_STEPS]]
+    P0 = np.stack([r['est_pos'] for r in rows]); V = np.stack([r['est_vel'] for r in rows])
+    cv = np.zeros((len(rows), 3))
+    for hi, h in enumerate(EVAL_STEPS):
+        p = P0+V*h*STEP_S                                                                  # planar (x, -z)
+        cv[:, hi] = np.hypot(p[:, 0]-Y[:, hi, 0], -p[:, 1]-Y[:, hi, 1])
+    return cv
+
+
+def calib_main(argv):
+    """TRAIN calibration of the point forecasts' NLL (``fit_scale_mixture`` per horizon): constant velocity on the
+    collected TRAIN instances, Stage 1's mean world on the TRAIN state bank's tracked instances."""
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--data', default='output/agents/people/data,output/agents/people/data2')
+    ap.add_argument('--train-bank-cache', default='output/agents/people/train_bank_instances.pkl')
+    ap.add_argument('--train-bank', default='output/statebank/orca_train')
+    ap.add_argument('--save', default='output/agents/people/point_calib.json')
+    a = ap.parse_args(argv)
+    rows = data_instances(a.data)
+    cv = cv_errors(rows)
+    brows = bank_instances(a.train_bank, a.train_bank_cache)
+    s1 = np.stack([r['s1'] for r in brows])[:, :, 0]
+    s1 = s1[np.isfinite(s1).all(1)]
+    out = dict(source=dict(cv=a.data, stage1=a.train_bank, n_cv=int(len(cv)), n_stage1=int(len(s1))))
+    for name, E in (('cv', cv), ('stage1', s1)):
+        out[name] = []
+        for hi in range(3):
+            pi, s2 = fit_scale_mixture(E[:, hi], C=3)
+            out[name].append(dict(pi=pi.tolist(), s2=s2.tolist(),
+                                  train_nll=round(float(scale_mixture_nll(E[:, hi], pi, s2).mean()), 3)))
+    Path(a.save).parent.mkdir(parents=True, exist_ok=True)
+    Path(a.save).write_text(json.dumps(out, indent=1))
+    print(json.dumps(out), flush=True)
+
+
+def score_instances(rows, models, v2_path='output/peoplefc/v2', calib=None):
     """Per-instance errors / NLL of every method at 0.77 / 1.5 / 3 s -> (dict method -> metric -> [M, 3], truth
-    categories, Stage 1 coverage mask)."""
+    categories, Stage 1 coverage mask).  ``calib`` (``calib_main``, TRAIN): NLL of the point forecasts."""
     torch = _torch()
     M = len(rows)
     fut = np.stack([r['fut'] for r in rows]).astype(np.float64)                     # [M, 33, 2] relative to ref
@@ -911,12 +1013,11 @@ def score_instances(rows, models, v2_path='output/peoplefc/v2'):
             out['mean'][:, hi], out['top'][:, hi], out['best'][:, hi] = point_errors(w, mh, Y[:, hi])
             out['nll'][:, hi] = mixture_nll(w, mh, sh, Y[:, hi])
         res[fc.path] = out
-    cv = np.zeros((M, 3))
-    P0 = np.stack([r['est_pos'] for r in rows]); V = np.stack([r['est_vel'] for r in rows])
-    for hi, h in enumerate(EVAL_STEPS):
-        p = P0+V*h*STEP_S                                                                  # planar (x, -z)
-        cv[:, hi] = np.hypot(p[:, 0]-Y[:, hi, 0], -p[:, 1]-Y[:, hi, 1])
+    cv = cv_errors(rows)
     res['cv'] = dict(mean=cv)
+    if calib:
+        res['cv']['nll'] = np.stack([scale_mixture_nll(cv[:, hi], calib['cv'][hi]['pi'], calib['cv'][hi]['s2'])
+                                     for hi in range(3)], 1)
     if v2_path and Path(v2_path, 'mdn.pt').exists():
         from .peoplefc import MDN, canonical as v2_canonical
         d = torch.load(Path(v2_path, 'mdn.pt'), map_location='cpu')
@@ -934,6 +1035,9 @@ def score_instances(rows, models, v2_path='output/peoplefc/v2'):
         res['mdn_v2'] = out
     s1 = np.stack([r['s1'] for r in rows])                                               # [M, 3, 3]
     res['stage1'] = dict(mean=s1[:, :, 0], best=s1[:, :, 1], avg_world=s1[:, :, 2])
+    if calib:
+        res['stage1']['nll'] = np.stack([scale_mixture_nll(s1[:, hi, 0], calib['stage1'][hi]['pi'],
+                                                           calib['stage1'][hi]['s2']) for hi in range(3)], 1)
     cats = maneuvers(fut, near_robot(fut, ref, np.stack([r['robot'] for r in rows])))
     s1ok = np.isfinite(s1[:, :, 0]).all(1)
     return res, cats, s1ok
@@ -952,8 +1056,8 @@ def summarize(res, cats, s1ok, label=''):
     return table
 
 
-def print_table(table, names, cats, s1ok, cats_order=('all', 'maneuver', 'turn', 'stop', 'start', 'straight', 'still',
-                                                     'near', 'near_maneuver'),
+def print_table(table, names, cats, s1ok, cats_order=('all', 'maneuver', 'turn_stop', 'turn', 'stop', 'start', 'straight',
+                                                     'still', 'near', 'near_maneuver'),
                 subs=('all', 's1cov')):
     f = lambda q: '%.2f/%.2f' % (q['median'], q['p90']) if isinstance(q, dict) and q.get('median') is not None else 'n/a'
     for c in cats_order:
@@ -968,11 +1072,40 @@ def print_table(table, names, cats, s1ok, cats_order=('all', 'maneuver', 'turn',
                     s = '%s %s' % (Path(name).name, f(r['mean']))
                     if 'top' in r:
                         s += ' top %s best %s nll %s' % (f(r['top']), f(r['best']), r['nll'])
-                    elif 'best' in r:
-                        s += ' best40 %s' % f(r['best'])
+                    else:
+                        if 'best' in r:
+                            s += ' best-world %s' % f(r['best'])
+                        if 'nll' in r:
+                            s += ' nll %s' % r['nll']
                     line.append(s)
                 n = int((cats[c] & (s1ok if sub == 's1cov' else True)).sum())
                 print('[%s|%s|%s] n=%d  %s' % (c, sub, hs, n, ' | '.join(line)), flush=True)
+
+
+def data_instances(dirs, min_valid=64):
+    """Collected instances (``collect`` format) as evaluation rows (the ``bank_instances`` fields; Stage 1 unavailable
+    -> NaN)."""
+    rows = []
+    for d in str(dirs).split(','):
+        for f in sorted(glob.glob(os.path.join(d, '*.npz'))):
+            if f.endswith('.tmp.npz'):
+                continue
+            npz = np.load(f)
+            if int(npz['n']) == 0:
+                continue
+            z = {k: npz[k] for k in npz.files}                  # decompress every array once (not once per row)
+            for i in range(int(z['n'])):
+                if z['valid'][i] < min_valid or not np.isfinite(z['fut'][i]).all():
+                    continue
+                est = z['est'][i].astype(np.float64)                                    # world (x, z) at t
+                vel = z['vel'][i].astype(np.float64)                                    # world (vx, vz)
+                rows.append(dict(hist=z['hist'][i], vel=z['vel'][i], age=float(z['age'][i]), fut=z['fut'][i],
+                                 ref=z['ref'][i].astype(np.float64), frame=z['frame'][i], frame_kind=int(z['kind'][i]),
+                                 patch=z['patch'][i], robot=z['robot'][i].astype(np.float64),
+                                 est_pos=np.array([est[0], -est[1]]), est_vel=np.array([vel[0], -vel[1]]),
+                                 state='%s@%d' % (Path(f).stem, int(z['step'][i])), config=str(z['config']),
+                                 scene=str(z['scene']), s1=np.full((len(EVAL_STEPS), 3), np.nan)))
+    return rows
 
 
 def evaluate_main(argv):
@@ -983,19 +1116,23 @@ def evaluate_main(argv):
     ap.add_argument('--v2', default='output/peoplefc/v2', help='history-only MDN baseline (peoplefc)')
     ap.add_argument('--json', default=None, help='results file')
     ap.add_argument('--max-files', type=int, default=0)
+    ap.add_argument('--data', default=None, help='evaluate on collected instances (collect format) instead of a bank')
+    ap.add_argument('--calib', default='output/agents/people/point_calib.json',
+                    help='TRAIN calibration of the point forecasts (calib_main); NLL of CV / Stage 1 if present')
     a = ap.parse_args(argv)
     t0 = time.time()
-    rows = bank_instances(a.bank, a.cache, a.max_files)
+    rows = data_instances(a.data) if a.data else bank_instances(a.bank, a.cache, a.max_files)
     fcs = [Forecaster(p) for p in a.model]
-    res, cats, s1ok = score_instances(rows, fcs, a.v2)
+    calib = json.loads(Path(a.calib).read_text()) if a.calib and Path(a.calib).exists() else None
+    res, cats, s1ok = score_instances(rows, fcs, a.v2, calib=calib)
     table = summarize(res, cats, s1ok)
-    print('bank %s: %d tracked instances from %d states (%d with Stage 1 slots), %.0f s' % (
-        a.bank, len(rows), len({r['state'] for r in rows}), s1ok.sum(), time.time()-t0), flush=True)
+    print('%s: %d tracked instances from %d states (%d with Stage 1 slots), %.0f s' % (
+        a.data or a.bank, len(rows), len({r['state'] for r in rows}), s1ok.sum(), time.time()-t0), flush=True)
     print('categories: %s' % json.dumps({c: int(m.sum()) for c, m in cats.items()}), flush=True)
     print_table(table, [fc.path for fc in fcs]+['mdn_v2', 'stage1', 'cv'], cats, s1ok)
     if a.json:
         Path(a.json).parent.mkdir(parents=True, exist_ok=True)
-        Path(a.json).write_text(json.dumps(dict(bank=a.bank, models=a.model, instances=len(rows),
+        Path(a.json).write_text(json.dumps(dict(bank=a.data or a.bank, models=a.model, calib=calib, instances=len(rows),
                                                 states=len({r['state'] for r in rows}), stage1_covered=int(s1ok.sum()),
                                                 categories={c: int(m.sum()) for c, m in cats.items()}, table=table),
                                            indent=1))
@@ -1004,7 +1141,7 @@ def evaluate_main(argv):
 # ------------------------------------------------------------------------------------------------ command line
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('mode', choices=['collect', 'fit', 'evaluate'])
+    ap.add_argument('mode', choices=['collect', 'fit', 'evaluate', 'calib'])
     ap.add_argument('--run', default='output/runs/R10')
     ap.add_argument('--out', default='output/agents/people/data')
     ap.add_argument('--shard', type=int, default=0)
@@ -1013,6 +1150,7 @@ def main():
     ap.add_argument('--until', type=float, default=0., help='collect: stop starting episodes after this unix time')
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--skip', default='', help='collect: skip episodes already collected in these dirs')
+    ap.add_argument('--grep', default='', help='collect: only spool files whose name contains every listed substring')
     ap.add_argument('--match', default='detection', choices=['detection', 'estimate'],
                     help='collect: label person by the last detection (default) or by the CV estimate at t '
                          '(peopledata.track_histories)')
@@ -1021,6 +1159,8 @@ def main():
         collect(a)
     elif a.mode == 'fit':
         fit_main(rest)
+    elif a.mode == 'calib':
+        calib_main(rest)
     else:
         evaluate_main(rest)
 
