@@ -301,6 +301,7 @@ def _leaf_rollouts(sb, legal, d, humans, cont):
 
 
 _VALUE = {}
+_HAZARD = {}
 MW_DEBUG = {}          # analysis (L3_MW_DEBUG=1): the last multiworld_index call's per-candidate scores
 
 
@@ -309,6 +310,13 @@ def _value_model(path):
         from .leafvalue import ValueModel
         _VALUE[path] = ValueModel(path)
     return _VALUE[path]
+
+
+def _hazard_params(path):
+    if path not in _HAZARD:
+        from .hazard import load_params
+        _HAZARD[path] = load_params(path)
+    return _HAZARD[path]
 
 
 def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048,
@@ -370,6 +378,19 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     vpath = __import__('os').environ.get('L3_MW_VALUE')
     vm = _value_model(vpath) if vpath else None
     vs = np.zeros(K)
+    # untracked-people hazard (L3_MW_HAZARD=<params.json>, default off; hazard.py): LEGAL weighted path particles of
+    # people the robot does not track at t (lost tracks, an out-of-view prior, negative information from its own camera
+    # history), scored over each candidate's imagined trajectory and never perceived by the imagined planner.  A
+    # candidate whose hazard reaches L3_MW_HAZARD_THR (default: the JSON's train-fitted 'thr') within the contact steps
+    # counts as contacting from the step it does.
+    hz = None
+    hpath = __import__('os').environ.get('L3_MW_HAZARD')
+    if hpath:
+        from .hazard import UntrackedHazard
+        hparams = _hazard_params(hpath)
+        hz = UntrackedHazard(legal, hparams, steps=T)
+        hthr = float(__import__('os').environ.get('L3_MW_HAZARD_THR', hparams['thr']))
+        hz_p = np.zeros(K)
     xs_ctx = None
     if vm is not None and 'Xs' in vm.keys:
         from .leafvalue import legal_features
@@ -418,10 +439,19 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                         pc[k] += ww[j]
                     if dbg and dd.size:
                         dmin[k] = min(dmin[k], float(np.nanmin(np.where(np.isfinite(dd), dd, np.inf))))
+                hz_hit = False
+                if hz is not None:
+                    n_h = min(len(seq), contact_steps)
+                    hc = hz.curve(seq[:n_h])
+                    hz_first = int(np.argmax(hc >= hthr)) if len(hc) and hc[-1] >= hthr else None
+                    hz_hit = hz_first is not None
+                    hz_p[k] = max(hz_p[k], float(hc[-1]) if len(hc) else 0.)
+                    if hz_hit and not (HP is not None and hit):
+                        pc[k] += ww[j]
                 prog[k] += ww[j]*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
                 if vm is not None:
                     near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= goal_r
-                    if HP is not None and hit:
+                    if (HP is not None and hit) or hz_hit:
                         val = 0.
                     elif ro.stop:
                         val = 1. if near else 0.
@@ -448,7 +478,12 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                     if HP is not None and hit:
                         first = int(np.argmax(np.nanmin(np.where(np.isfinite(dd), dd, np.inf), axis=1) <
                                               (rect if rect > 0 else radius)))
+                        if hz_hit:
+                            first = min(first, hz_first)
                         val = 0.+0.5*first/max(n, 1)
+                    elif hz_hit:
+                        # (L3_MW_HAZARD) contact predicted by the untracked-people hazard only
+                        val = 0.+0.5*hz_first/max(n_h, 1)
                     elif ro.stop and not near:
                         val = 0.
                     elif ro.stop and near:
@@ -464,6 +499,17 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
         MW_DEBUG.clear()
         MW_DEBUG.update(pc=pc.tolist(), prog=prog.tolist(), oc=oc.tolist(), stop_bad=stop_bad.tolist(),
                         dmin=[x if math.isfinite(x) else None for x in dmin.tolist()], rule=rule)
+        if hz is not None:
+            MW_DEBUG.update(hazard=hz_p.tolist(), hazard_thr=hthr, hazard_ms=round(hz.build_ms, 1))
+    if hz is not None and __import__('os').environ.get('L3_MW_HAZARD_LOG'):
+        # analysis (L3_MW_HAZARD_LOG=<jsonl>): one line per decision -- the hazard per candidate, the flags, the scores
+        import json as _json
+        with open(__import__('os').environ['L3_MW_HAZARD_LOG'], 'a') as fh:
+            fh.write(_json.dumps(dict(time=float(legal.time), labels=list(d.labels), default=int(d.default),
+                                      hazard=[round(float(x), 5) for x in hz_p], thr=hthr,
+                                      flagged=[int(x >= hthr) for x in hz_p], pc=[float(x) for x in pc],
+                                      oc=[float(x) for x in oc], particles=int(len(hz.live)),
+                                      build_ms=round(hz.build_ms, 1)))+'\n')
     dflt = int(d.default)
     if vm is not None:
         best = int(np.argmax(vs))

@@ -1,0 +1,84 @@
+{
+ "version": 1,
+ "steps": 64,
+ "metric": "centre",
+ "radius": 1.3,
+ "prior_rate": 0.03,
+ "prior_radius": 7.0,
+ "prior_spacing": 0.5,
+ "prior_unknown": 0.5,
+ "exclude_clear": 0.1,
+ "speeds": [
+  0.0,
+  0.6,
+  1.2,
+  1.7
+ ],
+ "speed_weights": [
+  0.1924591064453125,
+  0.0,
+  0.0,
+  0.8075408935546875
+ ],
+ "headings": 12,
+ "view_window": 6.0,
+ "view_stride": 3,
+ "view_kappa": 50.0,
+ "mount": true,
+ "rays": 90,
+ "view_recover": 0.0,
+ "age_window": 20.0,
+ "mem_min_age": 2.0,
+ "mem_max_age": 10.0,
+ "mem_exist": 0.1,
+ "mem_tau": 64.0,
+ "mem_kappa": 50.0,
+ "mem_match": 0.75,
+ "mem_mult": [
+  0.0,
+  0.5,
+  1.0,
+  1.5
+ ],
+ "mem_mult_weights": [
+  1.0,
+  0.0,
+  0.0,
+  0.0
+ ],
+ "mem_turns": [
+  0.0,
+  30.0,
+  -30.0,
+  60.0,
+  -60.0,
+  90.0,
+  -90.0,
+  135.0,
+  -135.0,
+  180.0
+ ],
+ "mem_turn_sigma": 45.0,
+ "mem_still": 0.3,
+ "mem_walk": 1.2,
+ "mem_headings": 12,
+ "perceive": 1.0,
+ "react_steps": 10,
+ "thr": 0.1832219355642696,
+ "fit": {
+  "train": "output/agents/hazard/tab_orca_train.pkl",
+  "label": "proxy",
+  "windows": [
+   32,
+   64
+  ],
+  "ll": -0.6550597109265501,
+  "thr_w": 32,
+  "thr_far": 0.05,
+  "data": {
+   "train": "output/agents/bankimag/orca_train.npz (245 states, 2450 candidates)",
+   "tables": "python scripts/l3_run.py eventwm_graph.l3.hazard tables / fit"
+  },
+  "note": "weights fitted on TRAIN only by the log-likelihood of the proxy label (legal imagined trajectory within 0.75 m of a TRUE person absent from the CV imagination) over 32 and 64 steps; thr = 5% false alarms on the TRAIN CV-safe candidates without an exact contact within 32 steps; radius acts as a smoothing bandwidth (the 32-step likelihood is nearly flat in it)"
+ }
+}
