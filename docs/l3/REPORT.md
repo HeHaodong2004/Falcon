@@ -526,8 +526,10 @@ shifts.  At 12 critical states (the default really collides within 200 steps, so
 that avoids the collision under all three timings.  The decisive differences between candidates are mostly not
 knife-edge.  Robust exact reference (`rolloutpolicy.py --shifts=-2,2`: every candidate's outcome averaged over the
 recorded and both shifted people timings, executed in the recorded world) on the 8 episodes where the floor fails
-and the plain reference succeeds: 7 of 7 finished episodes solved (the 8th still running at 05:10; see 7.4) --
-choices that hold under timing noise exist and suffice.
+and the plain reference succeeds: 7 of 8 solved (EgzWe8N3jZG_4825 becomes a timeout); on all 21 plain-reference
+successes: 20 solved.  With the 3 plain-reference timeouts counted as failures, a timing-robust exact one-step
+evaluator reaches about 20/24 (83%) vs the plain reference's 21/24 (88%) and the floor's 14/24 (58%) -- choices that
+hold under timing noise exist and nearly suffice for the gate; what is missing is the evaluator.
 
 **(2) The imagination's closed loop diverges from the real one even with perfect people prediction**
 (`fidelity.py`; 16 ORCA dev episodes x 3 decision points = 42 states, 511 candidate rollouts in `output/fidelity_d`,
@@ -648,8 +650,9 @@ the true future, map discovery the largest gain in collision prediction.
   (legal), `R10R_0430_native`.  Probes: `output/fidelity`, `output/fidelity_d`, `output/fidelity_shift`,
   `output/fidelity_cases*`; references: `output/rollout_policy`, `output/rollout_policy_scan`,
   `output/rollout_policy_robust`.
-- Running at writing: robust reference on the 13 other reference successes (complete timing-robust exact-evaluator SR),
-  the less jumpy legal variant, SFM.
+- Robust exact reference complete (21 episodes): 20 of the plain reference's 21 successes kept (one timeout).
+- Running at writing (05:45): the legal camera-model selector extended to all 72 ORCA episodes, the less jumpy legal
+  variant, the true-future camera-model selector on the inertia robot (orca-inertia-k10).
 
 ### 7.5 Ledger: every dev evaluation vs the floor (paired, native official configurations, 05:10)
 
