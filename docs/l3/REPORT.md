@@ -451,3 +451,9 @@ median 40 steps (1.9 s) after the decision -- 65% within Stage 1's 3 s horizon, 
 146 steps.  Most outcomes are decided within the prediction horizon, yet a one-step rule with the TRUE 3 s future did
 not pick fixes: at critical states hit vs miss is decided by fine timing (how the robot's planner reacts to the people
 it actually perceives), which the imagination -- planner reacting to the NOMINAL Stage 1 world -- only approximates.
+
+**R10 latest (v175) after the label-factory period, partial paired dev (107 episodes): significantly WORSE than the
+floor** (5 wins / 15 losses, p = 0.04; ORCA 41.7% vs 47.2%, SFM 31.4% vs 45.7%).  Heavy regression of the policy's
+values onto default-continuation labels (cf_reg 0.25 / cf_frac 0.25 / rank 0.3) with few actors damaged the greedy
+policy; with the flat learning curve, the label-factory direction is stopped.  R10 restarted in RL mode (01:21) from
+checkpoint v100 (the best so far) with the light counterfactual supervision v100 was trained with.
