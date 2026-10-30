@@ -425,3 +425,9 @@ improvement cannot fix them; they need multi-step escapes (or are infeasible).
 Legal imagined rollout (`imagroll`, partial paired dev 120 episodes): ORCA 48.6% vs floor 47.1% (7 / 6), DWA 50.0% vs
 56.0% (4 / 7) -- no gain: imagining 6 s of default continuation against Stage 1 (constant velocity beyond 3 s) does
 not reproduce the exact reference's choices.  Direction dropped.
+
+**Rollout reference complete (24 paired dev ORCA episodes, analysis only):** 21/24 (88%) vs floor 14/24 (58%); its 3
+failures are deadlock timeouts (no single deviation + default succeeds anywhere in them); the floor's 10 failures on
+the same episodes were 8 collisions + 2 timeouts.  Its deviations are mostly the contact-tolerant ('_th') and
+space-time goal variants: st_goal_th 15, goal_th 15, st_goal_tc 12, goal 6, st_goal 5.  Test launched: fixed policies
+that always run st_goal_th / goal_th instead of the plain goal query (blind, ORCA + DWA dev).
