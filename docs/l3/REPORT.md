@@ -630,7 +630,8 @@ the true future, map discovery the largest gain in collision prediction.
   (learner state and checkpoints kept; resumable); the 07:15 milestone was cancelled.  The best learned checkpoint
   stays R10 v100 (pooled 26 / 20, not significant).
 - True-future camera-model selector on other planners (36 dev episodes each): DWA-native 50.0% vs floor 55.6% (4 / 6);
-  SFM-native at 29 episodes 48.3% vs 48.3% (2 / 2) -- the ORCA gain does not transfer.
+  SFM-native 47.2% vs 41.7% (4 / 2, p = 0.69) -- the significant gain is ORCA-only (pooled over the three planners
+  18 wins / 9 losses, p ~ 0.12).
 - Scan rollout reference (exact one-step evaluation incl. the scan queries), all 24 episodes: 21 success / 3 timeout,
   identical to the plain reference; scans are chosen in 5 of its 77 deviations -- active looking adds nothing to exact
   one-step evaluation.
@@ -666,7 +667,7 @@ within noise of the floor.
 | `H_mwroll_true300_dev` | privileged (true future, release imagination) | 36 | 44.4% | 50.0% | 5 / 3 | 0.727 |
 | `H_mwroll_true300p_dev` | privileged (true future + camera model) | 72 | 47.2% | 59.7% | 10 / 1 | 0.012 |
 | `H_mwroll_true300p_dwa` | privileged (same, DWA) | 36 | 55.6% | 50.0% | 4 / 6 | 0.754 |
-| `H_mwroll_true300p_sfm` | privileged (same, SFM) | 35 | 42.9% | 45.7% | 3 / 2 | 1.000 |
+| `H_mwroll_true300p_sfm` | privileged (same, SFM) | 36 | 41.7% | 47.2% | 4 / 2 | 0.688 |
 | `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 35 | 45.7% | 51.4% | 3 / 1 | 0.625 |
 | `H_mwroll_true300pr_dev` | privileged (body-rectangle rule; stopped) | 32 | 50.0% | 53.1% | 4 / 3 | 1.000 |
 | `H_mwroll_true3sp_dev` | privileged (true future 3 s only) | 36 | 44.4% | 50.0% | 4 / 2 | 0.688 |
