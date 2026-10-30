@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layer 3 gate: overnight findings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* layout: one reading column; the evaluator ladder is the single visual, drawn to one 0-100% scale with the gate marked */
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --ink: #18212b;
+  --muted: #586473;
+  --line: #d9e0e7;
+  --accent: #0b6e80;
+  --accent-soft: #d7eef2;
+  --warn: #a8540a;
+  --warn-soft: #fbebd9;
+  --good: #2b7a3b;
+  --bar-legal: #7d8b99;
+  --bar-priv: #0b6e80;
+  --bar-sim: #3d4b5c;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1419; --surface: #161d24; --ink: #e4eaf0; --muted: #9aa7b4; --line: #2a343e;
+    --accent: #4cc3d6; --accent-soft: #123940; --warn: #f0a35e; --warn-soft: #3a2614; --good: #6cc27b;
+    --bar-legal: #6f7d8b; --bar-priv: #4cc3d6; --bar-sim: #b6c2ce;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1419; --surface: #161d24; --ink: #e4eaf0; --muted: #9aa7b4; --line: #2a343e;
+  --accent: #4cc3d6; --accent-soft: #123940; --warn: #f0a35e; --warn-soft: #3a2614; --good: #6cc27b;
+  --bar-legal: #6f7d8b; --bar-priv: #4cc3d6; --bar-sim: #b6c2ce;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--font-body); }
+main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; display: grid; gap: 28px; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: 0.005em; }
+h1 { font-size: 2.1rem; line-height: 1.15; }
+h2 { font-size: 1.3rem; }
+p { margin: 0; max-width: 68ch; }
+.meta { color: var(--muted); font-size: 0.9rem; }
+.status { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pill { font: 600 0.8rem/1 var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 10px; border-radius: 999px; }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.info { background: var(--accent-soft); color: var(--accent); }
+section { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 22px 22px 24px; display: grid; gap: 14px; }
+.lead { font-size: 1.08rem; }
+ul, ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 72ch; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.ladder { display: grid; gap: 10px; }
+.rung { display: grid; grid-template-columns: minmax(180px, 1.1fr) 2fr; gap: 12px; align-items: center; }
+.rung .label { font-size: 0.92rem; line-height: 1.3; }
+.rung .label small { display: block; color: var(--muted); font-size: 0.8rem; }
+.track { position: relative; height: 22px; background: var(--bg); border-radius: 4px; border: 1px solid var(--line); }
+.fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px 0 0 3px; }
+.fill.legal { background: var(--bar-legal); }
+.fill.priv { background: var(--bar-priv); }
+.fill.sim { background: var(--bar-sim); }
+.val { position: absolute; top: 50%; transform: translateY(-50%); font: 500 0.82rem var(--font-mono); color: var(--ink); padding-left: 6px; }
+.gate { position: absolute; top: -4px; bottom: -4px; left: 85%; border-left: 2px dashed var(--warn); }
+.axis { display: grid; grid-template-columns: minmax(180px, 1.1fr) 2fr; gap: 12px; }
+.axis .scale { position: relative; height: 18px; font: 0.75rem var(--font-mono); color: var(--muted); }
+.axis .scale span { position: absolute; transform: translateX(-50%); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.78rem var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+td.r, th.r { text-align: right; }
+.decisions li strong { font-weight: 600; }
+footer { color: var(--muted); font-size: 0.85rem; display: grid; gap: 4px; }
+code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+@media (max-width: 560px) {
+  .rung, .axis { grid-template-columns: 1fr; }
+  .axis .label-spacer { display: none; }
+  h1 { font-size: 1.7rem; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header style="display:grid;gap:12px">
+    <div class="status"><span class="pill warn">Gate not met</span><span class="pill info">Cause measured</span></div>
+    <h1>Layer 3 gate: overnight findings</h1>
+    <p class="meta">Falcon social navigation, shared Layer 3 Query Selector &middot; night of 29&ndash;30 October 2026 &middot; paired dev evaluations against the default-policy floor</p>
+  </header>
+
+  <section>
+    <h2>Bottom line</h2>
+    <p class="lead">No legal selector beats the floor. The 85% gate (best configuration, legal 90&deg; camera) is out of reach in the 2&ndash;3 day window: my estimate is under 5%.</p>
+    <p>The night measured why. An exact evaluator that simulates each candidate for real finds the fixes, and its choices hold up under timing noise. What is missing is an evaluator that can reproduce the robot's own closed loop: what its camera will see, which map it will build, how its planner reacts. Learned critics cannot do this, and RL on them made the policy worse. It was stopped at 04:57.</p>
+  </section>
+
+  <section aria-labelledby="ladder-h">
+    <h2 id="ladder-h">How good can candidate selection get?</h2>
+    <p>Success rate on ORCA-native dev episodes for each way of choosing among the ~10 queries. The exact references ran on the first 24 episodes (floor there: 58%), the rest on all 72 (floor: 47.2%).</p>
+    <div class="legend"><span><i style="background:var(--bar-legal)"></i>legal (primary benchmark)</span><span><i style="background:var(--bar-priv)"></i>privileged people future (analysis)</span><span><i style="background:var(--bar-sim)"></i>exact simulator (analysis)</span><span><i style="border-left:2px dashed var(--warn);border-radius:0;width:2px"></i>85% gate</span></div>
+    <div class="ladder" role="list">
+      <div class="rung" role="listitem"><div class="label">Floor: default policy<small>72 episodes</small></div><div class="track"><div class="fill legal" style="width:47.2%"></div><span class="val" style="left:47.2%">47.2%</span><div class="gate"></div></div></div>
+      <div class="rung" role="listitem"><div class="label">Legal imagination: 6 Stage 1 worlds + camera model<small>72 episodes; 5 wins / 9 losses vs floor</small></div><div class="track"><div class="fill legal" style="width:41.7%"></div><span class="val" style="left:41.7%">41.7%</span><div class="gate"></div></div></div>
+      <div class="rung" role="listitem"><div class="label">Imagination with the true people future + camera model<small>72 episodes; 10 / 1, p = 0.012</small></div><div class="track"><div class="fill priv" style="width:59.7%"></div><span class="val" style="left:59.7%">59.7%</span><div class="gate"></div></div></div>
+      <div class="rung" role="listitem"><div class="label">Exact one-step evaluation, robust to &plusmn;0.1 s timing<small>24 episodes</small></div><div class="track"><div class="fill sim" style="width:83.3%"></div><span class="val" style="left:83.3%">~83%</span><div class="gate"></div></div></div>
+      <div class="rung" role="listitem"><div class="label">Exact one-step evaluation<small>24 episodes</small></div><div class="track"><div class="fill sim" style="width:87.5%"></div><span class="val" style="left:87.5%">88%</span><div class="gate"></div></div></div>
+    </div>
+    <div class="axis" aria-hidden="true"><div class="label-spacer"></div><div class="scale"><span style="left:0%">0</span><span style="left:25%">25</span><span style="left:50%">50</span><span style="left:75%">75</span><span style="left:100%">100%</span></div></div>
+  </section>
+
+  <section>
+    <h2>What the night established</h2>
+    <ul>
+      <li><strong>The query set is good enough.</strong> Exact one-step evaluation solves 21 of 24 episodes vs the floor's 14. Adding scan queries changes nothing (also 21).</li>
+      <li><strong>Its wins are not luck.</strong> Shifting every person by &plusmn;0.1 s leaves <span class="num">86%</span> of candidate outcomes unchanged. 10 of 12 critical states have a fix that survives the shifts. The timing-robust reference keeps 20 of the exact reference's 21 successes.</li>
+      <li><strong>Learned critics cannot score candidates.</strong> At critical states they pick no better than random, even when given the people's true future. The latest RL checkpoint lost to the floor 5 to 18 (p = 0.011).</li>
+      <li><strong>The gap is the fidelity of the robot's own closed loop.</strong> With the true future of every person, the release imagination still drifts 1.25 m from reality within 3 s. Simulating the camera and progressive map discovery cuts that to 0.49 m.</li>
+      <li><strong>The camera model works only with perfect people prediction, and so far only on ORCA.</strong> Results for DWA and SFM are below.</li>
+      <li><strong>It needs everyone's future over the whole window.</strong> A perfect 3 s prediction, or the long future of the tracked people only, recovers less than half of the gain.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Closed-loop fidelity, measured</h2>
+    <p>The same decision states, each candidate run for real and imagined with the <em>true</em> future of every person (42 states, 511 candidate rollouts). Divergence is the distance between the imagined and the real robot; AUC is how well imagined clearance predicts a real collision.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Imagination</th><th class="r">Divergence at 1.5 s / 3 s</th><th class="r">Collision AUC</th></tr></thead>
+      <tbody>
+        <tr><td>Release imagination: tracked people visible everywhere, always</td><td class="r num">0.27 / 1.25 m</td><td class="r num">0.67</td></tr>
+        <tr><td>+ camera model: 90&deg; view, line of sight, 2 s memory, from the imagined pose</td><td class="r num">0.23 / 1.25 m</td><td class="r num">0.70</td></tr>
+        <tr><td>+ progressive map discovery (privileged map)</td><td class="r num">0.13 / 0.70 m</td><td class="r num">0.79</td></tr>
+        <tr><td>+ discovery + executor continuation details</td><td class="r num">0.09 / 0.49 m</td><td class="r num">0.79</td></tr>
+        <tr><td>Open-loop motion model (real commands replayed)</td><td class="r num">0.00 / 0.00 m</td><td class="r">&ndash;</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Which ingredients the selector needs</h2>
+    <p>Multi-world imagined rollout with a 300-step continuation, first 36 ORCA dev episodes (floor 44.4%).</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Selector</th><th>People future it gets</th><th class="r">SR</th><th class="r">vs floor</th></tr></thead>
+      <tbody>
+        <tr><td>Release imagination</td><td>true, whole window</td><td class="r num">50.0%</td><td class="r num">5 / 3</td></tr>
+        <tr><td>+ camera model</td><td>true, whole window</td><td class="r num">58.3%</td><td class="r num">6 / 1</td></tr>
+        <tr><td>+ camera model</td><td>true for 3 s only</td><td class="r num">50.0%</td><td class="r num">4 / 2</td></tr>
+        <tr><td>+ camera model</td><td>true, tracked people only</td><td class="r num">50.0%</td><td class="r num">3 / 1</td></tr>
+        <tr><td>+ camera model + Stage 2 map discovery</td><td>true, whole window</td><td class="r num">50.0%</td><td class="r num">3 / 1</td></tr>
+        <tr><td>+ camera model + discovery from a privileged map</td><td>true, whole window</td><td class="r num">55.6%</td><td class="r num">5 / 1</td></tr>
+        <tr><td>+ camera model (legal)</td><td>6 Stage 1 worlds</td><td class="r num">44.4%</td><td class="r num">2 / 2</td></tr>
+      </tbody>
+    </table></div>
+    <p>Map discovery sharpens per-candidate prediction (AUC 0.70 to 0.79) but adds no success with the current selection rule, even from a privileged map.</p>
+    <p class="meta">Other planners, true future + camera model, 36 episodes each: DWA 50.0% vs 55.6% (4 / 6); SFM 47.2% vs 41.7% (4 / 2); inertia robot 36.1% vs 27.8% (5 / 2).</p>
+  </section>
+
+  <section>
+    <h2>What I believe now</h2>
+    <ul>
+      <li>85% under the legal benchmark within the 2&ndash;3 day window: <strong>under 5%</strong>.</li>
+      <li>This is not an information wall: the timing-robust exact evaluator still finds the fixes. It is a simulation wall. The selector must re-run the robot's camera, map and planner inside a predicted world, with people futures over 10 s or more, including people not yet seen.</li>
+      <li>A legal selector at 60&ndash;65% on ORCA-native within weeks: about 30&ndash;40%. 85% eventually: about 10%.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Decisions for you</h2>
+    <ol class="decisions">
+      <li><strong>The gate.</strong> Keep 85% for the legal benchmark, or re-baseline the near-term target to beating the published state of the art (about 60%)?</li>
+      <li><strong>Layer 3 direction.</strong> I recommend re-scoping around closed-loop imagination, with learning on top of imagined outcomes. The camera model is done and legal Stage 2 map discovery is built. RL on compiled features is finished.</li>
+      <li><strong>Stage 1.</strong> The decisive dependency is a 10&ndash;15 s, multi-world people horizon that includes people not yet seen. This needs the Stage 1 owner.</li>
+      <li><strong>The executor.</strong> The legal selector's collision savings turn into timeouts. 41% of floor collisions happen while the robot turns in place, and most deadlocks have no 1&ndash;2-step escape. These are executor-level problems.</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>Details, every run and the full ledger: <code>docs/l3/REPORT.md</code> section 7, branch <code>research/l3-shared-policy-20261029</code>.</span>
+    <span>Privileged runs (true people future, exact simulator) are analysis only; the primary benchmark stays legal.</span>
+  </footer>
+</main>
+</body>
+</html>
