@@ -64,10 +64,17 @@ def fold_of(key, folds=FOLDS):
 
 
 def load(feat_dir):
-    recs = []
-    for f in sorted(glob.glob(os.path.join(feat_dir, '*.pkl'))):
-        r = pickle.load(open(f, 'rb'))
-        recs.append(r)
+    """Extracted states of one or more feature directories (comma-separated, e.g. TRAIN orca_train_blind +
+    orca_train2_blind); a decision (episode key + decision index) present twice is kept once (the first directory)."""
+    recs, seen = [], set()
+    for d in str(feat_dir).split(','):
+        for f in sorted(glob.glob(os.path.join(d, '*.pkl'))):
+            r = pickle.load(open(f, 'rb'))
+            k = (r['key'], int(r['decision']), r.get('config'))
+            if k in seen:
+                continue
+            seen.add(k)
+            recs.append(r)
     return recs
 
 
