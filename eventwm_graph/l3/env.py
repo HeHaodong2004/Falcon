@@ -155,7 +155,7 @@ class L3Episode:
             self.last_state = state          # (multi-world selector's Stage 2 discovery calls; same decision only)
             tm['state_ms'] = 1000*(T()-t)
             t = T()
-            light = LIGHT and bool(ORACLE_BANK or LEGAL_BANK in ('cv', 'mean'))
+            light = LIGHT and bool(ORACLE_BANK or LEGAL_BANK in ('cv', 'mean', 'fc1', 'fck'))
             if light:
                 # (L3_MW_LIGHT) no released pass; Stage 1 only where the bank needs it (MeanBank)
                 self.sb.check_context(state, ep.legal)
