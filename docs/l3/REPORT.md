@@ -569,9 +569,10 @@ NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time
 | + camera model | TRUE for 3 s (Stage 1's horizon), constant velocity after | 50.0% | 4 / 2 |
 | + camera model | TRUE, whole window, but only the people tracked at t (hidden people absent) | 50.0% | 3 / 1 (vs everyone: 1 / 4) |
 | + camera model + Stage 2 map discovery (`L3_MW_DISCOVER=1`) | TRUE, whole window | 50.0% | 3 / 1 (vs camera model alone: 1 / 4) |
-| + camera model (LEGAL) | 6 Stage 1 worlds, constant velocity after 3 s, contacts over 4 s | 44.4% | 2 / 2 |
+| + camera model (LEGAL) | 6 Stage 1 worlds, constant velocity after 3 s, contacts over 4 s | 44.4% (all 72: 41.7% vs 47.2%, 5 / 9) | 2 / 2 |
 
-The legal selector halves collisions (7 vs 13 on these 36 episodes) but converts them into timeouts (13 vs 7): it
+The legal selector halves collisions on these 36 episodes (7 vs 13) but converts them into timeouts (13 vs 7); over
+all 72 ORCA episodes it is slightly BELOW the floor (41.7% vs 47.2%, 5 / 9; collisions 21 vs 28, timeouts 21 vs 10): it
 deviates on 41% of decisions (true-future version: 20%), often to scans and waits, because with 6 worlds a default
 colliding in a single world loses to any candidate colliding in none.  A less jumpy legal variant (deviate only if the default collides in >= 30% of the world weight and a candidate is
 0.25 lower; 8% deviations instead of 41%) reaches 47.2% vs 44.4% (3 / 2) -- no better.
@@ -675,7 +676,7 @@ within noise of the floor.
 | `H_imagroll_dev` | legal (imagined rollout) | 144 | 47.9% | 47.2% | 14 / 15 | 1.000 |
 | `H_mwroll_dev` | legal (multi-world rollout, 60 steps) | 54 | 48.1% | 44.4% | 5 / 7 | 0.774 |
 | `H_mwroll_legalp2_dev` | legal (camera model, deviation margins) | 36 | 44.4% | 47.2% | 3 / 2 | 1.000 |
-| `H_mwroll_legalp_dev` | legal (6 Stage 1 worlds + camera model) | 36 | 44.4% | 44.4% | 2 / 2 | 1.000 |
+| `H_mwroll_legalp_dev` | legal (6 Stage 1 worlds + camera model) | 72 | 47.2% | 41.7% | 5 / 9 | 0.424 |
 | `H_mwroll_true300_dev` | privileged (true future, release imagination) | 36 | 44.4% | 50.0% | 5 / 3 | 0.727 |
 | `H_mwroll_true300p_dev` | privileged (true future + camera model) | 72 | 47.2% | 59.7% | 10 / 1 | 0.012 |
 | `H_mwroll_true300p_dwa` | privileged (same, DWA) | 36 | 55.6% | 50.0% | 4 / 6 | 0.754 |
