@@ -210,6 +210,15 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 a, p = multiworld_index(sb, ep.ep.legal, d, n_worlds=int(os.environ.get('L3_MW_WORLDS', '6')),
                                         cont=int(os.environ.get('L3_MW_CONT', '60')),
                                         state=getattr(ep, 'last_state', None), truth=truth), 1.
+            elif selector == 'closedloop':
+                # LEGAL: the closed-loop Sandbox (clustered Stage 1 worlds, camera model, all-world contact scoring)
+                from .heuristics import closed_loop_index
+                a, p = closed_loop_index(sb, ep.ep.legal, d, window=int(os.environ.get('L3_CL_WINDOW', '32')),
+                                         worlds=int(os.environ.get('L3_CL_WORLDS', '8')),
+                                         body=float(os.environ.get('L3_CL_BODY', '0.3')),
+                                         eps=float(os.environ.get('L3_CL_EPS', '0.05')),
+                                         selection=os.environ.get('L3_CL_SELECTION', 'cluster'),
+                                         state=getattr(ep, 'last_state', None)), 1.
             elif selector == 'learnedshort':
                 # LEGAL: short-horizon imagination (Stage 1 worlds, camera model) + a ranking model trained against the
                 # exact short-horizon evaluation (shortsel.py; L3_SHORT_MODEL)

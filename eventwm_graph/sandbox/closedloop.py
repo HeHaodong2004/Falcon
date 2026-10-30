@@ -44,6 +44,11 @@ class ClosedLoopConfig:
     fidelity: bool = True            # continuation decision boundaries + goal inheritance
     boundary: int = 16
     keep_leaf: bool = True
+    reweight: object = None          # optional world weighter (l3.worldweights.WorldWeighter): learned weights of the
+                                     # Stage 1 worlds from the tracked people's predicted paths (legal), else uniform
+    selection: str = 'heaviest'      # 'heaviest' (the W highest-weight worlds) | 'cluster': k-means of all worlds by the
+                                     # TRACKED people's futures (what the robot can react to); one closed-loop
+                                     # representative per cluster; contacts scored against EVERY world's people
 
 
 @dataclass
@@ -52,6 +57,7 @@ class WorldRollouts:
     weight: float
     rollouts: list                   # ImaginedRollout per candidate
     people: np.ndarray               # [T, N, 2] the world's people (world x, z), +inf absent
+    members: tuple = ()              # 'cluster' selection: (world weight, people [T, N, 2]) of every member world
 
 
 @dataclass
@@ -66,26 +72,40 @@ class ClosedLoopResult:
         seq = np.concatenate([poses[1:], c]) if c is not None and len(c) else poses[1:]
         return seq if len(seq) else poses[:1]
 
-    def clearance(self, k, steps):
-        """Per world: min body-rectangle clearance of candidate k to the world's people within ``steps``."""
+    @staticmethod
+    def _min_clr(seq, people, steps):
         from eventwm_graph.l3.heuristics import _rect_clearance
+        n = min(len(seq), len(people), int(steps))
+        if n <= 0 or not people.shape[1]:
+            return math.inf
+        d = _rect_clearance(seq[:n], people[:n])
+        d = np.where(np.isfinite(d), d, np.inf)
+        return float(d.min()) if d.size else math.inf
+
+    def clearance(self, k, steps):
+        """Per imagined (representative) world: min body-rectangle clearance of candidate k to that world's people
+        within ``steps`` ('cluster' selection: the cluster's weighted mean over its member worlds is in
+        ``member_clearance``)."""
+        return np.asarray([self._min_clr(self._seq(w.rollouts[k]), w.people, steps) for w in self.worlds])
+
+    def member_clearance(self, k, steps):
+        """[(weight, clearance)] over EVERY world: each member world's people against its representative's imagined
+        trajectory ('heaviest' selection: the imagined worlds themselves)."""
         out = []
         for w in self.worlds:
             seq = self._seq(w.rollouts[k])
-            n = min(len(seq), len(w.people), int(steps))
-            if n <= 0 or not w.people.shape[1]:
-                out.append(math.inf)
-                continue
-            d = _rect_clearance(seq[:n], w.people[:n])
-            d = np.where(np.isfinite(d), d, np.inf)
-            out.append(float(d.min()) if d.size else math.inf)
-        return np.asarray(out)
+            if w.members:
+                out += [(mw, self._min_clr(seq, mp, steps)) for mw, mp in w.members]
+            else:
+                out.append((w.weight, self._min_clr(seq, w.people, steps)))
+        return out
 
     def contact(self, k, steps, body=0.2):
-        """World-weighted probability that candidate k comes within ``body`` m (body rectangle) of a person."""
-        c = self.clearance(k, steps)
-        w = np.asarray([x.weight for x in self.worlds])
-        return float((w*(c < body)).sum()/max(w.sum(), 1e-9))
+        """Probability that candidate k comes within ``body`` m (body rectangle) of a person, over every scored
+        world."""
+        mc = self.member_clearance(k, steps)
+        tot = sum(w for w, _ in mc)
+        return float(sum(w for w, c in mc if c < body)/max(tot, 1e-9))
 
 
 def _world_people(bank, world, T, step_s=0.048):
@@ -97,6 +117,45 @@ def _world_people(bank, world, T, step_s=0.048):
         extra = np.arange(1, T-len(inside)+1)*step_s
         HP = np.concatenate([HP, HP[-1][None]+extra[:, None, None]*vel[None]], 0)
     return HP
+
+
+def _cluster_worlds(bank, W, C, T, times=(12, 24, 36, 48, 62), iters=20):
+    """k-means (farthest-point init, deterministic) of all worlds by the TRACKED people's positions at a few horizons;
+    returns (representative world per cluster = the member nearest the centroid, cluster mass, member lists)."""
+    keys = [str(k) for k in getattr(bank, 'track_keys', ())]
+    tracked = np.asarray([k.startswith('track:') for k in keys], bool)
+    nW = len(W)
+    if not tracked.any():
+        reps = np.arange(min(C, nW))
+        mem = [[int(r)] for r in reps]
+        rest = [i for i in range(nW) if i not in set(reps.tolist())]
+        for i, r in enumerate(rest):
+            mem[i % len(mem)].append(int(r))
+        return reps, np.asarray([W[m].sum() for m in mem]), mem
+    rel = np.asarray([min(t, T) for t in times])*0.048
+    rel = rel[rel <= float(bank.times[-1])+1e-9]
+    P = np.asarray(bank.sandbox_positions(rel), np.float64)[:, :, tracked]          # [W, t, Nt, 2]
+    X = np.where(np.isfinite(P), P, 0.).reshape(nW, -1)
+    X = np.concatenate([X, (~np.isfinite(P)).reshape(nW, -1)*5.], 1)
+    cent = [X[0]]
+    for _ in range(1, min(C, nW)):
+        d = np.min([np.square(X-c).sum(1) for c in cent], axis=0)
+        cent.append(X[int(np.argmax(d))])
+    cent = np.asarray(cent)
+    for _ in range(iters):
+        lab = np.argmin(np.square(X[:, None]-cent[None]).sum(2), 1)
+        new = np.asarray([X[lab == c].mean(0) if (lab == c).any() else cent[c] for c in range(len(cent))])
+        if np.allclose(new, cent):
+            break
+        cent = new
+    reps, mass, mem = [], [], []
+    for c in range(len(cent)):
+        idx = np.flatnonzero(lab == c)
+        if not len(idx):
+            continue
+        r = idx[int(np.argmin(np.square(X[idx]-cent[c]).sum(1)))]
+        reps.append(int(r)); mass.append(float(W[idx].sum())); mem.append([int(i) for i in idx])
+    return np.asarray(reps), np.asarray(mass)/max(sum(mass), 1e-9), mem
 
 
 def imagine_closed_loop(sb, state, legal, candidates, bank, cfg=None):
@@ -111,9 +170,15 @@ def imagine_closed_loop(sb, state, legal, candidates, bank, cfg=None):
     t0 = time.perf_counter()
     W = np.asarray(bank.weights, np.float64)
     W = W/W.sum() if W.sum() > 0 else np.full(len(W), 1./max(len(W), 1))
-    order = np.argsort(-W) if len(np.unique(W)) > 1 else np.arange(len(W))
-    worlds = order[:cfg.worlds]
-    ww = W[worlds]/W[worlds].sum()
+    if cfg.reweight is not None:
+        W = np.asarray(cfg.reweight.weights(legal, bank), np.float64)
+    members = None
+    if cfg.selection == 'cluster' and len(W) > cfg.worlds:
+        worlds, ww, members = _cluster_worlds(bank, W, cfg.worlds, T=int(cfg.window))
+    else:
+        order = np.argsort(-W) if len(np.unique(W)) > 1 else np.arange(len(W))
+        worlds = order[:cfg.worlds]
+        ww = W[worlds]/W[worlds].sum()
     cq = default_query()
     gmap = frozen_map(legal.map)
     bnd = int(cfg.boundary) if cfg.fidelity else 0
@@ -168,7 +233,10 @@ def imagine_closed_loop(sb, state, legal, candidates, bank, cfg=None):
                 else:
                     vmap = gmap
                 ros.append(run(c, hum, vmap))
-            out.append(WorldRollouts(int(world), float(ww[j]), ros, _world_people(bank, world, T)))
+            mem = ()
+            if members is not None:
+                mem = tuple((float(W[m]), _world_people(bank, m, T)) for m in members[j])
+            out.append(WorldRollouts(int(world), float(ww[j]), ros, _world_people(bank, world, T), mem))
     prof = dict(total_ms=(time.perf_counter()-t0)*1000, map_ms=t_map*1000, worlds=len(worlds), candidates=len(candidates),
                 window=T, map_loop=cfg.map_loop if predicted is not None or cfg.map_loop == 'off' else 'failed',
                 map_error=map_error)

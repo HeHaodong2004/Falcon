@@ -463,3 +463,35 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     if pc[dflt] <= best_p+slack_p and prog[dflt] >= prog[k]-slack_m:
         return dflt
     return k
+
+
+def closed_loop_index(sb, legal, d, window=32, worlds=8, body=0.3, eps=0.05, selection='cluster', state=None):
+    """LEGAL selector on the closed-loop Sandbox (sandbox/closedloop.py): every candidate imagined in ``worlds``
+    clustered Stage 1 worlds (camera model, continuation fidelity, frozen map), contacts scored against every world's
+    people; value = P(no contact within ``window``) x (2 + legal progress share) + P(STOP at the goal), STOP away
+    from the goal counted as contact.  The default is kept unless another candidate is better by ``eps``."""
+    from eventwm_graph.sandbox.closedloop import imagine_closed_loop, ClosedLoopConfig
+    from .compiler import LegalField
+    res = imagine_closed_loop(sb, state, legal, d.candidates, d.result.humans,
+                              ClosedLoopConfig(window=int(window), worlds=int(worlds), map_loop='off', selection=selection))
+    field = LegalField(legal)
+    start = max(float(field.start), 1e-6)
+    vals = []
+    for k in range(len(d.candidates)):
+        pc = res.contact(k, window, body)
+        ws = np.asarray([x.weight for x in res.worlds]); ws = ws/max(ws.sum(), 1e-9)
+        prog, goal, bad = 0., 0., 0.
+        for x, wt in zip(res.worlds, ws):
+            ro = x.rollouts[k]
+            seq = res._seq(ro)
+            p = seq[min(window, len(seq))-1]
+            prog += wt*(start-float(field.at(p[0], p[2])))/start
+            near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= 0.3
+            if ro.stop and len(seq) <= window:
+                goal += wt*float(near); bad += wt*float(not near)
+        safe = max(0., 1.-pc-bad)
+        vals.append(safe*(2.+float(np.clip(prog, -1., 1.)))+goal)
+    vals = np.asarray(vals)
+    dflt = int(d.default)
+    best = int(np.argmax(vals))
+    return dflt if vals[dflt] >= vals[best]-eps else best
