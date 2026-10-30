@@ -112,6 +112,7 @@ code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; b
       <div class="rung" role="listitem"><div class="label">Floor: default policy<small>72 episodes</small></div><div class="track"><div class="fill legal" style="width:47.2%"></div><span class="val" style="left:47.2%">47.2%</span><div class="gate"></div></div></div>
       <div class="rung" role="listitem"><div class="label">Legal imagination: 6 Stage 1 worlds + camera model<small>72 episodes; 5 wins / 9 losses vs floor</small></div><div class="track"><div class="fill legal" style="width:41.7%"></div><span class="val" style="left:41.7%">41.7%</span><div class="gate"></div></div></div>
       <div class="rung" role="listitem"><div class="label">Imagination with the true people future + camera model<small>72 episodes; 10 / 1, p = 0.012</small></div><div class="track"><div class="fill priv" style="width:59.7%"></div><span class="val" style="left:59.7%">59.7%</span><div class="gate"></div></div></div>
+      <div class="rung" role="listitem"><div class="label">Same, ranking imagined outcomes like the exact reference<small>72 episodes; 14 / 2, p = 0.004</small></div><div class="track"><div class="fill priv" style="width:63.9%"></div><span class="val" style="left:63.9%">63.9%</span><div class="gate"></div></div></div>
       <div class="rung" role="listitem"><div class="label">Exact one-step evaluation, robust to &plusmn;0.1 s timing<small>24 episodes</small></div><div class="track"><div class="fill sim" style="width:83.3%"></div><span class="val" style="left:83.3%">~83%</span><div class="gate"></div></div></div>
       <div class="rung" role="listitem"><div class="label">Exact one-step evaluation<small>24 episodes</small></div><div class="track"><div class="fill sim" style="width:87.5%"></div><span class="val" style="left:87.5%">88%</span><div class="gate"></div></div></div>
     </div>
@@ -125,7 +126,7 @@ code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; b
       <li><strong>Its wins are not luck.</strong> Shifting every person by &plusmn;0.1 s leaves <span class="num">86%</span> of candidate outcomes unchanged. 10 of 12 critical states have a fix that survives the shifts. The timing-robust reference keeps 20 of the exact reference's 21 successes.</li>
       <li><strong>Learned critics cannot score candidates.</strong> At critical states they pick no better than random, even when given the people's true future. The latest RL checkpoint lost to the floor 5 to 18 (p = 0.011).</li>
       <li><strong>The gap is the fidelity of the robot's own closed loop.</strong> With the true future of every person, the release imagination still drifts 1.25 m from reality within 3 s. Simulating the camera and progressive map discovery cuts that to 0.49 m.</li>
-      <li><strong>The camera model works only with perfect people prediction, and so far only on ORCA.</strong> Results for DWA and SFM are below.</li>
+      <li><strong>The camera model works only with perfect people prediction.</strong> With an outcome-ordered rule it reaches 63.9% on ORCA and 61.1% on SFM (72 episodes each, p = 0.004 and 0.031). DWA does not gain. The same selector with Stage 1 worlds stays at the floor under either rule.</li>
       <li><strong>It needs everyone's future over the whole window.</strong> A perfect 3 s prediction, or the long future of the tracked people only, recovers less than half of the gain.</li>
     </ul>
   </section>
@@ -153,15 +154,16 @@ code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; b
       <tbody>
         <tr><td>Release imagination</td><td>true, whole window</td><td class="r num">50.0%</td><td class="r num">5 / 3</td></tr>
         <tr><td>+ camera model</td><td>true, whole window</td><td class="r num">58.3%</td><td class="r num">6 / 1</td></tr>
+        <tr><td>+ camera model, outcome rule</td><td>true, whole window</td><td class="r num">63.9%</td><td class="r num">8 / 1</td></tr>
         <tr><td>+ camera model</td><td>true for 3 s only</td><td class="r num">50.0%</td><td class="r num">4 / 2</td></tr>
         <tr><td>+ camera model</td><td>true, tracked people only</td><td class="r num">50.0%</td><td class="r num">3 / 1</td></tr>
         <tr><td>+ camera model + Stage 2 map discovery</td><td>true, whole window</td><td class="r num">50.0%</td><td class="r num">3 / 1</td></tr>
         <tr><td>+ camera model + discovery from a privileged map</td><td>true, whole window</td><td class="r num">55.6%</td><td class="r num">5 / 1</td></tr>
-        <tr><td>+ camera model (legal)</td><td>6 Stage 1 worlds</td><td class="r num">44.4%</td><td class="r num">2 / 2</td></tr>
+        <tr><td>+ camera model (legal), either rule</td><td>6 Stage 1 worlds</td><td class="r num">44.4%</td><td class="r num">2 / 2</td></tr>
       </tbody>
     </table></div>
     <p>Map discovery sharpens per-candidate prediction (AUC 0.70 to 0.79) but adds no success with the current selection rule, even from a privileged map.</p>
-    <p class="meta">Other planners, true future + camera model, 36 episodes each: DWA 50.0% vs 55.6% (4 / 6); SFM 47.2% vs 41.7% (4 / 2); inertia robot 36.1% vs 27.8% (5 / 2).</p>
+    <p class="meta">Other planners, true future + camera model, 72 episodes each. With the original rule: DWA 51.4% vs 48.6% (11 / 9), SFM 43.1% vs 47.2% (8 / 11). With the outcome rule: SFM 61.1% vs 47.2% (14 / 4), DWA 52.8% vs 55.6% at 36 episodes (5 / 6). Inertia robot, original rule, 36 episodes: 36.1% vs 27.8% (5 / 2).</p>
   </section>
 
   <section>
