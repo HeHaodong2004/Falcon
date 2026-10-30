@@ -73,6 +73,14 @@ STUCK_STOP_STRICT_M = 0.19   # v12 meta 'stop19': official success needs geodesi
 LOOKAHEAD_M = 0.8
 
 
+# Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_ANTIDITHER=<steps>): the executor's
+# turn decisions of robots with speed state can alternate left / right without translating until the episode times
+# out (dev floors: the run ends in such a dither in 5-14 of the timeouts of every momentum family vs 1-2 for native /
+# slowturn).  With the option, after 6 strictly alternating in-place turns the execution commits to its last turn
+# direction for <steps> steps (or until it translates), so the heading leaves the tie and the planner finds a way on.
+ANTIDITHER = int(__import__('os').environ.get('L3_ANTIDITHER', '0') or 0)
+
+
 class _TightLegal:
     """Legal state whose map relabels the outer rings of the inflated BLOCKED band as UNKNOWN.
 
@@ -474,6 +482,38 @@ class QueryExecution:
 
     def step(self, legal, level=0):
         """Next (command primitive, new speed level) under the dynamics family."""
+        out = self._step_inner(legal, level)
+        return self._antidither(out) if ANTIDITHER else out
+
+    def _antidither(self, out):
+        """L3_ANTIDITHER: break a left / right turn alternation without translation (module docstring above)."""
+        cmd = out[0]
+        code = ('L' if cmd == 'left' else 'R' if cmd == 'right' else
+                'F' if (cmd == 'forward' or (isinstance(cmd, tuple) and cmd and cmd[0] == 'forward')) else 'O')
+        hist = getattr(self, '_ad_hist', None)
+        if hist is None:
+            hist = self._ad_hist = []
+        commit = getattr(self, '_ad_commit', None)
+        if code in ('L', 'R'):
+            if commit is not None and commit[1] > 0:
+                d = commit[0]
+                self._ad_commit = (d, commit[1]-1)
+                out = (('left' if d == 'L' else 'right'),)+tuple(out[1:])
+                code = d
+            elif len(hist) >= 6 and all(c in 'LR' for c in hist[-6:]) and \
+                    all(hist[-6+i] != hist[-5+i] for i in range(5)) and code != hist[-1]:
+                d = hist[-1]
+                self._ad_commit = (d, ANTIDITHER-1)
+                out = (('left' if d == 'L' else 'right'),)+tuple(out[1:])
+                code = d
+        else:
+            self._ad_commit = None
+        hist.append(code)
+        if len(hist) > 12:
+            del hist[0]
+        return out
+
+    def _step_inner(self, legal, level=0):
         if self.query.kind == 'prim':
             # v13 primitive query (generator 'primitives'): exactly one native action, no planner, no safety filter
             # -- the Oracle's privileged fallback phase (native witness) expresses its solution with these
