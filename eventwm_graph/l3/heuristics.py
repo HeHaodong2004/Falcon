@@ -364,14 +364,20 @@ def _contact_model(path):
 
 
 def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048,
-                     state=None, truth=None):
+                     state=None, truth=None, _risk=True, _out=None):
     """LEGAL multi-world imagined rollout (no learning, no privileged input): each candidate is imagined once per
     sampled Stage 1 world -- the robot's own planner perceiving THAT world's tracked people, interval + ``cont`` steps of
     default continuation -- and checked for contact against that world's people (tracked and hidden); P(contact) is the
     world-weighted share of contact rollouts, progress the mean legal route gain at the end.  Unlike a single nominal
-    world, the planner's reactions to each possible future are simulated (the timing that decides hit vs miss)."""
+    world, the planner's reactions to each possible future are simulated (the timing that decides hit vs miss).
+
+    ``_out`` (internal, default None): a dict that receives the per-candidate scores and the rollouts (riskrank.py);
+    ``_risk`` (internal): False skips the learned ranker option (``L3_MW_RISK``) for riskrank's own feature calls."""
     from eventwm_graph.sandbox.imagine import NominalHumans
     from .compiler import LegalField
+    rpath = __import__('os').environ.get('L3_MW_RISK') if _risk else None
+    if rpath and _out is None:
+        _out = {}                    # (L3_MW_RISK) this call's scores / rollouts, reused by riskrank when compatible
     # Layer 3 options (default off = the original rule): contact radius of the centre-distance rule (L3_MW_RADIUS;
     # with TRUE people 0.60 m gives precision / recall 0.79 / 0.77 within 1.5 s vs 0.50 / 0.83 for 0.75 m) and the
     # radius within which an imagined STOP counts as reaching the goal (L3_MW_GOAL_R; official success: < 0.2 m)
@@ -478,6 +484,8 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                 ros = _discovery_rollouts(sb, legal, d, humans, state, cont)
             else:
                 ros = sb.imagine_all(legal, d.candidates, humans)
+            if _out is not None:
+                _out.setdefault('ros', []).append(ros)
             for k, ro in enumerate(ros):
                 poses = np.asarray(ro.poses, np.float64)
                 c = getattr(ro, 'cont', None)
@@ -507,7 +515,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                         pc[k] += ww[j]*pk
                     elif hit:
                         pc[k] += ww[j]
-                    if dbg and dd.size:
+                    if (dbg or _out is not None) and dd.size:
                         dmin[k] = min(dmin[k], float(np.nanmin(np.where(np.isfinite(dd), dd, np.inf))))
                 hz_hit = False
                 if hz is not None:
@@ -597,6 +605,16 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
         if cm is not None:
             MW_DEBUG.update(pcontact=pm.tolist(), contact_model=dict(path=cm.path, w=int(cm_w), thr=float(cm_thr),
                                                                      soft=bool(cm_soft)))
+    if _out is not None:
+        _out.update(oc=oc.copy(), pc=pc.copy(), prog=prog.copy(), dmin=dmin.copy(), stop_bad=stop_bad.copy(), HP=HP,
+                    worlds=np.asarray(worlds), ww=np.asarray(ww), cont=int(cont), steps=int(steps))
+    # learned listwise ranker (L3_MW_RISK=<model dir>, default off; riskrank.py): LEGAL per-candidate features (this
+    # rule's own outcome scores at the model's continuation lengths with the legal CV people, the imagined trajectories
+    # vs the legal map, the untracked-people hazard, the legal context at t) ranked by a LightGBM lambdarank model fitted
+    # on TRAIN exact outcomes; the default is kept unless the ranker's margin over it exceeds the model's threshold
+    if rpath:
+        from .riskrank import risk_select
+        return risk_select(rpath, sb, legal, d, state=state, cur=_out)
     dflt = int(d.default)
     if vm is not None:
         best = int(np.argmax(vs))
