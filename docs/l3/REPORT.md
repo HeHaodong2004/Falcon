@@ -433,3 +433,8 @@ space-time goal variants: st_goal_th 15, goal_th 15, st_goal_tc 12, goal 6, st_g
 that always run st_goal_th / goal_th instead of the plain goal query (blind, ORCA + DWA dev).
 Fixed variant defaults (blind, ~60 paired dev episodes each): always st_goal_th 7 wins / 13 losses vs the floor, always
 goal_th 5 / 10 -- worse; the exact evaluator's use of these variants is situational, not a better default.
+R10 v125 (paired dev, 72 per configuration): ORCA 52.8% vs 47.2% (10 / 6), DWA 44.4% vs 48.6% (6 / 9), SFM 48.6% vs
+47.2% (8 / 7); pooled 24 / 22 (p = 0.88).  Across v100 and v125 the ORCA gain recurs (10 / 4, 10 / 6), DWA / SFM are flat.
+Imagined rollout final ~floor (pooled 14 / 13).  Deadlock probe (privileged, floor timeouts): mid-episode (step 240)
+1-4 single and ~40 two-step escapes exist (explicit turns toward the route, a short wait, st_goal_th); none late (step
+384) -- deadlocks are escapable if acted on by mid-episode.
