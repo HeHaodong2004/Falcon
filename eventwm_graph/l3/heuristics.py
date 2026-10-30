@@ -210,7 +210,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     keys = list(getattr(bank, 'track_keys', ()))
     if len(keys):
         rel = np.arange(1, T+1)*step_s
-        horizon = float(bank.times[-1])
+        horizon = max(float(bank.times[-1]), float(getattr(bank, 'long_steps', 0) or 0)*step_s)   # analysis bank: longer
         inside = rel[rel <= horizon+1e-9]
         HP = np.asarray(bank.sandbox_positions(inside), np.float64)              # [W, Tb, N, 2]
         if len(inside) < T and HP.shape[1] >= 2:
