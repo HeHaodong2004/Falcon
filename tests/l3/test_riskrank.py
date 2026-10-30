@@ -47,6 +47,18 @@ def test_within_auc():
     assert n == 1 and auc == 1.0
 
 
+def test_numpy_trees():
+    # one tree: categorical split on feature 0 ({1, 3} left), then a numerical split on feature 1 (NaN -> default left)
+    dump = dict(tree_info=[dict(tree_structure=dict(
+        split_feature=0, decision_type='==', threshold='1||3', default_left=False, missing_type='None',
+        left_child=dict(split_feature=1, decision_type='<=', threshold=0.5, default_left=True, missing_type='NaN',
+                        left_child=dict(leaf_value=1.0), right_child=dict(leaf_value=2.0)),
+        right_child=dict(leaf_value=-1.0)))])
+    t = riskrank.NumpyTrees(dump)
+    X = np.array([[1, 0.2], [3, 0.9], [3, np.nan], [2, 0.1], [-1, 0.1], [np.nan, 0.1]], float)
+    assert t.predict(X).tolist() == [1.0, 2.0, 1.0, -1.0, -1.0, -1.0]
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

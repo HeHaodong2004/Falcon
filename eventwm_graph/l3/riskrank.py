@@ -526,12 +526,73 @@ def extract(bank, out, shard=0, shards=1, wait_for=0, poll=60.):
 
 
 # ---------------------------------------------------------------------------------------------- model
+class NumpyTrees:
+    """numpy evaluator of a LightGBM model dump (``model.json``: ``Booster.dump_model()``) -- the raw score as LightGBM's
+    tree.h decides it (numerical splits with the missing-value types; categorical splits: NaN / negative go right, the
+    listed categories go left).  Used when lightgbm is not importable."""
+
+    def __init__(self, dump):
+        self.trees = []
+        for t in dump['tree_info']:
+            nodes = []
+
+            def walk(n):
+                i = len(nodes)
+                nodes.append(None)
+                if 'leaf_value' in n:
+                    nodes[i] = ('leaf', float(n['leaf_value']))
+                    return i
+                cat = n['decision_type'] == '=='
+                thr = (frozenset(int(c) for c in str(n['threshold']).split('||')) if cat else float(n['threshold']))
+                left = walk(n['left_child'])
+                right = walk(n['right_child'])
+                nodes[i] = ('split', int(n['split_feature']), cat, thr, str(n.get('missing_type', 'None')),
+                            bool(n.get('default_left', False)), left, right)
+                return i
+            walk(t['tree_structure'])
+            self.trees.append(nodes)
+
+    @staticmethod
+    def _left(node, x):
+        _, f, cat, thr, mt, dl, _, _ = node
+        v = x[f]
+        if cat:
+            if math.isnan(v) or int(v) < 0:
+                return False
+            return int(v) in thr
+        if math.isnan(v) and mt != 'NaN':
+            v = 0.
+        if (mt == 'Zero' and abs(v) <= 1e-35) or (mt == 'NaN' and math.isnan(v)):
+            return dl
+        return v <= thr
+
+    def predict(self, X):
+        X = np.asarray(X, np.float64)
+        out = np.zeros(len(X))
+        for r in range(len(X)):
+            x = X[r]
+            s = 0.
+            for nodes in self.trees:
+                n = nodes[0]
+                while n[0] == 'split':
+                    n = nodes[n[6]] if self._left(n, x) else nodes[n[7]]
+                s += n[1]
+            out[r] = s
+        return out
+
+
 class RiskModel:
     def __init__(self, path):
         self.path = str(path)
         self.meta = json.loads(Path(path, 'meta.json').read_text())
-        import lightgbm as lgb
-        self.boosters = [lgb.Booster(model_file=str(Path(path, f))) for f in self.meta.get('models', ['model.txt'])]
+        files = self.meta.get('models', ['model.txt'])
+        try:
+            import lightgbm as lgb
+            self.boosters = [lgb.Booster(model_file=str(Path(path, f))) for f in files]
+            self.backend = 'lightgbm'
+        except ImportError:              # numpy evaluator of the dumped trees (model.json / model_<k>.json)
+            self.boosters = [NumpyTrees(json.loads(Path(path, f[:-4]+'.json').read_text())) for f in files]
+            self.backend = 'numpy'
         self.names = list(self.meta['names'])
         self.vocab = dict(self.meta['labels_vocab'])
         self.thr = float(self.meta['thr'])
@@ -550,6 +611,8 @@ class RiskModel:
 
     def score(self, X):
         """Ranker score per candidate (the mean over a seed ensemble's boosters)."""
+        if self.backend == 'numpy':
+            return np.asarray(np.mean([b.predict(X) for b in self.boosters], 0), np.float64)
         return np.asarray(np.mean([b.predict(X, num_threads=1) for b in self.boosters], 0), np.float64)
 
 

@@ -269,6 +269,7 @@ def save_model(model, names, vocab, thr, out, info):
     files = ['model.txt'] if len(ms) == 1 else ['model_%d.txt' % k for k in range(len(ms))]
     for m, f in zip(ms, files):
         m.save_model(str(Path(out, f)))
+        Path(out, f[:-4]+'.json').write_text(json.dumps(m.dump_model()))     # numpy fallback (riskrank.NumpyTrees)
     meta = dict(names=names, labels_vocab=vocab, thr=float(thr), models=files,
                 hazard_params=json.loads(Path(HAZARD_PARAMS).read_text()), **info)
     Path(out, 'meta.json').write_text(json.dumps(meta, indent=1))
