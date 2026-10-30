@@ -509,3 +509,136 @@ Completed overnight (paired dev vs the floor):
 - Collision context of the floor (54 collisions, 3 native configurations): 22 happen while the robot turns in place
   (median 84 deg in the last second), 61% of contacts are outside the camera's +-45 deg; the colliding person was seen
   within 1 s in 61%, within 3 s in 80%, ever in 87%.
+
+### 7.1 Where the exact reference's +30 points come from, and why no legal evaluator has reproduced them
+
+**Question.** The exact one-step reference (privileged branch simulator: every candidate executed for real, then the
+default) solves 21/24 ORCA dev episodes vs the floor's 14/24; seven episodes decide the difference.  Every legal
+evaluator (critics, RL, one-step rules, imagined rollouts) and even imagination with the TRUE future of every person
+stays near the floor.  Is the gap (a) chaos -- outcomes decided by unpredictable fine timing -- or (b) evaluator
+fidelity -- a faithful enough simulation of the robot's own closed loop would find the same choices?
+
+**(1) Real outcomes are mostly NOT knife-edge** (`fidelity.py --shifts`, exact branch simulator; every candidate at
+ORCA dev decision states re-run with every person's timing shifted by +-2 steps = +-0.1 s; 24 floor episodes x 2
+decision points, 530 candidate rollouts in `output/fidelity_shift`): a shift flips the collision outcome of 8-9% of
+the candidates (43-46 of 530 per direction); 86% (454) have the same outcome under the recorded timing and both
+shifts.  At 12 critical states (the default really collides within 200 steps, some candidate does not), 10 have a fix
+that avoids the collision under all three timings.  The decisive differences between candidates are mostly not
+knife-edge.  Robust exact reference (`rolloutpolicy.py --shifts=-2,2`: every candidate's outcome averaged over the
+recorded and both shifted people timings, executed in the recorded world) on the 8 episodes where the floor fails
+and the plain reference succeeds: 7 of 7 finished episodes solved (the 8th still running at 05:10; see 7.4) --
+choices that hold under timing noise exist and suffice.
+
+**(2) The imagination's closed loop diverges from the real one even with perfect people prediction**
+(`fidelity.py`; 16 ORCA dev episodes x 3 decision points = 42 states, 511 candidate rollouts in `output/fidelity_d`,
+474 in `output/fidelity`; every imagination variant gets the TRUE future of every person over the 200-step window):
+
+| imagination variant | divergence from the real robot, median at 1.5 s / 2.3 s / 3 s | collision AUC |
+|---|---|---|
+| open-loop kinematics (the real commands through the imagined motion model) | 0.00 / 0.00 / 0.00 m (p90 0.42 / 1.02 / 1.87) | -- |
+| release imagination (planner perceives the people tracked at t, everywhere, always) | 0.27 / 0.75 / 1.25 m | 0.67 |
+| + perception fidelity (`perceive.VisibleWorld`: 90 deg / 10 m camera, line of sight, 2 s tracker memory, from the IMAGINED pose) | 0.23 / 0.66 / 1.25 m | 0.70 |
+| + continuation fidelity (decision boundaries every 16 steps, goal-query inheritance) | 0.22 / 0.58 / 1.23 m | 0.69 |
+| perception + the real END-of-window map known from t (privileged) | 0.21 / 0.35 / 0.67 m | 0.76 |
+| perception + progressive discovery of the real map from the imagined camera (`perceive.Discovery`, 5 m, line of sight) | 0.13 / 0.42 / 0.70 m | 0.79 |
+| perception + progressive discovery + continuation fidelity | 0.09 / 0.24 / 0.49 m | 0.79 |
+
+The motion model is exact; the divergence is the robot's PLANNER issuing different commands in imagination than in
+reality, because what it perceives differs: (i) which people it sees (camera frustum, occlusion, track memory) and
+(ii) the map it discovers while moving (at early decisions the legal map is nearly empty and the real planner's route
+changes with every new observation).  Example (`output/fidelity_cases_d`, t3t9ofFLcFU_3465 step 0): the release
+imagination rates every candidate >= 1.3 m from everyone while 6 of 12 really collide; with progressive discovery the
+goal / goal_tc / rot_left1 candidates come within 0.00-0.15 m of a person (all real collisions) and the reference's
+choice st_goal_tc stays clear (1.40 m; real success).
+
+**(3) Episode level** (36 -> 72 paired ORCA dev episodes, multi-world selector with ONE world = the true future,
+300-step imagined continuation): release imagination 50.0% vs floor 44.4% (36 episodes, 5 / 3); with perception
+fidelity 59.7% vs floor 47.2% on all 72 ORCA dev episodes (10 wins / 1 loss, sign test p = 0.012; collisions 20% vs
+39%, timeouts 19% vs 13%, SPL 0.44 vs 0.35, PSC 0.91 vs 0.87) -- the first significant gain of any evaluator that
+runs the robot's own executor, but only with privileged people futures, and on the 24 episodes where the exact
+reference reaches 21 it equals the floor (14; its +9 comes from the other 48).  On DWA-native the same selector does
+NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time, mostly in-place rotations
+(`rot_left1` 33 times), and trades collisions for timeouts (8 vs 3) -- the gain is planner-dependent.  Which ingredients matter (first 36 episodes, paired; floor 44.4%):
+
+| selector (multi-world imagined rollout, 300-step continuation) | people future the imagination gets | SR | vs floor |
+|---|---|---|---|
+| release imagination | TRUE, whole window | 50.0% | 5 / 3 |
+| + camera model | TRUE, whole window | 58.3% | 6 / 1 |
+| + camera model | TRUE for 3 s (Stage 1's horizon), constant velocity after | 50.0% | 4 / 2 |
+| + camera model + Stage 2 map discovery (`L3_MW_DISCOVER=1`) | TRUE, whole window | 51.4% (35 ep.) | 3 / 1 (vs camera model alone: 1 / 3) |
+| + camera model (LEGAL) | 6 Stage 1 worlds, constant velocity after 3 s, contacts over 4 s | 44.4% | 2 / 2 |
+
+The legal selector halves collisions (7 vs 13 on these 36 episodes) but converts them into timeouts (13 vs 7): it
+deviates on 41% of decisions (true-future version: 20%), often to scans and waits, because with 6 worlds a default
+colliding in a single world loses to any candidate colliding in none.  A less jumpy legal variant (deviate only if the default collides in >= 30% of the world weight and a candidate is
+0.25 lower) is running (7.4).
+Both the camera model and a people future over the WHOLE imagined window are needed: a perfect 3 s predictor recovers
+less than half of the gain (vs the whole-window truth: 0 wins / 3 losses).
+
+**Interpretation.**  Selecting among the ~10 queries is not hard in principle -- an exact evaluator finds a fix in
+7 of the 10 floor failures and its choices are mostly robust to timing noise -- but evaluating a candidate requires
+simulating the robot's OWN perception-action loop: what its camera will see, what map it will build, how its planner
+will react.  Learned critics on compiled features cannot represent that (critic top-1 at critical states = random,
+even with perfect people prediction), and an imagination that skips perception or map discovery mispredicts the
+critical encounters.  Each fidelity step measured so far helps: perception fidelity +12.5 points of SR on ORCA with
+the true future, map discovery the largest gain in collision prediction.
+
+### 7.2 Consequences for the plan
+
+1. The Layer 3 decision problem is a closed-loop SIMULATION problem: the value of a query depends on how the robot's own
+   camera, map and planner will unfold over the next 2-15 s against the people.  A learned critic on compiled
+   consequence features (R1-R10, label critics) cannot recover it -- shown with privileged inputs too -- and more RL
+   or labels of that kind will not move SR.  Learning remains useful ON TOP of a faithful imagination (imagined
+   outcome statistics as inputs / search prior), not instead of it.
+2. Legal path = a closed-loop world model inside the Sandbox:
+   a. the robot's camera and tracker in imagination (DONE, legal: `perceive.VisibleWorld`; +12.5 points on ORCA
+      with the true people future, none on DWA),
+   b. map discovery from PREDICTED geometry (Stage 2 already predicts the cells a given path reveals:
+      `Layer2.predict_maps(state, paths)`; two-pass imagine -> predict -> re-imagine with `perceive.Discovery`; built tonight, `L3_MW_DISCOVER=1`; no
+      measurable gain yet -- see the table),
+   c. people futures over the whole imagined window, multi-world (Stage 1's bank ends at 3 s; constant velocity beyond
+      is the current stand-in),
+   d. multi-world selection (`mwroll`) with the exact executor in the loop -- planner- and dynamics-agnostic by
+      construction (one shared selector for every configuration).
+3. Cost: 10-30 s per decision today (evaluation only); the imagination is CPU-bound and embarrassingly parallel
+   (candidates x worlds), so a batched / vectorised imagination is the speed work item.
+
+### 7.3 Beliefs after the night (calibrated)
+
+- The gate (>= 85% SR on the best configuration, legal 90-degree sensing) is NOT reachable with the current architecture
+  within the 2-3 day training window: < 5%.  Every learned or heuristic legal selector is within noise of the floor;
+  the most faithful imagination built tonight reaches ~60% on ORCA only when it is handed the TRUE future of every
+  person (and gains nothing on DWA).
+- It is not an information wall in the sense rejected earlier: outcomes are mostly robust to timing noise, robust
+  fixes exist, and the exact evaluator under timing noise still solves the decisive episodes.  It is a
+  SIMULATION-FIDELITY wall: a selector must re-run the robot's own closed loop (camera, map, planner) inside a
+  predicted world.  Measured ingredients: the camera model plus a whole-window people future give +12.5 points on ORCA;
+  with a perfect people future over Stage 1's 3 s only, about +5; with real Stage 1 worlds, nothing; Stage 2-predicted
+  map discovery adds nothing measurable yet.  The legal bottleneck, in order: people futures over the whole
+  decision-relevant window (10+ s, multi-world), then imagined closed-loop fidelity (map discovery, planner-specific
+  behaviour), then speed (10-30 s per decision).
+- 85% eventually, with a full closed-loop world model: ~10% (the best privileged imagination is at collision AUC 0.79
+  and ~60% SR).  A legal selector at 60-65% on ORCA-native within weeks: ~30-40%.
+- RL on compiled features should stop: R10R (RL from v100) is getting WORSE (04:30 milestone, partial: 2 wins / 11
+  losses vs the floor), as the diagnostics predict.
+
+### 7.4 Runs, state and artifacts (05:10)
+
+- R10R (RL from v100, light counterfactual supervision): 04:30 milestone at version 66, paired dev (108 of 216 episodes;
+  a sandbox-server CUDA fault ended the evaluation early): DWA 54.3% vs floor 65.7%, ORCA 37.8% vs 48.6%, SFM 30.6% vs
+  44.4%; pooled 5 wins / 18 losses (p = 0.011) -- significantly worse than the floor.  R10R was STOPPED at 04:57
+  (learner state and checkpoints kept; resumable); the 07:15 milestone was cancelled.  The best learned checkpoint
+  stays R10 v100 (pooled 26 / 20, not significant).
+- True-future camera-model selector on other planners (36 dev episodes each): DWA-native 50.0% vs floor 55.6% (4 / 6);
+  SFM-native at 29 episodes 48.3% vs 48.3% (2 / 2) -- the ORCA gain does not transfer.
+- Scan rollout reference (exact one-step evaluation incl. the scan queries), 22 of 24 episodes: identical outcomes to
+  the plain reference (19 success, 3 timeout).
+- Evaluation directories (`output/eval/`): `H_mwroll_true300_dev` (release imagination, true future),
+  `H_mwroll_true300p_dev` (+ camera model; 72 ORCA), `H_mwroll_true3sp_dev` (3 s true horizon),
+  `H_mwroll_true300pd_dev` (+ Stage 2 discovery), `H_mwroll_true300pr_dev` (body-rectangle rule, stopped at 32: 0 / 3 vs
+  the radius rule), `H_mwroll_true300p_dwa`, `H_mwroll_true300p_sfm`, `H_mwroll_legalp_dev` / `H_mwroll_legalp2_dev`
+  (legal), `R10R_0430_native`.  Probes: `output/fidelity`, `output/fidelity_d`, `output/fidelity_shift`,
+  `output/fidelity_cases*`; references: `output/rollout_policy`, `output/rollout_policy_scan`,
+  `output/rollout_policy_robust`.
+- Running at writing: robust reference on the 13 other reference successes (complete timing-robust exact-evaluator SR),
+  the less jumpy legal variant, SFM.
