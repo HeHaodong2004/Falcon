@@ -565,6 +565,7 @@ NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time
 | release imagination | TRUE, whole window | 50.0% | 5 / 3 |
 | + camera model | TRUE, whole window | 58.3% | 6 / 1 |
 | + camera model | TRUE for 3 s (Stage 1's horizon), constant velocity after | 50.0% | 4 / 2 |
+| + camera model | TRUE, whole window, but only the people tracked at t (hidden people absent) | 50.0% | 3 / 1 (vs everyone: 1 / 4) |
 | + camera model + Stage 2 map discovery (`L3_MW_DISCOVER=1`) | TRUE, whole window | 50.0% | 3 / 1 (vs camera model alone: 1 / 4) |
 | + camera model (LEGAL) | 6 Stage 1 worlds, constant velocity after 3 s, contacts over 4 s | 44.4% | 2 / 2 |
 
@@ -572,7 +573,8 @@ The legal selector halves collisions (7 vs 13 on these 36 episodes) but converts
 deviates on 41% of decisions (true-future version: 20%), often to scans and waits, because with 6 worlds a default
 colliding in a single world loses to any candidate colliding in none.  A less jumpy legal variant (deviate only if the default collides in >= 30% of the world weight and a candidate is
 0.25 lower) is running (7.4).
-Both the camera model and a people future over the WHOLE imagined window are needed: a perfect 3 s predictor recovers
+About half of the gain needs the futures of people the robot does NOT track at the decision (hidden or not yet
+seen) -- a legal predictor has to forecast those too.  Both the camera model and a people future over the WHOLE imagined window are needed: a perfect 3 s predictor recovers
 less than half of the gain (vs the whole-window truth: 0 wins / 3 losses).
 
 **Interpretation.**  Selecting among the ~10 queries is not hard in principle -- an exact evaluator finds a fix in
@@ -672,6 +674,7 @@ within noise of the floor.
 | `H_mwroll_true300p_dev` | privileged (true future + camera model) | 72 | 47.2% | 59.7% | 10 / 1 | 0.012 |
 | `H_mwroll_true300p_dwa` | privileged (same, DWA) | 36 | 55.6% | 50.0% | 4 / 6 | 0.754 |
 | `H_mwroll_true300p_sfm` | privileged (same, SFM) | 36 | 41.7% | 47.2% | 4 / 2 | 0.688 |
+| `H_mwroll_trackedp_dev` | privileged (true future of tracked people only) | 36 | 44.4% | 50.0% | 3 / 1 | 0.625 |
 | `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 36 | 44.4% | 50.0% | 3 / 1 | 0.625 |
 | `H_mwroll_true300pr_dev` | privileged (body-rectangle rule; stopped) | 32 | 50.0% | 53.1% | 4 / 3 | 1.000 |
 | `H_mwroll_true3sp_dev` | privileged (true future 3 s only) | 36 | 44.4% | 50.0% | 4 / 2 | 0.688 |
