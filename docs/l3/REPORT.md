@@ -643,3 +643,47 @@ the true future, map discovery the largest gain in collision prediction.
   `output/rollout_policy_robust`.
 - Running at writing: robust reference on the 13 other reference successes (complete timing-robust exact-evaluator SR),
   the less jumpy legal variant, SFM.
+
+### 7.5 Ledger: every dev evaluation vs the floor (paired, native official configurations, 05:10)
+
+Same episodes and configurations as the floor (`floor_dev24`); sign test on discordant episodes.  Only the privileged
+true-future + camera-model selector and the 360-degree (not legal) heuristic are significant; every legal selector is
+within noise of the floor.
+
+| run | what | n | floor SR | run SR | wins / losses | p |
+|---|---|---|---|---|---|---|
+| `API_v0_dev` | legal (label critic v0) | 144 | 47.9% | 53.5% | 23 / 15 | 0.256 |
+| `API_v1_dev` | legal (label critic v1) | 216 | 47.7% | 46.3% | 25 / 28 | 0.784 |
+| `C_restart_dev` | legal (control: fresh goal query every interval) | 144 | 47.9% | 43.1% | 13 / 20 | 0.296 |
+| `C_restart_inherit_dev` | legal (control + inheritance) | 144 | 47.9% | 49.3% | 9 / 7 | 0.804 |
+| `H360_escape_dev` | NOT legal (360-deg people detection) | 216 | 47.7% | 50.9% | 37 / 30 | 0.464 |
+| `H360_progress_dev` | NOT legal (360-deg detection) | 216 | 47.7% | 56.0% | 40 / 22 | 0.030 |
+| `H360_progress_ni6_dev` | NOT legal (360-deg detection) | 144 | 47.9% | 53.5% | 23 / 15 | 0.256 |
+| `H_greedy_dev` | legal (heuristic) | 144 | 47.9% | 43.1% | 16 / 23 | 0.337 |
+| `H_imagroll_dev` | legal (imagined rollout) | 144 | 47.9% | 47.2% | 14 / 15 | 1.000 |
+| `H_mwroll_dev` | legal (multi-world rollout, 60 steps) | 54 | 48.1% | 44.4% | 5 / 7 | 0.774 |
+| `H_mwroll_legalp_dev` | legal (6 Stage 1 worlds + camera model) | 36 | 44.4% | 44.4% | 2 / 2 | 1.000 |
+| `H_mwroll_true300_dev` | privileged (true future, release imagination) | 36 | 44.4% | 50.0% | 5 / 3 | 0.727 |
+| `H_mwroll_true300p_dev` | privileged (true future + camera model) | 72 | 47.2% | 59.7% | 10 / 1 | 0.012 |
+| `H_mwroll_true300p_dwa` | privileged (same, DWA) | 36 | 55.6% | 50.0% | 4 / 6 | 0.754 |
+| `H_mwroll_true300p_sfm` | privileged (same, SFM) | 35 | 42.9% | 45.7% | 3 / 2 | 1.000 |
+| `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 35 | 45.7% | 51.4% | 3 / 1 | 0.625 |
+| `H_mwroll_true300pr_dev` | privileged (body-rectangle rule; stopped) | 32 | 50.0% | 53.1% | 4 / 3 | 1.000 |
+| `H_mwroll_true3sp_dev` | privileged (true future 3 s only) | 36 | 44.4% | 50.0% | 4 / 2 | 0.688 |
+| `H_mwroll_true_dev` | privileged (true future, 100 steps) | 72 | 47.2% | 44.4% | 5 / 7 | 0.774 |
+| `H_progress_dev` | legal (heuristic) | 144 | 47.9% | 50.7% | 21 / 17 | 0.627 |
+| `H_routesafe2_dev` | legal (one-step rule) | 216 | 47.7% | 47.2% | 9 / 10 | 1.000 |
+| `H_routesafe2_inherit_dev` | legal (one-step rule) | 216 | 47.7% | 46.8% | 8 / 10 | 0.815 |
+| `H_routesafe_dev` | legal (one-step rule) | 90 | 50.0% | 40.0% | 3 / 12 | 0.035 |
+| `H_rs3_oracletracked_dev` | privileged (true 3 s future of tracked people) | 144 | 47.9% | 45.8% | 6 / 9 | 0.607 |
+| `H_rs3_trueall9s_dev` | privileged (true 9 s future of everyone) | 72 | 47.2% | 40.3% | 2 / 7 | 0.180 |
+| `P_goal_th_dev` | legal (fixed default goal_th) | 60 | 50.0% | 41.7% | 5 / 10 | 0.302 |
+| `P_st_goal_th_dev` | legal (fixed default st_goal_th) | 65 | 49.2% | 43.1% | 9 / 13 | 0.523 |
+| `R10R_0430_native` | legal (RL, R10R v66; 108 of 216) | 108 | 52.8% | 40.7% | 5 / 18 | 0.011 |
+| `R10_latest_native` | legal (RL, R10 v175; partial) | 109 | 49.5% | 40.4% | 6 / 16 | 0.052 |
+| `R10_v100_native` | legal (RL, R10 v100) | 216 | 47.7% | 50.5% | 26 / 20 | 0.461 |
+| `R10_v125_native` | legal (RL, R10 v125) | 216 | 47.7% | 48.6% | 24 / 22 | 0.883 |
+| `R5_v_dev` | legal (RL, R5) | 216 | 47.7% | 51.4% | 32 / 24 | 0.350 |
+| `R7_m0_dev` | NOT legal (360-deg, R7) | 84 | 52.4% | 46.4% | 5 / 10 | 0.302 |
+| `R7_m1.0_dev` | NOT legal (360-deg, R7, margin 1.0) | 91 | 48.4% | 57.1% | 12 / 4 | 0.077 |
+| `floor360_dev` | NOT legal (floor with 360-deg detection) | 216 | 47.7% | 52.3% | 18 / 8 | 0.076 |
