@@ -184,6 +184,19 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 # control experiment: the floor's intent, but a FRESH goal query at every decision instead of continuing
                 # the running one (the executor -- route, planner and recovery state -- restarts every interval)
                 a, p = (d.labels.index('goal') if 'goal' in d.labels else d.default), 1.
+            elif selector == 'prefer':
+                # fixed alternative default: keep running the preferred query (L3_PREFER label), start it when it is not
+                # running; otherwise the floor's choice
+                pref = os.environ.get('L3_PREFER', 'st_goal_th')
+                run_label = ep.ep.execution.query.label if (ep.ep.execution is not None and
+                                                            ep.ep.execution.status == 'running') else None
+                if run_label == pref and 'continue' in d.labels:
+                    a = d.labels.index('continue')
+                elif pref in d.labels:
+                    a = d.labels.index(pref)
+                else:
+                    a = d.default
+                p = 1.
             elif selector == 'imagroll':
                 # legal imagined rollout policy (heuristics.imagined_rollout_index; needs --sandbox continuation)
                 from .heuristics import imagined_rollout_index
