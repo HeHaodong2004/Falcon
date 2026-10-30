@@ -304,6 +304,8 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
         HP = None
     pc = np.zeros(K)
     prog = np.zeros(K)
+    oc = np.zeros(K)
+    rule = __import__('os').environ.get('L3_MW_RULE', 'contact')       # 'contact' (default) | 'outcome'
     stop_bad = np.zeros(K, bool)
     # contacts counted over the first L3_MW_CONTACT_STEPS imagined steps only (default: the whole rollout); with Stage 1
     # worlds people beyond the 3 s bank horizon are constant-velocity guesses -- the long continuation then judges
@@ -349,10 +351,31 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                     if hit:
                         pc[k] += ww[j]
                 prog[k] += ww[j]*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
+                if rule == 'outcome':
+                    # imagined outcome in the exact reference's order (rolloutpolicy.outcome_key): goal reached (fewer
+                    # steps better) > still running (more route progress) > contact / STOP away from the goal (later
+                    # better); category + a tie-break in [0, 0.5)
+                    Tk = max(len(seq), 1)
+                    near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= 0.3
+                    if HP is not None and hit:
+                        first = int(np.argmax(np.nanmin(np.where(np.isfinite(dd), dd, np.inf), axis=1) <
+                                              (rect if rect > 0 else radius)))
+                        val = 0.+0.5*first/max(n, 1)
+                    elif ro.stop and not near:
+                        val = 0.
+                    elif ro.stop and near:
+                        val = 3.+0.5*(1.-Tk/max(steps+cont, 1))
+                    else:
+                        g = field.start-field.at(seq[-1, 0], seq[-1, 2])
+                        val = 2.+0.5*float(np.clip(g/max(field.start, 1e-6), 0., 0.999))
+                    oc[k] += ww[j]*val
     finally:
         sb.config.continuation = old
     pc = np.where(stop_bad, 1., pc)
     dflt = int(d.default)
+    if rule == 'outcome':
+        best = int(np.argmax(oc))
+        return dflt if oc[dflt] >= oc[best]-float(__import__('os').environ.get('L3_MW_EPS', '0.05')) else best
     # deviation margins (env, defaults = the original rule): the default is kept unless its contact probability is at
     # least L3_MW_MIN_PC and exceeds the best candidate's by more than L3_MW_SLACK_P
     slack_p = float(__import__('os').environ.get('L3_MW_SLACK_P', slack_p))
