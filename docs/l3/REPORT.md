@@ -553,8 +553,8 @@ choice st_goal_tc stays clear (1.40 m; real success).
 
 **(3) Episode level** (36 -> 72 paired ORCA dev episodes, multi-world selector with ONE world = the true future,
 300-step imagined continuation): release imagination 50.0% vs floor 44.4% (36 episodes, 5 / 3); with perception
-fidelity 59.7% vs floor 47.2% on all 72 ORCA dev episodes (10 wins / 1 loss, sign test p = 0.012; collisions 20% vs
-39%, timeouts 19% vs 13%, SPL 0.44 vs 0.35, PSC 0.91 vs 0.87) -- the first significant gain of any evaluator that
+fidelity 59.7% vs floor 47.2% on all 72 ORCA dev episodes (10 wins / 1 loss, sign test p = 0.012; collisions 19% vs
+39%, timeouts 21% vs 14%, SPL 0.44 vs 0.35, PSC 0.91 vs 0.87) -- the first significant gain of any evaluator that
 runs the robot's own executor, but only with privileged people futures, and on the 24 episodes where the exact
 reference reaches 21 it equals the floor (14; its +9 comes from the other 48).  On DWA-native the same selector does
 NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time, mostly in-place rotations
