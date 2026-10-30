@@ -446,3 +446,8 @@ invalid 82% was discarded; scene split, 4 seeds, critical states of R9 + R10 lab
 not improve candidate evaluation.  Next diagnostic: the same critic and labels with the TRUE future of every person in
 the inputs (`l3/privfeat.py`, analysis only) -- predictable with perfect foresight (a prediction problem) or not
 (outcomes not determined by anything knowable at decision time)?
+Timing of labelled outcomes (R9 + R10, 10,287 colliding / 3,889 successful candidate continuations): collisions occur a
+median 40 steps (1.9 s) after the decision -- 65% within Stage 1's 3 s horizon, 86% within 6 s; successes take a median
+146 steps.  Most outcomes are decided within the prediction horizon, yet a one-step rule with the TRUE 3 s future did
+not pick fixes: at critical states hit vs miss is decided by fine timing (how the robot's planner reacts to the people
+it actually perceives), which the imagination -- planner reacting to the NOMINAL Stage 1 world -- only approximates.
