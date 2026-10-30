@@ -37,6 +37,11 @@ CONT_INHERIT = __import__('os').environ.get('SANDBOX_CONT_INHERIT') == '1'
 # a bump at the body front (as ``LegalState.observe``) -- so the executor's bump / unstick logic and the 'thru'
 # queries' learning from contact (soft obstacles, bump discs) run inside imagination as on the real robot.
 PHYSICS = __import__('os').environ.get('SANDBOX_PHYSICS', '')
+# Live physics with map discovery (default off; SANDBOX_PHYSICS_LIVE=1): the physics map follows the imagined map --
+# rebuilt whenever its revision changes (cells revealed by the imagined camera), instead of the map at the first step --
+# and a bump disc is written in place into a candidate's private work map (``imagined_private``; map discovery) instead
+# of a copy that the discovered cells would no longer reach.
+PHYSICS_LIVE = __import__('os').environ.get('SANDBOX_PHYSICS_LIVE') == '1'
 
 HISTORY_TAIL = 8          # real poses kept for the executor's measured-velocity estimate (it reads a 1-step window)
 TRACK_PREFIX = 'track:'   # Stage 1 bank key of a legal track: 'track:' + legal track id (residual slots: 'residual:i')
@@ -197,6 +202,8 @@ def _physical(sl, prev, p, cmd, phys):
         return p
     from eventwm_graph.querygen.legal import LegalState
     m = phys.get('map')
+    if m is not None and PHYSICS_LIVE and phys.get('rev') != (id(sl.map), sl.map.revision):
+        m = None                                        # the imagined map changed since the physics map was built
     if m is None:
         if phys['mode'] == 'core':
             from eventwm_graph.querygen.executor import _TightLegal
@@ -204,6 +211,7 @@ def _physical(sl, prev, p, cmd, phys):
         else:
             m = sl.map
         phys['map'] = m
+        phys['rev'] = (id(sl.map), sl.map.revision)
     r = float(LegalState.BUMP_MEMORY)
     fx = float(prev[0])+LegalState.BUMP_FRONT_M*math.cos(float(prev[3]))
     fz = float(prev[2])-LegalState.BUMP_FRONT_M*math.sin(float(prev[3]))
@@ -218,10 +226,13 @@ def _physical(sl, prev, p, cmd, phys):
     if cmd == 'forward' and r > 0:
         sl.bumps.append((fx, fz))
         if not phys.get('own'):
-            sl.map = sl.map.copy()
-            phys['own'] = True
-            if phys['mode'] != 'core':
-                phys['map'] = sl.map
+            if PHYSICS_LIVE and getattr(sl.map, 'imagined_private', False):
+                phys['own'] = True                      # the candidate's own work map: discovered cells keep reaching it
+            else:
+                sl.map = sl.map.copy()
+                phys['own'] = True
+                if phys['mode'] != 'core':
+                    phys['map'] = sl.map
         g = sl.map
         n = int(math.ceil(r/g.res))
         ci, cj = g.key(fx, fz)
