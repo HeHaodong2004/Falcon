@@ -135,4 +135,9 @@ FAMILIES = {
     # held-out families (never used for generator development)
     'heavy_brake': DynamicsModel('heavy_brake', levels=_levels(12), accel=2, brake=1),
     'slowturn_heavy': DynamicsModel('slowturn_heavy', turn_rad=NATIVE_TURN_RAD/3, levels=_levels(12), accel=2, brake=1),
+    # mild momentum (added 2026-10-30; the existing families are unchanged): full speed or a stop within 3 steps
+    # (0.14 s), stop distance 0.21 m from full speed (inertia: 6 steps, 0.52 m)
+    'light_inertia': DynamicsModel('light_inertia', levels=_levels(12), accel=4, brake=4),
+    # milder still: full speed or a stop within 2 steps (0.10 s), stop distance 0.10 m from full speed
+    'quick_inertia': DynamicsModel('quick_inertia', levels=_levels(12), accel=6, brake=6),
 }
