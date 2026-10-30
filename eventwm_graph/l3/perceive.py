@@ -30,6 +30,7 @@ import copy
 import math
 import os
 import re
+from collections.abc import Mapping
 
 import numpy as np
 
@@ -70,11 +71,16 @@ def _legal_row(source):
     a row or Layer 2 frame, a ``DecisionState`` (its last frame) or a querygen runtime state (its sensor's last row)."""
     if source is None:
         return None
-    if isinstance(source, dict):
+    if isinstance(source, Mapping):
         return source if 'camera_origin' in source else None
     frames = getattr(source, 'frames', None)
-    if frames:
+    if isinstance(frames, (list, tuple)) and frames:
         return _legal_row(frames[-1])
+    owner = getattr(source, 'source', None)
+    if owner is not None and getattr(owner, 'last', None) is not None:
+        # sandbox.service.RemoteDecision (split-process fleets): frames is a count; the worker-side stream holds
+        # the latest observation row
+        return _legal_row(owner.last)
     sensor = getattr(source, 'sensor', None)
     if isinstance(sensor, (tuple, list)) and len(sensor) >= 4:
         return _legal_row(sensor[3])
