@@ -247,6 +247,20 @@ Decomposition on the same 72 episodes (1.5 s unless stated):
 | best legal with Stage 1 mean-world people instead of CV (`S_mean32fPS2`; 3 / 4) | 59.7% | 25 | 4 |
 | same, 3.1 s window (`S_mean64fPS2`; 7 / 12) | 54.2% | 24 | 8 |
 | best legal + contact radius 0.60 m + STOP radius 0.18 m (`S_cv32fPS2fix`; 5 / 6) | 59.7% | 27 | 2 |
+| best legal + legal hidden-people hazard (`S_cv32fPS2H`, L3_MW_HAZARD; 2 / 5) | 56.9% | 22 | 8 |
+| best legal with the observer-faithful Stage 2 reveal, walls only, real camera rig (`S_cv32fPS2o`; 7 / 8) | 59.7% | 23 | 6 |
+| best legal, safety-only deviations (`S_cv32fPS2e`, L3_MW_EPS=0.5; 4 / 16, p = 0.012; deviations 67% -> 4%) | 44.4% | 27 | 13 |
+
+None of the components built on 2026-10-30 (tracker emulation, mean-world people, contact radius / STOP radius,
+hidden-people hazard, observer-faithful map stream) raises SR over the best legal configuration.  Deviating only for
+safety is significantly worse: the Sandbox's progress-driven deviations carry part of its value.
+
+Momentum robots (fixed executor: `L3_ANTIDITHER=12`, `L3_MOM_SIMPLE=1`; floors on 72 dev episodes: quick_inertia
+44.4%, accel_inertia 43.1%, light_inertia 26.4%; native 47.2%).  Best legal Sandbox vs floor, paired, 72 episodes:
+accel_inertia 37.5% vs 43.1% (6 / 10, p = 0.45; collisions 30 vs 24), quick_inertia 36.1% vs 44.4% (10 / 16, p = 0.33;
+25 vs 23) -- no gain.  Safety-only deviations (L3_MW_EPS=0.5) are neutral on these robots (interim: accel 41.3 vs
+42.9%, quick 45.6 vs 47.4%) while they are strongly harmful on native: for momentum robots the progress-driven
+deviations are what costs.
 
 The camera mount hurts once Stage 2 discovery is on (it also moves the point from which predicted cells are revealed);
 it is dropped from the legal configuration.
