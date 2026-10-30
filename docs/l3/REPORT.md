@@ -631,8 +631,9 @@ the true future, map discovery the largest gain in collision prediction.
   stays R10 v100 (pooled 26 / 20, not significant).
 - True-future camera-model selector on other planners (36 dev episodes each): DWA-native 50.0% vs floor 55.6% (4 / 6);
   SFM-native at 29 episodes 48.3% vs 48.3% (2 / 2) -- the ORCA gain does not transfer.
-- Scan rollout reference (exact one-step evaluation incl. the scan queries), 22 of 24 episodes: identical outcomes to
-  the plain reference (19 success, 3 timeout).
+- Scan rollout reference (exact one-step evaluation incl. the scan queries), all 24 episodes: 21 success / 3 timeout,
+  identical to the plain reference; scans are chosen in 5 of its 77 deviations -- active looking adds nothing to exact
+  one-step evaluation.
 - Evaluation directories (`output/eval/`): `H_mwroll_true300_dev` (release imagination, true future),
   `H_mwroll_true300p_dev` (+ camera model; 72 ORCA), `H_mwroll_true3sp_dev` (3 s true horizon),
   `H_mwroll_true300pd_dev` (+ Stage 2 discovery), `H_mwroll_true300pr_dev` (body-rectangle rule, stopped at 32: 0 / 3 vs
