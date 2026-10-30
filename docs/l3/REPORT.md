@@ -457,3 +457,14 @@ floor** (5 wins / 15 losses, p = 0.04; ORCA 41.7% vs 47.2%, SFM 31.4% vs 45.7%).
 values onto default-continuation labels (cf_reg 0.25 / cf_frac 0.25 / rank 0.3) with few actors damaged the greedy
 policy; with the flat learning curve, the label-factory direction is stopped.  R10 restarted in RL mode (01:21) from
 checkpoint v100 (the best so far) with the light counterfactual supervision v100 was trained with.
+
+**Decisive diagnostic: privileged critic (02:00).**  Same critic architecture and the same kind of counterfactual labels,
+on the same recompiled episodes, with legal inputs vs the TRUE future of every person (analysis-only bank, route /
+pair / interaction features against true positions over 9 s): critic top-1 at critical states legal 29.6% vs random
+29.7% (261 states, 77 critical), privileged 30.9% vs random 32.4% (342 states, 110 critical); within-state AUC 0.55 vs
+0.54; default-outcome AUC 0.61 vs 0.63.  Perfect knowledge of the people's futures does NOT make the labels predictable
+from compiled consequence features.  The exact reference's +30 points come from exactly simulating the robot's planner
+reacting to the people step by step (hit vs miss at fine timing), which the compiled features -- a 16-step imagined
+interval against a nominal world plus a route-following proxy -- do not capture.  Consequence: a longer-horizon people
+predictor would not help; what could is high-fidelity imagination of each candidate's execution with the planner
+reacting to each plausible future -- the multi-world rollout (`mwroll`) now under test.
