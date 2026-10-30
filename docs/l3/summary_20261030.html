@@ -127,7 +127,7 @@ code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; b
       <li><strong>Learned critics cannot score candidates.</strong> At critical states they pick no better than random, even when given the people's true future. The latest RL checkpoint lost to the floor 5 to 18 (p = 0.011).</li>
       <li><strong>The gap is the fidelity of the robot's own closed loop.</strong> With the true future of every person, the release imagination still drifts 1.25 m from reality within 3 s. Simulating the camera and progressive map discovery cuts that to 0.49 m.</li>
       <li><strong>The camera model works only with perfect people prediction.</strong> With an outcome-ordered rule it reaches 63.9% on ORCA and 61.1% on SFM (72 episodes each, p = 0.004 and 0.031); DWA gains little (54.2% vs 48.6%). Pooled over the three planners: 41 wins / 15 losses, p = 0.0007. The same selector with Stage 1 worlds stays at the floor under either rule.</li>
-      <li><strong>It needs everyone's future over the whole window.</strong> A perfect 3 s prediction, or the long future of the tracked people only, recovers less than half of the gain.</li>
+      <li><strong>It needs everyone's future over the whole window, and accurately.</strong> A perfect 3 s prediction, or the long future of the tracked people only, recovers less than half of the gain. A velocity error of just 0.1 m/s per person loses more than half of it too, even with every unseen person roughly placed.</li>
     </ul>
   </section>
 
@@ -159,6 +159,8 @@ code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; b
         <tr><td>+ camera model</td><td>true, tracked people only</td><td class="r num">50.0%</td><td class="r num">3 / 1</td></tr>
         <tr><td>+ camera model + Stage 2 map discovery</td><td>true, whole window</td><td class="r num">50.0%</td><td class="r num">3 / 1</td></tr>
         <tr><td>+ camera model + discovery from a privileged map</td><td>true, whole window</td><td class="r num">55.6%</td><td class="r num">5 / 1</td></tr>
+        <tr><td>+ camera model, outcome rule</td><td>true + 0.1 m/s velocity error, 6 worlds</td><td class="r num">52.8%</td><td class="r num">5 / 2</td></tr>
+        <tr><td>+ camera model, outcome rule</td><td>true + 0.3 m/s velocity error, 6 worlds</td><td class="r num">52.8%</td><td class="r num">6 / 3</td></tr>
         <tr><td>+ camera model (legal), either rule</td><td>6 Stage 1 worlds</td><td class="r num">44.4%</td><td class="r num">2 / 2</td></tr>
       </tbody>
     </table></div>

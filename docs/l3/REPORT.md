@@ -572,6 +572,8 @@ NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time
 | + camera model + Stage 2 map discovery (`L3_MW_DISCOVER=1`) | TRUE, whole window | 50.0% | 3 / 1 (vs camera model alone: 1 / 4) |
 | + camera model + discovery from a privileged truth map (the floor run's final legal map, `L3_MW_TRUTHMAPS`) | TRUE, whole window | 55.6% | 5 / 1 (vs camera model alone: 0 / 1) |
 | + camera model + privileged truth-map discovery, OUTCOME rule | TRUE, whole window | 58.3% | 6 / 1 (vs outcome rule alone: 0 / 2) |
+| + camera model, OUTCOME rule | 6 noisy copies of the TRUE future: per-person velocity error sigma = 0.1 m/s (~0.3 m at 3 s, ~1 m at 10 s) | 52.8% | 5 / 2 (vs exact future: 1 / 5) |
+| + camera model, OUTCOME rule | same with sigma = 0.3 m/s (~0.9 m at 3 s, ~3 m at 10 s) | 52.8% | 6 / 3 (vs exact future: 1 / 5) |
 | + camera model (LEGAL), OUTCOME rule | 6 Stage 1 worlds | 44.4% | 2 / 2 (identical to the legal contact rule) |
 | + camera model (LEGAL) | 6 Stage 1 worlds, constant velocity after 3 s, contacts over 4 s | 44.4% (all 72: 41.7% vs 47.2%, 5 / 9) | 2 / 2 |
 
@@ -584,7 +586,10 @@ The selection rule matters: ranking the imagined outcomes in the exact reference
 probability, then route progress" lifts the true-future camera-model selector to 63.9% vs floor 47.2% on all 72 ORCA
 episodes (14 wins / 2 losses, p = 0.004; vs the contact rule 4 / 1; collisions 17% vs 39%, timeouts 19% vs 14%, SPL
 0.48 vs 0.35, PSC 0.91 vs 0.87).  Better per-candidate prediction from map discovery (collision AUC 0.70 -> 0.79 in the probe) does not turn into SR
-with the current selection rule, even with a privileged map.  About half of the gain needs the futures of people the robot does NOT track at the decision (hidden or not yet
+with the current selection rule, even with a privileged map.  Prediction error (`L3_ORACLE_NOISE`, analysis): already a small per-person velocity error over the whole window (0.1
+m/s) loses more than half of the outcome-rule gain (52.8% vs 63.9%; floor 44.4%) -- and these noisy worlds still place
+every unseen person roughly correctly.  The imagination selector therefore needs long-horizon people prediction far
+more accurate than constant velocity, including people not yet seen.  About half of the gain needs the futures of people the robot does NOT track at the decision (hidden or not yet
 seen) -- a legal predictor has to forecast those too.  Both the camera model and a people future over the WHOLE imagined window are needed: a perfect 3 s predictor recovers
 less than half of the gain (vs the whole-window truth: 0 wins / 3 losses).
 
@@ -703,6 +708,8 @@ within noise of the floor.
 | `H_mwroll_true300po_sfm` | privileged (true future + camera, outcome rule, SFM) | 72 | 47.2% | 61.1% | 14 / 4 | 0.031 |
 | `H_mwroll_true300po_dwa` | privileged (true future + camera, outcome rule, DWA) | 72 | 48.6% | 54.2% | 13 / 9 | 0.523 |
 | `H_mwroll_true300po_inertia` | privileged (outcome rule, orca-inertia-k10) | 36 | 27.8% | 30.6% | 3 / 2 | 1.000 |
+| `H_mwroll_noise01_dev` | privileged (true future + 0.1 m/s velocity error, 6 worlds, outcome rule) | 36 | 44.4% | 52.8% | 5 / 2 | 0.453 |
+| `H_mwroll_noise03_dev` | privileged (true future + 0.3 m/s velocity error, 6 worlds, outcome rule) | 36 | 44.4% | 52.8% | 6 / 3 | 0.508 |
 | `H_mwroll_true300pto_dev` | privileged (outcome rule + truth-map discovery) | 36 | 44.4% | 58.3% | 6 / 1 | 0.125 |
 | `H_mwroll_legalpo_dev` | legal (6 Stage 1 worlds + camera model, outcome rule) | 36 | 44.4% | 44.4% | 2 / 2 | 1.000 |
 | `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 36 | 44.4% | 50.0% | 3 / 1 | 0.625 |
