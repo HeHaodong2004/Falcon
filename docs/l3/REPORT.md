@@ -569,6 +569,7 @@ NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time
 | + camera model | TRUE for 3 s (Stage 1's horizon), constant velocity after | 50.0% | 4 / 2 |
 | + camera model | TRUE, whole window, but only the people tracked at t (hidden people absent) | 50.0% | 3 / 1 (vs everyone: 1 / 4) |
 | + camera model + Stage 2 map discovery (`L3_MW_DISCOVER=1`) | TRUE, whole window | 50.0% | 3 / 1 (vs camera model alone: 1 / 4) |
+| + camera model + discovery from a privileged truth map (the floor run's final legal map, `L3_MW_TRUTHMAPS`) | TRUE, whole window | 55.6% | 5 / 1 (vs camera model alone: 0 / 1) |
 | + camera model (LEGAL) | 6 Stage 1 worlds, constant velocity after 3 s, contacts over 4 s | 44.4% (all 72: 41.7% vs 47.2%, 5 / 9) | 2 / 2 |
 
 The legal selector halves collisions on these 36 episodes (7 vs 13) but converts them into timeouts (13 vs 7); over
@@ -576,7 +577,8 @@ all 72 ORCA episodes it is slightly BELOW the floor (41.7% vs 47.2%, 5 / 9; coll
 deviates on 41% of decisions (true-future version: 20%), often to scans and waits, because with 6 worlds a default
 colliding in a single world loses to any candidate colliding in none.  A less jumpy legal variant (deviate only if the default collides in >= 30% of the world weight and a candidate is
 0.25 lower; 8% deviations instead of 41%) reaches 47.2% vs 44.4% (3 / 2) -- no better.
-About half of the gain needs the futures of people the robot does NOT track at the decision (hidden or not yet
+Better per-candidate prediction from map discovery (collision AUC 0.70 -> 0.79 in the probe) does not turn into SR
+with the current selection rule, even with a privileged map.  About half of the gain needs the futures of people the robot does NOT track at the decision (hidden or not yet
 seen) -- a legal predictor has to forecast those too.  Both the camera model and a people future over the WHOLE imagined window are needed: a perfect 3 s predictor recovers
 less than half of the gain (vs the whole-window truth: 0 wins / 3 losses).
 
@@ -684,6 +686,7 @@ within noise of the floor.
 | `H_mwroll_true300p_inertia` | privileged (same, orca-inertia-k10) | 36 | 27.8% | 36.1% | 5 / 2 | 0.453 |
 | `H_mwroll_true300p_sfm` | privileged (same, SFM) | 36 | 41.7% | 47.2% | 4 / 2 | 0.688 |
 | `H_mwroll_trackedp_dev` | privileged (true future of tracked people only) | 36 | 44.4% | 50.0% | 3 / 1 | 0.625 |
+| `H_mwroll_true300pt_dev` | privileged (true future + camera + truth-map discovery) | 36 | 44.4% | 55.6% | 5 / 1 | 0.219 |
 | `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 36 | 44.4% | 50.0% | 3 / 1 | 0.625 |
 | `H_mwroll_true300pr_dev` | privileged (body-rectangle rule; stopped) | 32 | 50.0% | 53.1% | 4 / 3 | 1.000 |
 | `H_mwroll_true3sp_dev` | privileged (true future 3 s only) | 36 | 44.4% | 50.0% | 4 / 2 | 0.688 |
