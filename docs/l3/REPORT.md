@@ -431,3 +431,5 @@ failures are deadlock timeouts (no single deviation + default succeeds anywhere 
 the same episodes were 8 collisions + 2 timeouts.  Its deviations are mostly the contact-tolerant ('_th') and
 space-time goal variants: st_goal_th 15, goal_th 15, st_goal_tc 12, goal 6, st_goal 5.  Test launched: fixed policies
 that always run st_goal_th / goal_th instead of the plain goal query (blind, ORCA + DWA dev).
+Fixed variant defaults (blind, ~60 paired dev episodes each): always st_goal_th 7 wins / 13 losses vs the floor, always
+goal_th 5 / 10 -- worse; the exact evaluator's use of these variants is situational, not a better default.
