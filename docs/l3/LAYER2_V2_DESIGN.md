@@ -215,6 +215,10 @@ Decomposition on the same 72 episodes (1.5 s unless stated):
 | legal CV + physics + camera mount, 3.1 s window, frozen map (`S_cv64fPM`; 5 wins / 10 losses vs 1.5 s) | 50.0% | 25 | 11 |
 | legal CV + physics + Stage 2 + camera mount (`S_cv32fPS2M`; 3 wins / 9 losses vs without mount, p = 0.15) | 52.8% | 27 | 6 |
 | legal CV + physics + Stage 2 + camera mount, 3.1 s (`S_cv64fPS2M`; 6 wins / 11 losses vs the best legal) | 54.2% | 26 | 7 |
+| best legal + tracker emulation (`S_cv32fPS2K2`; 0 wins / 2 losses) | 58.3% | 26 | 3 |
+| best legal with Stage 1 mean-world people instead of CV (`S_mean32fPS2`; 3 / 4) | 59.7% | 25 | 4 |
+| same, 3.1 s window (`S_mean64fPS2`; 7 / 12) | 54.2% | 24 | 8 |
+| best legal + contact radius 0.60 m + STOP radius 0.18 m (`S_cv32fPS2fix`; 5 / 6) | 59.7% | 27 | 2 |
 
 The camera mount hurts once Stage 2 discovery is on (it also moves the point from which predicted cells are revealed);
 it is dropped from the legal configuration.
@@ -245,6 +249,19 @@ dominates that (section 1.2), so the SR ceiling of perfect wall discovery at 3.1
 | DWA-native | 54.2% | 48.6% | 13 / 9 |
 | ORCA-slowturn | 38.9% | 41.7% | 9 / 11 |
 | ORCA-inertia | 25.0% | 29.2% | 8 / 11 |
+
+TRUE people + physics (analysis) per dynamics, 72 episodes each:
+
+| setting | 1.5 s | 3.1 s | floor |
+|---|---|---|---|
+| ORCA-native | 66.7% | 70.8% | 47.2% |
+| ORCA-slowturn | 48.6% (12 / 7) | 52.8% (14 / 6) | 41.7% |
+| ORCA-inertia | 25.0% (8 / 11) | 31.9% (11 / 9; 21 timeouts) | 29.2% |
+
+Exact 3.1 s references (early): inertia 78.9% vs 36.8% (19 episodes), DWA 100% vs 61.5% (13), SFM 82.4% vs 52.9% (17).
+Inertia's failure is a decision problem.  With TRUE people the selector loops on `wait_short` (up to 71 times in one
+episode; timeouts) and chooses explicit STOPs imagined within 0.3 m of the goal that fail officially (< 0.2 m needed;
+10 stop_fail episodes).  Options `L3_MW_RADIUS` and `L3_MW_GOAL_R` are being tested.
 
 The robot self-model holds up beyond ORCA-native.  On floor collision episodes with TRUE people, divergence at 1.5 s
 (p90) is 1.7 m (DWA), 2.7 m (slow-turn) and 0.9 m (inertia), and contact recall is 0.87-0.90.  With TRUE people the
