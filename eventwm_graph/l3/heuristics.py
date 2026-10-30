@@ -325,6 +325,11 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
         sb.config.continuation = old
     pc = np.where(stop_bad, 1., pc)
     dflt = int(d.default)
+    # deviation margins (env, defaults = the original rule): the default is kept unless its contact probability is at
+    # least L3_MW_MIN_PC and exceeds the best candidate's by more than L3_MW_SLACK_P
+    slack_p = float(__import__('os').environ.get('L3_MW_SLACK_P', slack_p))
+    if pc[dflt] < float(__import__('os').environ.get('L3_MW_MIN_PC', '0')):
+        return dflt
     best_p = float(pc.min())
     pool = np.flatnonzero(pc <= best_p+slack_p)
     k = int(pool[np.argmax(prog[pool])])
