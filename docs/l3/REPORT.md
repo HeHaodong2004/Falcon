@@ -479,3 +479,5 @@ progress trap; a ~5 s look-ahead rates "wait safely" well, while the exact refer
 sees the resulting timeout.  Legal multi-world rollout stopped at 54 episodes (5 / 7).  Running: true-future
 imagination over 300 steps (~to the episode end) on 36 ORCA dev episodes -- if it reproduces the exact reference, the
 legal path is a world model whose people prediction reaches the whole episode, used through imagination.
+Label critic v1 (paired dev, 205 episodes): 23 wins / 27 losses vs the floor (ORCA 48.6 vs 47.2%, DWA 49.2 vs 50.8%,
+SFM 41.7 vs 47.2%) -- floor level, as the flat learning curve predicted.
