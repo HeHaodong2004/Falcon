@@ -615,17 +615,18 @@ the true future, map discovery the largest gain in collision prediction.
   the most faithful imagination built tonight reaches ~60% on ORCA only when it is handed the TRUE future of every
   person (and gains nothing on DWA).
 - It is not an information wall in the sense rejected earlier: outcomes are mostly robust to timing noise, robust
-  fixes exist, and the exact evaluator under timing noise still solves the decisive episodes.  It is a
+  fixes exist, and a timing-robust exact one-step evaluator reaches ~83% (20/24; plain 88%, floor 58%).  It is a
   SIMULATION-FIDELITY wall: a selector must re-run the robot's own closed loop (camera, map, planner) inside a
   predicted world.  Measured ingredients: the camera model plus a whole-window people future give +12.5 points on ORCA;
-  with a perfect people future over Stage 1's 3 s only, about +5; with real Stage 1 worlds, nothing; Stage 2-predicted
-  map discovery adds nothing measurable yet.  The legal bottleneck, in order: people futures over the whole
+  with a perfect people future over Stage 1's 3 s only, about +5; with the true long future of the TRACKED people only,
+  about +5; with real Stage 1 worlds, nothing (72 episodes: 41.7% vs 47.2%); Stage 2-predicted map discovery adds
+  nothing measurable.  The legal bottleneck, in order: people futures over the whole
   decision-relevant window (10+ s, multi-world), then imagined closed-loop fidelity (map discovery, planner-specific
   behaviour), then speed (10-30 s per decision).
 - 85% eventually, with a full closed-loop world model: ~10% (the best privileged imagination is at collision AUC 0.79
   and ~60% SR).  A legal selector at 60-65% on ORCA-native within weeks: ~30-40%.
-- RL on compiled features should stop: R10R (RL from v100) is getting WORSE (04:30 milestone, partial: 2 wins / 11
-  losses vs the floor), as the diagnostics predict.
+- RL on compiled features should stop: R10R (RL from v100) got WORSE (04:30 milestone, 108 episodes: 5 wins / 18
+  losses vs the floor, p = 0.011), as the diagnostics predict; it was stopped at 04:57.
 
 ### 7.4 Runs, state and artifacts (05:10)
 
