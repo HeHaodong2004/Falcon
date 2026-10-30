@@ -320,6 +320,11 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     world, the planner's reactions to each possible future are simulated (the timing that decides hit vs miss)."""
     from eventwm_graph.sandbox.imagine import NominalHumans
     from .compiler import LegalField
+    # Layer 3 options (default off = the original rule): contact radius of the centre-distance rule (L3_MW_RADIUS;
+    # with TRUE people 0.60 m gives precision / recall 0.79 / 0.77 within 1.5 s vs 0.50 / 0.83 for 0.75 m) and the
+    # radius within which an imagined STOP counts as reaching the goal (L3_MW_GOAL_R; official success: < 0.2 m)
+    radius = float(__import__('os').environ.get('L3_MW_RADIUS', radius))
+    goal_r = float(__import__('os').environ.get('L3_MW_GOAL_R', '0.3'))
     bank = d.result.humans
     W = np.asarray(bank.weights, np.float64)
     W = W/W.sum() if W.sum() > 0 else np.full(len(W), 1./max(len(W), 1))
@@ -398,7 +403,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                 seq = np.concatenate([poses[1:], c]) if c is not None and len(c) else poses[1:]
                 if not len(seq):
                     seq = poses[:1]
-                if ro.stop and math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) > 0.3:
+                if ro.stop and math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) > goal_r:
                     stop_bad[k] = True
                 if HP is not None:
                     n = min(len(seq), HP.shape[1], contact_steps)
@@ -415,7 +420,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                         dmin[k] = min(dmin[k], float(np.nanmin(np.where(np.isfinite(dd), dd, np.inf))))
                 prog[k] += ww[j]*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
                 if vm is not None:
-                    near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= 0.3
+                    near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= goal_r
                     if HP is not None and hit:
                         val = 0.
                     elif ro.stop:
@@ -439,7 +444,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                     # steps better) > still running (more route progress) > contact / STOP away from the goal (later
                     # better); category + a tie-break in [0, 0.5)
                     Tk = max(len(seq), 1)
-                    near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= 0.3
+                    near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= goal_r
                     if HP is not None and hit:
                         first = int(np.argmax(np.nanmin(np.where(np.isfinite(dd), dd, np.inf), axis=1) <
                                               (rect if rect > 0 else radius)))
