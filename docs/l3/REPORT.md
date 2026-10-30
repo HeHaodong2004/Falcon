@@ -488,3 +488,24 @@ future -- still collide in reality in 5 / 19 episodes (the exact reference: none
 from the real one at the timing that decides hits.  In imagination the planner perceives every tracked person's
 future perfectly; in reality it perceives people through the 90-degree camera (occlusion, track loss) and reacts
 differently.  Reproducing the exact evaluator would require simulating the robot's own perception inside the loop.
+
+## 7. Early morning 2026-10-30: closed-loop fidelity
+
+Completed overnight (paired dev vs the floor):
+- Label critic v1 (3-member ensemble, ~2.2k labels), final: DWA 47.9% vs 47.9% (10 / 10), ORCA 48.6% vs 47.2% (8 / 7),
+  SFM 41.7% vs 47.2% (7 / 11); pooled 25 / 28 -- floor level.
+- Legal multi-world imagined rollout (6 Stage 1 worlds, 60-step continuation), stopped at 54 ORCA episodes: 44.4% vs
+  48.1% (5 / 7).
+- True-future multi-world rollout, 100-step continuation (analysis only), 63 ORCA episodes: 49.2% vs 50.8% (5 / 6).
+- True-future rollout over 300 steps (analysis only), 29 of 36 ORCA episodes: 50.0% vs 50.0% (3 / 3); outcomes 14
+  success / 9 timeout / 6 collision.  The early lead (63% at 19 episodes) came from the short episodes finishing first.
+- Scan rollout reference (exact one-step evaluation incl. the scan queries), 14 of 24 episodes: 12 / 14, identical to the
+  plain reference on the same episodes (scans are chosen 5 times, rotations 3).  Active looking adds no successes
+  to exact one-step evaluation.
+- Deadlock probe, complete (6 floor timeouts, ORCA + DWA, 5 distinct episodes): only ONE episode (in both
+  configurations) has escapes at mid-episode (step 240: 3-4 single deviations, ~40 two-step sequences); the other
+  four have none at step 240 or step 384.  Correction to section 6: most floor deadlocks are not escapable by 1-2 query
+  choices from mid-episode on.
+- Collision context of the floor (54 collisions, 3 native configurations): 22 happen while the robot turns in place
+  (median 84 deg in the last second), 61% of contacts are outside the camera's +-45 deg; the colliding person was seen
+  within 1 s in 61%, within 3 s in 80%, ever in 87%.
