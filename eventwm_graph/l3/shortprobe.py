@@ -11,7 +11,15 @@ every candidate is
     cam6   camera model (perceive.VisibleWorld) re-imagined in each of the 6 heaviest Stage 1 worlds   (legal)
     camT   camera model with the TRUE future of every person                                         (privileged)
     camTD  camT + progressive discovery of the real robot's map at the end of the window             (privileged)
+    camTk  TRUE people through the EMULATED camera + tracker (perceive L3_CAM_TRACKER: the decision's camera rig,
+           3-D frustum, legal-map line of sight, the real LegalHumanTracker seeded at t)            (privileged people)
+    camTkM camTk + the real robot's map stream (as camM)                                            (privileged)
   all on the legal map frozen at t (camTD: discovered along the imagined path).
+
+Track agreement (analysis): for the camera-model / replayed-tracker variants, the imagined track set at every step is
+compared with the real branch's track log at the same step ('trk': closed loop, imagined pose) and -- for the camera
+models -- with the same perception model replayed along the REAL branch's poses ('trk_ol': open loop, isolates the
+perception model from the imagined planner); per window 16 / 32 / 64 steps: summed counts (see ``track_agreement``).
 
 Per candidate and variant: min body-rectangle clearance to the variant's people within 16 / 32 / 64 steps (cam6: per
 world), the legal route cost-to-go (decision-time map) of the pose reached at 16 / 32 / 64 steps, STOP / end flags,
@@ -33,6 +41,72 @@ W_MAX = 64
 WINDOWS = (16, 32, 64)
 LAGS = (8, 16, 32, 48, 64)
 N_WORLDS = 6
+TRK_GATE = 0.3       # m: an imagined and a real track of the same person (planar distance of their last detections)
+TRK_NEAR = 2.5       # m: 'near' tracks -- within this distance of the respective robot (real / imagined)
+
+
+def _match_tracks(I, R, gate=TRK_GATE):
+    """Greedy planar matching of two track lists within ``gate``: [(i, r, distance)]."""
+    pairs = []
+    for i, a in enumerate(I):
+        for r, b in enumerate(R):
+            dd = math.hypot(float(a['position'][0])-float(b['position'][0]), float(a['position'][2])-float(b['position'][2]))
+            if dd <= gate:
+                pairs.append((dd, i, r))
+    ui, ur, out = set(), set(), []
+    for dd, i, r in sorted(pairs):
+        if i in ui or r in ur:
+            continue
+        ui.add(i); ur.add(r)
+        out.append((i, r, dd))
+    return out
+
+
+def _vel(t):
+    v = t.get('estimated_velocity')
+    return None if (v is None or not t.get('velocity_valid')) else (float(v[0]), float(v[2]))
+
+
+def track_agreement(rec, track_log, b0, real_pose_at, imag_pose_at):
+    """ANALYSIS: step-by-step agreement of an imagined track set with the real tracker's (``track_log[b0 + k]``),
+    k >= 1, summed per window (16 / 32 / 64 steps): steps; exact (equal sets: equal sizes, every track matched within
+    TRK_GATE with the same velocity_valid); nr / ni / nm (real / imagined / matched tracks); vv (matched, same
+    velocity_valid); perr (summed position error of matched); vn / verr (matched with both velocities valid, summed
+    |dv|); the same for tracks within TRK_NEAR of the respective robot (nnr / nni / nnm / nexact).  'ex': per-step
+    exact flags ('1' / '0', '-' = no real record)."""
+    out = {w: dict(steps=0, exact=0, nr=0, ni=0, nm=0, vv=0, perr=0., vn=0, verr=0., nnr=0, nni=0, nnm=0, nexact=0)
+           for w in WINDOWS}
+    flags = {}
+    for k, I in rec:
+        k = int(k)
+        if k < 1 or k in flags:
+            continue
+        if b0+k >= len(track_log):
+            flags[k] = '-'
+            continue
+        R = track_log[b0+k][1]
+        M = _match_tracks(I, R)
+        vv = sum(int(bool(I[i].get('velocity_valid')) == bool(R[r].get('velocity_valid'))) for i, r, _ in M)
+        exact = int(len(R) == len(I) == len(M) == vv)
+        dv = [math.hypot(a[0]-b[0], a[1]-b[1]) for a, b in ((_vel(I[i]), _vel(R[r])) for i, r, _ in M)
+              if a is not None and b is not None]
+        pr, pi = real_pose_at(k), imag_pose_at(k)
+        nR = [t for t in R if math.hypot(float(t['position'][0])-pr[0], float(t['position'][2])-pr[2]) <= TRK_NEAR]
+        nI = [t for t in I if math.hypot(float(t['position'][0])-pi[0], float(t['position'][2])-pi[2]) <= TRK_NEAR]
+        Mn = _match_tracks(nI, nR)
+        nex = int(len(nR) == len(nI) == len(Mn) and
+                  all(bool(nI[i].get('velocity_valid')) == bool(nR[r].get('velocity_valid')) for i, r, _ in Mn))
+        flags[k] = str(exact)
+        for w in WINDOWS:
+            if k > w:
+                continue
+            o = out[w]
+            o['steps'] += 1; o['exact'] += exact
+            o['nr'] += len(R); o['ni'] += len(I); o['nm'] += len(M); o['vv'] += vv
+            o['perr'] += float(sum(d for _, _, d in M)); o['vn'] += len(dv); o['verr'] += float(sum(dv))
+            o['nnr'] += len(nR); o['nni'] += len(nI); o['nnm'] += len(Mn); o['nexact'] += nex
+    out['ex'] = ''.join(flags.get(k, '-') for k in range(1, (max(flags) if flags else 0)+1))
+    return out
 
 
 def _min_upto(series, w):
@@ -131,6 +205,17 @@ def probe_decision(ep, d, sb):
     finally:
         rt.sensor.observe = hooked
     variants = os.environ.get('L3_PROBE_VARIANTS', 'rel,cam6,camT,camTD').split(',')
+    trk_on = os.environ.get('L3_PROBE_TRACKS') == '1'          # analysis: track agreement records (default off)
+    b0 = len(st.legal.track_log)-1                               # track log index of the decision (step 0)
+    seed = None
+    if any(v.startswith('camTk') for v in variants):
+        # the emulated tracker's seed vs the real tracker object of the runtime state at t (must be identical)
+        from .perceive import seeded_tracker
+        real_tr = st.sensor[0] if isinstance(getattr(st, 'sensor', None), (tuple, list)) else None
+        s = seeded_tracker(st.legal)
+        seed = dict(next_id=[int(s.next_id), None if real_tr is None else int(real_tr.next_id)],
+                    timestamp=[float(s.timestamp), None if real_tr is None else float(real_tr.timestamp)],
+                    tracks_equal=bool(real_tr is not None and s.tracks == real_tr.tracks), n=len(s.tracks))
     s2map = None
     if any(v.startswith('camS2') for v in variants):
         # LEGAL predicted map (Layer 2 / Stage 2): every candidate imagined on the frozen map (TRUE people, as camT),
@@ -194,6 +279,15 @@ def probe_decision(ep, d, sb):
                     if base == 'camRM':
                         vmap = st.legal.map.copy()
                         hum.discovery = TimedReveal(vmap, fin.legal.map)
+                elif base in ('camTk', 'camTkM'):
+                    # TRUE people through the emulated camera + tracker (perceive L3_CAM_TRACKER): the camera rig of the
+                    # decision's legal row (runtime state), the real LegalHumanTracker seeded with the legal tracks;
+                    # camTkM: + the real map stream for the planner and the final map for occlusion (as camM)
+                    hum = VisibleWorld(st.legal, truth, 0, W_MAX, camera=st, tracker=True)
+                    if base == 'camTkM':
+                        vmap = st.legal.map.copy()
+                        hum.blocked = _blocked_lookup(fin.legal.map)
+                        hum.discovery = TimedReveal(vmap, fin.legal.map)
                 else:
                     hum = VisibleWorld(st.legal, truth, 0, W_MAX)
                     if base == 'camTD':
@@ -214,12 +308,29 @@ def probe_decision(ep, d, sb):
                         hum.discovery = TimedReveal(vmap, fin.legal.map, only=dict(camMF=1, camMB=2).get(base))
                 fid = v != 'rel'
                 phys = 'band' if v.endswith('P') else 'core' if v.endswith('Pc') else ''
+                track_rec = trk_on and hasattr(hum, 'rec')
+                if track_rec:
+                    hum.rec = []                   # analysis: the imagined track set of every step
                 ro = imagine(st.legal, ex, dyn, hum, h, level=int(cand.level), gmap=vmap,
                              continuation=max(0, W_MAX-h), cont_query=goal, planner=cfg.planner,
                              cont_boundary=16 if fid else 0, cont_inherit=fid, physics=phys)
                 c = getattr(ro, 'cont', None)
                 im = np.concatenate([ro.poses[1:], c]) if c is not None and len(c) else np.asarray(ro.poses[1:])
                 im = np.asarray(im, np.float64).reshape(-1, 4)
+                trk = {}
+                if track_rec:
+                    p0 = np.asarray(st.legal.pose, np.float64)
+                    rpose = lambda k: p0 if k < 1 else real[min(k, len(real))-1]
+                    ipose = lambda k: p0 if (k < 1 or not len(im)) else im[min(k, len(im))-1]
+                    trk['trk'] = track_agreement(hum.rec, fin.legal.track_log, b0, rpose, ipose)
+                    hum.rec = None
+                    if isinstance(hum, VisibleWorld) and len(real):
+                        # open loop: the same perception model (own memory, same occlusion map) along the REAL poses
+                        ol = hum.fork(None, hum.blocked)
+                        ol.rec = []
+                        for kk in range(0, min(len(real), W_MAX)+1):
+                            ol.tracks_at(kk, rpose(kk))
+                        trk['trk_ol'] = track_agreement(ol.rec, fin.legal.track_log, b0, rpose, rpose)
                 legal_cd = None
                 if v == 'cam6':
                     ic = _world_clearance(im, HP[w])
@@ -253,11 +364,13 @@ def probe_decision(ep, d, sb):
                                  near_goal=bool(len(im) and math.hypot(im[-1, 0]-st.legal.goal[0], im[-1, 2]-st.legal.goal[2]) <= 0.3),
                                  clr={w2: _min_upto(ic, w2) for w2 in WINDOWS},
                                  ctg={w2: _ctg_at(field, im, w2) for w2 in WINDOWS}, div=div,
-                                 **({} if icd is None else dict(cd={w2: _min_upto(icd, w2) for w2 in WINDOWS}))))
+                                 **({} if icd is None else dict(cd={w2: _min_upto(icd, w2) for w2 in WINDOWS})), **trk))
             rec['imag'][v] = runs
         cands.append(rec)
     out = dict(step=i0, decision=int(ep.decisions), labels=list(d.labels), default=d.labels[d.default],
                ctg0=float(field.start), cands=cands, seconds=round(time.perf_counter()-t0, 1))
+    if seed is not None:
+        out['seed'] = seed
     if info is not None:
         out['ego'] = [float(x) for x in info.ego()]
     return out

@@ -89,6 +89,64 @@ With imagined core physics added (`ladder2_true32f`; 942 paired candidates, 1.5 
   early.  The imagination therefore needs a calibrated contact model in place of a 0.75 m centre rule.
 * Imagined camera: the real jaw camera is 0.52 m ahead of the base centre and yawed about 4.5 deg right, but the
   imagination placed it at the base centre.  New default-off option `L3_CAM_MOUNT=1` (`perceive.camera_pose`).
+  Correction (train state bank, 53 episodes): the arm, and with it the camera, is rigid relative to the base within an
+  episode but differs between episodes (0.61-0.86 m above the base pose, yaw offset -15..+17 deg, pitch -12..+32 deg;
+  medians 0.52 m ahead, 0.73 m up, yaw 0, pitch +9 deg), so no fixed mount is right.  `L3_CAM_TRACKER=1` (below)
+  reads it from the legal row at t.
+
+Tracker emulation (`L3_CAM_TRACKER=1`, default off; `perceive.VisibleWorld(..., tracker=True)`; legal: the robot's own
+software and sensor spec).  The imagined camera + tracker run the robot's perception code on imagined detections:
+* camera rig from the decision's legal row (`perceive.CameraRig`); composed with a base pose it reproduces the real
+  camera pose to 6e-6 m over 6,098 train frames;
+* the real 3-D frustum test (`partial.observer.in_frustum`: 90 x 90 deg, 10 m, torso = base + 1 m).  People stand on
+  the robot's floor: real person base y minus robot base y is median 0.00 m, p95 0.19 m.  Line of sight is checked on
+  the legal map;
+* the real `LegalHumanTracker`, seeded with the legal tracks at t and the next id from the legal track log.  Fed the
+  real detections at the real timestamps, it reproduces the real track log exactly (0 mismatches in 10,816 train
+  steps), and at 29 of 29 probed dev decisions the seed equals the runtime's own tracker object.  The imagination's
+  0.048 s clock (the real clock is floor(n * 73 / 12) * 0.008 s) changes track ids at 0.2% of steps; median velocity
+  change is 0.
+
+Open loop (perception replayed along the real robot's poses with the true people, compared with the real track log,
+1.5 s):
+
+| state bank | model | exact track set | tracks P / R | near (2.5 m) P / R | velocity-valid agreement | velocity error |
+|---|---|---|---|---|---|---|
+| train, 192 states | camera model (today) | 0.758 | 0.73 / 0.86 | 0.87 / 0.90 | 0.944 | 0.13 m/s |
+| train | emulated | 0.836 | 0.78 / 0.90 | 0.96 / 0.97 | 0.982 | 0.06 m/s |
+| dev, 232 states | camera model (today) | 0.780 | 0.73 / 0.83 | 0.85 / 0.83 | 0.975 | 0.10 m/s |
+| dev | emulated | 0.840 | 0.79 / 0.87 | 0.92 / 0.91 | 0.982 | 0.05 m/s |
+
+* Within 2 m of the robot, emulated detections match the real sensor's (train: precision 0.99, recall 0.98).  The
+  base-centre 2-D frustum disagrees with the real sensor on 13% of near person-steps; the rig frustum disagrees on
+  0.2%.
+* The remaining disagreement comes from the frozen map.  93% of false detections are people behind walls the robot
+  certifies only later (precision 0.30 beyond 4 m).  Inflated legal walls lower recall at 2-4 m to 0.85.
+* The vertical FOV almost never binds: 9 of 4,916 person-steps inside the horizontal FOV, none detected by the real
+  sensor.
+
+Closed loop, fidelity ladder on 4 of the 18 collision episodes (`output/agents/tracker/ladder_tk`): 9K1WbyTZ456/9294,
+Uxmj2M2itWa/38344, XVSZJAtHKdi/8177 and nJTPfwbAj4S/7302.  29 decisions, 290 candidates, TRUE people, core physics.
+Divergence is for non-thru candidates.
+
+| imagination | exact track set, 1.5 s | near exact | divergence at 16 steps, median / p90 | divergence at 32 steps, median / p90 | contact P / R within 0.77 s | contact P / R within 1.5 s | decisive cases foreseen |
+|---|---|---|---|---|---|---|---|
+| camera model (`camTPc`) | 0.62 | 0.76 | 0.00 / 0.62 m | 0.21 / 1.91 m | 0.38 / 0.50 | 0.44 / 0.56 | 1 / 4 |
+| emulated camera + tracker (`camTkPc`) | 0.81 | 0.94 | 0.00 / 0.21 m | 0.00 / 1.85 m | 0.53 / 0.72 | 0.57 / 0.72 | 2 / 4 |
+| real tracker output (`camRPc`) | 1 | 0.98 | 0.00 / 0.21 m | 0.00 / 1.88 m | 0.53 / 0.72 | 0.58 / 0.72 | 2 / 4 |
+| emulated tracker + real map stream (`camTkMPc`) | 0.87 | 0.96 | 0.00 / 0.21 m | 0.00 / 0.46 m | 0.52 / 0.72 | 0.57 / 0.75 | 2 / 4 |
+| real tracker + real map stream (`camRMPc`) | 1 | 1.00 | 0.00 / 0.00 m | 0.00 / 0.24 m | 0.52 / 0.72 | 0.59 / 0.75 | 2 / 4 |
+
+* The emulated tracker drives the imagined planner as the real tracker's output does.  Imagined runs are identical
+  for 65% of candidates (camera model: 42%).  The 1.5 s divergence differs from the real-tracker run by more than
+  0.1 m for 10% of candidates (camera model: 22%).
+* Uxmj2M2itWa: the imagined centre distance falls from 0.89 m (camera model) to 0.08 m (real tracker: 0.11 m).
+* What remains is the map (frozen walls), not the tracker.
+* Regenerate with `python scripts/l3_run.py eventwm_graph.l3.trackcheck seed|openloop --bank <state bank>` and
+  `... trackcheck ladder --probe output/agents/tracker/ladder_tk`.  The probe used the section 1.1 replay recipe with
+  `L3_PROBE_VARIANTS=camTPc,camTkPc,camRMPc,camRPc,camTkMPc L3_PROBE_TRACKS=1`.  Of its 580 `camTPc` / `camRMPc`
+  runs, 572 equal the earlier `ladder2_true32f` runs.  The 8 others are the 4 `pass_left` candidates whose exact real
+  branch also differs from the earlier run.
 
 Which part of the map stream matters (`output/shortprobe/ladder3_true32f`; 832 paired candidates; non-thru
 divergence at 1.5 s, median / p90):
@@ -210,8 +268,8 @@ and 86% (3.1 s) against the floor's 47.2% on the same episodes.
   - map discovery while moving: the imagined camera reveals predicted cells and the planner replans (missing; the
     largest gap);
   - contact physics (`SANDBOX_PHYSICS=core`, built);
-  - the real camera mount and the robot's own tracker code on imagined detections (mount built as `L3_CAM_MOUNT=1`;
-    tracker to do);
+  - the real camera mount and the robot's own tracker code on imagined detections (built: `L3_CAM_TRACKER=1`, the
+    per-episode camera rig from the legal row + the real `LegalHumanTracker`; section 1.2);
   - a calibrated official-contact model.
 * World prediction (Layer 2, 0-3 s, legal):
   - tracked people with stop / turn modes;

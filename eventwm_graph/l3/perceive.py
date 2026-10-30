@@ -7,8 +7,29 @@ The real planner perceives people only through the 90 deg jaw camera: a person i
 people (tracked AND hidden slots of a Stage 1 world, or the analysis-only true future), and at every imagined step
 returns the legal-format tracks the robot would have from its IMAGINED pose (frustum, legal-map occlusion, last-seen
 memory).  State resets when a rollout starts (k == 0) and carries through the default continuation.
+
+Layer 3 option ``L3_CAM_TRACKER=1`` (default off; per instance ``VisibleWorld(..., tracker=True)``): the imagined
+camera + tracker EMULATE the robot's real perception pipeline (``scripts/collector/observation.py``, fast path
+``querygen/fastsense.py``) instead of the simplified memory above -- the robot's own software and sensor spec, so
+legal:
+
+* camera: the jaw camera's pose relative to the base, read from the legal observation row at t (``camera_origin`` /
+  ``camera_rotation`` vs ``robot_pose``; ``CameraRig``) and carried rigidly with the imagined base.  The arm, and with
+  it the camera, is fixed relative to the base within an episode but differs between episodes (train state bank,
+  53 episodes: 0.61-0.86 m above the base pose, yaw offset -15..+17 deg, pitch -12..+32 deg), so no fixed mount fits;
+* detection: the person's torso point (base + ``torso_height_m`` = 1 m; the base on the robot's floor -- tracked
+  people at their legal track height, everyone else at the robot's base height, as real rows show: person base y -
+  robot base y median 0.00 m, p95 0.19 m) inside the 3-D 90 x 90 deg / 10 m frustum (the real ``in_frustum``), and a
+  clear line of sight on the legal map (the real 3-D ray test needs scene geometry, which is not legal);
+* tracking: the REAL ``LegalHumanTracker`` (greedy gated association, position = last detection, velocity only from
+  detections <= 0.5 s apart, new tracks without velocity, sequential ids, 2 s age limit) seeded at k = 0 with the
+  robot's legal tracks at t (ids, positions, velocities, last-seen times; the next id beyond every id in the legal
+  track log -- exactly the real tracker's state at t).
 """
+import copy
 import math
+import os
+import re
 
 import numpy as np
 
@@ -24,6 +45,115 @@ RANGE = 10.
 # that a centre camera would see are outside the real frustum.
 CAM_MOUNT = __import__('os').environ.get('L3_CAM_MOUNT') == '1'
 CAM_FWD, CAM_RIGHT, CAM_YAW = 0.52, 0.02, math.radians(-4.5)
+
+# tracker emulation (L3_CAM_TRACKER=1, default off): see the module docstring
+CAM_TRACKER = os.environ.get('L3_CAM_TRACKER') == '1'
+# the jaw depth sensor (falcon_{hm3d,mp3d}_task.yaml: 256 x 256 px, hfov 90 deg -> vfov 90 deg, max depth 10 m), as
+# ``ObservationConfig.from_depth_sensor`` builds the real sensor's config; tracker parameters = the dataclass defaults
+SENSOR_FOV_DEG = (90., 90.)
+SENSOR_RANGE_M = 10.
+# fallback camera rig when no legal observation row is given: per-episode medians over the TRAIN state bank
+# (output/statebank/orca_train, 53 episodes; forward / right / up offsets from the base pose in m, yaw offset (left +)
+# and pitch (up +) in deg).  Callers that hold the decision's legal row (DecisionState / runtime state) pass it.
+RIG_FALLBACK = dict(fwd=0.517, right=0.005, up=0.731, yaw=-0.05, pitch=9.18)
+_TRACK_ID = re.compile(r'^track_(\d+)$')
+
+
+def _rot_y(a):
+    """Rotation about world +y by ``a`` (the base frame: local +x = forward (cos yaw, -sin yaw), +z = right)."""
+    c, s = math.cos(a), math.sin(a)
+    return np.array([[c, 0., s], [0., 1., 0.], [-s, 0., c]])
+
+
+def _legal_row(source):
+    """The latest legal observation row (dict with robot_pose / camera_origin / camera_rotation) held by ``source``:
+    a row or Layer 2 frame, a ``DecisionState`` (its last frame) or a querygen runtime state (its sensor's last row)."""
+    if source is None:
+        return None
+    if isinstance(source, dict):
+        return source if 'camera_origin' in source else None
+    frames = getattr(source, 'frames', None)
+    if frames:
+        return _legal_row(frames[-1])
+    sensor = getattr(source, 'sensor', None)
+    if isinstance(sensor, (tuple, list)) and len(sensor) >= 4:
+        return _legal_row(sensor[3])
+    return None
+
+
+class CameraRig:
+    """The jaw camera's pose in the base frame (``offset`` [3], ``rotation`` [3, 3] camera-to-base; the camera looks
+    down its local -Z, as ``scripts.collector.observation``): ``pose(base)`` -> (origin, camera-to-world rotation)
+    for an imagined base pose [x, y, z, yaw]."""
+
+    def __init__(self, offset, rotation, source='row'):
+        self.offset = np.asarray(offset, np.float64).reshape(3)
+        self.rotation = np.asarray(rotation, np.float64).reshape(3, 3)
+        self.source = source
+
+    @classmethod
+    def from_row(cls, row):
+        p = np.asarray(row['robot_pose'], np.float64)
+        Rb = _rot_y(float(p[3]))
+        o = np.asarray(row['camera_origin'], np.float64)
+        R = np.asarray(row['camera_rotation'], np.float64)
+        return cls(Rb.T @ (o-p[:3]), Rb.T @ R, 'row')
+
+    @classmethod
+    def fallback(cls):
+        f = RIG_FALLBACK
+        yaw, pitch = math.radians(f['yaw']), math.radians(f['pitch'])
+        c, s = math.cos(pitch), math.sin(pitch)
+        Rx = np.array([[1., 0., 0.], [0., c, -s], [0., s, c]])
+        return cls([f['fwd'], f['up'], f['right']], _rot_y(yaw-math.pi/2) @ Rx, 'fallback')
+
+    @classmethod
+    def of(cls, source):
+        row = _legal_row(source)
+        return cls.from_row(row) if row is not None else cls.fallback()
+
+    def pose(self, base):
+        Rb = _rot_y(float(base[3]))
+        return np.asarray(base[:3], np.float64)+Rb @ self.offset, Rb @ self.rotation
+
+
+def next_track_id(legal):
+    """The real tracker's next sequential id at t: one beyond every id it has ever published (legal track log)."""
+    best = -1
+    for t in getattr(legal, 'tracks', ()) or ():
+        m = _TRACK_ID.match(str(t.get('track_id')))
+        if m:
+            best = max(best, int(m.group(1)))
+    for _, trs in getattr(legal, 'track_log', ()) or ():
+        for t in trs:
+            m = _TRACK_ID.match(str(t.get('track_id')))
+            if m:
+                best = max(best, int(m.group(1)))
+    return best+1
+
+
+def sensor_config():
+    from scripts.collector.observation import ObservationConfig
+    return ObservationConfig(SENSOR_FOV_DEG[0], SENSOR_FOV_DEG[1], SENSOR_RANGE_M)
+
+
+def seeded_tracker(legal, config=None, next_id=None):
+    """The REAL ``LegalHumanTracker`` in the state the robot's tracker had at t: its published tracks (``legal.tracks``
+    -- every field the tracker keeps), clock t and next id."""
+    from scripts.collector.observation import LegalHumanTracker
+    tr = LegalHumanTracker(config or sensor_config())
+    for t in legal.tracks:
+        last = float(t['last_seen_time'])
+        d = dict(track_id=str(t['track_id']), position=[float(v) for v in t['position']],
+                 estimated_velocity=copy.deepcopy(t.get('estimated_velocity')),
+                 velocity_valid=bool(t.get('velocity_valid', False)), visible_now=bool(t.get('visible_now', False)),
+                 valid=bool(t.get('valid', True)), first_seen_time=float(t.get('first_seen_time', last)),
+                 last_seen_time=last, observation_age=float(t.get('observation_age', 0.)),
+                 num_observations=int(t.get('num_observations', 1)))
+        tr.tracks[d['track_id']] = d
+    tr.timestamp = float(legal.time)
+    tr.next_id = next_track_id(legal) if next_id is None else int(next_id)
+    return tr
 
 
 def camera_pose(pose):
@@ -98,7 +228,10 @@ class Discovery:
 
 
 class VisibleWorld:
-    def __init__(self, legal, bank, world, steps, step_s=STEP_SECONDS):
+    def __init__(self, legal, bank, world, steps, step_s=STEP_SECONDS, camera=None, tracker=None):
+        """``camera``: the decision's legal observation row (or a DecisionState / runtime state holding it) for the
+        tracker emulation's camera rig; ``tracker``: emulate the real camera + tracker (default ``L3_CAM_TRACKER``).
+        Both are ignored by the default camera model."""
         self.legal = legal
         self.now = float(legal.time)
         self.steps = int(steps)
@@ -132,6 +265,15 @@ class VisibleWorld:
         self.mode = 'visible'
         self.fallback = 0
         self.discovery = None            # optional Discovery: progressive map certification from the imagined pose
+        self.rec = None                  # ANALYSIS (shortprobe): a list receiving (k, tracks) of every tracks_at call
+        self.emulate = CAM_TRACKER if tracker is None else bool(tracker)
+        if self.emulate:
+            # L3_CAM_TRACKER: the real camera rig + detection rules + LegalHumanTracker (module docstring)
+            self.config = sensor_config()
+            self.rig = CameraRig.of(camera)
+            self.next_id = next_track_id(legal)
+            th = {str(t['track_id']): float(t['position'][1]) for t in legal.tracks}
+            self.hy = np.asarray([th.get(i, float(legal.pose[1])) for i in self.ids], np.float64)
         self.reset()
 
     def fork(self, discovery=None, blocked=None):
@@ -140,12 +282,19 @@ class VisibleWorld:
         import copy
         w = copy.copy(self)
         w.discovery = discovery
+        w.rec = None
         if blocked is not None:
             w.blocked = blocked
         w.reset()
         return w
 
     def reset(self):
+        if self.emulate:
+            # the real tracker as it was at t (its own memory per rollout)
+            self.tr = seeded_tracker(self.legal, self.config, self.next_id)
+            from scripts.collector.observation import legal_tracks
+            self.out = self._mark(legal_tracks(self.tr.tracks.values()))
+            return
         # last-seen memory: id -> (time, position xz, velocity xz); start from the robot's real tracks
         self.mem = {}
         for tid, t in self._init.items():
@@ -157,7 +306,39 @@ class VisibleWorld:
         """Fallback (no pose): the remembered tracks at step k (k == 0 starts a new rollout)."""
         if int(k) == 0:
             self.reset()
+        if self.emulate:
+            return self.out
         return self._format(int(k), set())
+
+    @staticmethod
+    def _mark(tracks):
+        for t in tracks:
+            t['hypothetical'] = True
+        return tracks
+
+    def _emulate(self, k, pose, t_now):
+        """L3_CAM_TRACKER: the real detection rules from the imagined camera, then one real tracker update."""
+        if k == 0 or t_now <= self.tr.timestamp:
+            return self.out                       # the tracker already holds time t (the legal tracks)
+        from eventwm_graph.partial.observer import in_frustum
+        from scripts.collector.observation import HumanDetection
+        dets = []
+        if self.P.shape[1]:
+            pts = self.P[k]
+            idx = np.flatnonzero(np.isfinite(pts).all(1))
+            if len(idx):
+                origin, R = self.rig.pose(pose)
+                base = np.stack([pts[idx, 0], self.hy[idx], pts[idx, 1]], 1)
+                torso = base.copy()
+                torso[:, 1] += self.config.torso_height_m
+                inside = in_frustum(torso, origin, R, self.config)
+                idx, base = idx[inside], base[inside]
+                if len(idx):
+                    clear = _los(self.blocked, np.full(len(idx), origin[0]), np.full(len(idx), origin[2]),
+                                 pts[idx, 0], pts[idx, 1])
+                    dets = [HumanDetection(t_now, tuple(float(v) for v in b)) for b in base[clear]]
+        self.out = self._mark(self.tr.update(t_now, sorted(dets, key=lambda d: d.position)))
+        return self.out
 
     def tracks_at(self, k, pose):
         k = int(min(k, self.steps))
@@ -168,6 +349,11 @@ class VisibleWorld:
         t_now = self.now+k*self.step
         if self.discovery is not None and k > 0:
             self.discovery.reveal(pose, t_now)
+        if self.emulate:
+            out = self._emulate(k, pose, t_now)
+            if self.rec is not None:
+                self.rec.append((k, out))
+            return out
         visible = set()
         if self.P.shape[1]:
             pts = self.P[k]
@@ -186,7 +372,10 @@ class VisibleWorld:
                     v = (pts[n]-prev[1])/max(t_now-prev[0], self.step) if prev is not None else np.zeros(2)
                     self.mem[tid] = (t_now, pts[n].copy(), v)
                     visible.add(tid)
-        return self._format(k, visible)
+        out = self._format(k, visible)
+        if self.rec is not None:
+            self.rec.append((k, out))
+        return out
 
     def _format(self, k, visible):
         t_now = self.now+k*self.step
@@ -264,11 +453,13 @@ class ReplayTracks:
         self.step = float(step_s)
         self.positions = np.zeros((self.steps+1, 0, 3))
         self.discovery = None
+        self.rec = None                  # ANALYSIS (shortprobe): a list receiving (k, tracks) of every tracks_at call
 
     def fork(self, discovery=None, blocked=None):
         import copy
         w = copy.copy(self)
         w.discovery = discovery
+        w.rec = None
         return w
 
     def tracks(self, k):
@@ -280,7 +471,10 @@ class ReplayTracks:
             self.discovery.reset()
         if self.discovery is not None and k > 0:
             self.discovery.reveal(pose, self.now+k*self.step)
-        return self.tracks(k)
+        out = self.tracks(k)
+        if self.rec is not None:
+            self.rec.append((k, out))
+        return out
 
 
 def predicted_truth(legal_map, delta):

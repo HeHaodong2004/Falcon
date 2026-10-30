@@ -380,7 +380,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
             if __import__('os').environ.get('L3_MW_PERCEIVE') == '1':
                 # perception-faithful imagination: the planner sees what the imagined camera would (perceive.py)
                 from .perceive import VisibleWorld
-                humans = VisibleWorld(legal, bank, int(w), T)
+                humans = VisibleWorld(legal, bank, int(w), T, camera=state)     # (camera: L3_CAM_TRACKER only)
             else:
                 humans = NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(w))
             if vm is not None:

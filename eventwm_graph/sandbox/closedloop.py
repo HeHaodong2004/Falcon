@@ -195,7 +195,7 @@ def imagine_closed_loop(sb, state, legal, candidates, bank, cfg=None):
 
     def humans_for(world):
         if cfg.perception == 'camera':
-            return VisibleWorld(legal, bank, int(world), T)
+            return VisibleWorld(legal, bank, int(world), T, camera=state)     # (camera: L3_CAM_TRACKER only)
         return NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(world))
 
     predicted = None
