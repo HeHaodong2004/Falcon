@@ -49,3 +49,13 @@ running execution's stall / unstick / stuck-STOP history (measured: without it, 
 cost 4-5.5 SR points on dev).  The option is part of the Layer 3 interface (how a selection is applied), identical in
 the branch runtime, the Sandbox imagination and the official replay; released components default to OFF.  Oracle
 solution replays keep it OFF (their sequences were found without it).
+
+## Imagination fidelity options (amended 2026-10-30 04:00)
+Legal (may be used by a primary-benchmark selector): `perceive.VisibleWorld` -- the imagined planner perceives the
+people of a Stage 1 world only through the robot's own camera model (90 deg / 10 m, line of sight on the legal or
+predicted map, the tracker's 2 s memory) from the imagined pose; `perceive.Discovery` with a PREDICTED truth map
+(`perceive.predicted_truth`: the legal map plus Layer 2 / Stage 2 predicted cells for the imagined paths;
+`L3_MW_DISCOVER=1`); continuation fidelity (`SANDBOX_CONT_BOUNDARY` / `SANDBOX_CONT_INHERIT`); `L3_MW_RECT` /
+`L3_MW_CONTACT_STEPS` (scoring rules).  Analysis only (privileged): every run with `L3_ORACLE_BANK` (the people's true
+future), `fidelity.py` (exact branch-simulator rollouts, real end-of-window maps as truth, shifted human tapes) and
+`rolloutpolicy.py` (incl. `--shifts`).  Released components default to OFF for all of these.
