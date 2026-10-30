@@ -154,16 +154,49 @@ Decomposition on the same 72 episodes (1.5 s unless stated):
 | legal CV + physics | 54.2% | 28 | 5 |
 | legal CV + physics + real camera mount (`S_cv32fPM`; 4 wins / 2 losses vs physics, n.s.) | 56.9% | 24 | 7 |
 | legal CV + physics + Stage 2 map discovery (`S_cv32fPS2`, LEARNED map world model; 10 wins / 5 losses vs physics; 15 / 5 vs floor, p = 0.041; best legal) | 61.1% | 23 | 4 |
+| legal CV + physics + camera mount, 3.1 s window, frozen map (`S_cv64fPM`; 5 wins / 10 losses vs 1.5 s) | 50.0% | 25 | 11 |
+| legal CV + physics + Stage 2 + camera mount (`S_cv32fPS2M`; 3 wins / 9 losses vs without mount, p = 0.15) | 52.8% | 27 | 6 |
+| legal CV + physics + Stage 2 + camera mount, 3.1 s (`S_cv64fPS2M`; 6 wins / 11 losses vs the best legal) | 54.2% | 26 | 7 |
+
+The camera mount hurts once Stage 2 discovery is on (it also moves the point from which predicted cells are revealed);
+it is dropped from the legal configuration.
 | + TRUE untracked people in scoring | 58.3% | 19 | 11 |
 | TRUE people everywhere + physics | 66.7% | 15 | 9 |
 | TRUE people everywhere + physics, 3.1 s window, frozen map (`S_true64fP`; 9 wins / 6 losses vs 1.5 s; 22 / 5 vs floor, p = 0.0015) | 70.8% | 14 | 7 |
+| TRUE people + physics + privileged navmesh wall discovery, 1.5 s (`S_true32fPN`; 7 wins / 9 losses vs without) | 63.9% | 18 | 8 |
+| TRUE people + physics + privileged navmesh wall discovery, 3.1 s (`S_true64fPN`; 6 wins / 15 losses vs without, p = 0.078) | 58.3% | 21 | 8 |
 | exact simulator, 1.5 s | 76.4% | 6 | 11 |
-| exact simulator, 3.1 s (62 episodes) | 88.7% | 3 | 4 |
+| exact simulator, 3.1 s (71 episodes) | 87.3% | 3 | 6 |
+
+Revealing the TRUE geometry (navmesh truth maps, `l3/navtruth.py`) through the imagined camera hurts.  The imagined
+planner then knows cells that the real camera would not yet have certified.  The map world model must reproduce the
+camera's certification stream (what the robot WILL know), not the true geometry: the privileged real map stream by
+time (ladder rung camM) reproduces the real robot, while navmesh truth does not.
 
 The longer window is what removes deadlocks: in the exact reference, collisions fall 6 -> 3 and timeouts 11 -> 4 from
 1.5 to 3.1 s.  The Sandbox can only use a 3.1 s window if its robot loop stays faithful that long.  Map discovery
 dominates that (section 1.2), so the SR ceiling of perfect wall discovery at 3.1 s is the next measurement:
 `S_true64fP` (frozen map) vs `S_true64fPN` (navmesh truth maps, `l3/navtruth.py`).
+
+### 1.3b Across robot settings (best legal Sandbox: CV people + continuation fidelity + core physics + Stage 2 discovery, 1.5 s; 72 dev episodes each, paired with the floor)
+
+| setting | Sandbox | floor | wins / losses |
+|---|---|---|---|
+| ORCA-native | 61.1% | 47.2% | 15 / 5 (p = 0.041) |
+| SFM-native | 56.9% | 47.2% | 13 / 6 |
+| DWA-native | 54.2% | 48.6% | 13 / 9 |
+| ORCA-slowturn | 38.9% | 41.7% | 9 / 11 |
+| ORCA-inertia | 25.0% | 29.2% | 8 / 11 |
+
+The robot self-model holds up beyond ORCA-native.  On floor collision episodes with TRUE people, divergence at 1.5 s
+(p90) is 1.7 m (DWA), 2.7 m (slow-turn) and 0.9 m (inertia), and contact recall is 0.87-0.90.  With TRUE people the
+Sandbox helps slow-turn (interim 40.9% vs 29.5%, 8 wins / 3 losses), so the legal people model is its limit, as on
+native.  Inertia does not gain even with TRUE people at 1.5 s (interim 17.9% vs 25.0%; deviations dominated by
+wait / creep); a 3.1 s window is being tested.
+
+Bank statistics (`output/agents/bankimag`, train): 57% of real contacts within 1.5 s involve a person untracked at t;
+the legal CV imagination's contact AUC is 0.66 (0.50 when nobody is tracked), against 0.97 with TRUE people.  With TRUE
+people a 0.60 m centre-distance rule gives precision / recall 0.79 / 0.77, against 0.50 / 0.83 for 0.75 m.
 
 ## 1.4 The WM Sandbox this calls for
 
