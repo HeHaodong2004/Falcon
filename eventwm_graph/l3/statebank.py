@@ -44,7 +44,9 @@ def bank_arrays(bank, steps=W_MAX):
 
 def capture_episode(sb, spec, cfg, records, out, compiler):
     from .env import L3Episode
-    ep = L3Episode(spec, cfg, sb, compiler=compiler)
+    # sb None (--blind): no Layer 2 -- the legal inputs, the executor and the candidates only (state / bank None); the
+    # floor's choices and the generator do not depend on the Sandbox, so the probed decisions are the same
+    ep = L3Episode(spec, cfg, sb, compiler=compiler, imagination=sb is not None)
     want = {int(r['decision']): r for r in records}
     saved = 0
     try:
@@ -64,7 +66,8 @@ def capture_episode(sb, spec, cfg, records, out, compiler):
                             legal=ep.ep.legal.copy() if hasattr(ep.ep.legal, 'copy') else ep.ep.legal,
                             execution=ex.copy() if ex is not None else None, level=int(ep.ep.level),
                             queries=list(d.queries), labels=list(d.labels), default=int(d.default),
-                            state=ep.last_state, bank=bank_arrays(d.result.humans),
+                            state=getattr(ep, 'last_state', None),
+                            bank=bank_arrays(d.result.humans) if d.result is not None else None,
                             truth_people=tape[idx][:, :, [0, 2]].astype(np.float32),          # privileged (evaluation)
                             probe=r)
                 name = '%s__d%02d.pkl' % (spec.key.replace('/', '_'), k)
@@ -85,6 +88,7 @@ def main():
     ap.add_argument('--shard', type=int, default=0)
     ap.add_argument('--shards', type=int, default=1)
     ap.add_argument('--device', default=None)
+    ap.add_argument('--blind', action='store_true', help='CPU only: no Layer 2 (items without state / bank)')
     a = ap.parse_args()
     os.environ.setdefault('QG_FAST_SENSE', '1')
     from eventwm_graph.sandbox.core import WorldModelSandbox, SandboxConfig
@@ -96,8 +100,8 @@ def main():
     specs = {s.key: s for name in ('dev', 'train') for s in suites.load(name)}
     files = sorted(Path(a.probe).glob('*.json'))
     files = [f for f in files if zlib.crc32(f.name.encode()) % a.shards == a.shard]
-    sb = WorldModelSandbox.from_release(SandboxConfig(materialize=False, route=True),
-                                       map_device=a.device or 'cuda:%d' % (a.shard % 2))
+    sb = None if a.blind else WorldModelSandbox.from_release(SandboxConfig(materialize=False, route=True),
+                                                              map_device=a.device or 'cuda:%d' % (a.shard % 2))
     comp = GraphCompiler(brake_tail=True)
     for f in files:
         rec = json.loads(f.read_text())
@@ -115,7 +119,8 @@ def main():
             continue
         print(json.dumps(dict(key=rec['key'], saved=n, of=len(rec['probe']), seconds=round(time.perf_counter()-t0, 1))),
               flush=True)
-    sb.close()
+    if sb is not None:
+        sb.close()
 
 
 if __name__ == '__main__':
