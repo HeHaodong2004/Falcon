@@ -35,8 +35,24 @@ class OracleBank:
         self.weights = np.ones(1)
         self.present = np.ones((1, len(self.cols)), bool)
         self.times = np.arange(1, horizon_steps)*STEP_SECONDS
+        self.noise_worlds = None
         self.long_steps = int(long_steps)        # > 62: the intention (route) features use this longer true horizon
 
     def sandbox_positions(self, rel):
-        idx = np.minimum(self.index+np.round(np.asarray(rel, np.float64)/STEP_SECONDS).astype(int), len(self.P)-1)
-        return self.P[idx][:, self.cols][:, :, [0, 2]][None]                 # [1, T, Nb, 2]
+        rel = np.asarray(rel, np.float64)
+        idx = np.minimum(self.index+np.round(rel/STEP_SECONDS).astype(int), len(self.P)-1)
+        P = self.P[idx][:, self.cols][:, :, [0, 2]][None]                    # [1, T, Nb, 2]
+        if self.noise_worlds is None:
+            return P
+        # noisy multi-world variant (prediction-error study): world w = truth + a per-person constant velocity error
+        return P+self.noise_worlds[:, None, :, :]*rel[None, :, None, None]   # [W, T, Nb, 2]
+
+    def add_noise(self, sigma, worlds, seed=0):
+        """ANALYSIS: replace the single true world by ``worlds`` noisy copies whose people drift from the truth with a
+        per-person constant velocity error ~ N(0, sigma^2) (m/s per axis): position error grows linearly with the
+        horizon (sigma * t per axis), as a long-horizon predictor's would.  Weights uniform."""
+        rng = np.random.default_rng(int(seed))
+        self.noise_worlds = rng.normal(0., float(sigma), size=(int(worlds), len(self.cols), 2))
+        self.weights = np.full(int(worlds), 1./int(worlds))
+        self.present = np.ones((int(worlds), len(self.cols)), bool)
+        return self

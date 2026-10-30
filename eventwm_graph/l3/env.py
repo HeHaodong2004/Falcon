@@ -25,6 +25,8 @@ import numpy as np
 HORIZON = 16
 ORACLE_BANK = __import__('os').environ.get('L3_ORACLE_BANK')    # analysis only: 'tracked' | 'all' (oraclebank.py)
 ORACLE_BANK_STEPS = int(__import__('os').environ.get('L3_ORACLE_BANK_STEPS', '0'))     # analysis only: true horizon
+ORACLE_NOISE = float(__import__('os').environ.get('L3_ORACLE_NOISE', '0'))      # analysis only: velocity error (m/s)
+ORACLE_NOISE_WORLDS = int(__import__('os').environ.get('L3_ORACLE_NOISE_WORLDS', '6'))
 
 
 @dataclass(frozen=True)
@@ -147,8 +149,11 @@ class L3Episode:
                 # ANALYSIS ONLY (privileged): true human futures in place of Stage 1's bank (oraclebank.py)
                 import dataclasses
                 from .oraclebank import OracleBank
-                result = dataclasses.replace(result, humans=OracleBank(self.rt.tape.positions, ep.state.index, ep.legal,
-                                                                       ORACLE_BANK, long_steps=ORACLE_BANK_STEPS))
+                ob = OracleBank(self.rt.tape.positions, ep.state.index, ep.legal, ORACLE_BANK, long_steps=ORACLE_BANK_STEPS)
+                if ORACLE_NOISE > 0:
+                    # prediction-error study: noisy copies of the truth (oraclebank.OracleBank.add_noise)
+                    ob.add_noise(ORACLE_NOISE, ORACLE_NOISE_WORLDS, seed=ep.state.index+1000*self.decisions)
+                result = dataclasses.replace(result, humans=ob)
             t = T()
             graph = self.compiler.compile(result, ep.legal, queries, diag, ep.steps, running=running)
             tm['compile_ms'] = 1000*(T()-t)
