@@ -587,8 +587,9 @@ less than half of the gain (vs the whole-window truth: 0 wins / 3 losses).
 simulating the robot's OWN perception-action loop: what its camera will see, what map it will build, how its planner
 will react.  Learned critics on compiled features cannot represent that (critic top-1 at critical states = random,
 even with perfect people prediction), and an imagination that skips perception or map discovery mispredicts the
-critical encounters.  Each fidelity step measured so far helps: perception fidelity +12.5 points of SR on ORCA with
-the true future, map discovery the largest gain in collision prediction.
+critical encounters.  The camera model is the one fidelity step that has moved SR so far (+12.5 points on ORCA with
+the true future); map discovery is the largest gain in collision prediction but has not moved SR with the current
+selection rule -- turning better prediction into better choices (risk / progress trade-off, timeouts) is itself open.
 
 ### 7.2 Consequences for the plan
 
