@@ -621,15 +621,17 @@ selection rule -- turning better prediction into better choices (risk / progress
 
 - The gate (>= 85% SR on the best configuration, legal 90-degree sensing) is NOT reachable with the current architecture
   within the 2-3 day training window: < 5%.  Every learned or heuristic legal selector is within noise of the floor;
-  the most faithful imagination built tonight reaches ~60% on ORCA only when it is handed the TRUE future of every
-  person (and gains nothing on DWA).
+  the most faithful imagination built tonight, with the outcome-ordered rule, reaches 63.9% on ORCA and 61.1% on SFM
+  (72 episodes each, p = 0.004 / 0.031) -- but only when it is handed the TRUE future of every person; DWA does not
+  gain; the same selector with Stage 1 worlds stays at the floor.
 - It is not an information wall in the sense rejected earlier: outcomes are mostly robust to timing noise, robust
   fixes exist, and a timing-robust exact one-step evaluator reaches ~83% (20/24; plain 88%, floor 58%).  It is a
   SIMULATION-FIDELITY wall: a selector must re-run the robot's own closed loop (camera, map, planner) inside a
   predicted world.  Measured ingredients: the camera model plus a whole-window people future give +12.5 points on ORCA;
   with a perfect people future over Stage 1's 3 s only, about +5; with the true long future of the TRACKED people only,
   about +5; with real Stage 1 worlds, nothing (72 episodes: 41.7% vs 47.2%); Stage 2-predicted map discovery adds
-  nothing measurable.  The legal bottleneck, in order: people futures over the whole
+  nothing measurable; ranking imagined outcomes like the exact reference (outcome rule) adds ~4 points with the true
+  future and nothing with legal worlds.  The legal bottleneck, in order: people futures over the whole
   decision-relevant window (10+ s, multi-world), then imagined closed-loop fidelity (map discovery, planner-specific
   behaviour), then speed (10-30 s per decision).
 - 85% eventually, with a full closed-loop world model: ~10% (the best privileged imagination is at collision AUC 0.79
