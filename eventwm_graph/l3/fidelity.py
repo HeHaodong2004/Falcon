@@ -284,6 +284,23 @@ def summary(path):
         robust = [c for c in rows if len({c['real']['outcome'] == 'human_collision'} |
                                          {c['shift'][k]['outcome'] == 'human_collision' for k in keys}) == 1]
         print('candidates whose collision outcome is the same under every shift: %d / %d' % (len(robust), len(rows)))
+        # critical states (the default really collides, some candidate does not): does a fix survive every shift?
+        crit = rfix = 0
+        for st in states:
+            cs = st['cands']
+            if not cs or not all(c.get('shift') for c in cs):
+                continue
+            d = next((c for c in cs if c['label'] == st['default']), cs[0])
+            if d['real']['outcome'] not in ('human_collision', 'stop_fail'):
+                continue
+            fixes = [c for c in cs if c['real']['outcome'] not in ('human_collision', 'stop_fail')]
+            if not fixes:
+                continue
+            crit += 1
+            rfix += any(all(v['outcome'] not in ('human_collision', 'stop_fail') for v in c['shift'].values())
+                        for c in fixes)
+        print('critical states (default collides, a candidate does not): %d; with a fix that survives every shift: %d'
+              % (crit, rfix))
 
 
 def main():
