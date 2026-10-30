@@ -473,3 +473,9 @@ losses vs the floor (122 paired episodes); legal multi-world imagined rollout (4
 planner reacting to each sampled world) ORCA 3 / 4 (35 episodes).  Running: the same multi-world rollout with the
 TRUE future (analysis only; 1 world = truth, 100-step continuation) -- does high-fidelity imagination with perfect
 prediction reproduce the exact reference?
+True-future multi-world rollout (analysis only; 1 world = truth, 100-step imagined continuation; 35 paired ORCA dev
+episodes): SR 54.3% vs floor 54.3% (3 / 3) -- collisions 20% (floor ~36-39%) but timeouts 26%: the same safety /
+progress trap; a ~5 s look-ahead rates "wait safely" well, while the exact reference simulates to the episode end and
+sees the resulting timeout.  Legal multi-world rollout stopped at 54 episodes (5 / 7).  Running: true-future
+imagination over 300 steps (~to the episode end) on 36 ORCA dev episodes -- if it reproduces the exact reference, the
+legal path is a world model whose people prediction reaches the whole episode, used through imagination.
