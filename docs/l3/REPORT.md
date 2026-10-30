@@ -565,7 +565,7 @@ NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time
 | release imagination | TRUE, whole window | 50.0% | 5 / 3 |
 | + camera model | TRUE, whole window | 58.3% | 6 / 1 |
 | + camera model | TRUE for 3 s (Stage 1's horizon), constant velocity after | 50.0% | 4 / 2 |
-| + camera model + Stage 2 map discovery (`L3_MW_DISCOVER=1`) | TRUE, whole window | 51.4% (35 ep.) | 3 / 1 (vs camera model alone: 1 / 3) |
+| + camera model + Stage 2 map discovery (`L3_MW_DISCOVER=1`) | TRUE, whole window | 50.0% | 3 / 1 (vs camera model alone: 1 / 4) |
 | + camera model (LEGAL) | 6 Stage 1 worlds, constant velocity after 3 s, contacts over 4 s | 44.4% | 2 / 2 |
 
 The legal selector halves collisions (7 vs 13 on these 36 episodes) but converts them into timeouts (13 vs 7): it
@@ -631,7 +631,11 @@ the true future, map discovery the largest gain in collision prediction.
   stays R10 v100 (pooled 26 / 20, not significant).
 - True-future camera-model selector on other planners (36 dev episodes each): DWA-native 50.0% vs floor 55.6% (4 / 6);
   SFM-native 47.2% vs 41.7% (4 / 2, p = 0.69) -- the significant gain is ORCA-only (pooled over the three planners
-  18 wins / 9 losses, p ~ 0.12).
+  18 wins / 9 losses, p ~ 0.12).  The DWA imagination is as faithful as ORCA's (`output/fidelity_dwa`, 279 candidate
+  rollouts, true people future: collision AUC 0.70 release -> 0.73 camera model -> 0.78 discovery -> 0.82 discovery +
+  continuation; the camera model fixes 2 of 4 avoidable default collisions at sampled states), so the missing SR gain on
+  DWA is not imagination fidelity -- the selection rule's deviations (in-place rotations) turn into timeouts, or noise
+  at 36 episodes.
 - Scan rollout reference (exact one-step evaluation incl. the scan queries), all 24 episodes: 21 success / 3 timeout,
   identical to the plain reference; scans are chosen in 5 of its 77 deviations -- active looking adds nothing to exact
   one-step evaluation.
@@ -668,7 +672,7 @@ within noise of the floor.
 | `H_mwroll_true300p_dev` | privileged (true future + camera model) | 72 | 47.2% | 59.7% | 10 / 1 | 0.012 |
 | `H_mwroll_true300p_dwa` | privileged (same, DWA) | 36 | 55.6% | 50.0% | 4 / 6 | 0.754 |
 | `H_mwroll_true300p_sfm` | privileged (same, SFM) | 36 | 41.7% | 47.2% | 4 / 2 | 0.688 |
-| `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 35 | 45.7% | 51.4% | 3 / 1 | 0.625 |
+| `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 36 | 44.4% | 50.0% | 3 / 1 | 0.625 |
 | `H_mwroll_true300pr_dev` | privileged (body-rectangle rule; stopped) | 32 | 50.0% | 53.1% | 4 / 3 | 1.000 |
 | `H_mwroll_true3sp_dev` | privileged (true future 3 s only) | 36 | 44.4% | 50.0% | 4 / 2 | 0.688 |
 | `H_mwroll_true_dev` | privileged (true future, 100 steps) | 72 | 47.2% | 44.4% | 5 / 7 | 0.774 |
