@@ -119,6 +119,17 @@ class VisibleWorld:
         self.discovery = None            # optional Discovery: progressive map certification from the imagined pose
         self.reset()
 
+    def fork(self, discovery=None, blocked=None):
+        """A copy sharing the people's positions, with its own tracker memory (and optional map discovery / occlusion
+        map) -- one per candidate when every candidate discovers its own map."""
+        import copy
+        w = copy.copy(self)
+        w.discovery = discovery
+        if blocked is not None:
+            w.blocked = blocked
+        w.reset()
+        return w
+
     def reset(self):
         # last-seen memory: id -> (time, position xz, velocity xz); start from the robot's real tracks
         self.mem = {}
@@ -172,3 +183,22 @@ class VisibleWorld:
                             visible_now=tid in visible, valid=True, first_seen_time=self.now, last_seen_time=ts,
                             observation_age=t_now-ts, num_observations=5, hypothetical=True))
         return out
+
+
+def predicted_truth(legal_map, delta):
+    """LEGAL truth map for ``Discovery``: the legal map at t with Layer 2's (Stage 2) predicted states written into its
+    UNKNOWN cells (``delta``: a Stage 2 increment -- candidate_cells keys in the legal map's key space, states 1 FREE /
+    2 BLOCKED).  Hypothetical; never merged into the real legal state."""
+    truth = legal_map.copy()
+    if delta is None:
+        return truth
+    st = np.asarray(delta['states'])
+    m = st > 0
+    if not m.any():
+        return truth
+    keys = np.asarray(delta['candidate_cells'], np.int64)[m]
+    truth._ensure(keys)
+    i, j = keys[:, 0]-truth.ox, keys[:, 1]-truth.oz
+    unknown = truth.state[i, j] == 0
+    truth.state[i[unknown], j[unknown]] = st[m][unknown].astype(np.uint8)
+    return truth

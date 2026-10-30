@@ -138,6 +138,7 @@ class L3Episode:
         if self.imagination and self.sb is not None:
             t = T()
             state = ep.decision_state()
+            self.last_state = state          # (multi-world selector's Stage 2 discovery calls; same decision only)
             tm['state_ms'] = 1000*(T()-t)
             t = T()
             result = self.sb.evaluate(state, ep.legal, cands)

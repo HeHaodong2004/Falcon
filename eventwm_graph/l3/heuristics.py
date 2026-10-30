@@ -190,7 +190,64 @@ def imagined_rollout_index(result, legal, default, slack_p=0.05, slack_m=0.5, ra
     return k
 
 
-def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048):
+def _rect_clearance(poses, people):
+    """Clearance [n, N] of the robot body rectangle at poses [n, 4] to people centres [n, N, 2] (world x, z), as
+    ``sandbox.imagine.rectangle_clearance`` per step (vectorised; non-finite people give non-finite entries)."""
+    from eventwm_graph.querygen.native import ROBOT_BOUNDS
+    c, s = np.cos(poses[:, 3])[:, None], np.sin(poses[:, 3])[:, None]
+    with np.errstate(invalid='ignore'):
+        dx = people[..., 0]-poses[:, 0][:, None]
+        dz = people[..., 1]-poses[:, 2][:, None]
+        lx = dx*c-dz*s
+        lz = dx*s+dz*c
+        xmin, xmax, zmin, zmax = ROBOT_BOUNDS
+        ex = np.maximum(np.maximum(xmin-lx, 0.), lx-xmax)
+        ez = np.maximum(np.maximum(zmin-lz, 0.), lz-zmax)
+        return np.hypot(ex, ez)
+
+
+def _discovery_rollouts(sb, legal, d, humans, state, cont):
+    """Legal map discovery (L3_MW_DISCOVER=1, with L3_MW_PERCEIVE=1): pass 1 imagines every candidate on the frozen
+    legal map; Stage 2 predicts the cells each imagined path would reveal (one batched Layer 2 call); pass 2 re-imagines
+    every candidate while those predicted cells are certified as they enter the imagined camera (perceive.Discovery),
+    so the imagined planner re-plans on discovered geometry as the real one does."""
+    from eventwm_graph.sandbox.imagine import imagine
+    from eventwm_graph.sandbox.episode import default_query
+    from eventwm_graph.layer2.state import trajectory_from_poses
+    from .infofeat import _blocked_lookup
+    from .perceive import Discovery, predicted_truth
+    ros = sb.imagine_all(legal, d.candidates, humans)
+    trajs = []
+    for ro in ros:
+        P = np.asarray(ro.poses, np.float64)
+        c = getattr(ro, 'cont', None)
+        if c is not None and len(c):
+            P = np.concatenate([P, np.asarray(c, np.float64)])
+        trajs.append(trajectory_from_poses(P, legal.time))
+    try:
+        pred = sb.l2.predict(state, trajs, materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
+        deltas = [c.map for c in pred.candidates]
+    except Exception as exc:             # no Stage 2 answer: keep the frozen-map rollouts
+        print('mwroll discovery: Stage 2 failed (%s); frozen map' % (exc,), flush=True)
+        return ros
+    cq = default_query()
+    out = []
+    for c, ro, delta in zip(d.candidates, ros, deltas):
+        ex, dyn = sb._execution(c)
+        if isinstance(ex, Exception):
+            out.append(ro)
+            continue
+        truth = predicted_truth(legal.map, delta)
+        work = legal.map.copy()
+        hk = humans.fork(Discovery(work, truth), _blocked_lookup(truth))
+        out.append(imagine(legal, ex, dyn, hk, sb.config.steps_for(c), level=int(c.level), gmap=work,
+                           continuation=int(cont), cont_query=cq, planner=c.planner,
+                           route=bool(getattr(sb.config, 'route', False))))
+    return out
+
+
+def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048,
+                     state=None):
     """LEGAL multi-world imagined rollout (no learning, no privileged input): each candidate is imagined once per
     sampled Stage 1 world -- the robot's own planner perceiving THAT world's tracked people, interval + ``cont`` steps of
     default continuation -- and checked for contact against that world's people (tracked and hidden); P(contact) is the
@@ -226,6 +283,9 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     # worlds people beyond the 3 s bank horizon are constant-velocity guesses -- the long continuation then judges
     # progress (deadlocks, timeouts) while contacts are judged where the worlds are predictions
     contact_steps = int(__import__('os').environ.get('L3_MW_CONTACT_STEPS', '0')) or 10**9
+    # contact = robot body rectangle within L3_MW_RECT m of a person's centre (the native simulator's body-proxy
+    # measure) instead of a centre distance < radius (default)
+    rect = float(__import__('os').environ.get('L3_MW_RECT', '0'))
     old = sb.config.continuation
     sb.config.continuation = int(cont)
     try:
@@ -236,7 +296,11 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                 humans = VisibleWorld(legal, bank, int(w), T)
             else:
                 humans = NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(w))
-            ros = sb.imagine_all(legal, d.candidates, humans)
+            if (state is not None and __import__('os').environ.get('L3_MW_DISCOVER') == '1'
+                    and __import__('os').environ.get('L3_MW_PERCEIVE') == '1'):
+                ros = _discovery_rollouts(sb, legal, d, humans, state, cont)
+            else:
+                ros = sb.imagine_all(legal, d.candidates, humans)
             for k, ro in enumerate(ros):
                 poses = np.asarray(ro.poses, np.float64)
                 c = getattr(ro, 'cont', None)
@@ -247,9 +311,14 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                     stop_bad[k] = True
                 if HP is not None:
                     n = min(len(seq), HP.shape[1], contact_steps)
-                    with np.errstate(invalid='ignore'):
-                        dd = np.hypot(HP[w, :n, :, 0]-seq[:n, None, 0], HP[w, :n, :, 1]-seq[:n, None, 2])
-                    if np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < radius:
+                    if rect > 0:
+                        dd = _rect_clearance(seq[:n], HP[w, :n])
+                        hit = np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < rect if dd.size else False
+                    else:
+                        with np.errstate(invalid='ignore'):
+                            dd = np.hypot(HP[w, :n, :, 0]-seq[:n, None, 0], HP[w, :n, :, 1]-seq[:n, None, 2])
+                        hit = np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < radius if dd.size else False
+                    if hit:
                         pc[k] += ww[j]
                 prog[k] += ww[j]*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
     finally:
