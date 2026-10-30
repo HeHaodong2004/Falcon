@@ -250,6 +250,9 @@ def main():
 
 
 # ------------------------------------------------------------------------------------------------ imagined leaves
+IMAG_CONTACT = float(__import__('os').environ.get('L3_IMAG_CONTACT', '0'))   # > 0: contact = body clearance < this (m)
+
+
 def load_imag(imag_dir, D):
     """Align ``leafimag.py`` rows with the exact-leaf rows of ``D`` by (episode, decision, label); returns the index
     into D of every aligned row and the imagined arrays (Xi [n, W, F], wi, ci, si)."""
@@ -261,7 +264,8 @@ def load_imag(imag_dir, D):
         for r in range(len(z['y'])):
             k = (ep, int(z['decision'][r]), str(z['label'][r]))
             if k in key:
-                idx.append(key[k]); Xi.append(z['Xi'][r]); wi.append(z['wi'][r]); ci.append(z['ci'][r]); si.append(z['si'][r])
+                idx.append(key[k]); Xi.append(z['Xi'][r]); wi.append(z['wi'][r]); si.append(z['si'][r])
+                ci.append((z['mi'][r] < IMAG_CONTACT).astype(np.float32) if IMAG_CONTACT > 0 else z['ci'][r])
     return np.asarray(idx), np.asarray(Xi), np.asarray(wi), np.asarray(ci), np.asarray(si)
 
 

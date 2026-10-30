@@ -69,7 +69,18 @@ class CVBank:
         # lost-track memory (L3_CV_MAX_AGE, default 2 s = the executor's): tracks last seen up to max_age ago continue
         # at their last estimated velocity from where they were last seen (legal: past observations only)
         max_age = float(__import__('os').environ.get('L3_CV_MAX_AGE', '2.0')) if max_age is None else float(max_age)
-        est = human_estimates(legal.tracks, legal.time, max_age=max_age)
+        tracks = legal.tracks
+        if max_age > 2.0 and getattr(legal, 'track_log', None):
+            # the legal track list drops a person ~2 s after the last detection; rebuild older tracks from the legal
+            # track log (each person's latest record; past observations only)
+            latest = {}
+            for _, trs in legal.track_log:
+                for t in trs:
+                    k = str(t.get('track_id'))
+                    if k not in latest or float(t['last_seen_time']) >= float(latest[k]['last_seen_time']):
+                        latest[k] = t
+            tracks = list(latest.values())
+        est = human_estimates(tracks, legal.time, max_age=max_age)
         self.track_keys = tuple('track:%s' % h.track_id for h in est)
         self.P0 = np.asarray([[h.position[0], -h.position[1]] for h in est], np.float64).reshape(-1, 2)   # world x, z
         self.V = np.asarray([[h.velocity[0], -h.velocity[1]] for h in est], np.float64).reshape(-1, 2)

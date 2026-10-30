@@ -101,6 +101,7 @@ def probe_decision(ep, d, sb):
             extra = np.arange(1, W_MAX-len(inside)+1)*0.048
             HP = np.concatenate([HP, HP[:, -1][:, None]+extra[None, :, None, None]*vel[:, None]], 1)
     truth = OracleBank(tape, i0, st.legal, 'all', horizon_steps=W_MAX+1, long_steps=W_MAX)
+    info = expo_state(st.legal, bank) if os.environ.get('L3_PROBE_EXPO') == '1' else None
     # exact branches: bypass the legal stream (Layer 2 must not see them)
     raw, hooked = ep.ep._observe, rt.sensor.observe
     rt.sensor.observe = raw
@@ -165,14 +166,41 @@ def probe_decision(ep, d, sb):
                         break
                     j = min(lag, len(im))-1
                     div[lag] = float(math.hypot(real[lag-1, 0]-im[j, 0], real[lag-1, 2]-im[j, 2]))
+                if v == 'rel' and info is not None:
+                    rec['expo'] = expo_cand(info, st.legal, im)
                 runs.append(dict(w=wt, n=len(im), stop=bool(ro.stop), ended=ro.ended_by,
                                  near_goal=bool(len(im) and math.hypot(im[-1, 0]-st.legal.goal[0], im[-1, 2]-st.legal.goal[2]) <= 0.3),
                                  clr={w2: _min_upto(ic, w2) for w2 in WINDOWS},
                                  ctg={w2: _ctg_at(field, im, w2) for w2 in WINDOWS}, div=div))
             rec['imag'][v] = runs
         cands.append(rec)
-    return dict(step=i0, decision=int(ep.decisions), labels=list(d.labels), default=d.labels[d.default],
-                ctg0=float(field.start), cands=cands, seconds=round(time.perf_counter()-t0, 1))
+    out = dict(step=i0, decision=int(ep.decisions), labels=list(d.labels), default=d.labels[d.default],
+               ctg0=float(field.start), cands=cands, seconds=round(time.perf_counter()-t0, 1))
+    if info is not None:
+        out['ego'] = [float(x) for x in info.ego()]
+    return out
+
+
+def expo_state(legal, bank):
+    """The legal information state at the decision (infofeat.InfoState: staleness of the map per robot-frame sector,
+    Stage 1 residual mass per sector, lost tracks, recent camera coverage) -- exposure features."""
+    from .compiler import Frame
+    from .infofeat import InfoState
+    keys = list(getattr(bank, 'track_keys', ()))
+    HP = W = None
+    if len(keys):
+        rel = np.arange(1, int(round(float(bank.times[-1])/0.048))+1)*0.048
+        HP = np.asarray(bank.sandbox_positions(rel), np.float64)
+        W = np.asarray(bank.weights, np.float64)
+        W = W/W.sum() if W.sum() > 0 else W
+    return InfoState(legal, Frame(legal.pose), keys, np.asarray(getattr(bank, 'unseen', np.zeros(len(keys))), bool), HP, W)
+
+
+def expo_cand(info, legal, im):
+    """Per candidate (its imagined interval with the released people): yaw sweep left / right, stale free area its
+    camera would cover, Stage 1 residual / lost slots it would see (infofeat CAND_INFO)."""
+    poses = np.concatenate([np.asarray(legal.pose, np.float64)[None], np.asarray(im[:16], np.float64)])
+    return [float(x) for x in info.cand(poses)]
 
 
 def write(path, data):

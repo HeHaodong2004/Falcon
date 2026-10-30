@@ -220,9 +220,16 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 # choice is executed, so the episode is the floor's
                 from .shortprobe import probe_decision
                 every, most = int(os.environ.get('L3_PROBE_EVERY', '1')), int(os.environ.get('L3_PROBE_MAX', '1000'))
+                rec = None
                 if ep.decisions % every == 0 and len(probe) < most:
-                    probe.append(probe_decision(ep, d, sb))
+                    rec = probe_decision(ep, d, sb)
+                    probe.append(rec)
                 a, p = d.default, 1.
+                if os.environ.get('L3_PROBE_ACT') == 'learned':
+                    # on-policy iteration (asymmetric training): the probed episode follows the LEGAL learned selector,
+                    # scored from the probe's own legal imagination records when this decision was probed
+                    from .shortsel import select as short_select, select_from_records
+                    a = select_from_records(rec, d) if rec is not None else short_select(sb, ep.ep.legal, d, cfg, ep.ep.steps)
             elif selector == 'imagroll':
                 # legal imagined rollout policy (heuristics.imagined_rollout_index; needs --sandbox continuation)
                 from .heuristics import imagined_rollout_index
