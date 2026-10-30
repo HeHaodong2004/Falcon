@@ -210,44 +210,63 @@ def _discovery_rollouts(sb, legal, d, humans, state, cont):
     """Legal map discovery (L3_MW_DISCOVER=1, with L3_MW_PERCEIVE=1): pass 1 imagines every candidate on the frozen
     legal map; Stage 2 predicts the cells each imagined path would reveal (one batched Layer 2 call); pass 2 re-imagines
     every candidate while those predicted cells are certified as they enter the imagined camera (perceive.Discovery),
-    so the imagined planner re-plans on discovered geometry as the real one does."""
+    so the imagined planner re-plans on discovered geometry as the real one does.  Map-stream options (default off):
+    L3_S2_PB / L3_S2_PF probability thresholds of the predicted BLOCKED / FREE cells (perceive.s2_states);
+    L3_S2_REVEAL=observer reveals them as the legal sensor certifies (perceive.ObserverReveal); L3_S2_ROUNDS=n > 1:
+    Stage 2 again on the paths of the previous pass, the rounds' predicted cells united, then another pass."""
     from eventwm_graph.sandbox.imagine import imagine
     from eventwm_graph.sandbox.episode import default_query
     from eventwm_graph.layer2.state import trajectory_from_poses
     from .infofeat import _blocked_lookup
-    from .perceive import Discovery, predicted_truth
+    from .perceive import make_reveal, predicted_truth, predicted_truth_union, s2_thresholds
+    env = __import__('os').environ
+
+    def paths(rollouts):
+        trajs = []
+        for ro in rollouts:
+            P = np.asarray(ro.poses, np.float64)
+            c = getattr(ro, 'cont', None)
+            if c is not None and len(c):
+                P = np.concatenate([P, np.asarray(c, np.float64)])
+            trajs.append(trajectory_from_poses(P, legal.time))
+        return trajs
     ros = sb.imagine_all(legal, d.candidates, humans)
-    trajs = []
-    for ro in ros:
-        P = np.asarray(ro.poses, np.float64)
-        c = getattr(ro, 'cont', None)
-        if c is not None and len(c):
-            P = np.concatenate([P, np.asarray(c, np.float64)])
-        trajs.append(trajectory_from_poses(P, legal.time))
     try:
-        pred = sb.l2.predict(state, trajs, materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
+        pred = sb.l2.predict(state, paths(ros), materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
         deltas = [c.map for c in pred.candidates]
     except Exception as exc:             # no Stage 2 answer: keep the frozen-map rollouts
         print('mwroll discovery: Stage 2 failed (%s); frozen map' % (exc,), flush=True)
         return ros
     cq = default_query()
-    out = []
-    union = None
-    if __import__('os').environ.get('L3_MW_DISCOVER') == 'union':
-        # one predicted local map from every candidate's Stage 2 increment (perceive.predicted_truth_union)
-        from .perceive import predicted_truth_union
-        union = predicted_truth_union(legal.map, deltas)
-    for c, ro, delta in zip(d.candidates, ros, deltas):
-        ex, dyn = sb._execution(c)
-        if isinstance(ex, Exception):
-            out.append(ro)
-            continue
-        truth = union if union is not None else predicted_truth(legal.map, delta)
-        work = legal.map.copy()
-        hk = humans.fork(Discovery(work, truth), _blocked_lookup(truth))
-        out.append(imagine(legal, ex, dyn, hk, sb.config.steps_for(c), level=int(c.level), gmap=work,
-                           continuation=int(cont), cont_query=cq, planner=c.planner,
-                           route=bool(getattr(sb.config, 'route', False))))
+    pb, pf = s2_thresholds()
+    dl = [[x] for x in deltas]           # per candidate: its Stage 2 increment of every round
+    out = ros
+    for r in range(max(1, int(env.get('L3_S2_ROUNDS', '1')))):
+        if r > 0:
+            try:
+                pred = sb.l2.predict(state, paths(out), materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
+            except Exception as exc:     # keep the previous round's rollouts
+                print('mwroll discovery: Stage 2 round %d failed (%s)' % (r+1, exc), flush=True)
+                break
+            dl = [a+[c.map] for a, c in zip(dl, pred.candidates)]
+        union = None
+        if env.get('L3_MW_DISCOVER') == 'union':
+            # one predicted local map from every candidate's Stage 2 increment (perceive.predicted_truth_union)
+            union = predicted_truth_union(legal.map, [x for a in dl for x in a], pb, pf)
+        new = []
+        for c, ro, ds in zip(d.candidates, ros, dl):
+            ex, dyn = sb._execution(c)
+            if isinstance(ex, Exception):
+                new.append(ro)
+                continue
+            truth = union if union is not None else (predicted_truth(legal.map, ds[0], pb, pf) if len(ds) == 1 else
+                                                     predicted_truth_union(legal.map, ds, pb, pf))
+            work = legal.map.copy()
+            hk = humans.fork(make_reveal(work, truth), _blocked_lookup(truth))
+            new.append(imagine(legal, ex, dyn, hk, sb.config.steps_for(c), level=int(c.level), gmap=work,
+                               continuation=int(cont), cont_query=cq, planner=c.planner,
+                               route=bool(getattr(sb.config, 'route', False))))
+        out = new
     return out
 
 

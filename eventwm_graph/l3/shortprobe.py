@@ -14,6 +14,15 @@ every candidate is
     camTk  TRUE people through the EMULATED camera + tracker (perceive L3_CAM_TRACKER: the decision's camera rig,
            3-D frustum, legal-map line of sight, the real LegalHumanTracker seeded at t)            (privileged people)
     camTkM camTk + the real robot's map stream (as camM)                                            (privileged)
+    camTDo camTD revealed as the legal sensor certifies (perceive.ObserverReveal)                    (privileged)
+    camS2  camT + Stage 2's predicted map (LEGAL map stream; people still TRUE) revealed through the imagined camera:
+           one Stage 2 call on every candidate's frozen-map imagined path; 'camS2' reads the selector options
+           (L3_S2_PB / L3_S2_PF thresholds, L3_S2_REVEAL, L3_S2_ROUNDS, union map); 'camS2<tag>' (tag: lower-case
+           letters / digits) reads L3_PROBE_S2_<tag> = 'pb=..,pf=..,map=union|own,reveal=frustum|observer,rounds=..
+           [,free_min=..,free_max=..,wall_max=..,rays=..,sway=..]' (unset keys: the release behaviour; rounds=2:
+           Stage 2 again on every candidate's paths imagined with round 1's map stream, increments united) or
+           'cond=real' (PRIVILEGED diagnostic: Stage 2 conditioned on the real branch paths).  Each run also records
+           the predicted map against the candidate's real end-of-window map ('s2': cell counts, privileged evaluation).
   all on the legal map frozen at t (camTD: discovered along the imagined path).
 
 Track agreement (analysis): for the camera-model / replayed-tracker variants, the imagined track set at every step is
@@ -147,6 +156,85 @@ def _world_clearance(poses, HPw):
     return d
 
 
+def _s2_spec(tag):
+    """Settings of a camS2 variant: map threshold / union-or-own / reveal model / Stage 2 rounds (see the module
+    docstring)."""
+    if not tag:
+        from .perceive import s2_thresholds
+        pb, pf = s2_thresholds()
+        return dict(pb=pb, pf=pf, map='union', reveal=os.environ.get('L3_S2_REVEAL', 'frustum'),
+                    rounds=int(os.environ.get('L3_S2_ROUNDS', '1')), cond='imag')
+    raw = os.environ.get('L3_PROBE_S2_%s' % tag)
+    if raw is None:
+        raise ValueError('variant camS2%s needs L3_PROBE_S2_%s' % (tag, tag))
+    spec = dict(pb=None, pf=None, map='union', reveal='frustum', rounds=1, cond='imag')
+    for kv in filter(None, raw.split(',')):
+        k, v = kv.split('=')
+        k, v = k.strip(), v.strip()
+        spec[k] = (float(v) if k in ('pb', 'pf', 'free_min', 'free_max', 'wall_max', 'rays', 'sway') else
+                   int(v) if k == 'rounds' else v)
+    if (spec['map'] not in ('union', 'own') or spec['reveal'] not in ('frustum', 'observer') or spec['rounds'] < 1
+            or spec['cond'] not in ('imag', 'real')):
+        raise ValueError('bad camS2%s settings %r' % (tag, raw))
+    return spec
+
+
+def _s2_key(spec):
+    return tuple(sorted((k, v) for k, v in spec.items()))
+
+
+def _s2_truth(legal_map, deltas, k, spec, cache, dkey='r1'):
+    """The predicted truth map of a camS2 setting for candidate k (cached per decision); ``deltas``: per candidate the
+    list of its Stage 2 increments (one per round), ``dkey`` names that set."""
+    from .perceive import predicted_truth, predicted_truth_union
+    own = spec['map'] == 'own'
+    key = (spec['pb'], spec['pf'], k if own else None, dkey)
+    if key not in cache:
+        if own and len(deltas[k]) == 1:
+            cache[key] = predicted_truth(legal_map, deltas[k][0], spec['pb'], spec['pf'])
+        else:
+            cache[key] = predicted_truth_union(legal_map, deltas[k] if own else [x for ds in deltas for x in ds],
+                                               spec['pb'], spec['pf'])
+    return cache[key]
+
+
+def _s2_reveal(work, truth, spec):
+    from .perceive import Discovery, ObserverReveal
+    if spec['reveal'] == 'observer':
+        return ObserverReveal(work, truth, **{k: spec[k] for k in ('free_min', 'free_max', 'wall_max', 'rays', 'sway')
+                                              if k in spec})
+    return Discovery(work, truth)
+
+
+def _keys_state(g, keys):
+    i, j = keys[:, 0]-g.ox, keys[:, 1]-g.oz
+    ok = (i >= 0) & (i < g.state.shape[0]) & (j >= 0) & (j < g.state.shape[1])
+    out = np.zeros(len(keys), np.uint8)
+    out[ok] = g.state[i[ok], j[ok]]
+    return out
+
+
+def map_stats(truth, legal_map, final):
+    """PRIVILEGED evaluation of a predicted truth map: its cells UNKNOWN at t against the real branch's end-of-window
+    map ``final``.  rB / rF: cells the real robot certified BLOCKED / FREE in the window; pB / pF: predicted BLOCKED /
+    FREE cells; BB / FF: both agree; FB: predicted BLOCKED, really FREE (false wall); BF: predicted FREE, really
+    BLOCKED (false opening); B0 / F0: predicted, not certified in the real window."""
+    ii, jj = np.nonzero(final.state != 0)
+    keys = np.stack([ii+final.ox, jj+final.oz], 1).astype(np.int64)
+    new = _keys_state(legal_map, keys) == 0
+    real = final.state[ii[new], jj[new]]
+    pred = _keys_state(truth, keys[new])
+    ti, tj = np.nonzero(truth.state != 0)
+    tk = np.stack([ti+truth.ox, tj+truth.oz], 1).astype(np.int64)
+    tnew = _keys_state(legal_map, tk) == 0
+    ps = truth.state[ti[tnew], tj[tnew]]
+    seen = _keys_state(final, tk[tnew]) != 0
+    return dict(rB=int((real == 2).sum()), rF=int((real == 1).sum()), pB=int((ps == 2).sum()), pF=int((ps == 1).sum()),
+                BB=int(((real == 2) & (pred == 2)).sum()), FF=int(((real == 1) & (pred == 1)).sum()),
+                FB=int(((real == 1) & (pred == 2)).sum()), BF=int(((real == 2) & (pred == 1)).sum()),
+                B0=int(((ps == 2) & ~seen).sum()), F0=int(((ps == 1) & ~seen).sum()))
+
+
 def probe_decision(ep, d, sb):
     from eventwm_graph.querygen.native import MAX_EPISODE_STEPS
     from eventwm_graph.querygen.oracle import horizon_for
@@ -158,7 +246,7 @@ def probe_decision(ep, d, sb):
     from .compiler import LegalField
     from .fidelity import clearance_series
     from .oraclebank import OracleBank
-    from .perceive import VisibleWorld, Discovery, TimedReveal, ReplayTracks
+    from .perceive import VisibleWorld, Discovery, TimedReveal, ReplayTracks, ObserverReveal
     from .infofeat import _blocked_lookup
     t0 = time.perf_counter()
     rt = ep.rt
@@ -216,13 +304,14 @@ def probe_decision(ep, d, sb):
         seed = dict(next_id=[int(s.next_id), None if real_tr is None else int(real_tr.next_id)],
                     timestamp=[float(s.timestamp), None if real_tr is None else float(real_tr.timestamp)],
                     tracks_equal=bool(real_tr is not None and s.tracks == real_tr.tracks), n=len(s.tracks))
-    s2map = None
+    s2 = None                    # Stage 2 increments, one per candidate (camS2 variants)
+    s2cache = {}
     if any(v.startswith('camS2') for v in variants):
         # LEGAL predicted map (Layer 2 / Stage 2): every candidate imagined on the frozen map (TRUE people, as camT),
-        # one batched Stage 2 call on those paths, one predicted local map (perceive.predicted_truth_union) revealed
-        # through the imagined camera in the camS2 variants
+        # one batched Stage 2 call on those paths; per camS2 setting one predicted local map (union of every
+        # candidate's increment, perceive.predicted_truth_union) or the candidate's own (predicted_truth), revealed
+        # through the imagined camera (Discovery, or ObserverReveal)
         from eventwm_graph.layer2.state import trajectory_from_poses
-        from .perceive import predicted_truth_union
         trajs = []
         for k, (q, h, fin, real) in enumerate(reals):
             ex, _ = sb._execution(d.candidates[k])
@@ -237,9 +326,58 @@ def probe_decision(ep, d, sb):
             trajs.append(trajectory_from_poses(P, st.legal.time))
         try:
             pred = sb.l2.predict(ep.last_state, trajs, materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
-            s2map = predicted_truth_union(st.legal.map, [c.map for c in pred.candidates])
+            s2 = [c.map for c in pred.candidates]
         except Exception as exc:
             print('shortprobe: Stage 2 failed (%s)' % (exc,), flush=True)
+    # camS2 settings with more Stage 2 rounds (LEGAL: every candidate re-imagined with the previous rounds' map stream,
+    # Stage 2 again on those paths, the rounds' increments united) or conditioned on the REAL branch paths (cond=real:
+    # PRIVILEGED diagnostic of the conditioning path): their per-candidate increments, keyed by the setting
+    s2sets = {}
+    if s2 is not None:
+        from eventwm_graph.layer2.state import trajectory_from_poses
+        for v in variants:
+            vb = v[:-2] if v.endswith('Pc') else v[:-1] if (v.endswith('P') and v != 'P') else v
+            if not vb.startswith('camS2'):
+                continue
+            spec = _s2_spec(vb[len('camS2'):])
+            key = _s2_key(spec)
+            if key in s2sets or (spec['rounds'] == 1 and spec['cond'] == 'imag'):
+                continue
+            phys = 'band' if v.endswith('P') else 'core' if v.endswith('Pc') else ''
+            dl, dkey = [[x] for x in s2], 'r1'
+            for r in range(1 if spec['cond'] == 'imag' else 0, spec['rounds']):
+                trajs = []
+                for k, (q, h, fin, real) in enumerate(reals):
+                    if spec['cond'] == 'real' and r == 0:
+                        trajs.append(trajectory_from_poses(np.concatenate([np.asarray(st.legal.pose, np.float64)[None], real]),
+                                                           st.legal.time))
+                        continue
+                    ex, _ = sb._execution(d.candidates[k])
+                    if isinstance(ex, Exception):
+                        trajs.append(trajectory_from_poses(np.asarray([st.legal.pose], np.float64), st.legal.time))
+                        continue
+                    m = _s2_truth(st.legal.map, dl, k, spec, s2cache, dkey)
+                    vmap = st.legal.map.copy()
+                    hum = VisibleWorld(st.legal, truth, 0, W_MAX)
+                    hum.blocked = _blocked_lookup(m)
+                    hum.discovery = _s2_reveal(vmap, m, spec)
+                    ro = imagine(st.legal, ex, dyn, hum, h, level=int(d.candidates[k].level), gmap=vmap,
+                                 continuation=max(0, W_MAX-h), cont_query=goal, planner=cfg.planner, cont_boundary=16,
+                                 cont_inherit=True, physics=phys)
+                    c = getattr(ro, 'cont', None)
+                    P = np.asarray(ro.poses, np.float64)
+                    if c is not None and len(c):
+                        P = np.concatenate([P, np.asarray(c, np.float64)])
+                    trajs.append(trajectory_from_poses(P, st.legal.time))
+                try:
+                    pr = sb.l2.predict(ep.last_state, trajs, materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
+                except Exception as exc:
+                    print('shortprobe: Stage 2 round failed (%s)' % (exc,), flush=True)
+                    break
+                new = [c.map for c in pr.candidates]
+                dl = [[x] for x in new] if (spec['cond'] == 'real' and r == 0) else [a+[x] for a, x in zip(dl, new)]
+                dkey = (key, r)
+            s2sets[key] = (dl, dkey)
     for k, (q, h, fin, real) in enumerate(reals):
         rc = clearance_series(real, tape, i0)
         steps = int(fin.index-i0)
@@ -264,6 +402,7 @@ def probe_decision(ep, d, sb):
                 if isinstance(ex, Exception):
                     break
                 vmap = gmap
+                mstats = None
                 if v == 'rel':
                     hum = NominalHumans(st.legal.tracks, st.legal.time, W_MAX, bank=bank, mode='mean')
                 elif v == 'cam6':
@@ -290,16 +429,20 @@ def probe_decision(ep, d, sb):
                         hum.discovery = TimedReveal(vmap, fin.legal.map)
                 else:
                     hum = VisibleWorld(st.legal, truth, 0, W_MAX)
-                    if base == 'camTD':
+                    if base in ('camTD', 'camTDo'):
                         vmap = st.legal.map.copy()
                         hum.blocked = _blocked_lookup(fin.legal.map)
-                        hum.discovery = Discovery(vmap, fin.legal.map)
-                    elif base == 'camS2':
-                        if s2map is None:
+                        hum.discovery = (ObserverReveal if base == 'camTDo' else Discovery)(vmap, fin.legal.map)
+                    elif base.startswith('camS2'):
+                        if s2 is None:
                             break
+                        spec = _s2_spec(base[len('camS2'):])
+                        dl, dkey = s2sets.get(_s2_key(spec), ([[x] for x in s2], 'r1'))
+                        s2map = _s2_truth(st.legal.map, dl, k, spec, s2cache, dkey)
                         vmap = st.legal.map.copy()
                         hum.blocked = _blocked_lookup(s2map)
-                        hum.discovery = Discovery(vmap, s2map)
+                        hum.discovery = _s2_reveal(vmap, s2map, spec)
+                        mstats = map_stats(s2map, st.legal.map, fin.legal.map)
                     elif base in ('camM', 'camMF', 'camMB'):
                         # fidelity ladder (privileged): camera-model people + the real robot's map stream by time
                         # (camMF / camMB: only its FREE / only its BLOCKED certifications)
@@ -364,7 +507,8 @@ def probe_decision(ep, d, sb):
                                  near_goal=bool(len(im) and math.hypot(im[-1, 0]-st.legal.goal[0], im[-1, 2]-st.legal.goal[2]) <= 0.3),
                                  clr={w2: _min_upto(ic, w2) for w2 in WINDOWS},
                                  ctg={w2: _ctg_at(field, im, w2) for w2 in WINDOWS}, div=div,
-                                 **({} if icd is None else dict(cd={w2: _min_upto(icd, w2) for w2 in WINDOWS})), **trk))
+                                 **({} if icd is None else dict(cd={w2: _min_upto(icd, w2) for w2 in WINDOWS})),
+                                 **({} if mstats is None else dict(s2=mstats)), **trk))
             rec['imag'][v] = runs
         cands.append(rec)
     out = dict(step=i0, decision=int(ep.decisions), labels=list(d.labels), default=d.labels[d.default],
@@ -510,5 +654,56 @@ def summarize(path, thr=0.2):
         print('  '.join(line), ' (real collisions %d / %d)' % (int(y.sum()), len(y)))
 
 
+def fidelity(path, variants=None, ref='camTPc', lags=(16, 32)):
+    """Imagined-vs-real divergence per variant on the candidates every listed variant imagined (paired), non-thru and
+    thru ('_th') candidates apart: median / p90 at ``lags``; per variant vs ``ref`` the share of non-thru candidates
+    whose 32-step divergence is better / worse by more than 0.25 m; camS2 variants: their predicted maps against the
+    real end-of-window maps (summed cell counts, ``map_stats``; precision among the predicted cells the real window
+    certified, recall of the cells it certified new).  ``path``: one probe directory or several, comma-separated
+    (pooled).
+
+        python scripts/l3_run.py eventwm_graph.l3.shortprobe fidelity <dir>[,<dir>...] [variant,variant,...]"""
+    recs = []
+    for f in sorted(f for p in str(path).split(',') for f in Path(p).glob('*.json')):
+        for s in json.loads(f.read_text()).get('probe', []):
+            recs += s['cands']
+    names = variants or sorted({v for c in recs for v in c['imag']})
+    rows = [c for c in recs if all((c['imag'].get(v) or [{}])[0].get('div') for v in names)]
+    print('%s: %d candidates, %d imagined by every variant (%d non-thru)' % (
+        path, len(recs), len(rows), sum(not c['label'].endswith('_th') for c in rows)))
+    out = {}
+    for v in names:
+        line = '   %-12s' % v
+        res = {}
+        for th in (False, True):
+            for lag in lags:
+                a = np.asarray([c['imag'][v][0]['div'].get(str(lag)) for c in rows if c['label'].endswith('_th') == th
+                                and c['imag'][v][0]['div'].get(str(lag)) is not None], np.float64)
+                if len(a):
+                    res['%s%d' % ('thru' if th else 'non', lag)] = (float(np.median(a)), float(np.percentile(a, 90)), len(a))
+                    line += '  %s d%d %.2f / %.2f' % ('thru' if th else 'non-thru', lag, np.median(a), np.percentile(a, 90))
+        if ref in names and v != ref:
+            d = np.asarray([c['imag'][v][0]['div'].get('32', np.nan) - c['imag'][ref][0]['div'].get('32', np.nan)
+                            for c in rows if not c['label'].endswith('_th')], np.float64)
+            d = d[np.isfinite(d)]
+            if len(d):
+                res['better'], res['worse'] = float((d < -0.25).mean()), float((d > 0.25).mean())
+                line += '  | vs %s: better %.2f worse %.2f' % (ref, res['better'], res['worse'])
+        st = [c['imag'][v][0].get('s2') for c in rows if c['imag'][v][0].get('s2')]
+        if st:
+            S = {k: sum(x[k] for x in st) for k in st[0]}
+            res['s2'] = S
+            line += ('\n%16sBLOCKED precision %.2f recall %.2f | FREE precision %.2f recall %.2f | false walls %.3f of real '
+                     'FREE, false openings %.3f of real BLOCKED' % (
+                         '', S['BB']/max(S['pB']-S['B0'], 1), S['BB']/max(S['rB'], 1), S['FF']/max(S['pF']-S['F0'], 1),
+                         S['FF']/max(S['rF'], 1), S['FB']/max(S['rF'], 1), S['BF']/max(S['rB'], 1)))
+        out[v] = res
+        print(line)
+    return out
+
+
 if __name__ == '__main__':
-    summarize(sys.argv[1], float(sys.argv[2]) if len(sys.argv) > 2 else 0.2)
+    if sys.argv[1] == 'fidelity':
+        fidelity(sys.argv[2], sys.argv[3].split(',') if len(sys.argv) > 3 else None)
+    else:
+        summarize(sys.argv[1], float(sys.argv[2]) if len(sys.argv) > 2 else 0.2)

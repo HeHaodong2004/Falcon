@@ -59,3 +59,14 @@ predicted map, the tracker's 2 s memory) from the imagined pose; `perceive.Disco
 `L3_MW_CONTACT_STEPS` (scoring rules).  Analysis only (privileged): every run with `L3_ORACLE_BANK` (the people's true
 future), `fidelity.py` (exact branch-simulator rollouts, real end-of-window maps as truth, shifted human tapes) and
 `rolloutpolicy.py` (incl. `--shifts`).  Released components default to OFF for all of these.
+
+## Stage 2 map-stream options (amended 2026-10-30 16:00)
+Legal, default off, read by `heuristics._discovery_rollouts` (selector `mwroll` with `L3_MW_DISCOVER=1|union`), the
+closed-loop Sandbox map loop and the probe's `camS2` variants: `L3_S2_PB` / `L3_S2_PF` -- reveal a predicted cell as
+BLOCKED / FREE only if Stage 2's probability that the legal camera certifies it so along the path exceeds the
+threshold (`perceive.s2_states`; unset = Stage 2's own states, i.e. its class rule 0.575 / 0.475; `L3_S2_PF=1.01`
+reveals no predicted FREE cell); `L3_S2_REVEAL=observer` -- predicted cells are certified as the legal sensor certifies
+(`perceive.ObserverReveal`: FREE halo inside the 90 deg frustum at 1.0-9.6 m with line of sight, BLOCKED through the
+35 wall rays to 10 m and the 0.25 m band around each hit, the jaw camera's mount; parameters fitted on TRAIN legal
+map histories, `l3/revealfit.py`) instead of `Discovery`'s 5 m frustum; `L3_S2_ROUNDS=n` -- Stage 2 again on the paths
+of the previous pass (no fidelity gain measured).  `L3_S2_OBS` overrides the observer distances (analysis).

@@ -162,7 +162,7 @@ def imagine_closed_loop(sb, state, legal, candidates, bank, cfg=None):
     """Closed-loop imagination of ``candidates`` (sandbox ``Candidate``s) at one legal decision state."""
     from eventwm_graph.sandbox.episode import default_query
     from eventwm_graph.sandbox import accel
-    from eventwm_graph.l3.perceive import VisibleWorld, Discovery, predicted_truth_union
+    from eventwm_graph.l3.perceive import VisibleWorld, make_reveal, predicted_truth_union, s2_thresholds
     from eventwm_graph.l3.infofeat import _blocked_lookup
     from eventwm_graph.layer2.state import trajectory_from_poses
     from .imagine import NominalHumans
@@ -216,7 +216,8 @@ def imagine_closed_loop(sb, state, legal, candidates, bank, cfg=None):
                 trajs.append(trajectory_from_poses(P, legal.time))
             try:
                 pred = sb.l2.predict(state, trajs, materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
-                predicted = predicted_truth_union(legal.map, [c.map for c in pred.candidates])
+                # Layer 3 map-stream options (default off): L3_S2_PB / L3_S2_PF thresholds of the predicted cells
+                predicted = predicted_truth_union(legal.map, [c.map for c in pred.candidates], *s2_thresholds())
             except Exception as exc:                # no Stage 2 answer: frozen map (recorded in the profile)
                 predicted = None
                 map_error = repr(exc)
@@ -229,7 +230,7 @@ def imagine_closed_loop(sb, state, legal, candidates, bank, cfg=None):
                 if predicted is not None:
                     vmap = legal.map.copy()
                     hum.blocked = _blocked_lookup(predicted)
-                    hum.discovery = Discovery(vmap, predicted)
+                    hum.discovery = make_reveal(vmap, predicted)        # L3_S2_REVEAL (default: Discovery)
                 else:
                     vmap = gmap
                 ros.append(run(c, hum, vmap))

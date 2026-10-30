@@ -483,14 +483,180 @@ class ReplayTracks:
         return out
 
 
-def predicted_truth(legal_map, delta):
+OBS_BAND = 0.25          # installed inflation of a wall witness (observer: 'observed_static_wall_inflated_025m')
+# ObserverReveal parameters (m from the camera; rays; sway deg).  Chosen on TRAIN legal maps (``revealfit.py``, 53
+# orca_train episodes: the certification time of every certified cell vs the reveal model replayed along the robot's
+# own past poses; wall cells on the band's free side within +-0.5 s 57% (Discovery 45%), never revealed 7% (20%);
+# FREE 75% (56%), never 10% (18%)).  Neighbours on TRAIN: free_min 1.3 / 1.6 m -1 / -4 points on FREE, free_max 7 m
+# -4, wall_max 6 / 4 m -1 / -2 on walls, rays 105 / sway 5-10 deg no gain.  L3_S2_OBS='free_min=..,wall_max=..'
+# overrides them (analysis).
+OBS_DEFAULTS = dict(free_min=1.0, free_max=9.6, wall_max=10.0, rays=35, sway=0.)
+
+
+def observer_params():
+    p = dict(OBS_DEFAULTS)
+    for kv in filter(None, __import__('os').environ.get('L3_S2_OBS', '').split(',')):
+        k, v = kv.split('=')
+        p[k.strip()] = float(v)
+    return p
+
+
+class ObserverReveal(Discovery):
+    """LEGAL map discovery that certifies cells of a ``truth`` map as the legal sensor does (``querygen/fastsense.py`` /
+    ``partial/observer.py``), instead of ``Discovery``'s 5 m frustum (Layer 3 option ``L3_S2_REVEAL=observer``):
+
+    * FREE: the sensor certifies a cell only when its 63 probes -- the square and a clearance halo of 0.25 m + half a
+      cell diagonal around its centre, at 0.025 / 0.7 / 1.4 m above the floor -- are all inside the 90 x 90 deg jaw
+      frustum (10 m range) and unoccluded.  Here: the halo disc inside the horizontal field of view, the centre between
+      ``free_min`` (the floor / 1.4 m probes enter the vertical field of view; TRAIN legal maps: 1% of FREE
+      certificates closer than 1.3 m to the camera) and ``free_max`` m (range minus the halo), clear line of sight on
+      the truth map.
+    * BLOCKED: the sensor certifies walls only through 35 rays across the frustum (image columns x = -0.95 .. 0.95);
+      every cell within the installed 0.25 m inflation of a ray's hit point becomes BLOCKED (the inflated wall band).
+      Here: the 35 rays march through the truth map up to ``wall_max`` m; the wall surface is taken ``OBS_BAND`` m past
+      the first BLOCKED (band) cell and every truth BLOCKED cell within ``OBS_BAND`` + half a cell diagonal of it is
+      certified.
+    * The camera is the jaw camera's measured mount (``CAM_FWD`` / ``CAM_RIGHT`` / ``CAM_YAW``) whatever
+      ``L3_CAM_MOUNT``.  Human occlusion of FREE probes and wall rays is not modelled.
+    Same contract as ``Discovery`` (``work`` modified in place; ``reset`` restores the map at t)."""
+
+    def __init__(self, work, truth, free_min=None, free_max=None, wall_max=None, rays=None, sway=None, step=0.05):
+        p = observer_params()
+        self.free_min = float(p['free_min'] if free_min is None else free_min)
+        self.free_max = float(p['free_max'] if free_max is None else free_max)
+        self.wall_max = float(p['wall_max'] if wall_max is None else wall_max)
+        n = int(p['rays'] if rays is None else rays)
+        sway = math.radians(float(p['sway'] if sway is None else sway))
+        self.rad = OBS_BAND+truth.res/math.sqrt(2.)
+        self.halo = OBS_BAND+truth.res/math.sqrt(2.)
+        super().__init__(work, truth, rng=max(self.free_max, self.wall_max+OBS_BAND+self.rad))
+        # only truth cells that differ from the map at t can ever be certified (``work`` changes only here; reset
+        # restores it): keep those
+        b = self.base
+        bi, bj = self.ki-b.ox, self.kj-b.oz
+        ok = (bi >= 0) & (bi < b.state.shape[0]) & (bj >= 0) & (bj < b.state.shape[1])
+        s0 = np.zeros(len(self.cs), np.uint8)
+        s0[ok] = b.state[bi[ok], bj[ok]]
+        keep = s0 != self.cs
+        self.ki, self.kj, self.cx, self.cz = self.ki[keep], self.kj[keep], self.cx[keep], self.cz[keep]
+        self.cs, self.ch = self.cs[keep], self.ch[keep]
+        self.isB = self.cs == 2
+        self.sd = np.arange(1, int(math.ceil(self.wall_max/float(step)))+1)*float(step)
+        self.sd = self.sd[self.sd <= self.wall_max+1e-9]
+        # the sensor's 35 wall-ray columns; 'sway' (deg) widens the fan and the frustum by the jaw camera's gait yaw
+        # oscillation (TRAIN sensor rows: camera yaw - base yaw p5 / p95 = -9.7 / +14.3 deg), 'rays' sets its density
+        self.half = HFOV/2+sway
+        if n == 35 and sway == 0.:
+            self.rays = np.arctan(np.linspace(-.95, .95, 35))
+        else:
+            self.rays = np.linspace(-1., 1., n)*(math.atan(.95)+sway)
+
+    def reveal(self, pose, t):
+        if not len(self.cx):
+            return
+        c, s = math.cos(float(pose[3])), math.sin(float(pose[3]))
+        px = float(pose[0])+CAM_FWD*c+CAM_RIGHT*s
+        pz = float(pose[2])-CAM_FWD*s+CAM_RIGHT*c
+        pyaw = float(pose[3])+CAM_YAW
+        dx, dz = self.cx-px, self.cz-pz
+        near = np.flatnonzero((np.abs(dx) <= self.rng) & (np.abs(dz) <= self.rng))
+        if not len(near):
+            return
+        w = self.work
+        keys = np.stack([self.ki[near], self.kj[near]], 1)
+        w._ensure(keys)
+        wi, wj = keys[:, 0]-w.ox, keys[:, 1]-w.oz
+        live = w.state[wi, wj] != self.cs[near]
+        if not live.any():
+            return
+        near, wi, wj = near[live], wi[live], wj[live]
+        dx, dz = dx[near], dz[near]
+        d = np.hypot(dx, dz)
+        cy, sy = math.cos(pyaw), math.sin(pyaw)
+        ang = np.abs(np.arctan2(-dx*sy-dz*cy, dx*cy-dz*sy))
+        take = np.zeros(len(near), bool)
+        isB = self.isB[near]
+        # FREE certificates: halo inside the horizontal field of view, distance window, line of sight to the centre
+        fm = ~isB & (d >= self.free_min) & (d <= self.free_max)
+        if fm.any():
+            idx = np.flatnonzero(fm)
+            ok = ang[idx] <= self.half-np.arcsin(np.minimum(self.halo/np.maximum(d[idx], 1e-6), 1.))
+            idx = idx[ok]
+            if len(idx):
+                clear = _los(self.blocked, np.full(len(idx), px), np.full(len(idx), pz), self.cx[near[idx]],
+                             self.cz[near[idx]])
+                take[idx[clear]] = True
+        # wall rays: first BLOCKED cell of the truth map along each ray, the surface OBS_BAND m further, the band around it
+        bm = isB & (d <= self.wall_max+OBS_BAND+self.rad)
+        if bm.any() and len(self.sd):
+            a = pyaw+self.rays
+            ux, uz = np.cos(a), -np.sin(a)
+            hit = self.blocked(px+ux[:, None]*self.sd[None], pz+uz[:, None]*self.sd[None])      # [35, S]
+            has = hit.any(1)
+            if has.any():
+                r = self.sd[np.argmax(hit[has], 1)]+OBS_BAND
+                hx, hz = px+ux[has]*r, pz+uz[has]*r
+                idx = np.flatnonzero(bm)
+                dd = np.hypot(self.cx[near[idx]][:, None]-hx[None], self.cz[near[idx]][:, None]-hz[None]).min(1)
+                take[idx[dd <= self.rad]] = True
+        if not take.any():
+            return
+        idx, wi, wj = near[take], wi[take], wj[take]
+        w.state[wi, wj] = self.cs[idx]
+        w.height[wi, wj] = self.ch[idx]
+        fs = w.first_seen[wi, wj]
+        w.first_seen[wi, wj] = np.where(np.isnan(fs), t, fs)
+        w.last_seen[wi, wj] = t
+        w.revision += 1
+        self.revealed += len(idx)
+
+
+def make_reveal(work, truth, mode=None):
+    """The imagined map stream for a (predicted) truth map: ``Discovery`` (mode 'frustum', the default) or
+    ``ObserverReveal`` ('observer'); mode None reads ``L3_S2_REVEAL``."""
+    mode = __import__('os').environ.get('L3_S2_REVEAL', 'frustum') if mode is None else mode
+    if mode == 'observer':
+        return ObserverReveal(work, truth)
+    if mode != 'frustum':
+        raise ValueError('unknown reveal mode %r' % (mode,))
+    return Discovery(work, truth)
+
+
+def s2_thresholds():
+    """(pb, pf) from ``L3_S2_PB`` / ``L3_S2_PF`` (None when unset)."""
+    env = __import__('os').environ
+    pb, pf = env.get('L3_S2_PB'), env.get('L3_S2_PF')
+    return (float(pb) if pb not in (None, '') else None), (float(pf) if pf not in (None, '') else None)
+
+
+def s2_states(delta, pb=None, pf=None):
+    """States of a Stage 2 increment's candidate cells (0 stays UNKNOWN, 1 FREE, 2 BLOCKED).  Default (pb = pf = None):
+    the increment's own ``states`` (Stage 2's frozen class rule).  With thresholds (Layer 3 option ``L3_S2_PB`` /
+    ``L3_S2_PF``): a cell is revealed BLOCKED / FREE when Stage 2's probability that the camera certifies it BLOCKED /
+    FREE along the path (``probabilities`` columns 2 / 1) exceeds ``pb`` / ``pf``; when both do, the larger margin
+    wins -- Stage 2's own rule (``stage2_claude.api``, rule 'class'), so ``pb`` / ``pf`` equal to the increment's
+    operating point (provenance ``blocked_threshold`` / ``revelation_threshold``: 0.575 / 0.475 for the release)
+    reproduce ``states``.  An unset threshold takes that operating point."""
+    st = np.asarray(delta['states'])
+    if pb is None and pf is None:
+        return st
+    prov = delta.get('provenance') or {}
+    tb = np.float32(prov.get('blocked_threshold', 0.575) if pb is None else pb)
+    tf = np.float32(prov.get('revelation_threshold', 0.475) if pf is None else pf)
+    p = np.asarray(delta['probabilities'], np.float32).reshape(-1, 3)
+    p_free, p_blk = p[:, 1], p[:, 2]
+    return np.where((p_free > tf) | (p_blk > tb), np.where(p_blk-tb > p_free-tf, 2, 1), 0).astype(np.uint8)
+
+
+def predicted_truth(legal_map, delta, pb=None, pf=None):
     """LEGAL truth map for ``Discovery``: the legal map at t with Layer 2's (Stage 2) predicted states written into its
     UNKNOWN cells (``delta``: a Stage 2 increment -- candidate_cells keys in the legal map's key space, states 1 FREE /
-    2 BLOCKED).  Hypothetical; never merged into the real legal state."""
+    2 BLOCKED; ``pb`` / ``pf``: probability thresholds, ``s2_states``).  Hypothetical; never merged into the real legal
+    state."""
     truth = legal_map.copy()
     if delta is None:
         return truth
-    st = np.asarray(delta['states'])
+    st = s2_states(delta, pb, pf)
     m = st > 0
     if not m.any():
         return truth
@@ -502,15 +668,16 @@ def predicted_truth(legal_map, delta):
     return truth
 
 
-def predicted_truth_union(legal_map, deltas):
+def predicted_truth_union(legal_map, deltas, pb=None, pf=None):
     """LEGAL truth map from SEVERAL Stage 2 increments (every candidate's predicted cells, one predicted local map):
     predicted states are written into the legal map's UNKNOWN cells; where predictions disagree BLOCKED wins
-    (conservative for planning and contact).  Hypothetical; never merged into the real legal state."""
+    (conservative for planning and contact; ``pb`` / ``pf``: probability thresholds, ``s2_states``).  Hypothetical;
+    never merged into the real legal state."""
     truth = legal_map.copy()
     for delta in deltas:
         if delta is None:
             continue
-        st = np.asarray(delta['states'])
+        st = s2_states(delta, pb, pf)
         m = st > 0
         if not m.any():
             continue

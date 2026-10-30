@@ -175,6 +175,34 @@ every candidate's imagined path, one union map revealed through the imagined cam
 Stage 2 recovers about half of the wall-stream gain.  It already outputs per-cell probabilities of what the camera
 will certify along a path (stays unknown / free / blocked); only the argmax is used today.
 
+Stage 2 map-stream options (default off; `docs/l3/PROTOCOL.md`; probe `output/agents/stage2/s2prob`).  Reveal model:
+replayed along the robot's own past poses on 53 TRAIN legal-map histories (`l3/revealfit.py`), the 5 m `Discovery`
+frustum reveals 45% of the wall cells on the band's free side within 0.5 s of their real certificate (20% never) and
+56% of the FREE cells (18% never); `perceive.ObserverReveal` (the legal sensor's certificates: FREE halo in the
+frustum at 1.0-9.6 m, 35 wall rays to 10 m with the 0.25 m band, the real mount) 57% (7%) and 75% (10%).  Fidelity
+probe on TRAIN (24 floor episodes, 57 decisions, TRUE people, core physics; non-thru divergence median / p90 (mean)):
+
+| map stream | 16 steps | 32 steps |
+|---|---|---|
+| frozen | 0.00 / 0.83 (0.24) | 0.62 / 2.45 (0.96) |
+| Stage 2, release (union, `Discovery`, class rule) | 0.00 / 0.63 (0.20) | 0.52 / 2.21 (0.83) |
+| Stage 2, BLOCKED p > 0.3 | 0.00 / 0.62 (0.21) | 0.62 / 2.03 (0.82) |
+| Stage 2, observer reveal | 0.00 / 0.44 (0.16) | 0.43 / 2.25 (0.78) |
+| Stage 2, observer reveal, BLOCKED p > 0.45 | 0.00 / 0.44 (0.17) | 0.48 / 2.08 (0.78) |
+| **Stage 2, observer reveal, no predicted FREE cell (`L3_S2_PF=1.01`)** | 0.00 / 0.47 (0.17) | 0.51 / 1.89 (0.76) |
+| real map at the window's end, observer reveal (privileged) | 0.00 / 0.41 (0.11) | 0.05 / 1.32 (0.39) |
+| real wall stream (privileged) | 0.00 / 0.36 (0.11) | 0.06 / 1.27 (0.41) |
+
+On 3 of the 18 dev collision episodes (ladder recipe, 13 decisions) the bold setting gives 0.03 / 1.93 (0.51) and
+0.63 / 4.31 (1.29) against the release's 0.06 / 1.87 (0.57) and 0.69 / 4.38 (1.46), the frozen map's 0.05 / 1.87 (0.60)
+and 1.25 / 4.24 (1.82) and the wall stream's 0.00 / 1.87 (0.48) and 0.47 / 3.85 (1.32).  With the real end-of-window
+map the observer reveal matches the real stream, so the remaining gap is Stage 2's map itself: its union map certifies
+42% of the real new wall cells (precision 0.90) and predicts FREE where the real robot certified walls for 16% of them.
+Candidates that drift more than 1 m beyond the wall stream have more missed walls, not more false ones (TRAIN batch 1);
+lower BLOCKED thresholds trade median for tail.  A second Stage 2 round on the re-imagined paths (wall recall 0.42 ->
+0.49) gave no gain at 32 steps (0.66 / 2.05 (0.82) vs 0.65 / 1.88 (0.80), 20 decisions), and Stage 2 conditioned on the
+REAL paths (privileged; recall 0.57) moved the divergence little (0.43 / 2.20 (0.75)).
+
 Contact foresight at the critical decisions (the same 832 candidates; imagined centre distance < 0.75 m vs official
 contact within 1.5 s):
 
