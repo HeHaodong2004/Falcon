@@ -468,3 +468,8 @@ reacting to the people step by step (hit vs miss at fine timing), which the comp
 interval against a nominal world plus a route-following proxy -- do not capture.  Consequence: a longer-horizon people
 predictor would not help; what could is high-fidelity imagination of each candidate's execution with the planner
 reacting to each plausible future -- the multi-world rollout (`mwroll`) now under test.
+Partial (02:05): label critic v1 (3-member ensemble on R9 + R10 labels, built on R10's late network) 11 wins / 17
+losses vs the floor (122 paired episodes); legal multi-world imagined rollout (4 worlds, 48-step continuation; the
+planner reacting to each sampled world) ORCA 3 / 4 (35 episodes).  Running: the same multi-world rollout with the
+TRUE future (analysis only; 1 world = truth, 100-step continuation) -- does high-fidelity imagination with perfect
+prediction reproduce the exact reference?
