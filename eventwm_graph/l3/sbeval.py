@@ -111,6 +111,10 @@ VARIANTS = {
     'cl_truetracked': (dict(window=64, map_loop='off', worlds=8, selection='cluster'), 'truetracked'),
     'cl_s2': (dict(window=64, map_loop='stage2_union'), 'stage1'),
     'cl_frozen_cv': (dict(window=64, map_loop='off', worlds=1), 'cv'),
+    # map-aware multimodal forecaster of the tracked people (l3/peoplemap.py, model L3_FC_MODEL; legal): one world
+    # (weighted mean / top mode) or the 6 most probable joint mode combinations, weighted
+    'cl_frozen_fc1': (dict(window=64, map_loop='off', worlds=1), 'fc1'),
+    'cl_frozen_fck': (dict(window=64, map_loop='off', worlds=6), 'fck'),
     'cl_frozen_all': (dict(window=64, map_loop='off', perception='all'), 'stage1'),
     'cl_frozen_w12': (dict(window=64, map_loop='off', worlds=12), 'stage1'),
 }
@@ -144,6 +148,9 @@ def run_variant(sb, item, name):
         bank = CVBank(legal)
     elif people == 'truetracked':
         bank = TrueTrackedBank(item)
+    elif people in ('fc1', 'fck'):
+        from .peoplemap import FCBank
+        bank = FCBank(legal, mode=people, worlds=int(kw.get('worlds', 6)))
     elif people.startswith('v2:'):
         from .peoplefc import Forecaster, PeopleBankV2
         fpath = people[3:]
@@ -187,7 +194,8 @@ def run_variant(sb, item, name):
             cps.append([[float(v) for v in seq[min(j, len(seq))-1][[0, 2, 3]]] for j in range(4, 65, 4)])
         rec['poses'] = cps
         preds.append(rec)
-    return dict(preds=preds, profile=res.profile)
+    from eventwm_graph.querygen.control import human_estimates
+    return dict(preds=preds, profile=res.profile, tracked=len(human_estimates(legal.tracks, legal.time)))
 
 
 def _real_coll(c, w):
@@ -374,6 +382,7 @@ def main():
     ap.add_argument('--device', default=None)
     ap.add_argument('--variants', default=None)
     ap.add_argument('--margin', type=float, default=0.25)
+    ap.add_argument('--only-tracked', action='store_true', help='run: only states where the robot tracks someone')
     a = ap.parse_args()
     paths = sorted(glob.glob(os.path.join(a.bank, '*.pkl')))
     if a.mode == 'people':
@@ -399,6 +408,10 @@ def main():
             if target.exists():
                 continue
             item = pickle.load(open(p, 'rb'))
+            if a.only_tracked:
+                from eventwm_graph.querygen.control import human_estimates
+                if not human_estimates(item['legal'].tracks, item['legal'].time):
+                    continue
             t0 = time.perf_counter()
             try:
                 r = run_variant(sb, item, a.variant)

@@ -27,7 +27,7 @@ ORACLE_BANK = __import__('os').environ.get('L3_ORACLE_BANK')    # analysis only:
 ORACLE_BANK_STEPS = int(__import__('os').environ.get('L3_ORACLE_BANK_STEPS', '0'))     # analysis only: true horizon
 ORACLE_NOISE = float(__import__('os').environ.get('L3_ORACLE_NOISE', '0'))      # analysis only: velocity error (m/s)
 ORACLE_NOISE_WORLDS = int(__import__('os').environ.get('L3_ORACLE_NOISE_WORLDS', '6'))
-LEGAL_BANK = __import__('os').environ.get('L3_MW_BANK')      # Layer 3 option: 'cv' = constant-velocity tracks, 'mean' = Stage 1 mean of worlds (legal)
+LEGAL_BANK = __import__('os').environ.get('L3_MW_BANK')      # Layer 3 option: 'cv' = constant-velocity tracks, 'mean' = Stage 1 mean of worlds, 'fc1' / 'fck' = map-aware forecaster (peoplemap.py; legal)
 SCORE_TRUTH = __import__('os').environ.get('L3_MW_SCORE_TRUTH') == '1'   # analysis only (privileged scoring)
 # speed option (default off): with a people bank that does not come from the released Sandbox pass (L3_MW_BANK=cv |
 # mean, L3_ORACLE_BANK) the decision skips that pass (imagination + Stage 2 of every candidate) and the compiled graph
@@ -179,6 +179,14 @@ class L3Episode:
                 import dataclasses
                 from .oraclebank import MeanBank
                 result = dataclasses.replace(result, humans=MeanBank(result.humans, ep.legal))
+            elif LEGAL_BANK in ('fc1', 'fck'):
+                # LEGAL: the map-aware multimodal forecaster of the tracked people (peoplemap.FCBank; model
+                # L3_FC_MODEL): 'fc1' one world (weighted mean or top mode), 'fck' the L3_MW_WORLDS most probable
+                # joint mode combinations, weighted; constant velocity for tracks without a recent detection
+                import dataclasses
+                from .peoplemap import FCBank
+                result = dataclasses.replace(result, humans=FCBank(
+                    ep.legal, mode=LEGAL_BANK, worlds=int(__import__('os').environ.get('L3_MW_WORLDS', '6'))))
             elif LEGAL_BANK == 'cv':
                 # LEGAL baseline predictor: the tracked people at the tracker's constant velocity (oraclebank.CVBank)
                 import dataclasses
