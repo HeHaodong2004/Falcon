@@ -178,13 +178,14 @@ def _wquant(values, weights, qs=(0.1, 0.5, 0.9)):
 class LegalField:
     """Legal route cost-to-go to the public goal on the CURRENT legal map (bounded window around the robot)."""
 
-    def __init__(self, legal):
+    def __init__(self, legal, crop_m=None):
         from eventwm_graph.querygen.gridplan import PlanningView, INF
         g = legal.map
         pose = legal.pose
         robot = (float(pose[0]), float(pose[2]))
         goal = (float(legal.goal[0]), float(legal.goal[2]))
-        cells = int(math.ceil(CROP_M/g.res))
+        # crop_m (default CROP_M): half-width of the planning window; a pose outside it costs CTG_CAP (no progress)
+        cells = int(math.ceil((CROP_M if crop_m is None else float(crop_m))/g.res))
         self.view = PlanningView(g, robot, goal, unknown_cost=UNKNOWN_COST, max_cells=cells)
         gi, gj = self.view.to_local(*goal)
         inside = self.view.inside(gi, gj)

@@ -382,7 +382,10 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     W = W/W.sum() if W.sum() > 0 else np.full(len(W), 1./max(len(W), 1))
     worlds = np.argsort(-W)[:n_worlds] if len(np.unique(W)) > 1 else np.arange(min(n_worlds, len(W)))
     ww = W[worlds]/W[worlds].sum()
-    field = LegalField(legal)
+    # (L3_MW_CROP=<m>, default off) a wider progress window: with a 3.1 s window (L3_MW_CONT=48) the fastest imagined
+    # candidates leave the default +-9 m window and would score as no progress (LegalField.at -> CTG_CAP)
+    crop = __import__('os').environ.get('L3_MW_CROP')
+    field = LegalField(legal, crop_m=float(crop) if crop else None)
     K = len(d.candidates)
     steps = max(sb.config.steps_for(c) for c in d.candidates)
     T = steps+cont
