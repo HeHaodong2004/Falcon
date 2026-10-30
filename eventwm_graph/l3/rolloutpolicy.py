@@ -30,7 +30,7 @@ def outcome_key(fin, st0, goal_xz):
     return (0, int(fin.index-st0.index))                 # collision / STOP failure: later is (slightly) better
 
 
-def run_episode(spec, cfg, cap, scan=False):
+def run_episode(spec, cfg, cap, scan=False, shifts=()):
     from eventwm_graph.querygen.native import EpisodeSpec, MAX_EPISODE_STEPS
     from eventwm_graph.querygen.episode import EpisodeRuntime
     from eventwm_graph.querygen.dynamics import FAMILIES
@@ -63,12 +63,20 @@ def run_episode(spec, cfg, cap, scan=False):
                 child = rt.run(st, None if cont else q, horizon=h, cont=cont, geodesic=False)
                 fin = default_continue(rt, child, goal, min(MAX_EPISODE_STEPS, st.index+cap))
                 key = outcome_key(fin, st, (gx, gz))
+                if shifts:
+                    # robust variant: the candidate's outcome category averaged over the recorded people timing and
+                    # the shifted ones (exogenous timing noise of +-k steps); the recorded outcome breaks ties
+                    cats = [key[0]]
+                    for dlt in shifts:
+                        cats.append(_shifted_outcome(rt, st, q, h, cont, goal, cap, dlt, (gx, gz))[0])
+                    key = (sum(cats)/len(cats),)+tuple(key)
                 scores.append((q.label, key))
                 if best is None or key > best[0]:
                     best = (key, q, child, cont)
             default = 'continue' if 'continue' in [s[0] for s in scores] else 'goal'
             log.append(dict(step=int(st.index), chosen=best[1].label, default=default,
-                            n_success=sum(k[0] == 3 for _, k in scores), n=len(scores)))
+                            n_success=sum(k[-2] == 3 if shifts else k[0] == 3 for _, k in scores), n=len(scores),
+                            **(dict(robust=[[lab, round(k[0], 3)] for lab, k in scores]) if shifts else {})))
             st = best[2]                                   # the chosen candidate's interval (already simulated)
         out = dict(key=spec['key'] if 'key' in spec else None, outcome=st.outcome or 'running', steps=int(st.index),
                    decisions=len(log), deviations=sum(d['chosen'] != d['default'] for d in log),
@@ -82,6 +90,26 @@ def run_episode(spec, cfg, cap, scan=False):
         rt.close()
 
 
+def _shifted_outcome(rt, st, q, h, cont, goal, cap, dlt, goal_xz):
+    """Exact outcome key of candidate ``q`` + default from ``st`` with the people's timing shifted by ``dlt`` steps
+    (fidelity.shifted_tape; the prefix cache is off for the shifted run)."""
+    from eventwm_graph.querygen.native import MAX_EPISODE_STEPS
+    from .cfonline import default_continue
+    from .fidelity import shifted_tape
+    orig, pc = rt.tape, rt.prefix_cache
+    rt.tape = rt.sim.tape = shifted_tape(orig, dlt)
+    rt.prefix_cache = 0
+    rt._loaded = None
+    try:
+        child = rt.run(st, None if cont else q, horizon=h, cont=cont, geodesic=False)
+        fin = default_continue(rt, child, goal, min(MAX_EPISODE_STEPS, st.index+cap))
+        return outcome_key(fin, st, goal_xz)
+    finally:
+        rt.tape = rt.sim.tape = orig
+        rt.prefix_cache = pc
+        rt._loaded = None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', required=True)
@@ -92,6 +120,8 @@ def main():
     ap.add_argument('--shard', type=int, default=0)
     ap.add_argument('--shards', type=int, default=1)
     ap.add_argument('--scan', action='store_true', help='also evaluate the Layer 3 scan queries')
+    ap.add_argument('--shifts', default='', help='robust variant: comma-separated people timing shifts (steps)')
+    ap.add_argument('--episodes', default='', help='comma-separated <scene>_<episode_id>: only these episodes')
     a = ap.parse_args()
     os.environ.setdefault('QG_FAST_SENSE', '1')
     from eventwm_graph.querygen import native
@@ -100,6 +130,9 @@ def main():
     from .env import ConfigSpec
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     specs = suites.load(a.suite)[:a.limit]
+    if a.episodes:
+        want = set(a.episodes.split(','))
+        specs = [s for s in specs if '%s_%s' % tuple(s.key.split('/')[2:4]) in want]
     jobs = [(s, c) for s in specs for c in a.configs.split(',')]
     for i, (s, c) in enumerate(jobs):
         if i % a.shards != a.shard:
@@ -108,7 +141,8 @@ def main():
         if (out/name).exists():
             continue
         try:
-            r = run_episode(dict(s.asdict()), ConfigSpec.parse(c), a.cap, scan=a.scan)
+            r = run_episode(dict(s.asdict()), ConfigSpec.parse(c), a.cap, scan=a.scan,
+                            shifts=tuple(int(x) for x in a.shifts.split(',') if x))
         except Exception as exc:
             import traceback
             r = dict(error=repr(exc), tb=traceback.format_exc()[-1500:])

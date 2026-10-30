@@ -11,6 +11,9 @@ by the Sandbox imagination against the TRUE future of every person (oraclebank.O
             legal-map line of sight and the tracker's 2 s memory, from the IMAGINED pose
   percC  -- perc + continuation fidelity (decision boundaries every 16 steps, goal-query inheritance and re-issue,
             as the real default policy; imagine(cont_boundary, cont_inherit))
+  percF / percCF -- perc / percC with the legal map the REAL robot holds at the end of the window (privileged: the
+            map knowledge the real executor gains while moving; frozen at t in every other variant)
+  kin    -- (open loop) the real command sequence integrated by the imagination's kinematics: motion-model error only
 
 Per candidate: the real outcome / min body-rectangle clearance to the true people, and per variant the planar
 divergence of the imagined robot from the real one at fixed lags and the imagined min clearance -- does the imagination
@@ -30,7 +33,7 @@ from pathlib import Path
 import numpy as np
 
 LAGS = (8, 16, 32, 48, 64, 100, 150, 200, 300)
-VARIANTS = ('nom3', 'nomL', 'perc', 'percC')
+VARIANTS = ('nom3', 'nomL', 'perc', 'percC', 'percF', 'percCF')
 
 
 def clearance_series(poses, tape, i0):
@@ -48,7 +51,25 @@ def clearance_series(poses, tape, i0):
     return out
 
 
-def probe_state(rt, gen, st, cfg, goal, N, scan=False, variants=VARIANTS):
+def _kinematic_replay(pose, commands, dyn):
+    from eventwm_graph.sandbox.imagine import advance
+    out, p = [], np.asarray(pose, np.float64)
+    for c in commands:
+        p = advance(p, dyn, c if isinstance(c, str) else tuple(c))
+        out.append(p)
+    return np.asarray(out, np.float64).reshape(-1, 4)
+
+
+def shifted_tape(tape, d):
+    """The recorded human tape with every person ``d`` steps earlier (d > 0) or later (d < 0): exogenous timing noise."""
+    from eventwm_graph.querygen.native import HumanTape
+    n = len(tape.times)
+    idx = np.clip(np.arange(n)+int(d), 1, n-1)      # tape rows are complete from index 1 on (index 0: reset placement)
+    idx[0] = 0
+    return HumanTape(tape.times, [tape.inputs[i] for i in idx], np.asarray(tape.positions)[idx], tape.speed_scales)
+
+
+def probe_state(rt, gen, st, cfg, goal, N, scan=False, variants=VARIANTS, shifts=()):
     from eventwm_graph.querygen.native import MAX_EPISODE_STEPS
     from eventwm_graph.querygen.oracle import horizon_for
     from eventwm_graph.querygen.executor import QueryExecution
@@ -84,7 +105,34 @@ def probe_state(rt, gen, st, cfg, goal, N, scan=False, variants=VARIANTS):
         rec = dict(label=q.label, kind=q.kind, h=int(h), real=dict(
             outcome=fin.outcome or 'running', steps=int(fin.index-i0), n=len(real),
             minclr=float(rc.min()) if len(rc) else math.inf, minclr_step=int(np.argmin(rc)) if len(rc) else -1),
-            real_s=round(time.perf_counter()-t0, 2), imag={})
+            real_s=round(time.perf_counter()-t0, 2), imag={}, shift={})
+        for dlt in shifts:
+            # the same candidate for real with the people's timing shifted by dlt steps (prefix cache off: its entries
+            # were simulated against the recorded tape)
+            orig, pc = rt.tape, rt.prefix_cache
+            sh = shifted_tape(orig, dlt)
+            rt.tape = rt.sim.tape = sh
+            rt.prefix_cache = 0
+            rt._loaded = None
+            try:
+                ch = rt.run(st, None if cont else q, horizon=h, cont=cont, geodesic=False)
+                fs = ch if ch.terminal else default_continue(rt, ch, goal, end)
+                rp = np.asarray(fs.legal.poses[n0:], np.float64).reshape(-1, 4)
+                cs = clearance_series(rp, np.asarray(sh.positions, np.float64), i0)
+                rec['shift'][str(dlt)] = dict(outcome=fs.outcome or 'running', steps=int(fs.index-i0),
+                                              minclr=float(cs.min()) if len(cs) else math.inf)
+            finally:
+                rt.tape = rt.sim.tape = orig
+                rt.prefix_cache = pc
+                rt._loaded = None
+        kin = _kinematic_replay(st.legal.pose, fin.actions[len(st.actions):], dyn)
+        kdiv = {}
+        for lag in LAGS:
+            if lag > min(len(real), len(kin)):
+                break
+            kdiv[lag] = float(math.hypot(real[lag-1, 0]-kin[lag-1, 0], real[lag-1, 2]-kin[lag-1, 2]))
+        rec['kin'] = dict(n=len(kin), div=kdiv)
+        fmap = frozen_map(fin.legal.map)
         for v in variants:
             t1 = time.perf_counter()
             if cont:
@@ -100,9 +148,13 @@ def probe_state(rt, gen, st, cfg, goal, N, scan=False, variants=VARIANTS):
                 humans = NominalHumans(st.legal.tracks, st.legal.time, T, bank=bankL, mode='world:0')
             else:
                 humans = VisibleWorld(st.legal, bankL, 0, T)
-            fid = v.endswith('C')
-            ro = imagine(st.legal, ex, dyn, humans, h, level=0, gmap=gmap, continuation=max(0, N-h), cont_query=goal,
-                         planner=cfg.planner, cont_boundary=16 if fid else 0, cont_inherit=fid)
+                if v.endswith('F'):
+                    from .infofeat import _blocked_lookup
+                    humans.blocked = _blocked_lookup(fin.legal.map)
+            fid = v in ('percC', 'percCF')
+            ro = imagine(st.legal, ex, dyn, humans, h, level=0, gmap=fmap if v.endswith('F') else gmap,
+                         continuation=max(0, N-h), cont_query=goal, planner=cfg.planner,
+                         cont_boundary=16 if fid else 0, cont_inherit=fid)
             c = getattr(ro, 'cont', None)
             im = np.concatenate([ro.poses[1:], c]) if c is not None and len(c) else np.asarray(ro.poses[1:])
             im = np.asarray(im, np.float64).reshape(-1, 4)
@@ -123,11 +175,41 @@ def probe_state(rt, gen, st, cfg, goal, N, scan=False, variants=VARIANTS):
     return dict(step=i0, labels=labels, default='continue' if 'continue' in labels else 'goal', cands=out)
 
 
+def decision_check(states, thr=0.25):
+    """Offline one-decision check per variant: keep the default unless its imagined min clearance < thr, else take the
+    candidate with the largest imagined clearance; real collision rate of the chosen candidates vs the default's and
+    vs the best available (any candidate without a real collision)."""
+    def bad(c):
+        return c['real']['outcome'] in ('human_collision', 'stop_fail')
+    rows = [s for s in states if s['cands']]
+    n = len(rows)
+    if not n:
+        return
+    dflt = [next((c for c in s['cands'] if c['label'] == s['default']), s['cands'][0]) for s in rows]
+    print('decision check (%d states): default real collision %d, states where some candidate avoids it %d' % (
+        n, sum(bad(c) for c in dflt), sum(bad(d) and any(not bad(c) for c in s['cands']) for s, d in zip(rows, dflt))))
+    for v in VARIANTS:
+        if not all(v in c['imag'] for s in rows for c in s['cands']):
+            continue
+        chosen = []
+        for s, d in zip(rows, dflt):
+            if d['imag'][v]['minclr'] >= thr:
+                chosen.append(d)
+            else:
+                chosen.append(max(s['cands'], key=lambda c: (min(c['imag'][v]['minclr'], 3.), c is d)))
+        fixed = sum(bad(d) and not bad(c) for c, d in zip(chosen, dflt))
+        broke = sum(not bad(d) and bad(c) for c, d in zip(chosen, dflt))
+        print('  %-6s chosen real collision %d  (fixes %d, breaks %d, deviations %d)' % (
+            v, sum(bad(c) for c in chosen), fixed, broke, sum(c is not d for c, d in zip(chosen, dflt))))
+
+
 def summary(path):
     recs = []
+    states = []
     for f in sorted(Path(path).glob('*.json')):
         r = json.loads(f.read_text())
         for s in r.get('states', []):
+            states.append(s)
             for c in s['cands']:
                 recs.append(c)
     print('states x candidates: %d' % len(recs))
@@ -139,6 +221,13 @@ def summary(path):
         coll.sum(), sum(c['real']['outcome'] == 'success' for c in recs),
         sum(c['real']['outcome'] == 'running' for c in recs), sum(c['real']['outcome'] == 'timeout' for c in recs),
         int((rmin < 0.25).sum())))
+    kl = ['%-6s' % 'kin']
+    for lag in LAGS:
+        d = [c['kin']['div'].get(str(lag)) for c in recs if 'kin' in c]
+        d = [x for x in d if x is not None]
+        if d:
+            kl.append('d%d med %.2f p90 %.2f' % (lag, float(np.median(d)), float(np.percentile(d, 90))))
+    print('  '.join(kl))
     for v in VARIANTS:
         rows = [c for c in recs if v in c['imag']]
         if not rows:
@@ -164,10 +253,29 @@ def summary(path):
             a, b = -im[rc], -im[~rc]
             auc = float(((a[:, None] > b[None]).sum()+0.5*(a[:, None] == b[None]).sum())/(len(a)*len(b)))
             print('        AUC(imagined clearance -> real collision) %.3f' % auc)
-        ok = np.isfinite(im) & np.isfinite(rr)
+        ic, rc3 = np.minimum(im, 3.), np.minimum(rr, 3.)
+        ok = np.isfinite(ic) & np.isfinite(rc3) & ((ic < 3.) | (rc3 < 3.))
         if ok.sum() > 2:
-            print('        corr(imagined, real min clearance) %.3f  (n=%d)' % (float(np.corrcoef(im[ok], rr[ok])[0, 1]),
-                                                                        int(ok.sum())))
+            print('        corr(imagined, real min clearance; clipped at 3 m, either < 3 m) %.3f  (n=%d)' % (
+                float(np.corrcoef(ic[ok], rc3[ok])[0, 1]), int(ok.sum())))
+    decision_check(states)
+    sh = [c for c in recs if c.get('shift')]
+    if sh:
+        keys = sorted({k for c in sh for k in c['shift']}, key=int)
+        for k in keys:
+            rows = [c for c in sh if k in c['shift']]
+            b = np.array([c['real']['outcome'] == 'human_collision' for c in rows])
+            o = np.array([c['shift'][k]['outcome'] == 'human_collision' for c in rows])
+            bs = np.array([c['real']['outcome'] == 'success' for c in rows])
+            os_ = np.array([c['shift'][k]['outcome'] == 'success' for c in rows])
+            print('people shifted %+d steps: collision flips %d / %d (base collisions %d -> %d), success flips %d' % (
+                int(k), int((b != o).sum()), len(rows), int(b.sum()), int(o.sum()), int((bs != os_).sum())))
+        rows = [c for c in sh if all(k in c['shift'] for k in keys)]
+        anyflip = sum((c['real']['outcome'] == 'human_collision') != (c['shift'][k]['outcome'] == 'human_collision')
+                      for c in rows for k in keys[:1]) if rows else 0
+        robust = [c for c in rows if len({c['real']['outcome'] == 'human_collision'} |
+                                         {c['shift'][k]['outcome'] == 'human_collision' for k in keys}) == 1]
+        print('candidates whose collision outcome is the same under every shift: %d / %d' % (len(robust), len(rows)))
 
 
 def main():
@@ -182,6 +290,9 @@ def main():
     ap.add_argument('--shard', type=int, default=0)
     ap.add_argument('--shards', type=int, default=1)
     ap.add_argument('--summary', default=None)
+    ap.add_argument('--episodes', default='', help='comma-separated substrings: probe only matching episodes')
+    ap.add_argument('--variants', default=','.join(VARIANTS), help="imagination variants ('' = none)")
+    ap.add_argument('--shifts', default='', help='comma-separated human timing shifts in steps (real rollouts)')
     a = ap.parse_args()
     if a.summary:
         summary(a.summary)
@@ -202,7 +313,7 @@ def main():
     files = []
     for p in sorted(Path(a.dir).glob('*.ep')):
         d = read_episode(p)
-        if d['config'] in keep:
+        if d['config'] in keep and (not a.episodes or any(e in p.name for e in a.episodes.split(','))):
             files.append(p)
     files = files[:a.limit]
     fracs = [float(x) for x in a.at.split(',')]
@@ -227,7 +338,9 @@ def main():
                 if st.terminal or j > max(targets):
                     break
                 if j in targets:
-                    r = probe_state(rt, gen, st, cfg, goal, a.steps, scan=a.scan)
+                    r = probe_state(rt, gen, st, cfg, goal, a.steps, scan=a.scan,
+                                    variants=tuple(v for v in a.variants.split(',') if v),
+                                    shifts=tuple(int(x) for x in a.shifts.split(',') if x))
                     r['decision'] = j
                     rec['states'].append(r)
                     print(json.dumps(dict(episode=p.name, decision=j, step=r['step'], n=len(r['cands']))), flush=True)

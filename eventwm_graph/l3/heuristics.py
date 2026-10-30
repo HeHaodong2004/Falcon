@@ -222,6 +222,10 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     pc = np.zeros(K)
     prog = np.zeros(K)
     stop_bad = np.zeros(K, bool)
+    # contacts counted over the first L3_MW_CONTACT_STEPS imagined steps only (default: the whole rollout); with Stage 1
+    # worlds people beyond the 3 s bank horizon are constant-velocity guesses -- the long continuation then judges
+    # progress (deadlocks, timeouts) while contacts are judged where the worlds are predictions
+    contact_steps = int(__import__('os').environ.get('L3_MW_CONTACT_STEPS', '0')) or 10**9
     old = sb.config.continuation
     sb.config.continuation = int(cont)
     try:
@@ -242,7 +246,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                 if ro.stop and math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) > 0.3:
                     stop_bad[k] = True
                 if HP is not None:
-                    n = min(len(seq), HP.shape[1])
+                    n = min(len(seq), HP.shape[1], contact_steps)
                     with np.errstate(invalid='ignore'):
                         dd = np.hypot(HP[w, :n, :, 0]-seq[:n, None, 0], HP[w, :n, :, 1]-seq[:n, None, 2])
                     if np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < radius:
