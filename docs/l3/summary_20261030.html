@@ -126,7 +126,7 @@ code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; b
       <li><strong>Its wins are not luck.</strong> Shifting every person by &plusmn;0.1 s leaves <span class="num">86%</span> of candidate outcomes unchanged. 10 of 12 critical states have a fix that survives the shifts. The timing-robust reference keeps 20 of the exact reference's 21 successes.</li>
       <li><strong>Learned critics cannot score candidates.</strong> At critical states they pick no better than random, even when given the people's true future. The latest RL checkpoint lost to the floor 5 to 18 (p = 0.011).</li>
       <li><strong>The gap is the fidelity of the robot's own closed loop.</strong> With the true future of every person, the release imagination still drifts 1.25 m from reality within 3 s. Simulating the camera and progressive map discovery cuts that to 0.49 m.</li>
-      <li><strong>The camera model works only with perfect people prediction.</strong> With an outcome-ordered rule it reaches 63.9% on ORCA and 61.1% on SFM (72 episodes each, p = 0.004 and 0.031). DWA does not gain. The same selector with Stage 1 worlds stays at the floor under either rule.</li>
+      <li><strong>The camera model works only with perfect people prediction.</strong> With an outcome-ordered rule it reaches 63.9% on ORCA and 61.1% on SFM (72 episodes each, p = 0.004 and 0.031); DWA gains little (54.2% vs 48.6%). Pooled over the three planners: 41 wins / 15 losses, p = 0.0007. The same selector with Stage 1 worlds stays at the floor under either rule.</li>
       <li><strong>It needs everyone's future over the whole window.</strong> A perfect 3 s prediction, or the long future of the tracked people only, recovers less than half of the gain.</li>
     </ul>
   </section>
@@ -163,7 +163,7 @@ code { font: 0.85em var(--font-mono); background: var(--bg); padding: 1px 5px; b
       </tbody>
     </table></div>
     <p>Map discovery sharpens per-candidate prediction (AUC 0.70 to 0.79) but adds no success with the current selection rule, even from a privileged map.</p>
-    <p class="meta">Other planners, true future + camera model, 72 episodes each. With the original rule: DWA 51.4% vs 48.6% (11 / 9), SFM 43.1% vs 47.2% (8 / 11). With the outcome rule: SFM 61.1% vs 47.2% (14 / 4), DWA 52.8% vs 55.6% at 36 episodes (5 / 6). Inertia robot, original rule, 36 episodes: 36.1% vs 27.8% (5 / 2).</p>
+    <p class="meta">Other planners, true future + camera model, 72 episodes each. With the original rule: DWA 51.4% vs 48.6% (11 / 9), SFM 43.1% vs 47.2% (8 / 11). With the outcome rule: SFM 61.1% vs 47.2% (14 / 4), DWA 54.2% vs 48.6% (13 / 9); pooled with ORCA, 41 wins / 15 losses (p = 0.0007). Inertia robot, original rule, 36 episodes: 36.1% vs 27.8% (5 / 2).</p>
   </section>
 
   <section>
