@@ -202,3 +202,32 @@ def predicted_truth(legal_map, delta):
     unknown = truth.state[i, j] == 0
     truth.state[i[unknown], j[unknown]] = st[m][unknown].astype(np.uint8)
     return truth
+
+
+def predicted_truth_union(legal_map, deltas):
+    """LEGAL truth map from SEVERAL Stage 2 increments (every candidate's predicted cells, one predicted local map):
+    predicted states are written into the legal map's UNKNOWN cells; where predictions disagree BLOCKED wins
+    (conservative for planning and contact).  Hypothetical; never merged into the real legal state."""
+    truth = legal_map.copy()
+    for delta in deltas:
+        if delta is None:
+            continue
+        st = np.asarray(delta['states'])
+        m = st > 0
+        if not m.any():
+            continue
+        keys = np.asarray(delta['candidate_cells'], np.int64)[m]
+        truth._ensure(keys)
+        i, j = keys[:, 0]-truth.ox, keys[:, 1]-truth.oz
+        unknown = legal_map.state_at_keys(keys) == 0 if hasattr(legal_map, 'state_at_keys') else None
+        if unknown is None:
+            unknown = np.zeros(len(keys), bool)
+            li, lj = keys[:, 0]-legal_map.ox, keys[:, 1]-legal_map.oz
+            ok = (li >= 0) & (li < legal_map.state.shape[0]) & (lj >= 0) & (lj < legal_map.state.shape[1])
+            unknown[~ok] = True
+            unknown[ok] = legal_map.state[li[ok], lj[ok]] == 0
+        cur = truth.state[i, j]
+        new = st[m].astype(np.uint8)
+        write = unknown & ((cur == 0) | (new == 2))
+        truth.state[i[write], j[write]] = new[write]
+    return truth

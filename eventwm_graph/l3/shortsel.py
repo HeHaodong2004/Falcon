@@ -248,14 +248,22 @@ def imagine_candidates(sb, legal, d, cfg, steps_index):
 _MODEL = {}
 
 
-def select(sb, legal, d, cfg, steps_index):
-    """Selector ``learnedshort``: the legal scorer's top candidate; the default is kept unless the top score exceeds
-    the default's by L3_SHORT_MARGIN (default 0.3)."""
-    path = os.environ['L3_SHORT_MODEL']
+def _load(path):
     if path not in _MODEL:
-        from .leafvalue import ValueModel
-        _MODEL[path] = ValueModel(path)
-    m = _MODEL[path]
+        if Path(path, 'actor.pt').exists():
+            from .asymac import ActorModel
+            _MODEL[path] = ActorModel(path)
+        else:
+            from .leafvalue import ValueModel
+            _MODEL[path] = ValueModel(path)
+    return _MODEL[path]
+
+
+def select(sb, legal, d, cfg, steps_index):
+    """Selector ``learnedshort``: the legal scorer's top candidate (LightGBM ranker or asymmetric actor); the default
+    is kept unless the top score exceeds the default's by the model's margin (or L3_SHORT_MARGIN)."""
+    path = os.environ['L3_SHORT_MODEL']
+    m = _load(path)
     cands, ctg0, ego = imagine_candidates(sb, legal, d, cfg, steps_index)
     X = features(cands, ctg0, d.default, ego)
     raw = m.predict_raw(X) if hasattr(m, 'predict_raw') else m.predict(X)
@@ -267,13 +275,11 @@ def select(sb, legal, d, cfg, steps_index):
 def select_from_records(rec, d):
     """``select`` on the legal parts of a probe record (its 'rel' / 'cam6' imagination and exposure features)."""
     path = os.environ['L3_SHORT_MODEL']
-    if path not in _MODEL:
-        from .leafvalue import ValueModel
-        _MODEL[path] = ValueModel(path)
+    m = _load(path)
     X = features(rec['cands'], rec['ctg0'], d.default, rec.get('ego') if EXPO else None)
-    raw = _MODEL[path].predict_raw(X)
+    raw = m.predict_raw(X)
     top = int(np.argmax(raw))
-    margin = float(os.environ.get('L3_SHORT_MARGIN', _MODEL[path].meta.get('margin', 0.3)))
+    margin = float(os.environ.get('L3_SHORT_MARGIN', m.meta.get('margin', 0.3)))
     return top if raw[top] > raw[d.default]+margin else int(d.default)
 
 

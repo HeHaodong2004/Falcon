@@ -49,11 +49,11 @@ def utilities(cands, w=64):
 
 
 def build(states, w):
-    from .shortsel import features
+    from .shortsel import features, EXPO
     X, U, D = [], [], []
     for s in states:
         di = s['labels'].index(s['default'])
-        X.append(features(s['cands'], s['ctg0'], di).astype(np.float32))
+        X.append(features(s['cands'], s['ctg0'], di, s.get('ego') if EXPO else None).astype(np.float32))
         U.append(utilities(s['cands'], w))
         D.append(di)
     return X, U, D
@@ -114,6 +114,7 @@ def main():
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--save', default=None)
     ap.add_argument('--margins', default='0,0.5,1,2')
+    ap.add_argument('--save-margin', type=float, default=0.5, help='deviation margin stored with the saved actor')
     a = ap.parse_args()
     from .shortsel import load_states, evaluate_scores
     tr = load_states(a.train)
@@ -132,10 +133,29 @@ def main():
                                            r['deviations']))
     if a.save:
         import torch
+        from .shortsel import EXPO
         Path(a.save).mkdir(parents=True, exist_ok=True)
         torch.save(dict(state=actor.net.state_dict(), mu=actor.mu, sd=actor.sd, n_in=len(actor.mu)), Path(a.save, 'actor.pt'))
-        Path(a.save, 'meta.json').write_text(json.dumps(dict(critic_w=a.critic_w, train=a.train, epochs=a.epochs, beta=a.beta)))
+        Path(a.save, 'meta.json').write_text(json.dumps(dict(keys=['asymac'], critic_w=a.critic_w, train=a.train,
+                                                             epochs=a.epochs, beta=a.beta, margin=a.save_margin,
+                                                             expo=EXPO)))
 
 
 if __name__ == '__main__':
     main()
+
+
+class ActorModel:
+    """Saved actor (``--save``) with the selector interface: predict_raw(X) -> candidate scores."""
+
+    def __init__(self, path):
+        import torch
+        self.meta = json.loads(Path(path, 'meta.json').read_text())
+        d = torch.load(Path(path, 'actor.pt'), map_location='cpu')
+        self.actor = Actor(int(d['n_in']))
+        self.actor.net.load_state_dict(d['state'])
+        self.actor.mu, self.actor.sd = d['mu'], d['sd']
+        self.keys = tuple(self.meta.get('keys', ('asymac',)))
+
+    def predict_raw(self, X):
+        return self.actor.scores(np.asarray(X, np.float32))

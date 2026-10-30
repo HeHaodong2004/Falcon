@@ -232,12 +232,17 @@ def _discovery_rollouts(sb, legal, d, humans, state, cont):
         return ros
     cq = default_query()
     out = []
+    union = None
+    if __import__('os').environ.get('L3_MW_DISCOVER') == 'union':
+        # one predicted local map from every candidate's Stage 2 increment (perceive.predicted_truth_union)
+        from .perceive import predicted_truth_union
+        union = predicted_truth_union(legal.map, deltas)
     for c, ro, delta in zip(d.candidates, ros, deltas):
         ex, dyn = sb._execution(c)
         if isinstance(ex, Exception):
             out.append(ro)
             continue
-        truth = predicted_truth(legal.map, delta)
+        truth = union if union is not None else predicted_truth(legal.map, delta)
         work = legal.map.copy()
         hk = humans.fork(Discovery(work, truth), _blocked_lookup(truth))
         out.append(imagine(legal, ex, dyn, hk, sb.config.steps_for(c), level=int(c.level), gmap=work,
@@ -374,7 +379,7 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                 ros = _leaf_rollouts(sb, legal, d, humans, cont)
             elif truth is not None and __import__('os').environ.get('L3_MW_PERCEIVE') == '1':
                 ros = _truth_rollouts(sb, legal, d, humans, truth, cont)
-            elif (state is not None and __import__('os').environ.get('L3_MW_DISCOVER') == '1'
+            elif (state is not None and __import__('os').environ.get('L3_MW_DISCOVER') in ('1', 'union')
                     and __import__('os').environ.get('L3_MW_PERCEIVE') == '1'):
                 ros = _discovery_rollouts(sb, legal, d, humans, state, cont)
             else:
