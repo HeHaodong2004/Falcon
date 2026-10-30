@@ -148,6 +148,7 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
         truth = load_map(tp) if tp.exists() else None
     rows = dict(packed=[], actions=[], probs=[], cum=[], labels=[], n=[], default=[], q=[], timing=[], heads=[])
     diverged = False
+    probe = []
     try:
         while not ep.over and ep.decisions < max_decisions:
             d = ep.observe()
@@ -209,6 +210,19 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 a, p = multiworld_index(sb, ep.ep.legal, d, n_worlds=int(os.environ.get('L3_MW_WORLDS', '6')),
                                         cont=int(os.environ.get('L3_MW_CONT', '60')),
                                         state=getattr(ep, 'last_state', None), truth=truth), 1.
+            elif selector == 'learnedshort':
+                # LEGAL: short-horizon imagination (Stage 1 worlds, camera model) + a ranking model trained against the
+                # exact short-horizon evaluation (shortsel.py; L3_SHORT_MODEL)
+                from .shortsel import select as short_select
+                a, p = short_select(sb, ep.ep.legal, d, cfg, ep.ep.steps), 1.
+            elif selector == 'shortprobe':
+                # ANALYSIS ONLY (privileged ground truth): short-horizon ranking probe (shortprobe.py); the floor's
+                # choice is executed, so the episode is the floor's
+                from .shortprobe import probe_decision
+                every, most = int(os.environ.get('L3_PROBE_EVERY', '1')), int(os.environ.get('L3_PROBE_MAX', '1000'))
+                if ep.decisions % every == 0 and len(probe) < most:
+                    probe.append(probe_decision(ep, d, sb))
+                a, p = d.default, 1.
             elif selector == 'imagroll':
                 # legal imagined rollout policy (heuristics.imagined_rollout_index; needs --sandbox continuation)
                 from .heuristics import imagined_rollout_index
@@ -242,6 +256,11 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
         m['wall_s'] = time.perf_counter()-t0
         m['setup_s'] = ep.setup_s
         m['perf'] = {k: float(v) for k, v in ep.ep.perf.items()}
+        if probe and os.environ.get('L3_PROBE_DIR'):
+            from .shortprobe import write
+            Path(os.environ['L3_PROBE_DIR']).mkdir(parents=True, exist_ok=True)
+            write(Path(os.environ['L3_PROBE_DIR'])/('%s__%s.json' % (spec.key.replace('/', '_'), cfg.name)),
+                  dict(key=spec.key, config=cfg.name, outcome=m['outcome'], probe=probe))
     finally:
         ep.close()
     return m, rows

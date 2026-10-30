@@ -96,6 +96,8 @@ def run(a):
     if specs is None:
         from eventwm_graph.querygen import suites as qs
         specs = qs.load(a.suite)
+    if getattr(a, 'stride', 1) > 1:
+        specs = specs[int(getattr(a, 'offset', 0))::a.stride]       # spread a subset over the suite's scenes
     if a.limit:
         specs = specs[:a.limit]
     configs = a.configs.split(',')
@@ -229,6 +231,8 @@ def main():
     ap.add_argument('--servers', type=int, default=3)
     ap.add_argument('--server-devices', default='0,0,1')
     ap.add_argument('--limit', type=int, default=0)
+    ap.add_argument('--stride', type=int, default=1, help='every stride-th episode of the suite (before --limit)')
+    ap.add_argument('--offset', type=int, default=0)
     ap.add_argument('--nice', type=int, default=0)
     ap.add_argument('--tag', default=None)
     ap.add_argument('--paired', default=None)

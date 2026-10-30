@@ -239,6 +239,9 @@ class ImaginedRollout:
                                         # after the interval under the default policy -- keep the running query, else the
                                         # goal query -- same executor, planner, dynamics and nominal humans.  Not given
                                         # to Layer 2; the Graph Compiler scores it against the Stage 1 worlds.
+    leaf: Optional[dict] = None         # Layer 3 option (imagine(keep_leaf=True), default off): the imagined state at the
+                                        # last pose -- executor, speed level, perceived tracks, time, recent poses -- for
+                                        # a learned leaf value (l3/leafvalue.py).  Not given to Layer 2.
 
     @property
     def end_level(self):
@@ -295,7 +298,7 @@ def remaining_route(execution, pose, max_m=12.):
 
 
 def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuation=0, cont_query=None, planner=None,
-            route=False, cont_boundary=None, cont_inherit=None):
+            route=False, cont_boundary=None, cont_inherit=None, keep_leaf=False):
     """Roll ``execution`` (a fresh or copied ``QueryExecution``; consumed) forward for at most ``steps`` imagined
     steps from the legal state ``legal`` at t, against the nominal humans.  Returns an ``ImaginedRollout``.
     ``gmap``: the decision's frozen map alias (default: ``legal.map`` itself).  ``cont_boundary`` / ``cont_inherit``
@@ -348,10 +351,19 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
             break
     rroute = remaining_route(execution, poses[-1]) if route and not stop and error is None else None
     cont = None
+    leaf = None
     if continuation > 0 and not stop and error is None and cont_query is not None:
+        tail = {} if keep_leaf else None
         cont = _continue(sl, execution, dyn, humans, len(poses)-1, int(continuation), int(levels[-1]), cont_query,
                          planner, boundary=CONT_BOUNDARY if cont_boundary is None else int(cont_boundary),
-                         inherit=CONT_INHERIT if cont_inherit is None else bool(cont_inherit))
+                         inherit=CONT_INHERIT if cont_inherit is None else bool(cont_inherit), tail=tail)
+        if keep_leaf:
+            leaf = dict(execution=tail.get('execution', execution), level=int(tail.get('level', levels[-1])),
+                        tracks=sl.tracks, time=float(sl.time), poses=list(sl.poses), times=list(sl.times),
+                        steps=len(poses)-1+len(cont))
+    elif keep_leaf:
+        leaf = dict(execution=execution, level=int(levels[-1]), tracks=sl.tracks, time=float(sl.time),
+                    poses=list(sl.poses), times=list(sl.times), steps=len(poses)-1)
     P = np.asarray(poses)
     g = np.asarray(legal.goal, np.float64)
     d0 = float(math.hypot(g[0]-P[0, 0], g[2]-P[0, 2]))
@@ -363,10 +375,10 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
                            blocked_steps=int(blocked), nominal_clearance=float(clearance),
                            planner_ms=(time.perf_counter()-tick)*1000, error=error,
                            tail=brake_tail(P[-1], levels[-1], dyn) if not stop else np.zeros((0, 4)), cont=cont,
-                           route=rroute)
+                           route=rroute, leaf=leaf)
 
 
-def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner, boundary=0, inherit=False):
+def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner, boundary=0, inherit=False, tail=None):
     """Continue the imagination for ``n`` steps under the default policy (keep the running query at a decision
     boundary, else the goal query; the goal query again when the running one ends).  Returns poses [<=n, 4].
     ``boundary`` > 0: a decision boundary every ``boundary`` steps of a running query; ``inherit``: a new goal query
@@ -412,6 +424,8 @@ def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner, bou
                 break
             ex = fresh(ex)            # (fidelity mode: a failed goal query is re-issued, as by the real default policy)
             since = 0
+    if tail is not None:
+        tail.update(execution=ex, level=level)
     return np.asarray(out, np.float64).reshape(-1, 4)
 
 

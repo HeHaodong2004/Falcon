@@ -56,3 +56,29 @@ class OracleBank:
         self.weights = np.full(int(worlds), 1./int(worlds))
         self.present = np.ones((int(worlds), len(self.cols)), bool)
         return self
+
+
+class CVBank:
+    """LEGAL single-world people bank (Layer 3 option ``L3_MW_BANK=cv``, default off): every person the robot tracks
+    (valid, at most 2 s old: ``control.human_estimates``) continues at the tracker's constant velocity; nobody else
+    exists.  The OracleBank interface, so the multi-world selector and the camera model can use it in place of
+    Stage 1's bank (a no-learning baseline predictor for short horizons)."""
+
+    def __init__(self, legal, horizon_steps=63, max_age=None):
+        from eventwm_graph.querygen.control import human_estimates
+        # lost-track memory (L3_CV_MAX_AGE, default 2 s = the executor's): tracks last seen up to max_age ago continue
+        # at their last estimated velocity from where they were last seen (legal: past observations only)
+        max_age = float(__import__('os').environ.get('L3_CV_MAX_AGE', '2.0')) if max_age is None else float(max_age)
+        est = human_estimates(legal.tracks, legal.time, max_age=max_age)
+        self.track_keys = tuple('track:%s' % h.track_id for h in est)
+        self.P0 = np.asarray([[h.position[0], -h.position[1]] for h in est], np.float64).reshape(-1, 2)   # world x, z
+        self.V = np.asarray([[h.velocity[0], -h.velocity[1]] for h in est], np.float64).reshape(-1, 2)
+        self.unseen = np.zeros(len(est), bool)
+        self.weights = np.ones(1)
+        self.present = np.ones((1, len(est)), bool)
+        self.times = np.arange(1, horizon_steps)*STEP_SECONDS
+        self.long_steps = 0
+
+    def sandbox_positions(self, rel):
+        rel = np.asarray(rel, np.float64)
+        return (self.P0[None]+rel[:, None, None]*self.V[None])[None]           # [1, T, N, 2]

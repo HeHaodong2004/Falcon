@@ -272,6 +272,39 @@ def _truth_rollouts(sb, legal, d, humans, truth, cont):
     return out
 
 
+def _leaf_rollouts(sb, legal, d, humans, cont):
+    """Every candidate imagined for its interval + ``cont`` default steps (continuation fidelity: decision boundaries
+    every 16 steps, goal-query inheritance and re-issue, as the real default policy), keeping the imagined leaf state
+    for the learned value (``imagine(keep_leaf=True)``)."""
+    from eventwm_graph.sandbox.imagine import imagine, frozen_map, failed_rollout
+    from eventwm_graph.sandbox.episode import default_query
+    from eventwm_graph.sandbox import accel
+    cq = default_query()
+    gmap = frozen_map(legal.map)
+    cache = accel.FrozenMapCache() if sb.config.memoize else None
+    out = []
+    with accel.active(cache):
+        for c in d.candidates:
+            ex, dyn = sb._execution(c)
+            if isinstance(ex, Exception):
+                out.append(failed_rollout(legal, '%s: %s' % (type(ex).__name__, ex)))
+                continue
+            out.append(imagine(legal, ex, dyn, humans, sb.config.steps_for(c), level=int(c.level), gmap=gmap,
+                               continuation=int(cont), cont_query=cq, planner=c.planner, cont_boundary=16,
+                               cont_inherit=True, keep_leaf=True))
+    return out
+
+
+_VALUE = {}
+
+
+def _value_model(path):
+    if path not in _VALUE:
+        from .leafvalue import ValueModel
+        _VALUE[path] = ValueModel(path)
+    return _VALUE[path]
+
+
 def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048,
                      state=None, truth=None):
     """LEGAL multi-world imagined rollout (no learning, no privileged input): each candidate is imagined once per
@@ -314,6 +347,19 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     # contact = robot body rectangle within L3_MW_RECT m of a person's centre (the native simulator's body-proxy
     # measure) instead of a centre distance < radius (default)
     rect = float(__import__('os').environ.get('L3_MW_RECT', '0'))
+    # learned leaf value (L3_MW_VALUE=<model dir>, default off): an imagined contact in a world scores 0, a STOP at the
+    # goal 1, otherwise the model's P(success) at the imagined leaf (leafvalue.legal_features of the leaf state)
+    vpath = __import__('os').environ.get('L3_MW_VALUE')
+    vm = _value_model(vpath) if vpath else None
+    vs = np.zeros(K)
+    xs_ctx = None
+    if vm is not None and 'Xs' in vm.keys:
+        from .leafvalue import legal_features
+        from eventwm_graph.sandbox.imagine import dynamics as _dyn
+        c0 = d.candidates[0]
+        xs_ctx = legal_features(legal.pose, legal.poses[-8:], legal.times[-8:], legal.time, legal.map, field, legal.goal,
+                                legal.tracks, c0.execution, c0.level, _dyn(c0.dynamics), c0.planner, int(d.steps or 0), 0,
+                                None)
     old = sb.config.continuation
     sb.config.continuation = int(cont)
     try:
@@ -324,7 +370,9 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                 humans = VisibleWorld(legal, bank, int(w), T)
             else:
                 humans = NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(w))
-            if truth is not None and __import__('os').environ.get('L3_MW_PERCEIVE') == '1':
+            if vm is not None:
+                ros = _leaf_rollouts(sb, legal, d, humans, cont)
+            elif truth is not None and __import__('os').environ.get('L3_MW_PERCEIVE') == '1':
                 ros = _truth_rollouts(sb, legal, d, humans, truth, cont)
             elif (state is not None and __import__('os').environ.get('L3_MW_DISCOVER') == '1'
                     and __import__('os').environ.get('L3_MW_PERCEIVE') == '1'):
@@ -351,6 +399,26 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                     if hit:
                         pc[k] += ww[j]
                 prog[k] += ww[j]*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
+                if vm is not None:
+                    near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= 0.3
+                    if HP is not None and hit:
+                        val = 0.
+                    elif ro.stop:
+                        val = 1. if near else 0.
+                    elif ro.leaf is None:
+                        val = 0.
+                    else:
+                        from .leafvalue import legal_features
+                        from eventwm_graph.sandbox.imagine import dynamics as _dyn
+                        lf = ro.leaf
+                        c0 = d.candidates[k]
+                        x = legal_features(lf['poses'][-1], lf['poses'][-8:], lf['times'][-8:], lf['time'], legal.map, field,
+                                           legal.goal, lf['tracks'], lf['execution'], lf['level'], _dyn(c0.dynamics),
+                                           c0.planner, int(d.steps or 0)+int(lf['steps']), int(lf['steps']), None)
+                        if xs_ctx is not None:
+                            x = np.concatenate([x, xs_ctx])
+                        val = float(vm.predict(x)[0])
+                    vs[k] += ww[j]*val
                 if rule == 'outcome':
                     # imagined outcome in the exact reference's order (rolloutpolicy.outcome_key): goal reached (fewer
                     # steps better) > still running (more route progress) > contact / STOP away from the goal (later
@@ -373,6 +441,9 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
         sb.config.continuation = old
     pc = np.where(stop_bad, 1., pc)
     dflt = int(d.default)
+    if vm is not None:
+        best = int(np.argmax(vs))
+        return dflt if vs[dflt] >= vs[best]-float(__import__('os').environ.get('L3_MW_EPS', '0.02')) else best
     if rule == 'outcome':
         best = int(np.argmax(oc))
         return dflt if oc[dflt] >= oc[best]-float(__import__('os').environ.get('L3_MW_EPS', '0.05')) else best

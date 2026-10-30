@@ -27,6 +27,7 @@ ORACLE_BANK = __import__('os').environ.get('L3_ORACLE_BANK')    # analysis only:
 ORACLE_BANK_STEPS = int(__import__('os').environ.get('L3_ORACLE_BANK_STEPS', '0'))     # analysis only: true horizon
 ORACLE_NOISE = float(__import__('os').environ.get('L3_ORACLE_NOISE', '0'))      # analysis only: velocity error (m/s)
 ORACLE_NOISE_WORLDS = int(__import__('os').environ.get('L3_ORACLE_NOISE_WORLDS', '6'))
+LEGAL_BANK = __import__('os').environ.get('L3_MW_BANK')      # Layer 3 option: 'cv' = constant-velocity tracks (legal)
 
 
 @dataclass(frozen=True)
@@ -154,6 +155,11 @@ class L3Episode:
                     # prediction-error study: noisy copies of the truth (oraclebank.OracleBank.add_noise)
                     ob.add_noise(ORACLE_NOISE, ORACLE_NOISE_WORLDS, seed=ep.state.index+1000*self.decisions)
                 result = dataclasses.replace(result, humans=ob)
+            elif LEGAL_BANK == 'cv':
+                # LEGAL baseline predictor: the tracked people at the tracker's constant velocity (oraclebank.CVBank)
+                import dataclasses
+                from .oraclebank import CVBank
+                result = dataclasses.replace(result, humans=CVBank(ep.legal))
             t = T()
             graph = self.compiler.compile(result, ep.legal, queries, diag, ep.steps, running=running)
             tm['compile_ms'] = 1000*(T()-t)
