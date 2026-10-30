@@ -732,3 +732,93 @@ within noise of the floor.
 | `R7_m0_dev` | NOT legal (360-deg, R7) | 84 | 52.4% | 46.4% | 5 / 10 | 0.302 |
 | `R7_m1.0_dev` | NOT legal (360-deg, R7, margin 1.0) | 91 | 48.4% | 57.1% | 12 / 4 | 0.077 |
 | `floor360_dev` | NOT legal (floor with 360-deg detection) | 216 | 47.7% | 52.3% | 18 / 8 | 0.076 |
+
+## 8. 2026-10-30 (day): short horizons, privileged critics and the Sandbox audit  (in progress)
+
+Prompted by the user's morning review: (1) why no privileged critic in training; (2) Layer 3 re-decides every
+~0.7 s -- why would the selector need 10-15 s forecasts; (3) audit the Sandbox code, not the documents; (4) paired
+diagnostics separating imagination fidelity, representation, learning and value targets.  The 85% SR target stays;
+intermediate gains are reported separately.  ORCA-native-k10 dev, paired with the floor on the same episodes, unless
+noted.  Numbers marked (n = ...) are from runs still in progress.
+
+### 8.1 Cadence and audit
+
+`docs/l3/SANDBOX_AUDIT.md`.  Decisions every 16 steps = 0.768 s; 15.4-15.5 steps executed on average (native k10's
+lower mean comes from two pathological 1-step 'unreachable' loops).  The released Sandbox runs the real executor and
+planner step by step, but in a frozen, fully observed, averaged world: one nominal Stage 1 MEAN future per candidate,
+no camera / tracker / map update, Stage 2 only after the trajectory, no navmesh, no new bumps.  Latency (isolated,
+K = 10): 0.51 s p50 / 0.72 s p95 for the Sandbox, ~0.6 s per decision in total; 75% of it is Python executor stepping
+(2.6 ms per imagined step; 3.0 ms with the camera model).
+
+### 8.2 A perfect simulator needs 1.5-3 s, not 10-15 s -- the night's claim is retracted
+
+`rolloutpolicy.py --cap N --leaf field`: every candidate executed in the exact branch simulator for its interval, then
+the default policy, until N steps from the decision; contact / success first, then the legal route cost-to-go of the
+end pose on the DECISION-TIME legal map (computable for an imagined end pose).  Only the simulation is privileged.
+
+| window | n | SR | floor | collisions | timeouts | W / L | p |
+|---|---|---|---|---|---|---|---|
+| 0.77 s (the interval) | 63 | 52.4% | 49.2% | 19 | 11 | 10 / 8 | 0.81 |
+| 1.5 s | 63 | 74.6% | 49.2% | 6 | 10 | 18 / 2 | 0.0004 |
+| 3.1 s | 35 | 88.6% | 51.4% | 1 | 3 | 13 / 0 | 0.0002 |
+| 15.4 s (Euclidean leaf; night) | 24 | 87.5% | 58.3% | 0 | 3 | 7 / 0 | 0.016 |
+
+Gains are mostly floor collisions turned into successes (1.5 s: 13 episodes; 3.1 s: 10), the rest floor timeouts
+(5; 3).  The consequences that decide a query choice lie within ~1.5-3 s, so a selector that re-decides every 0.77 s
+needs a faithful short window, not a 10-15 s people forecast.  The night's opposite conclusion came from imagination
+runs whose robot loop and people were not faithful (8.3), not from the horizon.
+
+### 8.3 Imagination over the same windows
+
+| multi-world camera-model rollout, outcome rule | people | n | SR | floor | W / L |
+|---|---|---|---|---|---|
+| 1.5 s | Stage 1, 6 worlds (LEGAL) | 72 | 50.0% | 47.2% | 12 / 10 |
+| 1.5 s | constant velocity of the tracks (LEGAL) | (53) | 52.8% | 49.1% | 7 / 5 |
+| 1.5 s | true future (privileged) | 72 | 58.3% | 47.2% | 12 / 4 |
+| 3.1 s | true future | 72 | 54.2% | 47.2% | 11 / 6 |
+| 15 s (night) | true future | 72 | 63.9% | 47.2% | 14 / 2 |
+
+Short-horizon probe (`shortprobe.py`: at the floor's decisions, every candidate executed exactly AND imagined over
+16 / 32 / 64 steps).  With the TRUE people, the imagined body clearance < 0.2 m predicts a real collision within
+1.5 s with precision 0.95 / recall 0.91 (8 states, 80 candidates) -- the imagined robot loop is good enough at this
+horizon once people are right.  Legally (Stage 1 worlds or the released Stage 1 mean) recall within 1.5 s is 0.24 at
+precision ~0.9, or 0.50 at precision 0.14 (41 states, 410 candidates).  Why: the robot rarely sees anyone when it
+decides -- 15 tracks over all decision states of 8 floor episodes, ~85% of decision states with nobody tracked; the
+legal track list never holds anyone older than 1.75 s.  Most collisions within 1.5 s involve people who are not
+tracked at the decision.  Calibrating the contact rule does not fix selection: with the true future, a body-clearance
+rule (< 0.25 m) instead of the 0.75 m centre radius did not raise SR (48.6% vs 45.7%, n = 35): choosing the most
+progressive of ~10 candidates whose imagined clearance just passes the threshold picks the near-misses (the
+optimizer's curse), and the 0.75 m radius absorbs the residual robot-loop error.
+
+Kinematics: 6.8% of real forward steps are blocked (27 of 457 fully); in 29 of 31 the cell ahead was UNKNOWN on the
+legal map (28 still unknown afterwards) -- low geometry the camera never certifies.
+
+### 8.4 Representation or learning?  Privileged critics and learned values
+
+`leafdata.py` / `leaffit.py`: R10's counterfactual labels (eventual outcome of candidate + default), with legal and
+privileged features of the decision state and of the EXACT leaf after 0.77 s and 1.5 s; LightGBM, 5-fold scene
+split; critical states = the default fails and some candidate succeeds.
+
+| model (421 states, 131 critical) | critical top-1 | pair AUC |
+|---|---|---|
+| random candidate | 31.9% | 0.50 |
+| critic on the decision state (legal) | 35.1% | 0.59 |
+| same + privileged people (all, now and +1 / +2 / +3 s) | 37.4% | 0.61 |
+| value of the exact 0.77 s leaf | 41.2% | 0.63 |
+| exact 1.5 s leaf + legal cost-to-go (no learning) | 42.0% | 0.61 |
+| value of the exact 1.5 s leaf (+ decision context) | 50.4% (53.4%) | 0.67 (0.68) |
+| value of the exact 1.5 s leaf + privileged people | 55.0% | 0.69 |
+
+Learning curve (50% -> 100% of the training scenes): flat.  On the same states (112 complete, 40 critical), values
+of LEGALLY IMAGINED 1.5 s leaves rank near chance (32-38%, AUC 0.53-0.57) while the exact leaf gives 55%.
+Reading: the critic did not fail for lack of data or of privileged STATE inputs.  It lacked the consequence of each
+candidate's closed loop over the next ~1.5 s; given that consequence exactly, a small learner ranks well; given it
+from legal imagination, nothing ranks, because the people who matter are mostly not observed (8.3).  The RL critic's
+input (Compiler v4 of the released Sandbox: a 0.77 s open-loop interval against the Stage 1 mean) carried neither.
+
+### 8.5 Asymmetric training (in progress)
+
+Privileged critic = the exact short-horizon evaluation of every candidate (+ a privileged leaf value trained on real
+returns); legal actor = a ranker / policy over legal imagination features (`shortsel.py` LightGBM lambdarank,
+`asymac.py` all-action policy gradient).  Training states: the short-horizon probe on 120 train-split episodes
+(running); evaluation: the dev probe (ranking against exact outcomes), then SR.
