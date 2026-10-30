@@ -18,6 +18,13 @@ import math
 import numpy as np
 
 from .control import heading_vec, body_ok, body_cost, FORWARD_X, BODY_X, BODY_HALF_WIDTH
+
+# Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_MOM_SIMPLE=1): robots with speed state
+# realise a commanded 'forward' like the native robot (no extra body / braking-clearance / straight-budget gates in the
+# realiser), only within their acceleration limit -- the planner already decided the advance; braking before turns
+# and at STOP is kept.  The extra gates make momentum robots refuse advances the native robot takes in tight spots
+# (dev floors: in-place dithering and stalls in the timeouts of every momentum family).
+MOM_SIMPLE = __import__('os').environ.get('L3_MOM_SIMPLE') == '1'
 from .dynamics import STEP_SECONDS
 
 
@@ -64,6 +71,10 @@ class MotionRealizer:
                 l2 = max(0, level-dyn.brake)
                 return (('forward', l2) if l2 > 0 else 'idle'), l2
             return prim, 0
+        if MOM_SIMPLE:
+            top = len(dyn.levels)-1 if cap is None else max(1, min(int(cap), len(dyn.levels)-1))
+            l2 = max(1, min(top, int(level)+dyn.accel)) if int(level) < top else max(top, int(level)-dyn.brake)
+            return ('forward', l2), l2
         # forward with speed planning
         budget = math.inf
         if plan_prims:
