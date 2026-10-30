@@ -20,6 +20,68 @@ HFOV = math.radians(90.)
 RANGE = 10.
 
 
+class Discovery:
+    """Progressive map discovery inside imagination: at every imagined step the cells of a ``truth`` map inside the
+    imagined camera frustum (``rng`` m, line of sight through the truth map's BLOCKED cells) are written into ``work``
+    -- the imagined legal map the executor plans on -- as the real sensor certifies cells while the robot moves.
+    ANALYSIS: truth = a privileged map (the real robot's map at the end of the window); a legal variant would use a
+    predicted map (Layer 2).  ``work`` is modified in place (the imagined legal state holds it); ``reset`` restores
+    the map at t."""
+
+    def __init__(self, work, truth, rng=5.0):
+        self.work, self.truth, self.rng = work, truth, float(rng)
+        self.base = work.copy()
+        self.blocked = _blocked_lookup(truth)
+        ii, jj = np.nonzero(truth.state != 0)
+        self.ki, self.kj = ii+truth.ox, jj+truth.oz
+        self.cx, self.cz = (self.ki+.5)*truth.res, (self.kj+.5)*truth.res
+        self.cs, self.ch = truth.state[ii, jj], truth.height[ii, jj]
+        self.revealed = 0
+
+    def reset(self):
+        b = self.base
+        w = self.work
+        w.ox, w.oz = b.ox, b.oz
+        w.state, w.height = b.state.copy(), b.height.copy()
+        w.first_seen, w.last_seen = b.first_seen.copy(), b.last_seen.copy()
+        w.revision = b.revision
+        self.revealed = 0
+
+    def reveal(self, pose, t):
+        if not len(self.cx):
+            return
+        dx, dz = self.cx-pose[0], self.cz-pose[2]
+        near = np.flatnonzero((np.abs(dx) <= self.rng) & (np.abs(dz) <= self.rng))
+        if not len(near):
+            return
+        dx, dz = dx[near], dz[near]
+        fw = dx*math.cos(pose[3])-dz*math.sin(pose[3])
+        lf = -dx*math.sin(pose[3])-dz*math.cos(pose[3])
+        keep = (np.hypot(dx, dz) <= self.rng) & (np.abs(np.arctan2(lf, fw)) <= HFOV/2)
+        idx = near[keep]
+        if not len(idx):
+            return
+        w = self.work
+        keys = np.stack([self.ki[idx], self.kj[idx]], 1)
+        w._ensure(keys)
+        wi, wj = keys[:, 0]-w.ox, keys[:, 1]-w.oz
+        diff = w.state[wi, wj] != self.cs[idx]
+        if not diff.any():
+            return
+        idx, wi, wj = idx[diff], wi[diff], wj[diff]
+        clear = _los(self.blocked, np.full(len(idx), pose[0]), np.full(len(idx), pose[2]), self.cx[idx], self.cz[idx])
+        if not clear.any():
+            return
+        idx, wi, wj = idx[clear], wi[clear], wj[clear]
+        w.state[wi, wj] = self.cs[idx]
+        w.height[wi, wj] = self.ch[idx]
+        fs = w.first_seen[wi, wj]
+        w.first_seen[wi, wj] = np.where(np.isnan(fs), t, fs)
+        w.last_seen[wi, wj] = t
+        w.revision += 1
+        self.revealed += len(idx)
+
+
 class VisibleWorld:
     def __init__(self, legal, bank, world, steps, step_s=STEP_SECONDS):
         self.legal = legal
@@ -54,6 +116,7 @@ class VisibleWorld:
         self._init = {str(t['track_id']): t for t in legal.tracks if t.get('valid', True)}
         self.mode = 'visible'
         self.fallback = 0
+        self.discovery = None            # optional Discovery: progressive map certification from the imagined pose
         self.reset()
 
     def reset(self):
@@ -74,7 +137,11 @@ class VisibleWorld:
         k = int(min(k, self.steps))
         if k == 0:
             self.reset()
+            if self.discovery is not None:
+                self.discovery.reset()
         t_now = self.now+k*self.step
+        if self.discovery is not None and k > 0:
+            self.discovery.reveal(pose, t_now)
         visible = set()
         if self.P.shape[1]:
             pts = self.P[k]

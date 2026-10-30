@@ -13,6 +13,9 @@ by the Sandbox imagination against the TRUE future of every person (oraclebank.O
             as the real default policy; imagine(cont_boundary, cont_inherit))
   percF / percCF -- perc / percC with the legal map the REAL robot holds at the end of the window (privileged: the
             map knowledge the real executor gains while moving; frozen at t in every other variant)
+  percD / percCD -- perc / percC with progressive map discovery (perceive.Discovery): the cells of the real robot's
+            end-of-window map certified into the imagined legal map as they enter the IMAGINED camera frustum (5 m,
+            line of sight) -- privileged geometry, discovered along the imagined path as the real sensor would
   kin    -- (open loop) the real command sequence integrated by the imagination's kinematics: motion-model error only
 
 Per candidate: the real outcome / min body-rectangle clearance to the true people, and per variant the planar
@@ -33,7 +36,7 @@ from pathlib import Path
 import numpy as np
 
 LAGS = (8, 16, 32, 48, 64, 100, 150, 200, 300)
-VARIANTS = ('nom3', 'nomL', 'perc', 'percC', 'percF', 'percCF')
+VARIANTS = ('nom3', 'nomL', 'perc', 'percC', 'percF', 'percCF', 'percD', 'percCD')
 
 
 def clearance_series(poses, tape, i0):
@@ -148,11 +151,16 @@ def probe_state(rt, gen, st, cfg, goal, N, scan=False, variants=VARIANTS, shifts
                 humans = NominalHumans(st.legal.tracks, st.legal.time, T, bank=bankL, mode='world:0')
             else:
                 humans = VisibleWorld(st.legal, bankL, 0, T)
-                if v.endswith('F'):
+                if v.endswith('F') or v.endswith('D'):
                     from .infofeat import _blocked_lookup
                     humans.blocked = _blocked_lookup(fin.legal.map)
-            fid = v in ('percC', 'percCF')
-            ro = imagine(st.legal, ex, dyn, humans, h, level=0, gmap=fmap if v.endswith('F') else gmap,
+            fid = v in ('percC', 'percCF', 'percCD')
+            vmap = fmap if v.endswith('F') else gmap
+            if v.endswith('D'):
+                from .perceive import Discovery
+                vmap = st.legal.map.copy()
+                humans.discovery = Discovery(vmap, fin.legal.map)
+            ro = imagine(st.legal, ex, dyn, humans, h, level=0, gmap=vmap,
                          continuation=max(0, N-h), cont_query=goal, planner=cfg.planner,
                          cont_boundary=16 if fid else 0, cont_inherit=fid)
             c = getattr(ro, 'cont', None)
