@@ -214,8 +214,8 @@ def rels_of(recs, w=64, **kw):
     return [relevance([tuple(k) for k in r['keys'][w]], **kw) for r in recs]
 
 
-def run_cv(recs, vocab, params=None, rounds=ROUNDS, inner=True, label_w=64, tune_w=64, verbose=True):
-    Xs, names = matrix(recs, vocab)
+def run_cv(recs, vocab, params=None, rounds=ROUNDS, inner=True, label_w=64, tune_w=64, verbose=True, names=None):
+    Xs, names = matrix(recs, vocab, names)
     rels = rels_of(recs, label_w)
     folds = np.asarray([fold_of(r['key']) for r in recs])
     oof = [None]*len(recs)
@@ -301,6 +301,8 @@ def main():
     c.add_argument('--label-w', type=int, default=64)
     c.add_argument('--tune-w', type=int, default=64)
     c.add_argument('--no-inner', action='store_true')
+    c.add_argument('--keep', default=None, help='ablation: fit on the feature names matching this regex only '
+                   '(c_label is required); the frozen model stores the subset, the runtime selects it by name')
     e = sub.add_parser('evaluate')
     e.add_argument('--model', required=True)
     e.add_argument('--feat', required=True)
@@ -312,7 +314,12 @@ def main():
         vocab = vocab_of(recs)
         params = (dict(PRESETS[a.params]) if a.params in PRESETS else
                   json.loads(Path(a.params).read_text()) if a.params.endswith('.json') else json.loads(a.params))
-        oof, per_fold, names = run_cv(recs, vocab, params, a.rounds, not a.no_inner, a.label_w, a.tune_w)
+        keep = None
+        if a.keep:
+            import re
+            keep = [n for n in recs[0]['names'] if re.search(a.keep, n)]
+            print('ablation: %d of %d features kept: %s' % (len(keep), len(recs[0]['names']), keep), flush=True)
+        oof, per_fold, names = run_cv(recs, vocab, params, a.rounds, not a.no_inner, a.label_w, a.tune_w, names=keep)
         thr_all = tune_threshold(recs, oof, a.tune_w)[0]
         pooled = summary(recs, oof, thr_all)
         # pooled selector = each fold's own (inner-tuned) threshold applied to its test states
@@ -334,7 +341,7 @@ def main():
             pickle.dump(dict(files=[r['file'] for r in recs], scores=oof), fh)
         print('\n'.join(text))
         if a.model:
-            Xs, names = matrix(recs, vocab)
+            Xs, names = matrix(recs, vocab, keep)
             m = fit(Xs, rels_of(recs, a.label_w), params, a.rounds, names)
             settings = recs[0].get('settings', {})
             save_model(m, names, vocab, thr_all, a.model, dict(
