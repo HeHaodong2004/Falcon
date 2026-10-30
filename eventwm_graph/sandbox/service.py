@@ -257,7 +257,11 @@ def serve(address, map_device='cuda:0', lanes=None, ready=None, authkey=AUTHKEY,
     listener = Listener(socket_address(address), 'AF_UNIX', authkey=authkey)
     freeze_gc()                                              # the model's objects are permanent: no GC scans of them
     if ready:
-        Path(ready).write_text(json.dumps(dict(pid=os.getpid(), address=str(address), build_s=time.perf_counter()-t0)))
+        s2 = (l2.release or {}).get('stage2', {})            # which Stage 2 checkpoint serves (L3_S2_CKPT override)
+        Path(ready).write_text(json.dumps(dict(pid=os.getpid(), address=str(address), build_s=time.perf_counter()-t0,
+                                               stage2=dict(checkpoint=s2.get('checkpoint'),
+                                                           sha256=l2.maps.checkpoint_sha256,
+                                                           override=s2.get('override')))))
     ids = itertools.count()
 
     def accept():

@@ -203,6 +203,58 @@ lower BLOCKED thresholds trade median for tail.  A second Stage 2 round on the r
 0.49) gave no gain at 32 steps (0.66 / 2.05 (0.82) vs 0.65 / 1.88 (0.80), 20 decisions), and Stage 2 conditioned on the
 REAL paths (privileged; recall 0.57) moved the divergence little (0.43 / 2.20 (0.75)).
 
+Stage 2 fine-tuned for the map stream (`L3_S2_CKPT=<checkpoint>`, default off; `l3/s2data.py`, `l3/s2ft.py`;
+`output/agents/stage2/s2ft`, checkpoint `ckpt/s2ft_v1.pt`, SHA-256 `f2916756...`).  The release was trained on
+recorded executions; the fine-tune trains on what the Sandbox consumes.  Data: TRAIN floor decisions (one episode per
+scene; 76 episodes / 328 decisions for training, 11 scene-disjoint validation episodes / 46 decisions), every
+candidate executed exactly to 64 steps; label: the cells UNKNOWN at t that the real branch's legal camera certified
+within 32 / 64 steps (privileged, supervision only).  Conditioning: the candidate's path imagined on the frozen map
+(legal CV people 0.4, TRUE people 0.3; core physics, continuation, as the Sandbox's first discovery pass) or its real
+path (0.3), 32 or 64 steps.  Loss: Stage 2's revelation + BLOCKED-given-revelation BCE with wall cells weighted 3;
+4 epochs from v17_a, lr 3e-4, BatchNorm frozen; inputs, network and interface unchanged.  Operating point on TRAIN
+validation (CV, 1.5 s, union map): the highest wall recall whose wall precision and false-wall rate are no worse than
+the release's -> BLOCKED > 0.725 (FREE > 0.475 kept; the same rule at 3.1 s gives 0.75, `L3_S2_PB=0.75`).
+
+Union map (as revealed with `L3_MW_DISCOVER=union`) against every candidate's real window, release -> fine-tuned at
+their operating points (walls P / R, false walls = real FREE predicted BLOCKED, FREE P / R, false openings = real
+walls predicted FREE; `L3_S2_PF=1.01` keeps the same walls and drops FREE):
+
+| split | conditioning, window | walls P / R | false walls | FREE P / R | false openings |
+|---|---|---|---|---|---|
+| TRAIN val (46 dec.) | CV, 1.5 s | 0.917 / 0.547 -> 0.929 / 0.556 | 0.100 -> 0.085 | 0.736 / 0.502 -> 0.963 / 0.312 | 0.090 -> 0.006 |
+| | CV, 3.1 s | 0.885 / 0.436 -> 0.875 / 0.485 | 0.103 -> 0.125 | 0.587 / 0.445 -> 0.964 / 0.222 | 0.172 -> 0.005 |
+| | TRUE, 1.5 s | 0.914 / 0.545 -> 0.925 / 0.551 | 0.103 -> 0.089 | 0.746 / 0.494 -> 0.962 / 0.315 | 0.084 -> 0.006 |
+| | TRUE, 3.1 s | 0.881 / 0.446 -> 0.865 / 0.492 | 0.109 -> 0.139 | 0.624 / 0.482 -> 0.964 / 0.229 | 0.160 -> 0.005 |
+| | real, 1.5 s | 0.913 / 0.584 -> 0.913 / 0.598 | 0.111 -> 0.114 | 0.855 / 0.523 -> 0.957 / 0.329 | 0.044 -> 0.007 |
+| | real, 3.1 s | 0.866 / 0.565 -> 0.837 / 0.591 | 0.159 -> 0.209 | 0.700 / 0.551 -> 0.959 / 0.243 | 0.130 -> 0.006 |
+| DEV (36 ep., 115 dec.) | CV, 1.5 s | 0.928 / 0.556 -> 0.943 / 0.563 | 0.092 -> 0.072 | 0.846 / 0.596 -> 0.951 / 0.483 | 0.052 -> 0.012 |
+| | CV, 3.1 s | 0.911 / 0.489 -> 0.914 / 0.504 | 0.105 -> 0.105 | 0.711 / 0.627 -> 0.936 / 0.402 | 0.116 -> 0.013 |
+| | TRUE, 1.5 s | 0.928 / 0.560 -> 0.942 / 0.564 | 0.091 -> 0.073 | 0.857 / 0.594 -> 0.953 / 0.484 | 0.047 -> 0.011 |
+| | TRUE, 3.1 s | 0.908 / 0.510 -> 0.905 / 0.513 | 0.114 -> 0.119 | 0.724 / 0.612 -> 0.932 / 0.401 | 0.106 -> 0.013 |
+| | real, 1.5 s | 0.926 / 0.583 -> 0.937 / 0.589 | 0.098 -> 0.084 | 0.879 / 0.600 -> 0.950 / 0.489 | 0.039 -> 0.012 |
+| | real, 3.1 s | 0.884 / 0.568 -> 0.886 / 0.571 | 0.164 -> 0.161 | 0.760 / 0.599 -> 0.939 / 0.405 | 0.086 -> 0.012 |
+
+* Walls: a small gain.  At the release's false-wall rate (threshold curve, CV, 1.5 s) wall recall is 0.573 vs 0.547
+  (TRAIN val) and 0.581 vs 0.556 (DEV); at 3.1 s the 1.5 s operating point admits more false walls on TRAIN val
+  (DEV at `L3_S2_PB=0.75`, CV, 3.1 s: walls 0.930 / 0.476, false walls 0.080).
+* FREE: the fine-tuned map rarely calls a real wall FREE (false openings 3-9x fewer on DEV, 6-34x on TRAIN val); its
+  FREE cells are 93-95% right on DEV (release 71-88%), at 64-82% of the release's FREE recall on DEV (44-64% on TRAIN
+  val).  This is aimed at the failure measured in SR (predicted FREE cells hurt the 3.1 s Sandbox).
+* Fidelity (shortprobe in the Sandbox server with `L3_S2_CKPT`; TRUE people, core physics, union map through the
+  `Discovery` frustum; non-thru divergence median / p90 (mean)).  10 TRAIN-val floor episodes, first 3 decisions
+  (`probe/tv10_*`, 216 candidates at 1.5 s): release 0.51 / 2.08 (0.79) m, fine-tuned 0.26 / 1.67 (0.65) m; walls
+  only 0.43 / 2.00 (0.78) vs 0.26 / 1.67 (0.64); frozen map 0.65 / 2.58 (1.01); privileged real wall stream
+  0.10 / 1.26 (0.34).  The fine-tune closes a third of the release's mean gap to the wall stream (paired per
+  candidate: Wilcoxon p = 0.03, 54 better / 38 worse by > 0.25 m; per decision 13 / 15, not significant); with it the
+  full reveal behaves like walls only.  3.1 s: no change (2.54 / 5.13 (2.69) vs 2.50 / 5.44 (2.72)).  The 3 DEV
+  collision episodes of the ladder recipe (`probe/dev3_*`, 71 candidates): 0.69 / 4.38 (1.45) vs 0.86 / 4.38 (1.64)
+  at 1.5 s, 2.30 / 7.04 (2.88) vs 1.97 / 6.80 (2.76) at 3.1 s (neither significant); wall stream 0.47 / 3.85 (1.32).
+* Latency: identical network and kernels; `predict_segments` with 10 paths, 3 lanes, CUDA graphs, interleaved in one
+  process on a shared GPU: p50 41.3 vs 41.6 ms, p95 57.9 vs 57.4 ms (DEV, 690 calls each).
+* Regenerate: `python scripts/l3_run.py eventwm_graph.l3.s2ft score --data output/agents/stage2/s2ft/data_dev --split
+  all --ckpts release,<ckpt> --out <json>` then `... s2ft table --stats <json>`; fidelity summary of two probe runs:
+  `... s2ft fidelity --probes release=<dir>,ft=<dir>`.
+
 Contact foresight at the critical decisions (the same 832 candidates; imagined centre distance < 0.75 m vs official
 contact within 1.5 s):
 

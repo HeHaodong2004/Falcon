@@ -131,7 +131,13 @@ class Layer2WorldModel:
     @classmethod
     def from_release(cls, manifest=RELEASE, *, map_device='cuda:0', human_device=None, lanes=None, overlap=True,
                      torch_threads=1, verify=True):
-        """Build both stages from the release manifest (SHA-256 verified)."""
+        """Build both stages from the release manifest (SHA-256 verified).
+
+        Layer 2 option ``L3_S2_CKPT=<path>`` (default off): Stage 2 loads that checkpoint instead of the release's
+        (same ``LegalVoxelPredictor`` interface and inputs; e.g. the Sandbox map-stream fine-tune of ``l3/s2ft.py``).
+        A relative path is taken from the repository root; the checkpoint's own SHA-256 replaces the manifest's in
+        ``release['stage2']`` (``override`` names the option)."""
+        import os
         manifest = Path(manifest)
         rel = json.loads(manifest.read_text())
         if torch_threads is not None:
@@ -140,8 +146,15 @@ class Layer2WorldModel:
         human = Stage1HumanBackend(ROOT/s1['checkpoint'], device=human_device or s1['device'], worlds=s1['worlds'],
                                    horizon=s1['horizon_seconds'], times=s1['times'],
                                    expected_sha256=s1['checkpoint_sha256'] if verify else None)
-        maps = Stage2MapBackend(ROOT/s2['checkpoint'], device=map_device, lanes=s2['lanes'] if lanes is None else lanes,
-                                expected_sha256=s2['checkpoint_sha256'] if verify else None)
+        s2_ckpt = os.environ.get('L3_S2_CKPT')
+        if s2_ckpt:
+            path = Path(s2_ckpt) if Path(s2_ckpt).is_absolute() else ROOT/s2_ckpt
+            maps = Stage2MapBackend(path, device=map_device, lanes=s2['lanes'] if lanes is None else lanes)
+            rel = dict(rel, stage2=dict(s2, checkpoint=str(path), checkpoint_sha256=maps.checkpoint_sha256,
+                                        override='L3_S2_CKPT', release_checkpoint=s2['checkpoint']))
+        else:
+            maps = Stage2MapBackend(ROOT/s2['checkpoint'], device=map_device, lanes=s2['lanes'] if lanes is None else lanes,
+                                    expected_sha256=s2['checkpoint_sha256'] if verify else None)
         return cls(human, maps, overlap=overlap, release=rel)
 
     def close(self):

@@ -70,3 +70,16 @@ reveals no predicted FREE cell); `L3_S2_REVEAL=observer` -- predicted cells are 
 35 wall rays to 10 m and the 0.25 m band around each hit, the jaw camera's mount; parameters fitted on TRAIN legal
 map histories, `l3/revealfit.py`) instead of `Discovery`'s 5 m frustum; `L3_S2_ROUNDS=n` -- Stage 2 again on the paths
 of the previous pass (no fidelity gain measured).  `L3_S2_OBS` overrides the observer distances (analysis).
+
+## Stage 2 checkpoint option (amended 2026-10-30 20:00)
+Legal, default off: `L3_S2_CKPT=<path>` (`layer2/model.py`, `Layer2WorldModel.from_release`) makes Layer 2 load that
+Stage 2 checkpoint instead of the release's -- same `LegalVoxelPredictor` interface, legal inputs and candidate domain;
+the checkpoint's own SHA-256 replaces the manifest's in `release['stage2']` (with `override='L3_S2_CKPT'`), is written
+to every Sandbox server's ready file (`server<i>.ready`, key `stage2`) and is carried by every prediction's
+provenance.  A Sandbox server reads the option when it starts, so set it in the environment of the `evaluate` /
+`fleet` command (`fleet` passes its environment to the servers).  The released checkpoint and the defaults are
+unchanged.  Fine-tuned checkpoints for the Sandbox's imagined map stream (`l3/s2ft.py`) are trained on TRAIN episodes
+only (`l3/s2data.py`: floor decisions, every candidate's exact real branch as the label, privileged for supervision
+only); their operating point (the class rule's BLOCKED threshold) is chosen on scene-disjoint TRAIN validation and
+stored in the checkpoint, so `L3_S2_PB` / `L3_S2_PF` unset use it and `L3_S2_PF=1.01` gives its walls-only stream.
+DEV is used once, for the frozen checkpoint's map metrics and fidelity probe.
