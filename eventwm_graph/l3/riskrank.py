@@ -144,7 +144,8 @@ def derive_outputs(o, legal, d, cont, radius=0.75, goal_r=0.3):
     of CV people the imagined rollouts at continuation c are exact prefixes of those at c' > c (interval + the first c
     continuation steps; verified on the 7850 TRAIN candidates) and the CV people are analytic, so multiworld_index's
     outcome-rule scoring (call_env settings: centre radius 0.75 m, goal radius 0.3 m, every step scored) is replayed on
-    the truncated rollouts.  Checked bit-identical to a real call (scratchpad m6r_runtime.py)."""
+    the truncated rollouts.  Checked bit-identical to a real call on 120 TRAIN + 60 dev legal states
+    (output/agents/m6_ranker/scripts/m6r_derive.py)."""
     from .compiler import LegalField
     cont = int(cont)
     assert cont <= int(o['cont']) and len(o['ros']) == 1
@@ -575,14 +576,17 @@ def risk_select(path, sb, legal, d, state=None, cur=None):
     if bad and path not in _WARNED:
         _WARNED.add(path)
         print('mwroll: risk ranker WARNING: process settings differ from training %s' % bad, flush=True)
-    humans = d.result.humans
-    if not isinstance(humans, CVBank):
-        humans = CVBank(legal)
+    # always a fresh LEGAL CV bank: the decision's own bank object may carry privileged analysis attachments
+    # (L3_MW_SCORE_TRUTH: score_extra); the current call is reused only without any privileged analysis option
+    humans = CVBank(legal, max_age=2.0)                  # the training bank (L3_CV_MAX_AGE unset)
     dd = SimpleNamespace(candidates=d.candidates, result=SimpleNamespace(humans=humans), steps=getattr(d, 'steps', 0),
                          labels=d.labels, default=d.default)
     outs = {}
     reused = []
-    if (cur is not None and cur.get('cont') in CONTS and isinstance(d.result.humans, CVBank) and env_matches()
+    bank0 = d.result.humans
+    if (cur is not None and cur.get('cont') in CONTS and type(bank0) is CVBank and env_matches()
+            and getattr(bank0, 'score_extra', None) is None and tuple(bank0.track_keys) == tuple(humans.track_keys)
+            and not os.environ.get('L3_MW_SCORE_TRUTH') and not os.environ.get('L3_MW_TRUTHMAPS')
             and len(cur.get('ros', ())) == 1):
         # the current call imagined with the training settings: reuse it (its choice recomputed with EPS 0)
         o = dict(cur)

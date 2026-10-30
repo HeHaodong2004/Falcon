@@ -22,6 +22,17 @@ LightGBM 4.x core API (PYTHONPATH with lightgbm; RISKFIT_THREADS threads, defaul
         --out output/agents/m6_ranker/cv_final --params m6b --model output/agents/m6_ranker/model
     python scripts/l3_run.py eventwm_graph.l3.riskfit evaluate --model configs/l3_riskrank_m6b \\
         --feat output/agents/m6_ranker/feat/orca_dev --out output/agents/m6_ranker/dev
+
+Results 2026-10-30 (ORCA native; reports output/agents/m6_ranker/cv_final/cv.txt, dev/dev.txt).  TRAIN CV pooled (785
+states, 153 episodes): within-state AUC (-score) 0.518 at 32 steps (rule -oc16 0.574) / 0.491 at 64 (-oc48 0.557);
+selector at 64 steps: value 2.184 vs rule16 2.143 / rule48 2.170 / default 2.127, exact best 32.0% vs 25.0 / 22.5 /
+16.8%, chosen collides 100 vs 99 / 88 / 100.  Dev (283 states, one pass): value 2.185 vs 2.114 / 2.096 / 2.092, exact
+best 29.7% vs 23.0 / 24.0 / 12.7%, collides 29 vs 34 / 35 / 31.  The gain is progress, not contact foresight (no
+within-state contact discrimination beyond the rule's own oc), and much of it is a query prior: the ranker deviates to
+the thru goal variants ('_th') in ~63% of TRAIN states and "always st_goal_th" scores TRAIN value 2.180 (collides 94) --
+a fixed st_goal_th policy LOST SR online earlier (docs/l3/REPORT.md: 43.1% vs floor 49.2%).  The TRAIN states lie on the
+floor's trajectories (running query = the goal query); after the ranker's own deviations the states are off that
+distribution.  Validate in closed-loop SR before use.
 """
 import argparse
 import glob
