@@ -226,7 +226,12 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     sb.config.continuation = int(cont)
     try:
         for j, w in enumerate(worlds):
-            humans = NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(w))
+            if __import__('os').environ.get('L3_MW_PERCEIVE') == '1':
+                # perception-faithful imagination: the planner sees what the imagined camera would (perceive.py)
+                from .perceive import VisibleWorld
+                humans = VisibleWorld(legal, bank, int(w), T)
+            else:
+                humans = NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(w))
             ros = sb.imagine_all(legal, d.candidates, humans)
             for k, ro in enumerate(ros):
                 poses = np.asarray(ro.poses, np.float64)

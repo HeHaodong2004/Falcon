@@ -27,6 +27,10 @@ from eventwm_graph.querygen.planners import make_planner
 from eventwm_graph.querygen.control import human_estimates
 from eventwm_graph.querygen.legal import BLOCKED
 
+# continuation fidelity defaults (Layer 3 analysis option, default off): see ``imagine``
+CONT_BOUNDARY = int(__import__('os').environ.get('SANDBOX_CONT_BOUNDARY', '0'))
+CONT_INHERIT = __import__('os').environ.get('SANDBOX_CONT_INHERIT') == '1'
+
 HISTORY_TAIL = 8          # real poses kept for the executor's measured-velocity estimate (it reads a 1-step window)
 TRACK_PREFIX = 'track:'   # Stage 1 bank key of a legal track: 'track:' + legal track id (residual slots: 'residual:i')
 
@@ -291,10 +295,13 @@ def remaining_route(execution, pose, max_m=12.):
 
 
 def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuation=0, cont_query=None, planner=None,
-            route=False):
+            route=False, cont_boundary=None, cont_inherit=None):
     """Roll ``execution`` (a fresh or copied ``QueryExecution``; consumed) forward for at most ``steps`` imagined
     steps from the legal state ``legal`` at t, against the nominal humans.  Returns an ``ImaginedRollout``.
-    ``gmap``: the decision's frozen map alias (default: ``legal.map`` itself)."""
+    ``gmap``: the decision's frozen map alias (default: ``legal.map`` itself).  ``cont_boundary`` / ``cont_inherit``
+    (default off; module defaults ``CONT_BOUNDARY`` / ``CONT_INHERIT``): continuation fidelity -- a decision boundary
+    every ``cont_boundary`` steps of the continued query and goal-query inheritance (``QueryExecution.INHERIT``), as
+    the real default policy executes it (querygen ``EpisodeRuntime.run`` chunks)."""
     tick = time.perf_counter()
     sl = ImaginedLegal(legal, humans.tracks(0), gmap)
     poses = [sl.pose.copy()]
@@ -305,7 +312,7 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
     blocked = 0
     clearance = math.inf
     for k in range(int(steps)):
-        sl.tracks = humans.tracks(k)
+        sl.tracks = humans.tracks_at(k, sl.pose) if hasattr(humans, 'tracks_at') else humans.tracks(k)
         try:
             prim, level = execution.step(sl, level)
         except Exception as exc:          # a planner failure ends this candidate only (recorded, never raised)
@@ -343,7 +350,8 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
     cont = None
     if continuation > 0 and not stop and error is None and cont_query is not None:
         cont = _continue(sl, execution, dyn, humans, len(poses)-1, int(continuation), int(levels[-1]), cont_query,
-                         planner)
+                         planner, boundary=CONT_BOUNDARY if cont_boundary is None else int(cont_boundary),
+                         inherit=CONT_INHERIT if cont_inherit is None else bool(cont_inherit))
     P = np.asarray(poses)
     g = np.asarray(legal.goal, np.float64)
     d0 = float(math.hypot(g[0]-P[0, 0], g[2]-P[0, 2]))
@@ -358,17 +366,31 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
                            route=rroute)
 
 
-def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner):
+def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner, boundary=0, inherit=False):
     """Continue the imagination for ``n`` steps under the default policy (keep the running query at a decision
-    boundary, else the goal query; the goal query again when the running one ends).  Returns poses [<=n, 4]."""
+    boundary, else the goal query; the goal query again when the running one ends).  Returns poses [<=n, 4].
+    ``boundary`` > 0: a decision boundary every ``boundary`` steps of a running query; ``inherit``: a new goal query
+    takes over the history of the previous execution (``QueryExecution.INHERIT``) -- both as the real runtime does."""
     out = []
     ex = execution
+    inherit = bool(inherit) and getattr(QueryExecution, 'INHERIT', False)
+
+    def fresh(prev):
+        e = new_execution(goal_query, planner, dyn)
+        if inherit and prev is not None:
+            e.inherit(prev)
+        return e
     if ex.status == 'running':
         ex.decision_boundary()
     else:
-        ex = new_execution(goal_query, planner, dyn)
+        ex = fresh(ex)
+    since = 0
     for j in range(n):
-        sl.tracks = humans.tracks(k0+j)
+        if boundary > 0 and since >= boundary and ex.status == 'running':
+            ex.decision_boundary()
+            since = 0
+        since += 1
+        sl.tracks = humans.tracks_at(k0+j, sl.pose) if hasattr(humans, 'tracks_at') else humans.tracks(k0+j)
         try:
             prim, level = ex.step(sl, level)
             if prim == 'stop':
@@ -386,9 +408,10 @@ def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner):
         sl.steps += 1
         out.append(p)
         if ex.status != 'running':
-            if ex.query is goal_query:
+            if ex.query is goal_query and (ex.status == 'done' or not (boundary > 0 or inherit)):
                 break
-            ex = new_execution(goal_query, planner, dyn)
+            ex = fresh(ex)            # (fidelity mode: a failed goal query is re-issued, as by the real default policy)
+            since = 0
     return np.asarray(out, np.float64).reshape(-1, 4)
 
 
