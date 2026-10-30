@@ -574,7 +574,7 @@ NOT help (36 episodes: 50.0% vs floor 55.6%, 4 / 6): it deviates 25% of the time
 The legal selector halves collisions (7 vs 13 on these 36 episodes) but converts them into timeouts (13 vs 7): it
 deviates on 41% of decisions (true-future version: 20%), often to scans and waits, because with 6 worlds a default
 colliding in a single world loses to any candidate colliding in none.  A less jumpy legal variant (deviate only if the default collides in >= 30% of the world weight and a candidate is
-0.25 lower) is running (7.4).
+0.25 lower; 8% deviations instead of 41%) reaches 47.2% vs 44.4% (3 / 2) -- no better.
 About half of the gain needs the futures of people the robot does NOT track at the decision (hidden or not yet
 seen) -- a legal predictor has to forecast those too.  Both the camera model and a people future over the WHOLE imagined window are needed: a perfect 3 s predictor recovers
 less than half of the gain (vs the whole-window truth: 0 wins / 3 losses).
@@ -672,6 +672,7 @@ within noise of the floor.
 | `H_greedy_dev` | legal (heuristic) | 144 | 47.9% | 43.1% | 16 / 23 | 0.337 |
 | `H_imagroll_dev` | legal (imagined rollout) | 144 | 47.9% | 47.2% | 14 / 15 | 1.000 |
 | `H_mwroll_dev` | legal (multi-world rollout, 60 steps) | 54 | 48.1% | 44.4% | 5 / 7 | 0.774 |
+| `H_mwroll_legalp2_dev` | legal (camera model, deviation margins) | 36 | 44.4% | 47.2% | 3 / 2 | 1.000 |
 | `H_mwroll_legalp_dev` | legal (6 Stage 1 worlds + camera model) | 36 | 44.4% | 44.4% | 2 / 2 | 1.000 |
 | `H_mwroll_true300_dev` | privileged (true future, release imagination) | 36 | 44.4% | 50.0% | 5 / 3 | 0.727 |
 | `H_mwroll_true300p_dev` | privileged (true future + camera model) | 72 | 47.2% | 59.7% | 10 / 1 | 0.012 |
