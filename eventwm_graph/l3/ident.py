@@ -120,6 +120,9 @@ def main():
     ap.add_argument('--crit-frac', type=float, default=0., help='share of each batch drawn from critical states')
     ap.add_argument('--rank', type=float, default=0., help='within-state ranking loss weight (success > failure)')
     ap.add_argument('--tag', default='ident')
+    ap.add_argument('--max-train', type=int, default=0, help='learning curve: at most this many training states')
+    ap.add_argument('--init', default=None, help='warm start the critic from a learner state (same layout)')
+    ap.add_argument('--lr', type=float, default=3e-4)
     a = ap.parse_args()
     import torch
     import torch.nn.functional as Fn
@@ -127,8 +130,8 @@ def main():
     from .batch import to_torch, GRAPH_KEYS
     from . import compiler as C
     X, Y, M, D, S = [], [], [], [], []
-    if a.run:
-        for lst, new in zip((X, Y, M, D, S), dataset(a.run)):
+    for run in (a.run.split(',') if a.run else []):
+        for lst, new in zip((X, Y, M, D, S), dataset(run)):
             lst.extend(new)
     if a.warm:
         for lst, new in zip((X, Y, M, D, S), dataset_oracle(a.warm, a.cf)):
@@ -147,13 +150,22 @@ def main():
         scenes = sorted(set(S))
         test = set(rng.choice(scenes, max(1, len(scenes)//4), replace=False))
         te = np.asarray([s in test for s in S]); tr = ~te
+        if a.max_train and tr.sum() > a.max_train:
+            keep = rng.choice(np.flatnonzero(tr), a.max_train, replace=False)
+            tr = np.zeros(len(S), bool); tr[keep] = True
         torch.manual_seed(seed)
         net = ConsequenceGraphNet(ModelConfig()).to(a.device)
+        if a.init:
+            ck = torch.load(a.init, map_location=a.device)
+            sd = ck.get('net') or ck.get('state_dict')
+            own = net.state_dict()
+            net.load_state_dict({k: (sd[k] if k in sd and sd[k].shape == v.shape else v) for k, v in own.items()})
         if a.semantics:
             net.enc['cand'] = mlp(G['cand'].shape[-1], net.cfg.hidden, net.cfg.hidden).to(a.device)
             net.keep_cand = torch.ones(G['cand'].shape[-1], device=a.device)
-        opt = torch.optim.AdamW(net.parameters(), 3e-4, weight_decay=1e-4)
+        opt = torch.optim.AdamW(net.parameters(), a.lr, weight_decay=1e-4)
         Gtr = to_torch({k: v[tr] for k, v in G.items()}, a.device); Ytr = torch.as_tensor(Y[tr], device=a.device)
+        tri = np.flatnonzero(tr)
         ctr = np.flatnonzero(crit[tr]); n = int(tr.sum())
         for it in range(a.steps):
             nb = 128
