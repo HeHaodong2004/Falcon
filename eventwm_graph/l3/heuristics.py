@@ -188,3 +188,68 @@ def imagined_rollout_index(result, legal, default, slack_p=0.05, slack_m=0.5, ra
     if pc[d] <= best_p+slack_p and prog[d] >= prog[k]-slack_m:
         return d
     return k
+
+
+def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048):
+    """LEGAL multi-world imagined rollout (no learning, no privileged input): each candidate is imagined once per
+    sampled Stage 1 world -- the robot's own planner perceiving THAT world's tracked people, interval + ``cont`` steps of
+    default continuation -- and checked for contact against that world's people (tracked and hidden); P(contact) is the
+    world-weighted share of contact rollouts, progress the mean legal route gain at the end.  Unlike a single nominal
+    world, the planner's reactions to each possible future are simulated (the timing that decides hit vs miss)."""
+    from eventwm_graph.sandbox.imagine import NominalHumans
+    from .compiler import LegalField
+    bank = d.result.humans
+    W = np.asarray(bank.weights, np.float64)
+    W = W/W.sum() if W.sum() > 0 else np.full(len(W), 1./max(len(W), 1))
+    worlds = np.argsort(-W)[:n_worlds] if len(np.unique(W)) > 1 else np.arange(min(n_worlds, len(W)))
+    ww = W[worlds]/W[worlds].sum()
+    field = LegalField(legal)
+    K = len(d.candidates)
+    steps = max(sb.config.steps_for(c) for c in d.candidates)
+    T = steps+cont
+    keys = list(getattr(bank, 'track_keys', ()))
+    if len(keys):
+        rel = np.arange(1, T+1)*step_s
+        horizon = float(bank.times[-1])
+        inside = rel[rel <= horizon+1e-9]
+        HP = np.asarray(bank.sandbox_positions(inside), np.float64)              # [W, Tb, N, 2]
+        if len(inside) < T and HP.shape[1] >= 2:
+            vel = (HP[:, -1]-HP[:, -2])/step_s
+            extra = np.arange(1, T-len(inside)+1)*step_s
+            HP = np.concatenate([HP, HP[:, -1][:, None]+extra[None, :, None, None]*vel[:, None]], 1)
+    else:
+        HP = None
+    pc = np.zeros(K)
+    prog = np.zeros(K)
+    stop_bad = np.zeros(K, bool)
+    old = sb.config.continuation
+    sb.config.continuation = int(cont)
+    try:
+        for j, w in enumerate(worlds):
+            humans = NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(w))
+            ros = sb.imagine_all(legal, d.candidates, humans)
+            for k, ro in enumerate(ros):
+                poses = np.asarray(ro.poses, np.float64)
+                c = getattr(ro, 'cont', None)
+                seq = np.concatenate([poses[1:], c]) if c is not None and len(c) else poses[1:]
+                if not len(seq):
+                    seq = poses[:1]
+                if ro.stop and math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) > 0.3:
+                    stop_bad[k] = True
+                if HP is not None:
+                    n = min(len(seq), HP.shape[1])
+                    with np.errstate(invalid='ignore'):
+                        dd = np.hypot(HP[w, :n, :, 0]-seq[:n, None, 0], HP[w, :n, :, 1]-seq[:n, None, 2])
+                    if np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < radius:
+                        pc[k] += ww[j]
+                prog[k] += ww[j]*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
+    finally:
+        sb.config.continuation = old
+    pc = np.where(stop_bad, 1., pc)
+    dflt = int(d.default)
+    best_p = float(pc.min())
+    pool = np.flatnonzero(pc <= best_p+slack_p)
+    k = int(pool[np.argmax(prog[pool])])
+    if pc[dflt] <= best_p+slack_p and prog[dflt] >= prog[k]-slack_m:
+        return dflt
+    return k

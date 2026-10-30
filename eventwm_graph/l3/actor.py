@@ -197,6 +197,11 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 else:
                     a = d.default
                 p = 1.
+            elif selector == 'mwroll':
+                # legal multi-world imagined rollout (heuristics.multiworld_index)
+                from .heuristics import multiworld_index
+                a, p = multiworld_index(sb, ep.ep.legal, d, n_worlds=int(os.environ.get('L3_MW_WORLDS', '6')),
+                                        cont=int(os.environ.get('L3_MW_CONT', '60'))), 1.
             elif selector == 'imagroll':
                 # legal imagined rollout policy (heuristics.imagined_rollout_index; needs --sandbox continuation)
                 from .heuristics import imagined_rollout_index
