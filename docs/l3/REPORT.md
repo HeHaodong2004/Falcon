@@ -655,8 +655,9 @@ selection rule -- turning better prediction into better choices (risk / progress
   continuation; the camera model fixes 2 of 4 avoidable default collisions at sampled states), so the missing SR gain on
   DWA is not imagination fidelity -- the selection rule's deviations (in-place rotations) turn into timeouts, or noise
   at 36 episodes.
-- Momentum robot (orca-inertia-k10, true-future camera-model selector, 36 episodes): 36.1% vs floor 27.8% (5 / 2,
-  p = 0.45) -- positive, far from the 70% target for the other configurations.
+- Momentum robot (orca-inertia-k10, true-future camera-model selector, 36 episodes): contact rule 36.1% vs floor 27.8%
+  (5 / 2, p = 0.45), outcome rule 30.6% (3 / 2) -- far from the 70% target for the other configurations even with
+  the true people future.
 - Scan rollout reference (exact one-step evaluation incl. the scan queries), all 24 episodes: 21 success / 3 timeout,
   identical to the plain reference; scans are chosen in 5 of its 77 deviations -- active looking adds nothing to exact
   one-step evaluation.
@@ -701,6 +702,7 @@ within noise of the floor.
 | `H_mwroll_true300po_dev` | privileged (true future + camera model, outcome rule) | 72 | 47.2% | 63.9% | 14 / 2 | 0.004 |
 | `H_mwroll_true300po_sfm` | privileged (true future + camera, outcome rule, SFM) | 72 | 47.2% | 61.1% | 14 / 4 | 0.031 |
 | `H_mwroll_true300po_dwa` | privileged (true future + camera, outcome rule, DWA) | 72 | 48.6% | 54.2% | 13 / 9 | 0.523 |
+| `H_mwroll_true300po_inertia` | privileged (outcome rule, orca-inertia-k10) | 36 | 27.8% | 30.6% | 3 / 2 | 1.000 |
 | `H_mwroll_true300pto_dev` | privileged (outcome rule + truth-map discovery) | 36 | 44.4% | 58.3% | 6 / 1 | 0.125 |
 | `H_mwroll_legalpo_dev` | legal (6 Stage 1 worlds + camera model, outcome rule) | 36 | 44.4% | 44.4% | 2 / 2 | 1.000 |
 | `H_mwroll_true300pd_dev` | privileged people + legal Stage 2 discovery | 36 | 44.4% | 50.0% | 3 / 1 | 0.625 |
