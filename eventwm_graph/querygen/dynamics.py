@@ -140,4 +140,7 @@ FAMILIES = {
     'light_inertia': DynamicsModel('light_inertia', levels=_levels(12), accel=4, brake=4),
     # milder still: full speed or a stop within 2 steps (0.10 s), stop distance 0.10 m from full speed
     'quick_inertia': DynamicsModel('quick_inertia', levels=_levels(12), accel=6, brake=6),
+    # inertia in acceleration only: full speed after 6 steps (0.29 s, as 'inertia'), strong brakes (a stop within one
+    # step, no stopping distance)
+    'accel_inertia': DynamicsModel('accel_inertia', levels=_levels(12), accel=2, brake=12),
 }
