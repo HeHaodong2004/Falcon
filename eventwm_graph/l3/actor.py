@@ -107,6 +107,20 @@ class PolicyHandle:
         return q, heads
 
 
+_REPLAY = {}
+
+
+def _replay_labels(run_dir, key, cfg_name):
+    """ANALYSIS: the label chosen at every decision of a recorded evaluation episode (``<run_dir>/spool``)."""
+    path = Path(run_dir, 'spool', '%s__%s.ep' % (key.replace('/', '_'), cfg_name))
+    if path not in _REPLAY:
+        e = read_episode(path)
+        r = e['rows']
+        _REPLAY[path] = dict(labels=[lab[a] for lab, a in zip(r['labels'], r['actions'])],
+                             outcome=e['metrics']['outcome'], steps=int(e['metrics']['steps']))
+    return _REPLAY[path]
+
+
 def choose(q, n, tau, eps, rng, anchor=0., default=0):
     """Boltzmann(tau) over the n valid candidates, mixed with epsilon-uniform, and (training only) anchored: with
     probability ``anchor`` the default candidate.  Returns (index, behaviour probability of index)."""
@@ -230,7 +244,12 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 from .shortprobe import probe_decision
                 every, most = int(os.environ.get('L3_PROBE_EVERY', '1')), int(os.environ.get('L3_PROBE_MAX', '1000'))
                 rec = None
-                if ep.decisions % every == 0 and len(probe) < most:
+                rp = (_replay_labels(os.environ['L3_PROBE_REPLAY'], spec.key, cfg.name)
+                      if os.environ.get('L3_PROBE_ACT') == 'replay' else None)
+                want = ep.decisions % every == 0 and len(probe) < most
+                if rp is not None and int(os.environ.get('L3_PROBE_LAST', '0')) > 0:
+                    want = want and ep.decisions >= len(rp['labels'])-int(os.environ['L3_PROBE_LAST'])
+                if want:
                     rec = probe_decision(ep, d, sb)
                     probe.append(rec)
                 a, p = d.default, 1.
@@ -239,6 +258,23 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                     # scored from the probe's own legal imagination records when this decision was probed
                     from .shortsel import select as short_select, select_from_records
                     a = select_from_records(rec, d) if rec is not None else short_select(sb, ep.ep.legal, d, cfg, ep.ep.steps)
+                elif rp is not None:
+                    # failure attribution: replay a recorded evaluation episode's choices (L3_PROBE_REPLAY = its run
+                    # dir) and probe its last L3_PROBE_LAST decisions; with L3_PROBE_SELECTOR=mwroll the recorded
+                    # selector is re-run there (same env) and its per-candidate scores are stored next to the exact ones
+                    lab = rp['labels'][ep.decisions] if ep.decisions < len(rp['labels']) else None
+                    if lab in d.labels:
+                        a = d.labels.index(lab)
+                    else:
+                        diverged = True
+                    if rec is not None:
+                        rec['replay'] = dict(label=lab, found=lab in d.labels, outcome=rp['outcome'], steps=rp['steps'])
+                        if os.environ.get('L3_PROBE_SELECTOR') == 'mwroll':
+                            from . import heuristics
+                            a_sel = heuristics.multiworld_index(sb, ep.ep.legal, d, n_worlds=int(os.environ.get('L3_MW_WORLDS', '6')),
+                                                                cont=int(os.environ.get('L3_MW_CONT', '60')),
+                                                                state=getattr(ep, 'last_state', None), truth=truth)
+                            rec['selector'] = dict(choice=d.labels[a_sel], **heuristics.MW_DEBUG)
             elif selector == 'imagroll':
                 # legal imagined rollout policy (heuristics.imagined_rollout_index; needs --sandbox continuation)
                 from .heuristics import imagined_rollout_index

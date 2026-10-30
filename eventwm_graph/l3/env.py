@@ -28,6 +28,7 @@ ORACLE_BANK_STEPS = int(__import__('os').environ.get('L3_ORACLE_BANK_STEPS', '0'
 ORACLE_NOISE = float(__import__('os').environ.get('L3_ORACLE_NOISE', '0'))      # analysis only: velocity error (m/s)
 ORACLE_NOISE_WORLDS = int(__import__('os').environ.get('L3_ORACLE_NOISE_WORLDS', '6'))
 LEGAL_BANK = __import__('os').environ.get('L3_MW_BANK')      # Layer 3 option: 'cv' = constant-velocity tracks (legal)
+SCORE_TRUTH = __import__('os').environ.get('L3_MW_SCORE_TRUTH') == '1'   # analysis only (privileged scoring)
 
 
 @dataclass(frozen=True)
@@ -159,7 +160,14 @@ class L3Episode:
                 # LEGAL baseline predictor: the tracked people at the tracker's constant velocity (oraclebank.CVBank)
                 import dataclasses
                 from .oraclebank import CVBank
-                result = dataclasses.replace(result, humans=CVBank(ep.legal))
+                cvb = CVBank(ep.legal)
+                if SCORE_TRUTH:
+                    # ANALYSIS ONLY (privileged, L3_MW_SCORE_TRUTH=1): the TRUE futures of the people NOT tracked at t,
+                    # for the selector's contact scoring only (the imagined planner never perceives them) -- the value
+                    # of a perfect hidden-people model on top of the legal loop
+                    from .oraclebank import OracleBank
+                    cvb.score_extra = OracleBank(self.rt.tape.positions, ep.state.index, ep.legal, 'all')
+                result = dataclasses.replace(result, humans=cvb)
             t = T()
             graph = self.compiler.compile(result, ep.legal, queries, diag, ep.steps, running=running)
             tm['compile_ms'] = 1000*(T()-t)

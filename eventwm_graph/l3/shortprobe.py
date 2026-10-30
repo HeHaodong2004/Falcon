@@ -40,6 +40,19 @@ def _min_upto(series, w):
     return float(np.min(s)) if len(s) else math.inf
 
 
+def _centre_series(poses, tape, i0):
+    """Min centre distance of robot poses [n, 4] (pose j after j+1 steps from tape index i0) to the true people."""
+    out = np.full(len(poses), np.inf)
+    for j, p in enumerate(poses):
+        hp = tape[min(i0+1+j, len(tape)-1)]
+        if len(hp):
+            d = np.hypot(hp[:, 0]-p[0], hp[:, 2]-p[2])
+            d = d[np.isfinite(d)]
+            if len(d):
+                out[j] = float(d.min())
+    return out
+
+
 def _ctg_at(field, poses, w):
     if not len(poses):
         return None
@@ -71,7 +84,7 @@ def probe_decision(ep, d, sb):
     from .compiler import LegalField
     from .fidelity import clearance_series
     from .oraclebank import OracleBank
-    from .perceive import VisibleWorld, Discovery
+    from .perceive import VisibleWorld, Discovery, TimedReveal, ReplayTracks
     from .infofeat import _blocked_lookup
     t0 = time.perf_counter()
     rt = ep.rt
@@ -117,6 +130,31 @@ def probe_decision(ep, d, sb):
             reals.append((q, h, fin, real))
     finally:
         rt.sensor.observe = hooked
+    variants = os.environ.get('L3_PROBE_VARIANTS', 'rel,cam6,camT,camTD').split(',')
+    s2map = None
+    if any(v.startswith('camS2') for v in variants):
+        # LEGAL predicted map (Layer 2 / Stage 2): every candidate imagined on the frozen map (TRUE people, as camT),
+        # one batched Stage 2 call on those paths, one predicted local map (perceive.predicted_truth_union) revealed
+        # through the imagined camera in the camS2 variants
+        from eventwm_graph.layer2.state import trajectory_from_poses
+        from .perceive import predicted_truth_union
+        trajs = []
+        for k, (q, h, fin, real) in enumerate(reals):
+            ex, _ = sb._execution(d.candidates[k])
+            if isinstance(ex, Exception):
+                trajs.append(trajectory_from_poses(np.asarray([st.legal.pose], np.float64), st.legal.time))
+                continue
+            ro = imagine(st.legal, ex, dyn, VisibleWorld(st.legal, truth, 0, W_MAX), h, level=int(d.candidates[k].level),
+                         gmap=gmap, continuation=max(0, W_MAX-h), cont_query=goal, planner=cfg.planner,
+                         cont_boundary=16, cont_inherit=True, physics='core')
+            c = getattr(ro, 'cont', None)
+            P = np.concatenate([np.asarray(ro.poses, np.float64), np.asarray(c, np.float64)]) if c is not None and len(c) else np.asarray(ro.poses, np.float64)
+            trajs.append(trajectory_from_poses(P, st.legal.time))
+        try:
+            pred = sb.l2.predict(ep.last_state, trajs, materialize=False, worlds=sb.config.worlds, seed=sb.config.seed)
+            s2map = predicted_truth_union(st.legal.map, [c.map for c in pred.candidates])
+        except Exception as exc:
+            print('shortprobe: Stage 2 failed (%s)' % (exc,), flush=True)
     for k, (q, h, fin, real) in enumerate(reals):
         rc = clearance_series(real, tape, i0)
         steps = int(fin.index-i0)
@@ -124,13 +162,18 @@ def probe_decision(ep, d, sb):
                    real=dict(outcome=fin.outcome or 'running', steps=steps,
                              clr={w: _min_upto(rc, w) for w in WINDOWS}, ctg={w: _ctg_at(field, real, w) for w in WINDOWS}),
                    imag={})
+        if os.environ.get('L3_PROBE_CENTRE') == '1':
+            cs = _centre_series(real, tape, i0)
+            rec['real']['cd'] = {w: _min_upto(cs, w) for w in WINDOWS}
         cand = d.candidates[k]
-        for v in os.environ.get('L3_PROBE_VARIANTS', 'rel,cam6,camT,camTD').split(','):
+        for v in variants:
             runs = []
             if v == 'cam6':
                 specs = [(int(w), float(x)) for w, x in zip(worlds, ww)] if HP is not None else []
             else:
                 specs = [(None, 1.)]
+            # imagined contact physics (sandbox/imagine.py PHYSICS): a variant name + 'P' ('band') or + 'Pc' ('core')
+            base = v[:-2] if v.endswith('Pc') else v[:-1] if (v.endswith('P') and v != 'P') else v
             for w, wt in specs:
                 ex, _ = sb._execution(cand)
                 if isinstance(ex, Exception):
@@ -140,26 +183,64 @@ def probe_decision(ep, d, sb):
                     hum = NominalHumans(st.legal.tracks, st.legal.time, W_MAX, bank=bank, mode='mean')
                 elif v == 'cam6':
                     hum = VisibleWorld(st.legal, bank, w, W_MAX)
+                elif base == 'camCV':
+                    # LEGAL: the tracked people at the tracker's constant velocity (oraclebank.CVBank, the CV-null
+                    # selector's people) through the camera model; contact still scored against the true people
+                    from .oraclebank import CVBank
+                    hum = VisibleWorld(st.legal, CVBank(st.legal, horizon_steps=W_MAX+1), 0, W_MAX)
+                elif base in ('camR', 'camRM'):
+                    # fidelity ladder (privileged): the real tracker's output (camR), + the real map stream (camRM)
+                    hum = ReplayTracks(fin.legal.track_log, len(st.legal.track_log)-1, W_MAX, st.legal.time)
+                    if base == 'camRM':
+                        vmap = st.legal.map.copy()
+                        hum.discovery = TimedReveal(vmap, fin.legal.map)
                 else:
                     hum = VisibleWorld(st.legal, truth, 0, W_MAX)
-                    if v == 'camTD':
+                    if base == 'camTD':
                         vmap = st.legal.map.copy()
                         hum.blocked = _blocked_lookup(fin.legal.map)
                         hum.discovery = Discovery(vmap, fin.legal.map)
+                    elif base == 'camS2':
+                        if s2map is None:
+                            break
+                        vmap = st.legal.map.copy()
+                        hum.blocked = _blocked_lookup(s2map)
+                        hum.discovery = Discovery(vmap, s2map)
+                    elif base in ('camM', 'camMF', 'camMB'):
+                        # fidelity ladder (privileged): camera-model people + the real robot's map stream by time
+                        # (camMF / camMB: only its FREE / only its BLOCKED certifications)
+                        vmap = st.legal.map.copy()
+                        hum.blocked = _blocked_lookup(fin.legal.map)
+                        hum.discovery = TimedReveal(vmap, fin.legal.map, only=dict(camMF=1, camMB=2).get(base))
                 fid = v != 'rel'
+                phys = 'band' if v.endswith('P') else 'core' if v.endswith('Pc') else ''
                 ro = imagine(st.legal, ex, dyn, hum, h, level=int(cand.level), gmap=vmap,
                              continuation=max(0, W_MAX-h), cont_query=goal, planner=cfg.planner,
-                             cont_boundary=16 if fid else 0, cont_inherit=fid)
+                             cont_boundary=16 if fid else 0, cont_inherit=fid, physics=phys)
                 c = getattr(ro, 'cont', None)
                 im = np.concatenate([ro.poses[1:], c]) if c is not None and len(c) else np.asarray(ro.poses[1:])
                 im = np.asarray(im, np.float64).reshape(-1, 4)
+                legal_cd = None
                 if v == 'cam6':
                     ic = _world_clearance(im, HP[w])
                 elif v == 'rel':
                     hp = np.asarray(hum.positions[1:, :, :], np.float64)[:, :, [0, 2]]
                     ic = _world_clearance(im, hp)
+                elif base == 'camCV':
+                    # the legal selector's own score: contact with its (constant-velocity) people
+                    ic = _world_clearance(im, hum.P[1:])
+                    if os.environ.get('L3_PROBE_CENTRE') == '1':
+                        Pq = hum.P[1:]
+                        n = min(len(im), len(Pq))
+                        legal_cd = np.full(len(im), np.inf)
+                        if n and Pq.shape[1]:
+                            with np.errstate(invalid='ignore'):
+                                dd = np.hypot(Pq[:n, :, 0]-im[:n, None, 0], Pq[:n, :, 1]-im[:n, None, 2])
+                            legal_cd[:n] = np.where(np.isfinite(dd), dd, np.inf).min(axis=1)
                 else:
                     ic = clearance_series(im, tape, i0)
+                icd = legal_cd if legal_cd is not None else (
+                    _centre_series(im, tape, i0) if (v not in ('rel', 'cam6') and os.environ.get('L3_PROBE_CENTRE') == '1') else None)
                 div = {}
                 for lag in LAGS:
                     if lag > len(real) or not len(im):
@@ -171,7 +252,8 @@ def probe_decision(ep, d, sb):
                 runs.append(dict(w=wt, n=len(im), stop=bool(ro.stop), ended=ro.ended_by,
                                  near_goal=bool(len(im) and math.hypot(im[-1, 0]-st.legal.goal[0], im[-1, 2]-st.legal.goal[2]) <= 0.3),
                                  clr={w2: _min_upto(ic, w2) for w2 in WINDOWS},
-                                 ctg={w2: _ctg_at(field, im, w2) for w2 in WINDOWS}, div=div))
+                                 ctg={w2: _ctg_at(field, im, w2) for w2 in WINDOWS}, div=div,
+                                 **({} if icd is None else dict(cd={w2: _min_upto(icd, w2) for w2 in WINDOWS}))))
             rec['imag'][v] = runs
         cands.append(rec)
     out = dict(step=i0, decision=int(ep.decisions), labels=list(d.labels), default=d.labels[d.default],

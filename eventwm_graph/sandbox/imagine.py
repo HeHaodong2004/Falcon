@@ -30,6 +30,13 @@ from eventwm_graph.querygen.legal import BLOCKED
 # continuation fidelity defaults (Layer 3 analysis option, default off): see ``imagine``
 CONT_BOUNDARY = int(__import__('os').environ.get('SANDBOX_CONT_BOUNDARY', '0'))
 CONT_INHERIT = __import__('os').environ.get('SANDBOX_CONT_INHERIT') == '1'
+# Imagined contact physics (default off; SANDBOX_PHYSICS = 'band' | 'core'): the nominal kinematics move the base
+# through anything.  With physics, a translating step whose base centre would enter a BLOCKED cell of the legal map at
+# t ('band'; 'core': the executor's own advance model -- the BLOCKED band with its two outer rings released) or whose
+# body front lies in a bump-memory disc does not translate the base, and a native 'forward' that does not move records
+# a bump at the body front (as ``LegalState.observe``) -- so the executor's bump / unstick logic and the 'thru'
+# queries' learning from contact (soft obstacles, bump discs) run inside imagination as on the real robot.
+PHYSICS = __import__('os').environ.get('SANDBOX_PHYSICS', '')
 
 HISTORY_TAIL = 8          # real poses kept for the executor's measured-velocity estimate (it reads a 1-step window)
 TRACK_PREFIX = 'track:'   # Stage 1 bank key of a legal track: 'track:' + legal track id (residual slots: 'residual:i')
@@ -182,6 +189,50 @@ class ImaginedLegal:
         return np.array([(b[0]-a[0])/dt, (b[2]-a[2])/dt]), dyaw/dt
 
 
+def _physical(sl, prev, p, cmd, phys):
+    """``p`` (nominal pose after ``cmd`` from ``prev``), or ``prev`` with p's heading when the imagined base cannot
+    translate there (``PHYSICS``); records the bump of a blocked native 'forward' in ``sl.bumps`` and its memory disc
+    in a private copy of ``sl.map`` (the decision's frozen map stays untouched)."""
+    if phys is None or (p[0]-prev[0])**2+(p[2]-prev[2])**2 < 1e-10:
+        return p
+    from eventwm_graph.querygen.legal import LegalState
+    m = phys.get('map')
+    if m is None:
+        if phys['mode'] == 'core':
+            from eventwm_graph.querygen.executor import _TightLegal
+            m = _TightLegal(sl, 2).map
+        else:
+            m = sl.map
+        phys['map'] = m
+    r = float(LegalState.BUMP_MEMORY)
+    fx = float(prev[0])+LegalState.BUMP_FRONT_M*math.cos(float(prev[3]))
+    fz = float(prev[2])-LegalState.BUMP_FRONT_M*math.sin(float(prev[3]))
+    hit = m.state_at(p[0], p[2]) == BLOCKED
+    if not hit and r > 0 and sl.bumps:
+        hit = any(math.hypot(fx-bx, fz-bz) <= r for bx, bz in sl.bumps)
+    if not hit:
+        return p
+    q = np.asarray(prev, np.float64).copy()
+    q[3] = p[3]
+    phys['blocked'] = phys.get('blocked', 0)+1
+    if cmd == 'forward' and r > 0:
+        sl.bumps.append((fx, fz))
+        if not phys.get('own'):
+            sl.map = sl.map.copy()
+            phys['own'] = True
+            if phys['mode'] != 'core':
+                phys['map'] = sl.map
+        g = sl.map
+        n = int(math.ceil(r/g.res))
+        ci, cj = g.key(fx, fz)
+        keys = np.asarray([(ci+a, cj+b) for a in range(-n, n+1) for b in range(-n, n+1)
+                           if math.hypot(a*g.res, b*g.res) <= r], dtype=np.int64)
+        g._ensure(keys)
+        g.state[keys[:, 0]-g.ox, keys[:, 1]-g.oz] = BLOCKED
+        g.revision += 1
+    return q
+
+
 # ---------------------------------------------------------------------------------------------- kinematics
 def advance(pose, dyn, cmd):
     """Nominal kinematics of one realised command (Falcon base-velocity integration, translation first; no navmesh).
@@ -298,15 +349,18 @@ def remaining_route(execution, pose, max_m=12.):
 
 
 def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuation=0, cont_query=None, planner=None,
-            route=False, cont_boundary=None, cont_inherit=None, keep_leaf=False):
+            route=False, cont_boundary=None, cont_inherit=None, keep_leaf=False, physics=None):
     """Roll ``execution`` (a fresh or copied ``QueryExecution``; consumed) forward for at most ``steps`` imagined
     steps from the legal state ``legal`` at t, against the nominal humans.  Returns an ``ImaginedRollout``.
     ``gmap``: the decision's frozen map alias (default: ``legal.map`` itself).  ``cont_boundary`` / ``cont_inherit``
     (default off; module defaults ``CONT_BOUNDARY`` / ``CONT_INHERIT``): continuation fidelity -- a decision boundary
     every ``cont_boundary`` steps of the continued query and goal-query inheritance (``QueryExecution.INHERIT``), as
-    the real default policy executes it (querygen ``EpisodeRuntime.run`` chunks)."""
+    the real default policy executes it (querygen ``EpisodeRuntime.run`` chunks).  ``physics``: imagined contact
+    physics mode (default ``PHYSICS``; '' = off)."""
     tick = time.perf_counter()
     sl = ImaginedLegal(legal, humans.tracks(0), gmap)
+    pm = PHYSICS if physics is None else physics
+    phys = dict(mode=pm) if pm else None
     poses = [sl.pose.copy()]
     levels = [int(level)]
     commands = []
@@ -333,6 +387,7 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
         if not np.isfinite(p).all():
             ended, error = 'error', 'non-finite imagined pose'
             break
+        p = _physical(sl, sl.pose, p, cmd, phys)
         commands.append(cmd if isinstance(cmd, str) else tuple(map(float, cmd)))
         sl.time += STEP_SECONDS
         sl.pose = p
@@ -356,7 +411,7 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
         tail = {} if keep_leaf else None
         cont = _continue(sl, execution, dyn, humans, len(poses)-1, int(continuation), int(levels[-1]), cont_query,
                          planner, boundary=CONT_BOUNDARY if cont_boundary is None else int(cont_boundary),
-                         inherit=CONT_INHERIT if cont_inherit is None else bool(cont_inherit), tail=tail)
+                         inherit=CONT_INHERIT if cont_inherit is None else bool(cont_inherit), tail=tail, phys=phys)
         if keep_leaf:
             leaf = dict(execution=tail.get('execution', execution), level=int(tail.get('level', levels[-1])),
                         tracks=sl.tracks, time=float(sl.time), poses=list(sl.poses), times=list(sl.times),
@@ -378,7 +433,8 @@ def imagine(legal, execution, dyn, humans, steps, level=0, gmap=None, continuati
                            route=rroute, leaf=leaf)
 
 
-def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner, boundary=0, inherit=False, tail=None):
+def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner, boundary=0, inherit=False, tail=None,
+              phys=None):
     """Continue the imagination for ``n`` steps under the default policy (keep the running query at a decision
     boundary, else the goal query; the goal query again when the running one ends).  Returns poses [<=n, 4].
     ``boundary`` > 0: a decision boundary every ``boundary`` steps of a running query; ``inherit``: a new goal query
@@ -407,11 +463,13 @@ def _continue(sl, execution, dyn, humans, k0, n, level, goal_query, planner, bou
             prim, level = ex.step(sl, level)
             if prim == 'stop':
                 break
-            p = advance(sl.pose, dyn, command_for(dyn, prim))
+            cmd = command_for(dyn, prim)
+            p = advance(sl.pose, dyn, cmd)
         except Exception:
             break
         if not np.isfinite(p).all():
             break
+        p = _physical(sl, sl.pose, p, cmd, phys)
         sl.time += STEP_SECONDS
         sl.pose = p
         sl.poses.append(p); sl.times.append(sl.time)

@@ -301,6 +301,7 @@ def _leaf_rollouts(sb, legal, d, humans, cont):
 
 
 _VALUE = {}
+MW_DEBUG = {}          # analysis (L3_MW_DEBUG=1): the last multiworld_index call's per-candidate scores
 
 
 def _value_model(path):
@@ -340,11 +341,18 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
             HP = np.concatenate([HP, HP[:, -1][:, None]+extra[None, :, None, None]*vel[:, None]], 1)
     else:
         HP = None
+    extra = getattr(bank, 'score_extra', None)
+    if extra is not None and len(extra.cols) and extra.unseen.any():
+        # ANALYSIS ONLY (env.SCORE_TRUTH): the true futures of the people not tracked at t join the contact scoring
+        E = np.asarray(extra.sandbox_positions(np.arange(1, T+1)*step_s), np.float64)[:, :, extra.unseen]   # [1, T, Nu, 2]
+        HP = np.repeat(E, len(W), 0) if HP is None else np.concatenate([HP, np.repeat(E, HP.shape[0], 0)], 2)
     pc = np.zeros(K)
     prog = np.zeros(K)
     oc = np.zeros(K)
     rule = __import__('os').environ.get('L3_MW_RULE', 'contact')       # 'contact' (default) | 'outcome'
     stop_bad = np.zeros(K, bool)
+    dbg = __import__('os').environ.get('L3_MW_DEBUG') == '1'
+    dmin = np.full(K, np.inf)        # analysis: min contact distance (centre or rect) per candidate over the worlds
     # contacts counted over the first L3_MW_CONTACT_STEPS imagined steps only (default: the whole rollout); with Stage 1
     # worlds people beyond the 3 s bank horizon are constant-velocity guesses -- the long continuation then judges
     # progress (deadlocks, timeouts) while contacts are judged where the worlds are predictions
@@ -403,6 +411,8 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                         hit = np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < radius if dd.size else False
                     if hit:
                         pc[k] += ww[j]
+                    if dbg and dd.size:
+                        dmin[k] = min(dmin[k], float(np.nanmin(np.where(np.isfinite(dd), dd, np.inf))))
                 prog[k] += ww[j]*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
                 if vm is not None:
                     near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= 0.3
@@ -445,6 +455,10 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
     finally:
         sb.config.continuation = old
     pc = np.where(stop_bad, 1., pc)
+    if dbg:
+        MW_DEBUG.clear()
+        MW_DEBUG.update(pc=pc.tolist(), prog=prog.tolist(), oc=oc.tolist(), stop_bad=stop_bad.tolist(),
+                        dmin=[x if math.isfinite(x) else None for x in dmin.tolist()], rule=rule)
     dflt = int(d.default)
     if vm is not None:
         best = int(np.argmax(vs))

@@ -100,6 +100,9 @@ def run(a):
         specs = specs[int(getattr(a, 'offset', 0))::a.stride]       # spread a subset over the suite's scenes
     if a.limit:
         specs = specs[:a.limit]
+    if getattr(a, 'keys', None):
+        want = set(Path(a.keys).read_text().split())                 # analysis: only these episodes
+        specs = [s for s in specs if s.key in want]
     configs = a.configs.split(',')
     jobs = [[s.asdict(), c] for s in specs for c in configs]
     (out/'jobs.json').write_text(json.dumps(jobs))
@@ -233,6 +236,7 @@ def main():
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--stride', type=int, default=1, help='every stride-th episode of the suite (before --limit)')
     ap.add_argument('--offset', type=int, default=0)
+    ap.add_argument('--keys', default=None, help='file of episode keys to run (after --stride / --limit)')
     ap.add_argument('--nice', type=int, default=0)
     ap.add_argument('--tag', default=None)
     ap.add_argument('--paired', default=None)

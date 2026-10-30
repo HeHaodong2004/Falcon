@@ -18,6 +18,20 @@ from .infofeat import _blocked_lookup, _los
 
 HFOV = math.radians(90.)
 RANGE = 10.
+# camera mount (Layer 3 option L3_CAM_MOUNT=1, default off: the camera at the base centre, looking along the base
+# heading).  The real jaw depth camera (robot spec, measured from the sensor rows' camera_origin / camera_rotation):
+# 0.52 m ahead of the base centre, 0.02 m to its right, yawed ~4.5 deg to the right -- people beside the robot's front
+# that a centre camera would see are outside the real frustum.
+CAM_MOUNT = __import__('os').environ.get('L3_CAM_MOUNT') == '1'
+CAM_FWD, CAM_RIGHT, CAM_YAW = 0.52, 0.02, math.radians(-4.5)
+
+
+def camera_pose(pose):
+    """(x, z, yaw) of the imagined camera for a base pose [x, y, z, yaw]."""
+    if not CAM_MOUNT:
+        return float(pose[0]), float(pose[2]), float(pose[3])
+    c, s = math.cos(float(pose[3])), math.sin(float(pose[3]))
+    return (float(pose[0])+CAM_FWD*c+CAM_RIGHT*s, float(pose[2])-CAM_FWD*s+CAM_RIGHT*c, float(pose[3])+CAM_YAW)
 
 
 class Discovery:
@@ -50,13 +64,14 @@ class Discovery:
     def reveal(self, pose, t):
         if not len(self.cx):
             return
-        dx, dz = self.cx-pose[0], self.cz-pose[2]
+        px, pz, pyaw = camera_pose(pose)
+        dx, dz = self.cx-px, self.cz-pz
         near = np.flatnonzero((np.abs(dx) <= self.rng) & (np.abs(dz) <= self.rng))
         if not len(near):
             return
         dx, dz = dx[near], dz[near]
-        fw = dx*math.cos(pose[3])-dz*math.sin(pose[3])
-        lf = -dx*math.sin(pose[3])-dz*math.cos(pose[3])
+        fw = dx*math.cos(pyaw)-dz*math.sin(pyaw)
+        lf = -dx*math.sin(pyaw)-dz*math.cos(pyaw)
         keep = (np.hypot(dx, dz) <= self.rng) & (np.abs(np.arctan2(lf, fw)) <= HFOV/2)
         idx = near[keep]
         if not len(idx):
@@ -69,7 +84,7 @@ class Discovery:
         if not diff.any():
             return
         idx, wi, wj = idx[diff], wi[diff], wj[diff]
-        clear = _los(self.blocked, np.full(len(idx), pose[0]), np.full(len(idx), pose[2]), self.cx[idx], self.cz[idx])
+        clear = _los(self.blocked, np.full(len(idx), px), np.full(len(idx), pz), self.cx[idx], self.cz[idx])
         if not clear.any():
             return
         idx, wi, wj = idx[clear], wi[clear], wj[clear]
@@ -157,13 +172,14 @@ class VisibleWorld:
         if self.P.shape[1]:
             pts = self.P[k]
             ok = np.isfinite(pts).all(1)
-            dx, dz = pts[:, 0]-pose[0], pts[:, 1]-pose[2]
-            fw = dx*math.cos(pose[3])-dz*math.sin(pose[3])
-            lf = -dx*math.sin(pose[3])-dz*math.cos(pose[3])
+            cx, cz, cyaw = camera_pose(pose)
+            dx, dz = pts[:, 0]-cx, pts[:, 1]-cz
+            fw = dx*math.cos(cyaw)-dz*math.sin(cyaw)
+            lf = -dx*math.sin(cyaw)-dz*math.cos(cyaw)
             inside = ok & (np.abs(np.arctan2(lf, fw)) <= HFOV/2) & (np.hypot(dx, dz) <= RANGE)
             idx = np.flatnonzero(inside)
             if len(idx):
-                clear = _los(self.blocked, np.full(len(idx), pose[0]), np.full(len(idx), pose[2]), pts[idx, 0], pts[idx, 1])
+                clear = _los(self.blocked, np.full(len(idx), cx), np.full(len(idx), cz), pts[idx, 0], pts[idx, 1])
                 for n in idx[clear]:
                     tid = self.ids[n]
                     prev = self.mem.get(tid)
@@ -183,6 +199,88 @@ class VisibleWorld:
                             visible_now=tid in visible, valid=True, first_seen_time=self.now, last_seen_time=ts,
                             observation_age=t_now-ts, num_observations=5, hypothetical=True))
         return out
+
+
+class TimedReveal:
+    """ANALYSIS (privileged): the real robot's map stream replayed by time -- at imagined time t, every cell the real
+    branch's legal map ``final`` had certified by t (``first_seen <= t``) is written into ``work`` with its final state,
+    whatever the imagined pose (fidelity ladder: map knowledge as the real executor had it)."""
+
+    def __init__(self, work, final, only=None):
+        self.work, self.final = work, final
+        self.base = work.copy()
+        keep = (final.state != 0) if only is None else (final.state == int(only))     # only: 1 FREE / 2 BLOCKED cells
+        ii, jj = np.nonzero(keep & np.isfinite(final.first_seen))
+        order = np.argsort(final.first_seen[ii, jj], kind='stable')
+        ii, jj = ii[order], jj[order]
+        self.t = final.first_seen[ii, jj].astype(np.float64)
+        self.ki, self.kj = ii+final.ox, jj+final.oz
+        self.cs, self.ch = final.state[ii, jj], final.height[ii, jj]
+        self.n = 0
+        self.revealed = 0
+
+    def reset(self):
+        b, w = self.base, self.work
+        w.ox, w.oz = b.ox, b.oz
+        w.state, w.height = b.state.copy(), b.height.copy()
+        w.first_seen, w.last_seen = b.first_seen.copy(), b.last_seen.copy()
+        w.revision = b.revision
+        self.n = 0
+        self.revealed = 0
+
+    def reveal(self, pose, t):
+        m = int(np.searchsorted(self.t, float(t)+1e-6, side='right'))
+        if m <= self.n:
+            return
+        sel = slice(self.n, m)
+        self.n = m
+        w = self.work
+        keys = np.stack([self.ki[sel], self.kj[sel]], 1)
+        w._ensure(keys)
+        wi, wj = keys[:, 0]-w.ox, keys[:, 1]-w.oz
+        diff = w.state[wi, wj] != self.cs[sel]
+        if not diff.any():
+            return
+        wi, wj = wi[diff], wj[diff]
+        w.state[wi, wj] = self.cs[sel][diff]
+        w.height[wi, wj] = self.ch[sel][diff]
+        fs = w.first_seen[wi, wj]
+        w.first_seen[wi, wj] = np.where(np.isnan(fs), t, fs)
+        w.last_seen[wi, wj] = t
+        w.revision += 1
+        self.revealed += int(diff.sum())
+
+
+class ReplayTracks:
+    """ANALYSIS (privileged): the REAL tracker's output replayed into imagination -- at imagined step k the executor
+    receives the tracks the real robot held k steps after the decision (the real branch's ``track_log``), whatever
+    the imagined pose (fidelity ladder: perception as the real executor had it).  Optional ``discovery``
+    (``TimedReveal`` / ``Discovery``) is advanced every step as in ``VisibleWorld``."""
+
+    def __init__(self, track_log, start_index, steps, now, step_s=STEP_SECONDS):
+        self.log = [tr for _, tr in track_log[start_index:]] or [[]]
+        self.steps = int(steps)
+        self.now = float(now)
+        self.step = float(step_s)
+        self.positions = np.zeros((self.steps+1, 0, 3))
+        self.discovery = None
+
+    def fork(self, discovery=None, blocked=None):
+        import copy
+        w = copy.copy(self)
+        w.discovery = discovery
+        return w
+
+    def tracks(self, k):
+        return list(self.log[min(int(k), len(self.log)-1)])
+
+    def tracks_at(self, k, pose):
+        k = int(min(k, self.steps))
+        if k == 0 and self.discovery is not None:
+            self.discovery.reset()
+        if self.discovery is not None and k > 0:
+            self.discovery.reveal(pose, self.now+k*self.step)
+        return self.tracks(k)
 
 
 def predicted_truth(legal_map, delta):
