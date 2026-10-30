@@ -481,3 +481,10 @@ imagination over 300 steps (~to the episode end) on 36 ORCA dev episodes -- if i
 legal path is a world model whose people prediction reaches the whole episode, used through imagination.
 Label critic v1 (paired dev, 205 episodes): 23 wins / 27 losses vs the floor (ORCA 48.6 vs 47.2%, DWA 49.2 vs 50.8%,
 SFM 41.7 vs 47.2%) -- floor level, as the flat learning curve predicted.
+Full-horizon true-future imagination (analysis only; 300-step continuation, 19 of 36 paired ORCA dev episodes so far):
+SR 63.2% vs floor 57.9% (2 / 1); outcomes 12 success / 2 timeout / 5 collision; deviations mostly wait_short, st_goal,
+goal_th, st_goal_th.  The timeout trap disappears with a full horizon, but candidates imagined safe -- against the TRUE
+future -- still collide in reality in 5 / 19 episodes (the exact reference: none): the imagined closed loop diverges
+from the real one at the timing that decides hits.  In imagination the planner perceives every tracked person's
+future perfectly; in reality it perceives people through the 90-degree camera (occlusion, track loss) and reacts
+differently.  Reproducing the exact evaluator would require simulating the robot's own perception inside the loop.
