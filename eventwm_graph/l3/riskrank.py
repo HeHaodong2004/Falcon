@@ -29,7 +29,10 @@ Selector option: ``L3_MW_RISK=<model dir>`` (``model.txt`` or a seed ensemble ``
 model ``configs/l3_riskrank_m6b``) in ``heuristics.multiworld_index`` (selector ``mwroll``); the features are recomputed
 with the model's training settings (one world of CV people, continuation 16 and 48, outcome rule, no Stage 2 discovery,
 no hazard / contact-model / value options, L3_MW_GOAL_R unset); a compatible current call (L3_MW_BANK=cv, L3_MW_CONT 16
-or 48, those options) is reused, otherwise both continuations are imagined again.  The process-wide options the model
+or 48, those options) is reused.  The continuation-16 values are replayed on the truncated continuation-48 rollouts
+(``derive_outputs``: exact prefixes, bit-identical to a real call; ``L3_MW_RISK_DERIVE=0`` imagines them instead), so
+with ``L3_MW_CONT=48`` the ranker adds no imagination at all (~0.2 s of features; otherwise one continuation-48
+imagination).  The process-wide options the model
 was trained with (SANDBOX_PHYSICS=core, SANDBOX_CONT_BOUNDARY=16, SANDBOX_CONT_INHERIT=1, L3_INHERIT=1) are checked
 once (warning).  ``L3_MW_RISK_THR`` overrides the threshold; ``RISK_DEBUG`` holds the last decision's scores / latency.
 With ``L3_MW_RISK`` unset nothing changes (``multiworld_index`` defaults bit-identical).
@@ -134,6 +137,67 @@ def rule_outputs(sb, legal, d, cont, state=None):
     with call_env():
         o['choice'] = int(multiworld_index(sb, legal, d, n_worlds=1, cont=int(cont), state=state, _risk=False, _out=o))
     return o
+
+
+def derive_outputs(o, legal, d, cont, radius=0.75, goal_r=0.3):
+    """``rule_outputs`` at a SHORTER continuation ``cont`` from a longer call ``o`` without imagining again: with one world
+    of CV people the imagined rollouts at continuation c are exact prefixes of those at c' > c (interval + the first c
+    continuation steps; verified on the 7850 TRAIN candidates) and the CV people are analytic, so multiworld_index's
+    outcome-rule scoring (call_env settings: centre radius 0.75 m, goal radius 0.3 m, every step scored) is replayed on
+    the truncated rollouts.  Checked bit-identical to a real call (scratchpad m6r_runtime.py)."""
+    from .compiler import LegalField
+    cont = int(cont)
+    assert cont <= int(o['cont']) and len(o['ros']) == 1
+    field = LegalField(legal)
+    ros = o['ros'][0]
+    K = len(ros)
+    steps = int(o['steps'])
+    T = steps+cont
+    HP = None if o['HP'] is None else np.asarray(o['HP'], np.float64)[:, :T]
+    w = int(o['worlds'][0])
+    pc, prog, oc, dmin = np.zeros(K), np.zeros(K), np.zeros(K), np.full(K, np.inf)
+    stop_bad = np.zeros(K, bool)
+    trunc = []
+    for k, ro in enumerate(ros):
+        poses = np.asarray(ro.poses, np.float64)
+        c = getattr(ro, 'cont', None)
+        if c is not None and len(c):
+            c = c[:cont]
+        seq = np.concatenate([poses[1:], c]) if c is not None and len(c) else poses[1:]
+        if not len(seq):
+            seq = poses[:1]
+        trunc.append(SimpleNamespace(poses=ro.poses, cont=c, stop=ro.stop, ended_by=ro.ended_by))
+        if ro.stop and math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) > goal_r:
+            stop_bad[k] = True
+        hit = False
+        if HP is not None:
+            n = min(len(seq), HP.shape[1])
+            with np.errstate(invalid='ignore'):
+                dd = np.hypot(HP[w, :n, :, 0]-seq[:n, None, 0], HP[w, :n, :, 1]-seq[:n, None, 2])
+            hit = np.nanmin(np.where(np.isfinite(dd), dd, np.inf)) < radius if dd.size else False
+            if hit:
+                pc[k] += 1.
+            if dd.size:
+                dmin[k] = min(dmin[k], float(np.nanmin(np.where(np.isfinite(dd), dd, np.inf))))
+        prog[k] += 1.*(field.start-field.at(seq[-1, 0], seq[-1, 2]))
+        Tk = max(len(seq), 1)
+        near = math.hypot(seq[-1, 0]-legal.goal[0], seq[-1, 2]-legal.goal[2]) <= goal_r
+        if HP is not None and hit:
+            first = int(np.argmax(np.nanmin(np.where(np.isfinite(dd), dd, np.inf), axis=1) < radius))
+            val = 0.+0.5*first/max(n, 1)
+        elif ro.stop and not near:
+            val = 0.
+        elif ro.stop and near:
+            val = 3.+0.5*(1.-Tk/max(steps+cont, 1))
+        else:
+            g = field.start-field.at(seq[-1, 0], seq[-1, 2])
+            val = 2.+0.5*float(np.clip(g/max(field.start, 1e-6), 0., 0.999))
+        oc[k] += 1.*val
+    pc = np.where(stop_bad, 1., pc)
+    dflt = int(d.default)
+    best = int(np.argmax(oc))
+    return dict(oc=oc, pc=pc, prog=prog, dmin=dmin, stop_bad=stop_bad, HP=HP, worlds=o['worlds'], ww=o['ww'], cont=cont,
+                steps=steps, ros=[trunc], choice=dflt if oc[dflt] >= oc[best] else best, derived=True)
 
 
 # ---------------------------------------------------------------------------------------------- legal features
@@ -527,8 +591,15 @@ def risk_select(path, sb, legal, d, state=None, cur=None):
         o['choice'] = int(d.default) if oc[int(d.default)] >= oc[best] else best
         outs[int(cur['cont'])] = o
         reused.append(int(cur['cont']))
-    for c in CONTS:
-        if c not in outs:
+    derived = []
+    for c in sorted(CONTS, reverse=True):
+        if c in outs:
+            continue
+        longer = [outs[x] for x in sorted(outs) if x > c and not outs[x].get('derived')]
+        if longer and os.environ.get('L3_MW_RISK_DERIVE', '1') == '1':
+            outs[c] = derive_outputs(longer[0], legal, dd, c)       # exact prefix: no second imagination
+            derived.append(c)
+        else:
             outs[c] = rule_outputs(sb, legal, dd, c, state=None)
     t1 = time.perf_counter()
     hz = make_hazard(legal, m.hp())
@@ -540,7 +611,8 @@ def risk_select(path, sb, legal, d, state=None, cur=None):
     RISK_DEBUG.clear()
     RISK_DEBUG.update(scores=s.tolist(), thr=thr, choice=a, default=int(d.default),
                       rule_choice={c: int(outs[c]['choice']) for c in CONTS},
-                      ms=dict(imagine=1000*(t1-t0), total=1000*(time.perf_counter()-t0)), reused=reused)
+                      ms=dict(imagine=1000*(t1-t0), total=1000*(time.perf_counter()-t0)), reused=reused,
+                      derived=derived)
     return a
 
 
