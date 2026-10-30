@@ -27,6 +27,7 @@ def main():
     ap.add_argument('--limit', type=int, default=200)
     ap.add_argument('--shard', type=int, default=0)
     ap.add_argument('--shards', type=int, default=1)
+    ap.add_argument('--reverse', action='store_true', help='process the shard in reverse order (helper workers)')
     a = ap.parse_args()
     assert os.environ.get('L3_ORACLE_BANK'), 'set L3_ORACLE_BANK=all (analysis only)'
     os.environ.setdefault('QG_FAST_SENSE', '1')
@@ -44,6 +45,8 @@ def main():
     comp = GraphCompiler(brake_tail=True)
     files = sorted(Path(a.run, 'cf_online').glob('*.json'))
     files = [f for f in files if zlib.crc32(f.name.encode()) % a.shards == a.shard][:a.limit]
+    if a.reverse:
+        files = files[::-1]
     for f in files:
         name = f.name[:-len('.json')]
         if (out/'spool'/name).exists():
