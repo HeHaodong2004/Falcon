@@ -93,3 +93,49 @@ class CVBank:
     def sandbox_positions(self, rel):
         rel = np.asarray(rel, np.float64)
         return (self.P0[None]+rel[:, None, None]*self.V[None])[None]           # [1, T, N, 2]
+
+
+class MeanBank:
+    """LEGAL single-world people bank (Layer 3 option ``L3_MW_BANK=mean``, default off): every person Stage 1 tracks,
+    at the weight-averaged position of Stage 1's worlds; Stage 1's hidden slots are dropped (no phantom people for the
+    imagined planner).  Stage 1's worlds are individually poor (uniform weights; the average single world is worse than
+    constant velocity) but their mean is the best point forecast of the tracked people at 1.5-3 s (dev bank, median
+    error: 0.76 m vs 1.05 m for constant velocity at 1.5 s, 1.54 m vs 2.50 m at 3 s)."""
+
+    def __init__(self, bank, legal=None):
+        self.base = bank
+        # tracked people Stage 1 holds absent in every world at some time continue at constant velocity instead
+        # (CVBank of the legal tracks; matched by track key)
+        self.cv = CVBank(legal) if legal is not None else None
+        keys = [str(k) for k in getattr(bank, 'track_keys', ())]
+        unseen = np.asarray(getattr(bank, 'unseen', np.zeros(len(keys))), bool).reshape(-1)
+        self.cols = np.flatnonzero(~unseen) if len(keys) else np.zeros(0, int)
+        self.track_keys = tuple(keys[i] for i in self.cols)
+        self.unseen = np.zeros(len(self.cols), bool)
+        W = np.asarray(bank.weights, np.float64).reshape(-1)
+        self.w = W/W.sum() if W.sum() > 0 else np.full(len(W), 1./max(len(W), 1))
+        self.weights = np.ones(1)
+        self.present = np.ones((1, len(self.cols)), bool)
+        self.times = np.asarray(bank.times, np.float64)
+        self.long_steps = int(getattr(bank, 'long_steps', 0) or 0)
+
+    def sandbox_positions(self, rel):
+        P = np.asarray(self.base.sandbox_positions(rel), np.float64)
+        if not len(self.cols):
+            return np.zeros((1, P.shape[1], 0, 2))
+        P = P[:, :, self.cols]                                                   # [W, T, Nt, 2]
+        pres = np.asarray(getattr(self.base, 'present', np.ones((P.shape[0], len(self.w)))), bool)
+        pres = pres[:, self.cols] if pres.ndim == 2 and pres.shape[1] > self.cols.max() else np.ones((P.shape[0], len(self.cols)), bool)
+        ok = np.isfinite(P).all(-1) & pres[:, None, :]                          # [W, T, Nt]
+        w = self.w[:, None, None]*ok
+        den = w.sum(0)                                                           # [T, Nt]
+        num = (np.where(ok[..., None], P, 0.)*w[..., None]).sum(0)              # [T, Nt, 2]
+        out = np.where(den[..., None] > 0, num/np.maximum(den, 1e-12)[..., None], np.nan)
+        if self.cv is not None and not np.isfinite(out).all():
+            cvk = list(self.cv.track_keys)
+            C = self.cv.sandbox_positions(rel)[0]                                 # [T, Nc, 2]
+            for i, k in enumerate(self.track_keys):
+                if k in cvk:
+                    bad = ~np.isfinite(out[:, i]).all(-1)
+                    out[bad, i] = C[bad, cvk.index(k)]
+        return out[None]                                                         # [1, T, Nt, 2]
