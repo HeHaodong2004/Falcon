@@ -280,6 +280,18 @@ def _truth_rollouts(sb, legal, d, humans, truth, cont):
     from .perceive import Discovery
     from .truthmaps import merged_truth
     full = merged_truth(legal.map, truth)
+    if __import__('os').environ.get('L3_MW_TRUTH_WALLS') == '1':
+        # (analysis) walls only: the truth's FREE cells the legal map has not certified stay UNKNOWN
+        from eventwm_graph.querygen.legal import FREE
+        full = full.copy()
+        ii, jj = np.nonzero(full.state == FREE)
+        if len(ii):
+            keys = np.stack([ii+full.ox, jj+full.oz], 1)
+            li, lj = keys[:, 0]-legal.map.ox, keys[:, 1]-legal.map.oz
+            ok = (li >= 0) & (li < legal.map.state.shape[0]) & (lj >= 0) & (lj < legal.map.state.shape[1])
+            certified = np.zeros(len(ii), bool)
+            certified[ok] = legal.map.state[li[ok], lj[ok]] == FREE
+            full.state[ii[~certified], jj[~certified]] = 0
     blocked = _blocked_lookup(full)
     cq = default_query()
     out = []
@@ -290,6 +302,7 @@ def _truth_rollouts(sb, legal, d, humans, truth, cont):
             out.append(failed_rollout(legal, '%s: %s' % (type(ex).__name__, ex)))
             continue
         work = legal.map.copy()
+        work.imagined_private = True         # (imagine.PHYSICS_LIVE) bump discs in place
         hk = humans.fork(Discovery(work, full), blocked)
         out.append(imagine(legal, ex, dyn, hk, sb.config.steps_for(c), level=int(c.level), gmap=work,
                            continuation=int(cont), cont_query=cq, planner=c.planner,
