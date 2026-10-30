@@ -29,6 +29,16 @@ ORACLE_NOISE = float(__import__('os').environ.get('L3_ORACLE_NOISE', '0'))      
 ORACLE_NOISE_WORLDS = int(__import__('os').environ.get('L3_ORACLE_NOISE_WORLDS', '6'))
 LEGAL_BANK = __import__('os').environ.get('L3_MW_BANK')      # Layer 3 option: 'cv' = constant-velocity tracks, 'mean' = Stage 1 mean of worlds (legal)
 SCORE_TRUTH = __import__('os').environ.get('L3_MW_SCORE_TRUTH') == '1'   # analysis only (privileged scoring)
+# speed option (default off): with a people bank that does not come from the released Sandbox pass (L3_MW_BANK=cv |
+# mean, L3_ORACLE_BANK) the decision skips that pass (imagination + Stage 2 of every candidate) and the compiled graph
+# (the blind layout is recorded instead); for selectors that read only ``result.humans`` (mwroll)
+LIGHT = __import__('os').environ.get('L3_MW_LIGHT') == '1'
+
+
+@dataclass(frozen=True)
+class BankOnlyResult:
+    """The part of a ``SandboxResult`` a bank-only selector reads (``L3_MW_LIGHT``)."""
+    humans: object
 
 
 @dataclass(frozen=True)
@@ -145,7 +155,15 @@ class L3Episode:
             self.last_state = state          # (multi-world selector's Stage 2 discovery calls; same decision only)
             tm['state_ms'] = 1000*(T()-t)
             t = T()
-            result = self.sb.evaluate(state, ep.legal, cands)
+            light = LIGHT and bool(ORACLE_BANK or LEGAL_BANK in ('cv', 'mean'))
+            if light:
+                # (L3_MW_LIGHT) no released pass; Stage 1 only where the bank needs it (MeanBank)
+                self.sb.check_context(state, ep.legal)
+                result = BankOnlyResult(self.sb.l2.predict_humans(state, worlds=self.sb.config.worlds,
+                                                                  seed=self.sb.config.seed)
+                                        if LEGAL_BANK == 'mean' and not ORACLE_BANK else None)
+            else:
+                result = self.sb.evaluate(state, ep.legal, cands)
             tm['sandbox_ms'] = 1000*(T()-t)
             if ORACLE_BANK:
                 # ANALYSIS ONLY (privileged): true human futures in place of Stage 1's bank (oraclebank.py)
@@ -174,7 +192,8 @@ class L3Episode:
                     cvb.score_extra = OracleBank(self.rt.tape.positions, ep.state.index, ep.legal, 'all')
                 result = dataclasses.replace(result, humans=cvb)
             t = T()
-            graph = self.compiler.compile(result, ep.legal, queries, diag, ep.steps, running=running)
+            graph = (self.compiler.compile_blind(ep.legal, queries, diag, ep.steps, running=running) if light else
+                     self.compiler.compile(result, ep.legal, queries, diag, ep.steps, running=running))
             tm['compile_ms'] = 1000*(T()-t)
         else:
             t = T()
