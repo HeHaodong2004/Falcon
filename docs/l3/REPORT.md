@@ -438,3 +438,11 @@ R10 v125 (paired dev, 72 per configuration): ORCA 52.8% vs 47.2% (10 / 6), DWA 4
 Imagined rollout final ~floor (pooled 14 / 13).  Deadlock probe (privileged, floor timeouts): mid-episode (step 240)
 1-4 single and ~40 two-step escapes exist (explicit turns toward the route, a short wait, st_goal_th); none late (step
 384) -- deadlocks are escapable if acted on by mid-episode.
+
+**Learning curve of the label critic (no warm start -- warm starting from R10's learner leaks the held-out labels, an
+invalid 82% was discarded; scene split, 4 seeds, critical states of R9 + R10 labels).**  Training states 250 / 500 /
+1,000: critic top-1 at critical states 35.2% / 32.1% / 33.8% (random alternative ~29.5%), within-state AUC 0.565 /
+0.566 / 0.569, default-outcome AUC 0.61.  Flat: more labels of this kind, with the legal v4 inputs and this critic, do
+not improve candidate evaluation.  Next diagnostic: the same critic and labels with the TRUE future of every person in
+the inputs (`l3/privfeat.py`, analysis only) -- predictable with perfect foresight (a prediction problem) or not
+(outcomes not determined by anything knowable at decision time)?
