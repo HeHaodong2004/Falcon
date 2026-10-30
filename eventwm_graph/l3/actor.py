@@ -140,6 +140,12 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
     t0 = time.perf_counter()
     ep = L3Episode(spec, cfg, sb if imagination else None, compiler=compiler, imagination=imagination,
                    near_interval=near_interval, near_m=near_m, scan=scan)
+    truth = None
+    if os.environ.get('L3_MW_TRUTHMAPS'):
+        # ANALYSIS ONLY (privileged): per-episode truth map for the selector's map discovery (truthmaps.py)
+        from .truthmaps import path_for, load_map
+        tp = path_for(os.environ['L3_MW_TRUTHMAPS'], spec.key, cfg.name)
+        truth = load_map(tp) if tp.exists() else None
     rows = dict(packed=[], actions=[], probs=[], cum=[], labels=[], n=[], default=[], q=[], timing=[], heads=[])
     diverged = False
     try:
@@ -202,7 +208,7 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 from .heuristics import multiworld_index
                 a, p = multiworld_index(sb, ep.ep.legal, d, n_worlds=int(os.environ.get('L3_MW_WORLDS', '6')),
                                         cont=int(os.environ.get('L3_MW_CONT', '60')),
-                                        state=getattr(ep, 'last_state', None)), 1.
+                                        state=getattr(ep, 'last_state', None), truth=truth), 1.
             elif selector == 'imagroll':
                 # legal imagined rollout policy (heuristics.imagined_rollout_index; needs --sandbox continuation)
                 from .heuristics import imagined_rollout_index

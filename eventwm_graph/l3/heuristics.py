@@ -246,8 +246,34 @@ def _discovery_rollouts(sb, legal, d, humans, state, cont):
     return out
 
 
+def _truth_rollouts(sb, legal, d, humans, truth, cont):
+    """ANALYSIS ONLY (privileged, L3_MW_TRUTHMAPS): every candidate imagined with progressive map discovery from a
+    truth map (the legal map at t completed with the cells of ``truth``, truthmaps.merged_truth)."""
+    from eventwm_graph.sandbox.imagine import imagine
+    from eventwm_graph.sandbox.episode import default_query
+    from .infofeat import _blocked_lookup
+    from .perceive import Discovery
+    from .truthmaps import merged_truth
+    full = merged_truth(legal.map, truth)
+    blocked = _blocked_lookup(full)
+    cq = default_query()
+    out = []
+    for c in d.candidates:
+        ex, dyn = sb._execution(c)
+        if isinstance(ex, Exception):
+            from eventwm_graph.sandbox.imagine import failed_rollout
+            out.append(failed_rollout(legal, '%s: %s' % (type(ex).__name__, ex)))
+            continue
+        work = legal.map.copy()
+        hk = humans.fork(Discovery(work, full), blocked)
+        out.append(imagine(legal, ex, dyn, hk, sb.config.steps_for(c), level=int(c.level), gmap=work,
+                           continuation=int(cont), cont_query=cq, planner=c.planner,
+                           route=bool(getattr(sb.config, 'route', False))))
+    return out
+
+
 def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1, slack_m=0.5, step_s=0.048,
-                     state=None):
+                     state=None, truth=None):
     """LEGAL multi-world imagined rollout (no learning, no privileged input): each candidate is imagined once per
     sampled Stage 1 world -- the robot's own planner perceiving THAT world's tracked people, interval + ``cont`` steps of
     default continuation -- and checked for contact against that world's people (tracked and hidden); P(contact) is the
@@ -296,7 +322,9 @@ def multiworld_index(sb, legal, d, n_worlds=6, cont=60, radius=0.75, slack_p=0.1
                 humans = VisibleWorld(legal, bank, int(w), T)
             else:
                 humans = NominalHumans(legal.tracks, legal.time, T, bank=bank, mode='world:%d' % int(w))
-            if (state is not None and __import__('os').environ.get('L3_MW_DISCOVER') == '1'
+            if truth is not None and __import__('os').environ.get('L3_MW_PERCEIVE') == '1':
+                ros = _truth_rollouts(sb, legal, d, humans, truth, cont)
+            elif (state is not None and __import__('os').environ.get('L3_MW_DISCOVER') == '1'
                     and __import__('os').environ.get('L3_MW_PERCEIVE') == '1'):
                 ros = _discovery_rollouts(sb, legal, d, humans, state, cont)
             else:
