@@ -515,6 +515,8 @@ def extract(bank, out, shard=0, shards=1, wait_for=0, poll=60.):
                        ctg0=float(it['probe'].get('ctg0', float('nan'))), n_est=int(len(d.result.humans.track_keys)),
                        seconds=dict(imagine=round(t1-t0, 3), features=round(t2-t1, 3), hazard_build=round(hz.build_ms/1000, 3)),
                        settings=settings)
+            if it.get('policy'):
+                rec['policy'] = it['policy']          # (on-policy bank, statebank --replay) whose states these are
             with open(str(dst)+'.tmp', 'wb') as fh:
                 pickle.dump(rec, fh, protocol=4)
             os.replace(str(dst)+'.tmp', dst)

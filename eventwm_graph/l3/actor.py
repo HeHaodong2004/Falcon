@@ -121,6 +121,22 @@ def _replay_labels(run_dir, key, cfg_name):
     return _REPLAY[path]
 
 
+def _blind_cv(sb, ep, d):
+    """(``--blind`` episodes, default off) the selector ``mwroll`` / ``L3_PROBE_ACT=mwroll`` without a Sandbox server:
+    with the legal constant-velocity people (``L3_MW_BANK=cv``) the multi-world rule and the learned ranker
+    (``L3_MW_RISK``) read no Layer 2 output, so the decision gets the CVBank the served episode builds
+    (``env.L3Episode.observe``, ``L3_MW_LIGHT``) and the actor's local Layer-2-free Sandbox imagines the interval the
+    episode executes -- the choices are those of the served run (checked: 12 / 12 decisions of SEL_sh_orca)."""
+    if d.result is not None:
+        return
+    if os.environ.get('L3_MW_BANK') != 'cv' or sb is None:
+        raise ValueError('mwroll in a --blind episode needs L3_MW_BANK=cv (the actor then holds a local Sandbox)')
+    from .env import BankOnlyResult
+    from .oraclebank import CVBank
+    d.result = BankOnlyResult(CVBank(ep.ep.legal))
+    sb.config.interval = ep.horizon
+
+
 def choose(q, n, tau, eps, rng, anchor=0., default=0):
     """Boltzmann(tau) over the n valid candidates, mixed with epsilon-uniform, and (training only) anchored: with
     probability ``anchor`` the default candidate.  Returns (index, behaviour probability of index)."""
@@ -221,6 +237,7 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
             elif selector == 'mwroll':
                 # legal multi-world imagined rollout (heuristics.multiworld_index)
                 from .heuristics import multiworld_index
+                _blind_cv(sb, ep, d)             # (--blind only) CPU-only: no Sandbox server
                 a, p = multiworld_index(sb, ep.ep.legal, d, n_worlds=int(os.environ.get('L3_MW_WORLDS', '6')),
                                         cont=int(os.environ.get('L3_MW_CONT', '60')),
                                         state=getattr(ep, 'last_state', None), truth=truth), 1.
@@ -249,11 +266,30 @@ def run_episode(spec, cfg, sb, selector, policy, rng, tau=0.5, eps=0.03, compile
                 want = ep.decisions % every == 0 and len(probe) < most
                 if rp is not None and int(os.environ.get('L3_PROBE_LAST', '0')) > 0:
                     want = want and ep.decisions >= len(rp['labels'])-int(os.environ['L3_PROBE_LAST'])
+                a_on = None
+                if os.environ.get('L3_PROBE_ACT') == 'mwroll':
+                    # ON-POLICY labels (DAgger, default off): the probed episode follows the LEGAL selector mwroll (with
+                    # L3_MW_RISK: the learned ranker) instead of the floor; the probe still labels every candidate by
+                    # its interval + the default continuation (the floor probes' labels, so the records pool with
+                    # them).  With --blind: L3_MW_BANK=cv, CPU only (_blind_cv)
+                    from .heuristics import multiworld_index
+                    from . import riskrank
+                    _blind_cv(sb, ep, d)
+                    a_on = int(multiworld_index(sb, ep.ep.legal, d, n_worlds=int(os.environ.get('L3_MW_WORLDS', '6')),
+                                                cont=int(os.environ.get('L3_MW_CONT', '60')),
+                                                state=getattr(ep, 'last_state', None), truth=truth))
+                    act = dict(policy='mwroll', risk=os.environ.get('L3_MW_RISK'), label=d.labels[a_on], index=a_on,
+                               scores=riskrank.RISK_DEBUG.get('scores') if os.environ.get('L3_MW_RISK') else None,
+                               thr=riskrank.RISK_DEBUG.get('thr') if os.environ.get('L3_MW_RISK') else None)
                 if want:
                     rec = probe_decision(ep, d, sb)
                     probe.append(rec)
                 a, p = d.default, 1.
-                if os.environ.get('L3_PROBE_ACT') == 'learned':
+                if a_on is not None:
+                    a = a_on
+                    if rec is not None:
+                        rec['act'] = act
+                elif os.environ.get('L3_PROBE_ACT') == 'learned':
                     # on-policy iteration (asymmetric training): the probed episode follows the LEGAL learned selector,
                     # scored from the probe's own legal imagination records when this decision was probed
                     from .shortsel import select as short_select, select_from_records
@@ -419,6 +455,12 @@ def main():
     sbcfg = SandboxConfig(materialize=False, **json.loads(a.sandbox))
     if a.blind:
         sb = None
+        if os.environ.get('L3_MW_BANK') == 'cv' and (a.selector == 'mwroll' or os.environ.get('L3_PROBE_ACT') == 'mwroll'):
+            # (default off) CPU-only mwroll / on-policy probe: a local Layer-2-free Sandbox for the selector's imagined
+            # rollouts; the episode itself stays blind (no range frames, no legal Layer 2 stream; _blind_cv)
+            from eventwm_graph.sandbox.core import WorldModelSandbox
+            from .sbeval import _NoLayer2
+            sb = WorldModelSandbox(_NoLayer2(), sbcfg)
     elif a.server:
         from eventwm_graph.sandbox.service import RemoteSandbox
         sb = RemoteSandbox(a.server, sbcfg)

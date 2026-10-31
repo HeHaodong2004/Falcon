@@ -42,12 +42,30 @@ def bank_arrays(bank, steps=W_MAX):
                 positions=np.asarray(bank.sandbox_positions(inside), np.float32) if keys else np.zeros((len(bank.weights), len(inside), 0, 2), np.float32))
 
 
-def capture_episode(sb, spec, cfg, records, out, compiler):
+CFG_NAMES = False     # (--cfg-names, default off) state files carry the configuration: <key>__<config>__dNN.pkl
+
+
+def state_name(key, config, decision):
+    """State file name.  Without --cfg-names the configuration is not part of the name, so probes of the same episode
+    under several configurations (e.g. sfm-native and dwa-native from one key list) overwrite each other."""
+    if CFG_NAMES:
+        return '%s__%s__d%02d.pkl' % (key.replace('/', '_'), config, int(decision))
+    return '%s__d%02d.pkl' % (key.replace('/', '_'), int(decision))
+
+
+def capture_episode(sb, spec, cfg, records, out, compiler, replay=None):
     from .env import L3Episode
     # sb None (--blind): no Layer 2 -- the legal inputs, the executor and the candidates only (state / bank None); the
     # floor's choices and the generator do not depend on the Sandbox, so the probed decisions are the same
     ep = L3Episode(spec, cfg, sb, compiler=compiler, imagination=sb is not None)
     want = {int(r['decision']): r for r in records}
+    # replay (--replay <run dir>, default off; on-policy banks): the labels the recorded episode of that run executed
+    # (actor._replay_labels: <run>/spool rows) instead of the floor's choice -- e.g. the on-policy probe run itself
+    # (L3_PROBE_ACT=mwroll); the capture stops where a recorded label is not offered (divergence)
+    seq = None
+    if replay is not None:
+        from .actor import _replay_labels
+        seq = _replay_labels(replay, spec.key, cfg.name)['labels']
     saved = 0
     try:
         tape = np.asarray(ep.rt.tape.positions, np.float64)
@@ -70,12 +88,22 @@ def capture_episode(sb, spec, cfg, records, out, compiler):
                             bank=bank_arrays(d.result.humans) if d.result is not None else None,
                             truth_people=tape[idx][:, :, [0, 2]].astype(np.float32),          # privileged (evaluation)
                             probe=r)
-                name = '%s__d%02d.pkl' % (spec.key.replace('/', '_'), k)
+                if replay is not None:
+                    item['policy'] = str(replay)                  # (on-policy bank) whose states these are
+                name = state_name(spec.key, cfg.name, k)
                 with open(Path(out, name+'.tmp'), 'wb') as f:
                     pickle.dump(item, f, protocol=4)
                 os.replace(Path(out, name+'.tmp'), Path(out, name))
                 saved += 1
-            ep.act(d.default)
+            if seq is None:
+                ep.act(d.default)
+            else:
+                lab = seq[k] if k < len(seq) else None
+                if lab not in d.labels:
+                    print(json.dumps(dict(key=spec.key, decision=k, error='replayed label %r not offered' % (lab,))),
+                          flush=True)
+                    break
+                ep.act(d.labels.index(lab))
     finally:
         ep.close()
     return saved
@@ -89,7 +117,13 @@ def main():
     ap.add_argument('--shards', type=int, default=1)
     ap.add_argument('--device', default=None)
     ap.add_argument('--blind', action='store_true', help='CPU only: no Layer 2 (items without state / bank)')
+    ap.add_argument('--replay', default=None, help='run dir whose spool episodes are replayed instead of the floor '
+                    '(on-policy banks: the L3_PROBE_ACT=mwroll probe run itself; default: the floor)')
+    ap.add_argument('--cfg-names', action='store_true', help='name state files <key>__<config>__dNN.pkl (several '
+                    'configurations probed on the same keys; default: <key>__dNN.pkl, which they overwrite)')
     a = ap.parse_args()
+    global CFG_NAMES
+    CFG_NAMES = bool(a.cfg_names)
     os.environ.setdefault('QG_FAST_SENSE', '1')
     from eventwm_graph.sandbox.core import WorldModelSandbox, SandboxConfig
     from eventwm_graph.querygen.native import EpisodeSpec
@@ -107,12 +141,12 @@ def main():
         rec = json.loads(f.read_text())
         if not rec.get('probe') or rec['key'] not in specs:
             continue
-        name0 = rec['key'].replace('/', '_')
-        if all(Path(out, '%s__d%02d.pkl' % (name0, int(r['decision']))).exists() for r in rec['probe']):
+        if all(Path(out, state_name(rec['key'], rec['config'], r['decision'])).exists() for r in rec['probe']):
             continue
         t0 = time.perf_counter()
         try:
-            n = capture_episode(sb, specs[rec['key']], ConfigSpec.parse(rec['config']), rec['probe'], out, comp)
+            n = capture_episode(sb, specs[rec['key']], ConfigSpec.parse(rec['config']), rec['probe'], out, comp,
+                                replay=a.replay)
         except Exception as exc:
             import traceback
             print(json.dumps(dict(key=rec['key'], error=repr(exc), tb=traceback.format_exc()[-800:])), flush=True)

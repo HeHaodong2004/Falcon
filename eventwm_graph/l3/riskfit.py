@@ -70,7 +70,7 @@ def load(feat_dir):
     for d in str(feat_dir).split(','):
         for f in sorted(glob.glob(os.path.join(d, '*.pkl'))):
             r = pickle.load(open(f, 'rb'))
-            k = (r['key'], int(r['decision']), r.get('config'))
+            k = (r['key'], int(r['decision']), r.get('config'), r.get('policy'))     # (policy: on-policy banks)
             if k in seen:
                 continue
             seen.add(k)
@@ -175,8 +175,17 @@ def within_auc(recs, risks, w):
     return (float(np.mean(aucs)) if aucs else float('nan')), len(aucs)
 
 
+TUNE_ONLY = None      # (--tune-only <regex>, default off) the threshold is tuned on the states whose bank matches
+
+
 def tune_threshold(recs, scores, w=64, grid=None):
-    """Deviation threshold maximising the mean exact value at ``w`` (ties: the larger threshold)."""
+    """Deviation threshold maximising the mean exact value at ``w`` (ties: the larger threshold).  ``TUNE_ONLY``: on
+    the states whose ``bank`` (statebank directory) matches the regex only, e.g. the on-policy banks."""
+    if TUNE_ONLY:
+        import re
+        keep = [i for i, r in enumerate(recs) if re.search(TUNE_ONLY, str(r.get('bank', '')))]
+        if keep:
+            recs, scores = [recs[i] for i in keep], [scores[i] for i in keep]
     margins = np.asarray([s.max()-s[int(r['default'])] for r, s in zip(recs, scores)])
     if grid is None:
         grid = np.unique(np.concatenate([[0.], np.quantile(margins, np.linspace(0, 0.99, 100))]))
@@ -301,6 +310,8 @@ def main():
     c.add_argument('--label-w', type=int, default=64)
     c.add_argument('--tune-w', type=int, default=64)
     c.add_argument('--no-inner', action='store_true')
+    c.add_argument('--tune-only', default=None, help='tune the deviation threshold on the states whose bank '
+                   'directory matches this regex only (e.g. dag: the on-policy banks); default: every state')
     c.add_argument('--keep', default=None, help='ablation: fit on the feature names matching this regex only '
                    '(c_label is required); the frozen model stores the subset, the runtime selects it by name')
     e = sub.add_parser('evaluate')
@@ -310,6 +321,8 @@ def main():
     a = ap.parse_args()
     if a.cmd == 'cv':
         t0 = time.perf_counter()
+        global TUNE_ONLY
+        TUNE_ONLY = a.tune_only
         recs = load(a.feat)
         vocab = vocab_of(recs)
         params = (dict(PRESETS[a.params]) if a.params in PRESETS else

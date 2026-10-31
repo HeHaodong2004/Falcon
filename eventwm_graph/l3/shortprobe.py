@@ -261,14 +261,20 @@ def probe_decision(ep, d, sb):
     tape = np.asarray(rt.tape.positions, np.float64)
     field = LegalField(st.legal)
     gmap = frozen_map(st.legal.map)
-    bank = d.result.humans
-    W = np.asarray(bank.weights, np.float64)
-    W = W/W.sum() if W.sum() > 0 else np.full(len(W), 1./max(len(W), 1))
-    worlds = np.argsort(-W)[:N_WORLDS] if len(np.unique(W)) > 1 else np.arange(min(N_WORLDS, len(W)))
-    ww = W[worlds]/W[worlds].sum()
+    # L3_PROBE_VARIANTS=none (default off): the exact labels only -- no imagined variant, no Sandbox / people bank
+    variants = [v for v in os.environ.get('L3_PROBE_VARIANTS', 'rel,cam6,camT,camTD').split(',') if v != 'none']
+    bank = getattr(d.result, 'humans', None)             # None: a --blind episode (exact labels only)
+    if bank is None and variants:
+        raise ValueError('shortprobe in a --blind episode: set L3_PROBE_VARIANTS=none')
+    worlds = ww = np.zeros(0)
+    if bank is not None:
+        W = np.asarray(bank.weights, np.float64)
+        W = W/W.sum() if W.sum() > 0 else np.full(len(W), 1./max(len(W), 1))
+        worlds = np.argsort(-W)[:N_WORLDS] if len(np.unique(W)) > 1 else np.arange(min(N_WORLDS, len(W)))
+        ww = W[worlds]/W[worlds].sum()
     rel = np.arange(1, W_MAX+1)*0.048
     HP = None
-    if len(getattr(bank, 'track_keys', ())):
+    if bank is not None and len(getattr(bank, 'track_keys', ())):
         inside = rel[rel <= float(bank.times[-1])+1e-9]
         HP = np.asarray(bank.sandbox_positions(inside), np.float64)
         if len(inside) < W_MAX and HP.shape[1] >= 2:
@@ -276,7 +282,7 @@ def probe_decision(ep, d, sb):
             extra = np.arange(1, W_MAX-len(inside)+1)*0.048
             HP = np.concatenate([HP, HP[:, -1][:, None]+extra[None, :, None, None]*vel[:, None]], 1)
     truth = OracleBank(tape, i0, st.legal, 'all', horizon_steps=W_MAX+1, long_steps=W_MAX)
-    info = expo_state(st.legal, bank) if os.environ.get('L3_PROBE_EXPO') == '1' else None
+    info = expo_state(st.legal, bank) if (os.environ.get('L3_PROBE_EXPO') == '1' and bank is not None) else None
     # exact branches: bypass the legal stream (Layer 2 must not see them)
     raw, hooked = ep.ep._observe, rt.sensor.observe
     rt.sensor.observe = raw
@@ -292,7 +298,6 @@ def probe_decision(ep, d, sb):
             reals.append((q, h, fin, real))
     finally:
         rt.sensor.observe = hooked
-    variants = os.environ.get('L3_PROBE_VARIANTS', 'rel,cam6,camT,camTD').split(',')
     trk_on = os.environ.get('L3_PROBE_TRACKS') == '1'          # analysis: track agreement records (default off)
     b0 = len(st.legal.track_log)-1                               # track log index of the decision (step 0)
     seed = None
