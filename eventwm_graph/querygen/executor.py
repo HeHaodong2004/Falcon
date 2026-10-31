@@ -97,6 +97,14 @@ EVADE2_DYN = __import__('os').environ.get('L3_EVADE_DYN') == '1'
 # STOP_GUARD_OFF_M and its goal distance has not decreased by 0.02 m over the last 16 steps.  Tuning-set timeouts sat
 # within 0.2 m geodesic of the goal for up to 208 steps without stopping (VVfe2KiqLaN/4632, MjzBosUX3WW/202).
 STOP_GUARD = __import__('os').environ.get('L3_STOP_GUARD') == '1'
+# Layer 3 option (default OFF; L3_ST_COMMIT=<delta steps>, e.g. 3): space-time plan commitment on real legal states.
+# (a) A scheduled re-plan (every ST_REPLAN steps, robot on the planned pose) keeps the running plan unless the fresh plan
+# is shorter by more than <delta> steps of (remaining primitives + legal cost-to-go of the end pose / step) or the old
+# plan's remaining poses no longer keep the space-time margin from the NEW constant-velocity predictions.  (b) The plan
+# survives decision boundaries of the same execution and passes to a new stgoal execution with the same target and
+# margin class.  Exposure analysis (tuning set, 20 replays): the space-time plan produced 57% of the wasted turning (60% of
+# its turns undone; 406 of 680 wasted steps with nobody near).  Imagined states keep the released behaviour.
+ST_COMMIT = float(__import__('os').environ.get('L3_ST_COMMIT', '0') or 0)
 STOP_GUARD_OFF_M = float(__import__('os').environ.get('L3_STOP_GUARD_OFF_M', '0.40') or 0.40)
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_EVADE2=1): plan-aware threat reflex for
@@ -997,6 +1005,14 @@ class QueryExecution:
             return
         if STOP_GUARD and getattr(prev, '_sg_hist', None):
             self._sg_hist = list(prev._sg_hist)                    # (L3_STOP_GUARD: goal-distance history)
+        if ST_COMMIT > 0 and self.query.kind == 'stgoal' and prev.query.kind == 'stgoal' and \
+                getattr(prev, '_st_real', False) and prev.st is not None and not prev.st.get('static') and \
+                prev.st_i < len(prev.st['prims']) and tuple(map(tuple, prev.query.via or ())) == \
+                tuple(map(tuple, self.query.via or ())) and \
+                bool((prev.query.meta or {}).get('close')) == bool((self.query.meta or {}).get('close')) and \
+                bool((prev.query.meta or {}).get('vclose')) == bool((self.query.meta or {}).get('vclose')):
+            self.st, self.st_i, self.st_age = copy.deepcopy(prev.st), prev.st_i, prev.st_age   # (L3_ST_COMMIT)
+            self._st_real = True
         if prev._goal_like() and prev.status == 'running':
             src = prev
         else:
@@ -1033,7 +1049,8 @@ class QueryExecution:
         # (still re-validated on new evidence every step).  Re-planning at the boundary from an intermediate pose of
         # an in-place turn could fail (start pose inside the inflated band) while the route fallback turned the
         # other way: HMkoS756sz6 / bXu6SSWkJY8 / LEFTm3JecaC rotated back and forth for 400 steps (32-step cycle)
-        self.st = None
+        if not (ST_COMMIT > 0 and getattr(self, '_st_real', False) and self.st is not None and not self.st.get('static')):
+            self.st = None
         if hasattr(self.adapter, 'reset'):
             self.adapter.reset()
 
@@ -1401,10 +1418,17 @@ class QueryExecution:
         if q.via and d < ARRIVE_M:
             self.status, self.reason = 'done', 'arrived'
             return self.planner.act(ctx, self.adapter)
+        real = getattr(legal, 'track_log', None) is not None
+        self._st_real = real
         need = self.st is None or self.st_i >= len(self.st['prims']) or self.st_age >= ST_REPLAN
-        if not need and self.st_i > 0:
+        on_plan = False
+        if self.st is not None and self.st_i > 0 and self.st_i <= len(self.st['poses']):
             ex = self.st['poses'][self.st_i-1]
-            need = math.hypot(ex[0]-pose[0], ex[1]-pose[2]) > 0.06 or abs(wrap(ex[2]-pose[3])) > 0.03
+            on_plan = math.hypot(ex[0]-pose[0], ex[1]-pose[2]) <= 0.06 and abs(wrap(ex[2]-pose[3])) <= 0.03
+            if not need:
+                need = not on_plan
+        old_st = self.st if (ST_COMMIT > 0 and real and need and on_plan and self.st is not None and
+                             not self.st.get('static') and self.st_i < len(self.st['prims'])) else None
         if need:
             route = self._ensure_field(legal, target)
             if route is None:
@@ -1430,8 +1454,13 @@ class QueryExecution:
                     final = not q.via
                     prims_s, poses_s = self._static_plan(legal, target, final)
                     self.st = dict(prims=list(prims_s), poses=list(poses_s), reached=False, static=True)
-            self.st_i = 0
-            self.st_age = 0
+            if old_st is not None and not self.st.get('static') and \
+                    self._st_keep_old(old_st, self.st, humans, kw['margin'], kw['growth']):
+                self.st = old_st                                  # (L3_ST_COMMIT) the running plan stands
+                self.st_age = 0
+            else:
+                self.st_i = 0
+                self.st_age = 0
             self.lattice_calls += 1
         self.st_age += 1
         prims = self.st['prims']
@@ -1445,6 +1474,26 @@ class QueryExecution:
                 return prim
             self.st = None
         return self.planner.act(ctx, self.adapter)
+
+    def _st_keep_old(self, old, new, humans, margin, growth):
+        """L3_ST_COMMIT: keep the running space-time plan ``old`` (from index ``self.st_i``) instead of ``new``?"""
+        from .planners import DWAPlanner
+        rest = old['poses'][self.st_i:]
+        if not rest:
+            return False
+        for k, (x, z, psi) in enumerate(rest):
+            t = (k+1)*STEP_SECONDS
+            P = to_plane([x, z])
+            for h in humans:
+                if float(DWAPlanner._rect_dist(P, psi, h.at(t))) < margin+growth*(k+1):
+                    return False
+
+        def J(prims, poses):
+            if not poses:
+                return float('inf')
+            c = self.view.cost_to_go(self.field, (poses[-1][0], poses[-1][1]))
+            return len(prims)+(c/self.dyn.step_m if np.isfinite(c) else 1e3)
+        return J(new['prims'], new['poses']) >= J(old['prims'][self.st_i:], rest)-ST_COMMIT
 
     def _step_st_inertia(self, legal, dyn_state):
         """stgoal for robots with momentum (v10): follow a legal momentum-aware space-time plan
