@@ -177,6 +177,11 @@ class LegalState:
     # policy pushed 'forward' into an unseen navmesh edge for 290 steps.
     BUMP_MEMORY = 0.0
     BUMP_FRONT_M = 0.684        # body front (0.584 m) + 0.1 m
+    # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_BUMP_ALL=1): robots with speed state
+    # record bumps too -- a commanded ('forward', level) with level >= 4 (>= 4/12 of the native step: every momentum
+    # family has 12 levels) whose base moved < 2 cm.  Without it momentum forward commands never record one: held-out
+    # quick-inertia timeouts pushed full-speed forward into unseen obstacles for 300-430 steps (dev analysis, 31 Oct).
+    BUMP_ALL = __import__('os').environ.get('L3_BUMP_ALL') == '1'
 
     def __init__(self, goal, start_pose, start_time, resolution=RESOLUTION):
         self.goal = np.asarray(goal, dtype=float)          # public PointGoal (world frame)
@@ -202,7 +207,9 @@ class LegalState:
         self.time = float(row['timestamp'])
         self.pose = np.asarray(row['robot_pose'], dtype=float)
         if self.BUMP_MEMORY > 0:
-            if action == 'forward' and math.hypot(self.pose[0]-prev[0], self.pose[2]-prev[2]) < 0.02:
+            fwd = action == 'forward' or (self.BUMP_ALL and isinstance(action, tuple) and len(action) == 2 and
+                                          action[0] == 'forward' and int(action[1]) >= 4)
+            if fwd and math.hypot(self.pose[0]-prev[0], self.pose[2]-prev[2]) < 0.02:
                 psi = float(prev[3])
                 self.bumps.append((float(prev[0])+self.BUMP_FRONT_M*math.cos(psi),
                                    float(prev[2])-self.BUMP_FRONT_M*math.sin(psi)))

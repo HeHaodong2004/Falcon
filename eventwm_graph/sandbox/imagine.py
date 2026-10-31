@@ -223,8 +223,9 @@ def _physical(sl, prev, p, cmd, phys):
     q = np.asarray(prev, np.float64).copy()
     q[3] = p[3]
     phys['blocked'] = phys.get('blocked', 0)+1
-    if cmd == 'forward' and r > 0:
-        sl.bumps.append((fx, fz))
+    if (cmd == 'forward' or (LegalState.BUMP_ALL and not isinstance(cmd, str) and float(cmd[0]) > 0. and
+                             float(cmd[0])/CTRL_FREQ >= 4./12.*FAMILIES['native'].step_m-1e-9)) and r > 0:
+        sl.bumps.append((fx, fz))           # (L3_BUMP_ALL: a blocked momentum advance of level >= 4, as legal.observe)
         if not phys.get('own'):
             if PHYSICS_LIVE and getattr(sl.map, 'imagined_private', False):
                 phys['own'] = True                      # the candidate's own work map: discovered cells keep reaching it

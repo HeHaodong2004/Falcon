@@ -127,21 +127,39 @@ class FollowPlanner(Planner):
         return self._emit(ctx, adapter, np.zeros(2) if ctx.hold else ctx.v_pref)
 
 
+import os as _os
+# Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_HARD_MOVING=<m>, e.g. 0.40): the one-step
+# rectangle check keeps at least this clearance from humans whose legal velocity estimate is >= 0.3 m/s (standing humans
+# keep the query's 0.30 / 0.27 / 0.20 m).  Held-out floor contacts occur up to 0.39 m from the rectangle (dev analysis).
+HARD_MOVING = float(_os.environ.get('L3_HARD_MOVING', '0') or 0)
+
+
 def one_step_hard_ok(humans, clearance):
     """Predicate: robot rectangle at (P, psi) keeps ``clearance`` from every
-    human's constant-velocity position one control step ahead."""
+    human's constant-velocity position one control step ahead.  The predicate's
+    ``clear(P, psi)`` attribute returns the margin (min distance minus required
+    clearance; >= 0 iff ok)."""
     if not humans:
         return None
     H = np.stack([h.at(STEP_SECONDS) for h in humans])
+    if HARD_MOVING > 0:
+        req = np.array([max(clearance, HARD_MOVING) if float(np.hypot(*h.velocity)) >= 0.3 else clearance
+                        for h in humans])
+    else:
+        req = clearance
 
-    def ok(P, psi):
+    def margin(P, psi):
         c, s = math.cos(psi), math.sin(psi)
         d = H-P
         lx = d[:, 0]*c+d[:, 1]*s
         ly = -d[:, 0]*s+d[:, 1]*c
         dx = np.maximum(np.maximum(BODY_X[0]-lx, 0.), lx-BODY_X[1])
         dy = np.maximum(np.abs(ly)-BODY_HALF_WIDTH, 0.)
-        return bool((np.hypot(dx, dy) >= clearance).all())
+        return np.hypot(dx, dy)-req
+
+    def ok(P, psi):
+        return bool((margin(P, psi) >= 0.).all())
+    ok.clear = lambda P, psi: float(margin(P, psi).min())
     return ok
 
 

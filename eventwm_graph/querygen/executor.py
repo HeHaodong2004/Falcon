@@ -80,6 +80,57 @@ LOOKAHEAD_M = 0.8
 # direction for <steps> steps (or until it translates), so the heading leaves the tie and the planner finds a way on.
 ANTIDITHER = int(__import__('os').environ.get('L3_ANTIDITHER', '0') or 0)
 
+# Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_EVADE2=1): plan-aware threat reflex for
+# queries with meta 'evade' (replaces the v11 reflex, which tests only the next primitive followed by holding over 14
+# steps at 0.30 m and escapes only by turning first).  Every step the robot's COMMITTED motion -- this step's primitive,
+# then the rest of the static / space-time plan it follows, then holding -- is rolled out for L3_EVADE_H steps with the
+# exact turn rate and speed levels against the legal constant-velocity predictions of the tracked humans.  If the robot
+# rectangle comes within L3_EVADE_R of a predicted human centre, the reflex picks the best of a fixed set of short native
+# sequences (hold; advance n; turn k then advance n; turn k; hold k then resume the plan) by capped predicted clearance,
+# then legal route progress, then fewest off-plan steps, and executes it while it stays best (hysteresis); it releases
+# once the planner's own motion is clear again.  Held-out floor collisions (dev analysis, 31 Oct): 77% are a walking
+# human meeting a turning or holding robot that tracked it; an escape exists 1 s before contact in ~75% of them.
+# Applied by every Layer 3 process that runs the executor (actors, Sandbox imagination, labellers, official replay).
+_ENV = __import__('os').environ
+EVADE2 = _ENV.get('L3_EVADE2') == '1'
+EVADE2_H = int(_ENV.get('L3_EVADE_H', '31') or 31)
+EVADE2_R = float(_ENV.get('L3_EVADE_R', '0.45') or 0.45)
+EVADE2_CAP = float(_ENV.get('L3_EVADE_CAP', '0.30') or 0.30)    # clearance above R + this is fully safe (then progress)
+EVADE2_GAIN = float(_ENV.get('L3_EVADE_GAIN', '0.10') or 0.10)  # an escape must beat the committed motion by this much
+EVADE2_KEEP = 0.05          # hysteresis bonus of the running escape
+EVADE2_RANGE = 8.0          # m: tracked humans considered (the robot covers ~6.5 m in 31 native steps)
+EVADE2_STATIC = float(_ENV.get('L3_EVADE_STATIC', '0.20') or 0.20)   # m: threat distance of a standing human
+EVADE2_STATS = _ENV.get('L3_EVADE_STATS')     # diagnostics: append per-process trigger counts (JSON line) to this file
+# ANALYSIS ONLY (privileged; never in the benchmark): L3_EVADE_TRUTH=all | tracked -- the reflex sees the TRUE next
+# EVADE2_H positions of every human ('all') or of the humans tracked now ('tracked') instead of the legal constant-
+# velocity predictions (the real-episode runtime attaches the tape as ``legal._ev2_truth``; imagined states never
+# carry it).  The ceiling of a reflex with perfect prediction (all) and perfect prediction of seen people (tracked).
+EVADE2_TRUTH = _ENV.get('L3_EVADE_TRUTH') or None
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_FC=fc1 | modes -- the reflex predicts the tracked people of the
+# REAL legal state with the map-aware multimodal forecaster (l3/peoplemap.py, model L3_FC_MODEL; legal inputs: track
+# history + the robot's legal map) instead of constant velocity: 'fc1' the weighted mean of each person's modes, 'modes'
+# every mode with weight >= L3_EVADE_FCW (default 0.2) as its own hypothesis.  Imagined states (no track log) keep
+# constant velocity, as their people move.  Tracks without a detection in the last 2 s stay constant velocity.
+EVADE2_FC = _ENV.get('L3_EVADE_FC') or None
+EVADE2_FCW = float(_ENV.get('L3_EVADE_FCW', '0.2') or 0.2)
+
+# Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_UNREACH_FALLBACK=1): a goal / goto /
+# stgoal query whose route is 'unreachable' on the conservative legal map retries in the same step on the tight map (two
+# outer band rings released), then on the 'thru' map (observed walls soft, bump discs hard), and keeps that relaxation
+# for the rest of its life.  Without it the query ends after one step and is re-issued: held-out timeouts contained
+# 13 floor / 10 ranker loops of 200-400 one-step 'unreachable' goal queries (dev analysis, 31 Oct).
+UNREACH_FALLBACK = _ENV.get('L3_UNREACH_FALLBACK') == '1'
+_EV2 = dict(steps=0, threat=0, escape=0, keep=0, release=0)
+if EVADE2_STATS:
+    import atexit as _atexit
+    import json as _json
+
+    def _dump_ev2():
+        if _EV2['steps']:
+            with open(EVADE2_STATS, 'a') as f:
+                f.write(_json.dumps(dict(_EV2, pid=__import__('os').getpid()))+'\n')
+    _atexit.register(_dump_ev2)
+
 
 class _TightLegal:
     """Legal state whose map relabels the outer rings of the inflated BLOCKED band as UNKNOWN.
@@ -324,6 +375,209 @@ class QueryExecution:
             return {'f': 'forward', 'l': 'left', 'r': 'right'}[best[0]]
         return prim
 
+    _EV2_CODE = {'forward': 'f', 'left': 'l', 'right': 'r'}
+
+    def _evade2(self, legal, prim, level):
+        """L3_EVADE2 (module docstring at ``EVADE2``).  ``prim``: this step's kinematic primitive, or a planner-realised
+        command (DWA) for robots without speed state; returns the (possibly replaced) primitive of the same kind."""
+        from .planners import Realized, DWAPlanner
+        realized = isinstance(prim, Realized)
+        if realized and self.dyn.stateful:
+            return prim                    # momentum DWA: its own rollouts already brake for humans
+        kin = prim[0] if realized else prim
+        if kin not in self._EV2_CODE:
+            self._esc = None
+            return prim
+        _EV2['steps'] += 1
+        P0 = to_plane([legal.pose[0], legal.pose[2]])
+        H = EVADE2_H
+        esc = getattr(self, '_esc', None)
+        truth = getattr(legal, '_ev2_truth', None) if EVADE2_TRUTH else None
+        if truth is not None:
+            tape, idx = truth                                       # ANALYSIS ONLY (see EVADE2_TRUTH)
+            tape = np.asarray(tape, np.float64)
+            rows = np.minimum(np.arange(idx+1, idx+H+1), len(tape)-1)
+            cur = tape[min(idx, len(tape)-1)]
+            keep = np.hypot(cur[:, 0]-legal.pose[0], cur[:, 2]-legal.pose[2]) < EVADE2_RANGE if len(cur) else \
+                np.zeros(0, bool)
+            if EVADE2_TRUTH == 'tracked' and len(cur):
+                seen = np.zeros(len(cur), bool)
+                for t in human_estimates(legal.tracks, legal.time):
+                    x, z = to_world(t.position)
+                    d = np.hypot(cur[:, 0]-x, cur[:, 2]-z)
+                    j = int(np.argmin(d))
+                    if d[j] < 0.75:
+                        seen[j] = True
+                keep &= seen
+            Hp = to_plane(tape[rows][:, keep][:, :, [0, 2]]) if keep.any() else np.zeros((H, 0, 2))
+        elif EVADE2_FC and getattr(legal, 'track_log', None) is not None:
+            Hp = self._fc_predict(legal, P0, H)                       # L3_EVADE_FC (legal forecaster)
+        else:
+            humans = [h for h in human_estimates(legal.tracks, legal.time)
+                      if float(np.hypot(*(h.position-P0))) < EVADE2_RANGE]
+            T = np.arange(1, H+1)[:, None, None]*STEP_SECONDS
+            Hp = (np.stack([h.position for h in humans])[None]+np.stack([h.velocity for h in humans])[None]*T
+                  if humans else np.zeros((H, 0, 2)))                # [H,N,2]
+        if not Hp.shape[1]:
+            self._esc = None
+            return prim
+        # standing humans (predicted to move < 0.3 m over the horizon) are a threat only within EVADE2_STATIC of the
+        # rectangle: they are obstacles for the planner (the one-step check keeps 0.30 m), and a reflex that yields to
+        # them holds forever beside a standing person
+        p_now = Hp[0] if truth is None else to_plane(cur[keep][:, [0, 2]])
+        moving = np.hypot(*(Hp-p_now[None]).transpose(2, 0, 1)).max(axis=0) >= 0.3          # [N]
+        offs = np.where(moving, 0., EVADE2_R-EVADE2_STATIC)
+        dyn = self.dyn
+        psi0 = float(legal.pose[3])
+        core = tight_legal(legal, 2).map
+        from .legal import BLOCKED
+        free_memo = {}
+
+        def free(P, psi, Pn):
+            key = (round(float(Pn[0]), 3), round(float(Pn[1]), 3), round(psi, 3))
+            r = free_memo.get(key)
+            if r is None:
+                x, z = to_world(Pn)
+                r = free_memo[key] = core.state_at(x, z) != BLOCKED and not self._bump_blocked(legal, P, psi)
+            return r
+        top = len(dyn.levels)-1
+
+        def roll(seq):
+            P, psi, lv = P0.copy(), psi0, int(level)
+            out = np.empty((H, 3))
+            for k in range(H):
+                a = seq[k] if k < len(seq) else 'h'
+                d = 0.
+                if dyn.stateful:
+                    if a == 'f':
+                        lv = min(top, lv+dyn.accel) if lv < top else top
+                        d = dyn.levels[lv]
+                    elif lv > 0 and (a == 'h' or dyn.turn_needs_stop):
+                        lv = max(0, lv-dyn.brake)
+                        d = dyn.levels[lv]
+                    elif a == 'l':
+                        psi += dyn.turn_rad
+                    elif a == 'r':
+                        psi -= dyn.turn_rad
+                elif a == 'f':
+                    d = dyn.step_m
+                elif a == 'l':
+                    psi += dyn.turn_rad
+                elif a == 'r':
+                    psi -= dyn.turn_rad
+                if d > 0.:
+                    Pn = P+d*heading_vec(psi)
+                    if free(P, psi, Pn):
+                        P = Pn
+                    elif dyn.stateful:
+                        lv = 0
+                out[k] = (P[0], P[1], psi)
+            return out
+
+        def clearance(trajs):
+            Q = np.asarray(trajs)                                  # [S,H,3]
+            c, s = np.cos(Q[..., 2])[..., None], np.sin(Q[..., 2])[..., None]
+            d = Hp[None]-Q[..., None, :2]                          # [S,H,N,2]
+            lx = d[..., 0]*c+d[..., 1]*s
+            ly = -d[..., 0]*s+d[..., 1]*c
+            from .control import BODY_X, BODY_HALF_WIDTH
+            dx = np.maximum(np.maximum(BODY_X[0]-lx, 0.), lx-BODY_X[1])
+            dy = np.maximum(np.abs(ly)-BODY_HALF_WIDTH, 0.)
+            return (np.hypot(dx, dy)+offs).min(axis=(1, 2))        # [S]
+        plan = [self._EV2_CODE.get(p, 'h') for p in (self._plan_now or [])]
+        own = [self._EV2_CODE[kin]]+(plan[1:H] if plan and plan[0] == self._EV2_CODE[kin] else [])
+        d_own = float(clearance([roll(own)])[0])
+        if esc is None and d_own >= EVADE2_R:
+            return prim
+        if esc is not None and d_own >= EVADE2_R+0.1:
+            self._esc = None
+            _EV2['release'] += 1
+            return prim
+        _EV2['threat'] += 1
+        cands = [own, ['h']*H]
+        for n in (2, 4, 8, 12, 16, 24):
+            cands.append(['f']*n)
+        for a in 'lr':
+            for k in (2, 4, 6, 9, 12, 16, 19):
+                for n in (0, 4, 8, 16):
+                    if k+n <= H:
+                        cands.append([a]*k+['f']*n)
+        if plan:
+            for k in (4, 8, 16):
+                cands.append(['h']*k+plan[:H-k])
+        i_esc = None
+        if esc:
+            i_esc = len(cands)
+            cands.append(list(esc))
+        trajs = [roll(c) for c in cands]
+        dmin = clearance(trajs)
+        capped = np.minimum(dmin, EVADE2_R+EVADE2_CAP)
+        eff = capped.copy()
+        if i_esc is not None:
+            eff[i_esc] += EVADE2_KEEP
+        prog = np.zeros(len(cands))
+        if self.view is not None and self.field is not None:
+            c0 = self.view.cost_to_go(self.field, tuple(to_world(P0)))
+            if np.isfinite(c0):
+                for i, tr in enumerate(trajs):
+                    c1 = self.view.cost_to_go(self.field, tuple(to_world(tr[-1, :2])))
+                    prog[i] = c0-c1 if np.isfinite(c1) else -10.
+        off = np.array([sum(1 for k in range(H) if (c[k] if k < len(c) else 'h') != (own[k] if k < len(own) else 'h'))
+                        for c in cands])
+        top_eff = float(eff.max())
+        pool = [i for i in range(len(cands)) if eff[i] >= top_eff-0.02]
+        best = max(pool, key=lambda i: (prog[i], -off[i]))
+        if best == 0 or (i_esc is None and capped[best] < capped[0]+EVADE2_GAIN):
+            if esc is not None:
+                _EV2['release'] += 1
+            self._esc = None
+            return prim
+        seq = cands[best]
+        _EV2['keep' if best == i_esc else 'escape'] += 1
+        self._esc = list(seq[1:]) if len(seq) > 1 else None
+        a = seq[0]
+        if a == 'h':
+            out = self.adapter.wait_action(P0, psi0, legal.map)
+        else:
+            out = {'f': 'forward', 'l': 'left', 'r': 'right'}[a]
+        if out != kin:
+            self.plan = None
+            self.st = None
+            self._plan_now = [{'f': 'forward', 'l': 'left', 'r': 'right'}.get(x, 'left') for x in seq]
+        if realized:
+            return Realized(out, (top if out == 'forward' else 0))
+        return out
+
+    def _fc_predict(self, legal, P0, H):
+        """L3_EVADE_FC: planar predictions [H, M, 2] of the tracked people within EVADE2_RANGE at steps 1..H (legal)."""
+        from eventwm_graph.l3 import peoplemap as pm
+        rows = [r for r in pm.instances(legal) if float(np.hypot(*(r['est'].position-P0))) < EVADE2_RANGE]
+        if not rows:
+            return np.zeros((H, 0, 2))
+        steps = np.arange(1, H+1)
+        cols = []
+        fidx = [r for r in rows if r.get('hist') is not None]
+        for r in rows:
+            if r.get('hist') is None:
+                e = r['est']
+                cols.append(e.position[None]+e.velocity[None]*(steps*STEP_SECONDS)[:, None])
+        if fidx:
+            fc = pm.load_forecaster()
+            if not getattr(pm, '_EV2_THREADS', False):
+                pm._torch().set_num_threads(1)
+                pm._EV2_THREADS = True
+            w, knots, _ = fc.modes(fidx)                               # knots [M, K, NK, 2] world (x, z)
+            # the forecast starts at the last detection (age); shift the step grid by the age in steps
+            for m, r in enumerate(fidx):
+                off = int(round(float(r['age'])/STEP_SECONDS))
+                tr = pm.at_steps(knots[m], steps+off)                  # [K, H, 2] world
+                if EVADE2_FC == 'modes':
+                    for k in np.flatnonzero(w[m] >= min(EVADE2_FCW, float(w[m].max()))):
+                        cols.append(to_plane(tr[k]))
+                else:
+                    cols.append(to_plane((w[m][:, None, None]*tr).sum(0)))
+        return np.stack(cols, axis=1)
+
     def _update_unstick(self, legal):
         """v11 meta 'unstick' (= N steps): a goal query whose robot has not translated for N steps while no
         legally tracked human is within 2 m (a static deadlock, not a yield) escalates for the rest of its life to
@@ -523,16 +777,23 @@ class QueryExecution:
         self._plan_now = None
         self._update_unstick(legal)
         raw_legal = legal
-        if (self.query.meta or {}).get('thru'):
-            legal = _ThruLegal(legal)
-        else:
-            legal = tight_legal(legal, int((self.query.meta or {}).get('tight', 0)) or (1 if self.escalated else 0))
-        if self.escalated and (self.query.meta or {}).get('shum'):
-            sh = static_humans(raw_legal)
-            if sh:
-                legal = _StaticHumanLegal(legal, sh)
+        legal = self._exec_legal(raw_legal)
+        n_recent = len(self.recent)
         prim = self._step_kin(legal, level)
-        if (self.query.meta or {}).get('evade') and self.dyn.discrete and prim in ('forward', 'left', 'right') \
+        while UNREACH_FALLBACK and self.status == 'done' and self.reason == 'unreachable' and \
+                self.query.kind in ('goal', 'goto', 'stgoal') and getattr(self, '_relax', 0) < 2:
+            # L3_UNREACH_FALLBACK: retry this step on a more permissive legal map (see UNREACH_FALLBACK)
+            self._relax = getattr(self, '_relax', 0)+1
+            self.status, self.reason = 'running', ''
+            self.steps -= 1
+            del self.recent[n_recent:]
+            self.view = self.field = self.field_key = None
+            self.plan, self.st = None, None
+            legal = self._exec_legal(raw_legal)
+            prim = self._step_kin(legal, level)
+        if EVADE2 and (self.query.meta or {}).get('evade'):
+            prim = self._evade2(raw_legal, prim, level)
+        elif (self.query.meta or {}).get('evade') and self.dyn.discrete and prim in ('forward', 'left', 'right') \
                 and self.status == 'running':
             prim = self._evade(raw_legal, prim)
         if prim == 'stop':
@@ -562,6 +823,21 @@ class QueryExecution:
         gmap = None if (self.query.kind == 'creep' and (self.query.meta or {}).get('blind')) else legal.map
         return self._arrive_check(legal, self.realizer.realize(prim, int(level), P, float(legal.pose[3]), gmap,
                                                                humans, self._plan_now, cap))
+
+    def _exec_legal(self, raw_legal):
+        """The legal view this query plans on: its 'thru' / 'tight' variant (tight 1 once escalated), the standing-human
+        discs of an escalated 'shum' query, and the L3_UNREACH_FALLBACK relaxation level."""
+        relax = getattr(self, '_relax', 0)
+        if (self.query.meta or {}).get('thru') or relax >= 2:
+            legal = _ThruLegal(raw_legal)
+        else:
+            cells = int((self.query.meta or {}).get('tight', 0)) or (1 if self.escalated else 0)
+            legal = tight_legal(raw_legal, max(cells, 2) if relax == 1 else cells)
+        if self.escalated and (self.query.meta or {}).get('shum'):
+            sh = static_humans(raw_legal)
+            if sh:
+                legal = _StaticHumanLegal(legal, sh)
+        return legal
 
     def _arrive_check(self, legal, out):
         """v10 (meta 'arrive_exact'): a goto without a final heading ends on the step whose own motion reaches

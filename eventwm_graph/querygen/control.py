@@ -197,6 +197,13 @@ def blocked_points_near(gmap, P, radius=1.6, sectors=24):
 # --------------------------------------------------------------------------
 NATIVE_VMAX = NATIVE_STEP_M/STEP_SECONDS    # ~4.34 m/s in benchmark time
 
+# Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_TURN_GUARD=1): the adapter's own in-place
+# turns (align, duty, turn, turn_partial, jammed, maneuver turns and the alternating turns of 'hold') are checked against
+# the planner's one-step human predicate like forward steps; a refused turn falls back to the opposite turn, then a
+# forward step, then the primitive with the largest predicted margin (the robot never freezes).  Unchecked today: in
+# held-out floor collisions an in-place turn ended within 0.40 m of a tracked prediction in 28 of 46 ORCA cases.
+TURN_GUARD = __import__('os').environ.get('L3_TURN_GUARD') == '1'
+
 
 class NativeAdapter:
     """Discrete robot (forward | left | right, no stop/pause) tracking a velocity.
@@ -283,6 +290,41 @@ class NativeAdapter:
 
     def command(self, P, psi, v_des, hard_ok=None, gmap=None, face=None, allow_unknown_body=True):
         """Return (primitive, mode)."""
+        a, mode = self._command(P, psi, v_des, hard_ok, gmap, face, allow_unknown_body)
+        if TURN_GUARD and hard_ok is not None and a in ('left', 'right'):
+            a, mode = self._guard_turn(a, mode, np.asarray(P, dtype=float), psi, hard_ok, gmap, allow_unknown_body)
+        return a, mode
+
+    def _guard_turn(self, a, mode, P, psi, hard_ok, gmap, allow_unknown):
+        """L3_TURN_GUARD: the turned pose must pass the one-step human predicate (see ``TURN_GUARD``)."""
+        dpsi = {'left': self.turn, 'right': -self.turn}
+        if hard_ok(P, psi+dpsi[a]):
+            return a, mode
+        b = 'right' if a == 'left' else 'left'
+        out = None
+        if hard_ok(P, psi+dpsi[b]) and self._turn_dir_ok(gmap, P, psi, b, allow_unknown):
+            out = (b, 'guard_turn')
+        else:
+            P1 = P+self.step_m*heading_vec(psi)
+            fwd_body = gmap is None or body_ok(gmap, P1, psi, allow_unknown, body_cost(gmap, P, psi, FORWARD_X),
+                                               FORWARD_X)
+            if fwd_body and hard_ok(P1, psi):
+                out = ('forward', 'guard_fwd')
+            else:
+                clear = getattr(hard_ok, 'clear', None)
+                if clear is None:
+                    return a, mode
+                opts = [(clear(P, psi+dpsi[a]), a), (clear(P, psi+dpsi[b]), b)]
+                if fwd_body:
+                    opts.append((clear(P1, psi), 'forward'))
+                out = (max(opts, key=lambda o: o[0])[1], 'guard_max')
+        if out[0] != a:
+            self.plan = []                       # a cut manoeuvre is re-decided next step
+            if out[0] in ('left', 'right') and mode in ('hold', 'duty', 'jammed'):
+                self._last_wait = out[0]
+        return out
+
+    def _command(self, P, psi, v_des, hard_ok=None, gmap=None, face=None, allow_unknown_body=True):
         P = np.asarray(P, dtype=float)
         v_des = np.asarray(v_des, dtype=float)
         speed = float(np.hypot(*v_des))

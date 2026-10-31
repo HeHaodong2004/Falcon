@@ -20,6 +20,12 @@ from .planners import make_planner
 from .dynamics import STEP_SECONDS
 
 
+def _EVADE2_TRUTH():
+    """ANALYSIS ONLY: is the privileged reflex diagnostic (executor L3_EVADE_TRUTH) on?"""
+    from . import executor
+    return bool(executor.EVADE2 and executor.EVADE2_TRUTH)
+
+
 @dataclass
 class BranchState:
     robot: object              # native RobotState (None in real replay)
@@ -157,8 +163,11 @@ class EpisodeRuntime:
         cache = self._prefix_cache_of(parent)
         prefix = ()
         lag = None             # cached steps not yet installed in the simulator/sensor: list of entries
+        truth = _EVADE2_TRUTH()
         for _ in range(horizon):
             t = time.perf_counter()
+            if truth:
+                st.legal._ev2_truth = (self.tape.positions, st.index)      # ANALYSIS ONLY (executor.EVADE2_TRUTH)
             prim, level = ex.step(st.legal, st.dyn_state)
             self.perf['planner_s'] += time.perf_counter()-t
             cmd = command_for(dyn, prim)
