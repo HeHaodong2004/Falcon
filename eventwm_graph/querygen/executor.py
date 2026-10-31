@@ -91,6 +91,13 @@ BUMP_CREEP = __import__('os').environ.get('L3_BUMP_CREEP') == '1'
 # with the robot's turn rate (native turn / turn, horizon capped at 62 steps), so a slow-turning robot considers the
 # same escape angles (10-90 degrees) and sees a whole turn ahead (slowturn: a 90-degree turn takes 38 steps > 31).
 EVADE2_DYN = __import__('os').environ.get('L3_EVADE_DYN') == '1'
+# Layer 3 option (default OFF; L3_STOP_GUARD=1): goal-reach STOP for EVERY query kind -- STOP when the legal Euclidean
+# goal distance is below STOP_M at rest (today only goal / stgoal queries stop: a creep or rotate query running at the
+# goal never does), or when the goal disc is observed BLOCKED on the legal map (an off-navmesh goal), the robot is within
+# STOP_GUARD_OFF_M and its goal distance has not decreased by 0.02 m over the last 16 steps.  Tuning-set timeouts sat
+# within 0.2 m geodesic of the goal for up to 208 steps without stopping (VVfe2KiqLaN/4632, MjzBosUX3WW/202).
+STOP_GUARD = __import__('os').environ.get('L3_STOP_GUARD') == '1'
+STOP_GUARD_OFF_M = float(__import__('os').environ.get('L3_STOP_GUARD_OFF_M', '0.40') or 0.40)
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_EVADE2=1): plan-aware threat reflex for
 # queries with meta 'evade' (replaces the v11 reflex, which tests only the next primitive followed by holding over 14
@@ -432,6 +439,34 @@ class QueryExecution:
             self.reason = 'evade'
             return {'f': 'forward', 'l': 'left', 'r': 'right'}[best[0]]
         return prim
+
+    def _stop_guard(self, legal, level):
+        """L3_STOP_GUARD (see the option): ('stop', 0) when the goal is reached by the legal tests, else None."""
+        if self.dyn.stateful and int(level) > 0:
+            return None
+        gx, gz = float(legal.goal[0]), float(legal.goal[2])
+        d = math.hypot(gx-float(legal.pose[0]), gz-float(legal.pose[2]))
+        hist = getattr(self, '_sg_hist', None)
+        if hist is None:
+            hist = self._sg_hist = []
+        hist.append(d)
+        if len(hist) > 40:
+            del hist[0]
+        stop = d < STOP_M
+        if not stop and d < STOP_GUARD_OFF_M and len(hist) >= 16 and hist[-16]-d < 0.02:
+            from .legal import BLOCKED
+            g = legal.map
+            n = blk = 0
+            for a in np.linspace(-0.2, 0.2, 5):
+                for b in np.linspace(-0.2, 0.2, 5):
+                    if a*a+b*b <= 0.04+1e-9:
+                        n += 1
+                        blk += g.state_at(gx+a, gz+b) == BLOCKED
+            stop = g.state_at(gx, gz) == BLOCKED and blk >= 0.5*n
+        if stop:
+            self.status, self.reason = 'done', 'stop_guard'
+            return 'stop', 0
+        return None
 
     def _bump_front(self, legal, P, psi):
         """The body's front contact point at (P, psi) lies in a bump-memory disc (as ``_bump_blocked``, without the
@@ -960,6 +995,8 @@ class QueryExecution:
         (``suspended``) and its history resumes when a goal query is issued again."""
         if prev is None:
             return
+        if STOP_GUARD and getattr(prev, '_sg_hist', None):
+            self._sg_hist = list(prev._sg_hist)                    # (L3_STOP_GUARD: goal-distance history)
         if prev._goal_like() and prev.status == 'running':
             src = prev
         else:
@@ -1094,6 +1131,10 @@ class QueryExecution:
             if HOLD_GAZE and self.adapter.real:
                 self.adapter.gaze = self._gaze_target(raw_legal)
         legal = self._exec_legal(raw_legal)
+        if STOP_GUARD and self.query.kind not in ('stop', 'prim') and getattr(raw_legal, 'track_log', None) is not None:
+            g = self._stop_guard(raw_legal, level)
+            if g is not None:
+                return g
         n_recent = len(self.recent)
         prim = self._step_kin(legal, level)
         while UNREACH_FALLBACK and self.status == 'done' and self.reason == 'unreachable' and \
