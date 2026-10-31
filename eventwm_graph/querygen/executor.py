@@ -105,6 +105,10 @@ STOP_GUARD = __import__('os').environ.get('L3_STOP_GUARD') == '1'
 # margin class.  Exposure analysis (tuning set, 20 replays): the space-time plan produced 57% of the wasted turning (60% of
 # its turns undone; 406 of 680 wasted steps with nobody near).  Imagined states keep the released behaviour.
 ST_COMMIT = float(__import__('os').environ.get('L3_ST_COMMIT', '0') or 0)
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_TURNCOST=<w> -- among clearance-equivalent reflex candidates,
+# rank by legal progress minus w x (time to turn back onto the route at the candidate's end, in metres of driving):
+# holds, advances and 'hold then resume' win ties over turn-away escapes (78% of the reflex's turns were undone later).
+EVADE2_TURNCOST = float(__import__('os').environ.get('L3_EVADE_TURNCOST', '0') or 0)
 STOP_GUARD_OFF_M = float(__import__('os').environ.get('L3_STOP_GUARD_OFF_M', '0.40') or 0.40)
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_EVADE2=1): plan-aware threat reflex for
@@ -653,6 +657,9 @@ class QueryExecution:
                     prog[i] = c0-c1 if np.isfinite(c1) else -10.
         off = np.array([sum(1 for k in range(H) if (c[k] if k < len(c) else 'h') != (own[k] if k < len(own) else 'h'))
                         for c in cands])
+        rank = prog
+        if EVADE2_TURNCOST > 0 and self.view is not None and self.field is not None:
+            rank = prog-EVADE2_TURNCOST*dyn.step_m*np.array([self._turn_back_steps(tr[-1]) for tr in trajs])
         Xf = None
         if learned or sample:
             from eventwm_graph.l3 import reflex
@@ -685,7 +692,7 @@ class QueryExecution:
             eff[i_esc] += EVADE2_KEEP
         top_eff = float(eff.max())
         pool = [i for i in range(len(cands)) if eff[i] >= top_eff-0.02]
-        best = max(pool, key=lambda i: (prog[i], -off[i]))
+        best = max(pool, key=lambda i: (rank[i], -off[i]))
         if best == 0 or (i_esc is None and capped[best] < capped[0]+EVADE2_GAIN):
             if esc is not None:
                 _EV2['release'] += 1
@@ -1474,6 +1481,19 @@ class QueryExecution:
                 return prim
             self.st = None
         return self.planner.act(ctx, self.adapter)
+
+    def _turn_back_steps(self, end, delta=0.15):
+        """L3_EVADE_TURNCOST: turn steps from the end heading onto the legal route's descent direction at the end
+        position (0 when the cost-to-go field is not defined around it)."""
+        x, z = to_world(end[:2])
+        c = [self.view.cost_to_go(self.field, (x+a, z+b)) for a, b in ((delta, 0.), (-delta, 0.), (0., delta), (0., -delta))]
+        if not all(np.isfinite(c)):
+            return 0.
+        gx, gz = -(c[0]-c[1]), -(c[2]-c[3])                  # world descent direction
+        if abs(gx)+abs(gz) < 1e-9:
+            return 0.
+        route = math.atan2(-gz, gx)                          # planar heading of (gx, -gz)
+        return abs(wrap(float(end[2])-route))/self.dyn.turn_rad
 
     def _st_keep_old(self, old, new, humans, margin, growth):
         """L3_ST_COMMIT: keep the running space-time plan ``old`` (from index ``self.st_i``) instead of ``new``?"""
