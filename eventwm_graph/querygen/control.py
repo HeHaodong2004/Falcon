@@ -203,6 +203,16 @@ NATIVE_VMAX = NATIVE_STEP_M/STEP_SECONDS    # ~4.34 m/s in benchmark time
 # forward step, then the primitive with the largest predicted margin (the robot never freezes).  Unchecked today: in
 # held-out floor collisions an in-place turn ended within 0.40 m of a tracked prediction in 28 of 46 ORCA cases.
 TURN_GUARD = __import__('os').environ.get('L3_TURN_GUARD') == '1'
+# Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_HOLD_SWEEP=<k>): on REAL legal states
+# (the executor marks the adapter) a native 'hold' sweeps the camera between -k and +k turn steps around the heading the
+# hold started from instead of alternating single steps, so the 90-degree camera also covers the flanks while the robot
+# waits (held-out collisions: almost every contact comes from outside the camera view while the robot turns or holds;
+# with 360-degree people sensing the same stack collides far less).  The Sandbox imagination keeps the released hold.
+HOLD_SWEEP = int(__import__('os').environ.get('L3_HOLD_SWEEP', '0') or 0)
+# Layer 3 option (default OFF; L3_HOLD_GAZE=1): on real legal states a native 'hold' first turns the camera toward the
+# nearest tracked person within 4 m who is not visible now (the executor sets ``adapter.gaze``): a track that leaves
+# the 90-degree view keeps its last velocity for 2 s and misses every stop, restart and turn of a Falcon walker.
+HOLD_GAZE = __import__('os').environ.get('L3_HOLD_GAZE') == '1'
 
 
 class NativeAdapter:
@@ -235,6 +245,7 @@ class NativeAdapter:
     def reset(self):
         self.debt = np.zeros(2)
         self.plan = []
+        self._sweep = None
 
     def _maneuver(self, P, psi, err, gmap, allow_unknown):
         """Committed maneuver when the short in-place rotation is body-blocked.
@@ -278,13 +289,33 @@ class NativeAdapter:
         """Native 'hold position': turn toward ``face`` or alternate turns."""
         if gmap is not None:
             self._budget = body_cost(gmap, P, psi)
+        if face is None and HOLD_GAZE and getattr(self, 'real', False):
+            face = getattr(self, 'gaze', None)
         if face is not None and abs(wrap(face-psi)) > self.turn*0.6:
             a = 'left' if wrap(face-psi) > 0 else 'right'
             if self._turn_dir_ok(gmap, P, psi, a, allow_unknown):
                 return a
+        if HOLD_SWEEP and getattr(self, 'real', False):
+            return self._sweep_action(P, psi, gmap, allow_unknown)
         a = 'right' if self._last_wait == 'left' else 'left'
         if not self._turn_dir_ok(gmap, P, psi, a, allow_unknown):
             a = 'left' if a == 'right' else 'right'
+        self._last_wait = a
+        return a
+
+    def _sweep_action(self, P, psi, gmap, allow_unknown):
+        """L3_HOLD_SWEEP: the next turn of a camera sweep between -k and +k steps around the hold's start heading."""
+        sw = getattr(self, '_sweep', None)
+        if sw is None or abs(wrap(psi-sw['expect'])) > 1e-6:
+            sw = self._sweep = dict(center=psi, dir=1. if self._last_wait == 'right' else -1., expect=psi)
+        off = wrap(psi-sw['center'])/self.turn
+        if sw['dir']*off >= HOLD_SWEEP-0.5:
+            sw['dir'] = -sw['dir']
+        a = 'left' if sw['dir'] > 0 else 'right'
+        if not self._turn_dir_ok(gmap, P, psi, a, allow_unknown):
+            sw['dir'] = -sw['dir']
+            a = 'left' if sw['dir'] > 0 else 'right'
+        sw['expect'] = psi+(self.turn if a == 'left' else -self.turn)
         self._last_wait = a
         return a
 

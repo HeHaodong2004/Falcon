@@ -675,6 +675,15 @@ def risk_select(path, sb, legal, d, state=None, cur=None):
     X, names = features(legal, dd, outs, hz, labels_vocab=m.vocab)
     Xm = m.columns(X, names)
     s = m.score(Xm)
+    mask = os.environ.get('L3_MW_MASK')
+    if mask:
+        # Layer 3 option (default off; L3_MW_MASK=<regex>): candidates whose label matches are never chosen (the default
+        # stays available), e.g. '_th$|_vc$' -- the contact-level close-pass variants
+        import re
+        s = np.asarray(s, np.float64).copy()
+        for i, lab in enumerate(d.labels):
+            if i != int(d.default) and re.search(mask, str(lab)):
+                s[i] = -np.inf
     thr = float(os.environ.get('L3_MW_RISK_THR', m.thr))
     a = select_from_scores(s, int(d.default), thr)
     RISK_DEBUG.clear()

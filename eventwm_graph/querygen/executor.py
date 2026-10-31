@@ -34,7 +34,7 @@ import numpy as np
 from .control import (to_plane, to_world, wrap, heading_vec, human_estimates, blocked_points_near)
 from .gridplan import PlanningView, INF, path_length, point_along
 from . import lattice
-from .control import body_cost
+from .control import body_cost, HOLD_SWEEP, HOLD_GAZE
 from .motion import MotionRealizer
 from .planners import PlanContext, make_adapter
 from .dynamics import STEP_SECONDS
@@ -743,6 +743,21 @@ class QueryExecution:
                     cols.append(to_plane((w[m][:, None, None]*tr).sum(0)))
         return np.stack(cols, axis=1)
 
+    def _gaze_target(self, legal):
+        """L3_HOLD_GAZE: heading toward the nearest tracked person within 4 m who is not visible now (None if none)."""
+        P = to_plane([legal.pose[0], legal.pose[2]])
+        best = None
+        for h in human_estimates(legal.tracks, legal.time):
+            if h.visible:
+                continue
+            d = float(np.hypot(*(h.position-P)))
+            if d < 4.0 and (best is None or d < best[0]):
+                best = (d, h)
+        if best is None:
+            return None
+        rel = best[1].position-P
+        return math.atan2(rel[1], rel[0])
+
     def _update_unstick(self, legal):
         """v11 meta 'unstick' (= N steps): a goal query whose robot has not translated for N steps while no
         legally tracked human is within 2 m (a static deadlock, not a yield) escalates for the rest of its life to
@@ -942,6 +957,10 @@ class QueryExecution:
         self._plan_now = None
         self._update_unstick(legal)
         raw_legal = legal
+        if HOLD_SWEEP or HOLD_GAZE:
+            self.adapter.real = getattr(raw_legal, 'track_log', None) is not None     # (hold options: real states only)
+            if HOLD_GAZE and self.adapter.real:
+                self.adapter.gaze = self._gaze_target(raw_legal)
         legal = self._exec_legal(raw_legal)
         n_recent = len(self.recent)
         prim = self._step_kin(legal, level)
