@@ -134,6 +134,12 @@ EVADE2_MEM = float(_ENV.get('L3_EVADE_MEM', '0') or 0)
 # counts as a hypothetical walker restarting now along the last walking velocity (Falcon people stop and go; earlier
 # attribution: ~40% of contacts came ~0.2 s after a restart of a person the robot had tracked).
 EVADE2_RESTART = _ENV.get('L3_EVADE_RESTART') == '1'
+# Layer 3 option (default OFF; L3_CORNER_SLOW=<duty>, e.g. 0.5): on real legal states a native robot advancing past free
+# space that lies INSIDE the camera's view near the path ahead (0.6-1.4 m ahead, up to 1.2 m sideways) but has not been
+# observed for 0.3 s (so something occludes it) advances only on a <duty> share of steps (holding otherwise) until that
+# space is seen.  Held-out attribution (tuning set, ranker + reflex): 4 of 22 non-spawn collisions were people stepping
+# out of an occluded spot almost straight ahead of a robot moving at 4.3 m/s.
+CORNER_SLOW = float(_ENV.get('L3_CORNER_SLOW', '0') or 0)
 EVADE2_MEM_EXT = float(_ENV.get('L3_EVADE_MEM_EXT', '2.5') or 2.5)
 EVADE2_FCW = float(_ENV.get('L3_EVADE_FCW', '0.2') or 0.2)
 
@@ -793,6 +799,29 @@ class QueryExecution:
                     out.append((p, v))
         return out
 
+    def _occluded_ahead(self, legal, stale_s=0.3, half_fov=math.radians(40.)):
+        """L3_CORNER_SLOW: is there non-wall space inside the camera wedge near the path ahead that has not been observed
+        for ``stale_s`` seconds (occluded), within 0.6-1.4 m ahead and 1.2 m sideways?"""
+        from .legal import BLOCKED
+        g = legal.map
+        P = to_plane([legal.pose[0], legal.pose[2]])
+        psi = float(legal.pose[3])
+        h, n = heading_vec(psi), heading_vec(psi+math.pi/2)
+        now = float(legal.time)
+        hits = 0
+        for d in (0.6, 1.0, 1.4):
+            for l in (-1.2, -0.8, -0.4, 0.4, 0.8, 1.2):
+                if abs(math.atan2(l, d)) > half_fov:
+                    continue
+                x, z = to_world(P+d*h+l*n)
+                i, j = g.index(x, z)
+                if not g.inside(i, j) or g.state[i, j] == BLOCKED:
+                    continue
+                ls = g.last_seen[i, j]
+                if np.isnan(ls) or ls < now-stale_s:
+                    hits += 1
+        return hits >= 2
+
     def _restart_ghosts(self, legal, humans):
         """L3_EVADE_RESTART: (position, last walking velocity) of tracked people paused now (< 0.2 m/s) who walked
         faster than 0.8 m/s within the last 1.5 s (legal track log)."""
@@ -1050,6 +1079,15 @@ class QueryExecution:
         elif (self.query.meta or {}).get('evade') and self.dyn.discrete and prim in ('forward', 'left', 'right') \
                 and self.status == 'running':
             prim = self._evade(raw_legal, prim)
+        if CORNER_SLOW > 0 and prim == 'forward' and not self.dyn.stateful and \
+                getattr(raw_legal, 'track_log', None) is not None and self._occluded_ahead(raw_legal):
+            self.speed_debt += CORNER_SLOW
+            if self.speed_debt >= 1.-1e-9:
+                self.speed_debt -= 1.
+            else:
+                P_ = to_plane([raw_legal.pose[0], raw_legal.pose[2]])
+                prim = self.adapter.wait_action(P_, float(raw_legal.pose[3]), raw_legal.map)
+                self.plan = None
         if prim == 'stop':
             if self.dyn.stateful and int(level) > 0:
                 # v10: a robot with momentum declares STOP only at rest -- it brakes at its brake limit first
