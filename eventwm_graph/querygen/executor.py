@@ -109,6 +109,23 @@ ST_COMMIT = float(__import__('os').environ.get('L3_ST_COMMIT', '0') or 0)
 # rank by legal progress minus w x (time to turn back onto the route at the candidate's end, in metres of driving):
 # holds, advances and 'hold then resume' win ties over turn-away escapes (78% of the reflex's turns were undone later).
 EVADE2_TURNCOST = float(__import__('os').environ.get('L3_EVADE_TURNCOST', '0') or 0)
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_SLIDE=1 -- the reflex rollouts predict a forward step like the
+# robot's own recent forward steps when those did not move as commanded (legal: own commands + odometry poses): a
+# predicted forward step reproduces the measured displacement of one of the last 8 executed forward steps that deviated
+# by more than L3_EVADE_SLIDE_ERR (0.03 m) from the commanded step if it starts within 0.25 m and 0.18 rad of it, and,
+# while the LAST executed forward step deviated, every predicted forward step within 0.18 rad of its heading does (the
+# robot is pressed against geometry now).  Ceiling analysis (tuning set): in the last 1.5 s before 7 of 12 later
+# collisions 70% of forward steps deviated and the chosen escapes realised a median 0.21 m less clearance than predicted.
+EVADE2_SLIDE = __import__('os').environ.get('L3_EVADE_SLIDE') == '1'
+EVADE2_SLIDE_ERR = float(__import__('os').environ.get('L3_EVADE_SLIDE_ERR', '0.03') or 0.03)
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_ROTPLAN=1 -- the committed motion of a 'rotate' query is the
+# rest of its rotation to the target heading (released: this step's turn, then holding), so the sweep of the 1.23 m body
+# into a person beside it is seen up to 1.5 s ahead (ceiling: 3 of 12 later collisions under turn queries).
+EVADE2_ROTPLAN = __import__('os').environ.get('L3_EVADE_ROTPLAN') == '1'
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_GAINLOW=<d> -- contact-range selection: when the committed
+# motion's clearance is below <d> (e.g. 0.30) an escape needs only 0.03 m more clearance, and when even the best candidate
+# is below L3_EVADE_R the pick is by clearance alone (pool tolerance 0.005 m instead of 0.02 m).
+EVADE2_GAINLOW = float(__import__('os').environ.get('L3_EVADE_GAINLOW', '0') or 0)
 STOP_GUARD_OFF_M = float(__import__('os').environ.get('L3_STOP_GUARD_OFF_M', '0.40') or 0.40)
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_EVADE2=1): plan-aware threat reflex for
@@ -574,6 +591,7 @@ class QueryExecution:
                 r = free_memo[key] = core.state_at(x, z) != BLOCKED and not self._bump_blocked(legal, P, psi)
             return r
         top = len(dyn.levels)-1
+        slide = self._slide_memory(legal) if (EVADE2_SLIDE and not dyn.stateful) else None
 
         def roll(seq):
             P, psi, lv = P0.copy(), psi0, int(level)
@@ -594,6 +612,12 @@ class QueryExecution:
                         psi -= dyn.turn_rad
                 elif a == 'f':
                     d = dyn.step_m
+                    if slide is not None:
+                        dv = slide(P, psi)
+                        if dv is not None:              # L3_EVADE_SLIDE: measured displacement of a deviated step
+                            d = 0.
+                            if not self._bump_blocked(legal, P, psi):
+                                P = P+dv
                 elif a == 'l':
                     psi += dyn.turn_rad
                 elif a == 'r':
@@ -615,6 +639,11 @@ class QueryExecution:
             D = rect_dist(np.asarray(trajs), pts)                   # [S,H,N]
             return (D+(offs if off is None else off)).min(axis=(1, 2))
         plan = [self._EV2_CODE.get(p, 'h') for p in (self._plan_now or [])]
+        if EVADE2_ROTPLAN and not plan and self.query.kind == 'rotate' and self.query.heading is not None and \
+                kin in ('left', 'right'):
+            ang = wrap(float(self.query.heading)-psi0)*(1. if kin == 'left' else -1.)
+            ang = ang+2*math.pi if ang < 0 else ang
+            plan = [self._EV2_CODE[kin]]*min(H, max(1, int(math.ceil(ang/dyn.turn_rad-0.55))))
         own = [self._EV2_CODE[kin]]+(plan[1:H] if plan and plan[0] == self._EV2_CODE[kin] else [])
         own_traj = roll(own)
         d_own = float(clearance([own_traj])[0])
@@ -644,7 +673,7 @@ class QueryExecution:
         if esc:
             i_esc = len(cands)
             cands.append(list(esc)); kinds.append(6)
-        if dyn.stateful:
+        if dyn.stateful or (slide is not None and slide.active):
             trajs = np.stack([own_traj]+[roll(c) for c in cands[1:]])
         else:
             trajs = self._ev2_fast_trajs(legal, cands, kinds, waitk, own_traj, plan, roll, P0, psi0, H)
@@ -691,9 +720,11 @@ class QueryExecution:
         if i_esc is not None:
             eff[i_esc] += EVADE2_KEEP
         top_eff = float(eff.max())
-        pool = [i for i in range(len(cands)) if eff[i] >= top_eff-0.02]
+        tol = 0.005 if (EVADE2_GAINLOW > 0 and top_eff < EVADE2_R) else 0.02
+        pool = [i for i in range(len(cands)) if eff[i] >= top_eff-tol]
         best = max(pool, key=lambda i: (rank[i], -off[i]))
-        if best == 0 or (i_esc is None and capped[best] < capped[0]+EVADE2_GAIN):
+        gain = 0.03 if (EVADE2_GAINLOW > 0 and capped[0] < EVADE2_GAINLOW) else EVADE2_GAIN
+        if best == 0 or (i_esc is None and capped[best] < capped[0]+gain):
             if esc is not None:
                 _EV2['release'] += 1
             self._esc = None
@@ -845,6 +876,36 @@ class QueryExecution:
                 else:
                     cols.append(to_plane((w[m][:, None, None]*tr).sum(0)))
         return np.stack(cols, axis=1)
+
+    def _slide_memory(self, legal):
+        """L3_EVADE_SLIDE: predictor ``f(P, psi) -> planar displacement or None`` from the robot's own recent forward
+        steps (legal.actions + legal.poses) that deviated from the commanded step; ``f.active`` is False without any."""
+        acts, poses = list(getattr(legal, 'actions', None) or []), list(legal.poses or [])
+        n0 = len(poses)-1-len(acts)
+        rec, last, k = [], None, 0
+        for i in range(len(acts)-1, -1, -1):
+            if k >= 8:
+                break
+            if acts[i] != 'forward' or i+n0 < 0 or i+n0+1 >= len(poses):
+                continue
+            k += 1
+            p0, p1 = poses[i+n0], poses[i+n0+1]
+            Q0 = to_plane([p0[0], p0[2]])
+            dv = to_plane([p1[0], p1[2]])-Q0
+            if float(np.hypot(*(dv-self.dyn.step_m*heading_vec(float(p0[3]))))) > EVADE2_SLIDE_ERR:
+                rec.append((Q0, float(p0[3]), dv))
+                if k == 1:
+                    last = (float(p0[3]), dv)
+
+        def f(P, psi):
+            if last is not None and abs(wrap(psi-last[0])) < 0.18:
+                return last[1]
+            for Q0, q0, dv in rec:
+                if float(np.hypot(*(P-Q0))) < 0.25 and abs(wrap(psi-q0)) < 0.18:
+                    return dv
+            return None
+        f.active = bool(rec)
+        return f
 
     def _remembered(self, legal, P0, current_ids):
         """L3_EVADE_MEM: (planar position now, planar velocity) of people detected within EVADE2_MEM seconds whose
