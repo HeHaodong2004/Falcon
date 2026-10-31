@@ -21,9 +21,10 @@ from .dynamics import STEP_SECONDS
 
 
 def _EVADE2_TRUTH():
-    """ANALYSIS ONLY: is the privileged reflex diagnostic (executor L3_EVADE_TRUTH) on?"""
+    """PRIVILEGED (analysis / training labels only): does the executor read the human tape -- the reflex diagnostic
+    (executor L3_EVADE_TRUTH) or the learned reflex's label logging (L3_EVADE_LOG)?"""
     from . import executor
-    return bool(executor.EVADE2 and executor.EVADE2_TRUTH)
+    return bool(executor.EVADE2 and (executor.EVADE2_TRUTH or executor.EVADE2_LOG))
 
 
 @dataclass
@@ -167,7 +168,7 @@ class EpisodeRuntime:
         for _ in range(horizon):
             t = time.perf_counter()
             if truth:
-                st.legal._ev2_truth = (self.tape.positions, st.index)      # ANALYSIS ONLY (executor.EVADE2_TRUTH)
+                st.legal._ev2_truth = (self.tape.positions, st.index, self.spec.key)   # PRIVILEGED (see _EVADE2_TRUTH)
             prim, level = ex.step(st.legal, st.dyn_state)
             self.perf['planner_s'] += time.perf_counter()-t
             cmd = command_for(dyn, prim)

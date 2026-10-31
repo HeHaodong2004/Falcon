@@ -112,6 +112,18 @@ EVADE2_TRUTH = _ENV.get('L3_EVADE_TRUTH') or None
 # every mode with weight >= L3_EVADE_FCW (default 0.2) as its own hypothesis.  Imagined states (no track log) keep
 # constant velocity, as their people move.  Tracks without a detection in the last 2 s stay constant velocity.
 EVADE2_FC = _ENV.get('L3_EVADE_FC') or None
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_RISK=<model dir> -- the learned threat reflex (l3/reflex.py:
+# legal features, trained on privileged labels) decides on real legal states (imagined states keep the rule);
+# L3_EVADE_PTRIG / L3_EVADE_PGAIN its trigger probability and required gain.  L3_EVADE_LOG=<dir>: TRAINING DATA ONLY --
+# log every candidate's legal features with its TRUE clearance from the human tape at sampled steps (privileged labels).
+EVADE2_RISK = _ENV.get('L3_EVADE_RISK') or None
+EVADE2_PTRIG = float(_ENV.get('L3_EVADE_PTRIG', '0.3') or 0.3)
+EVADE2_PGAIN = float(_ENV.get('L3_EVADE_PGAIN', '0.1') or 0.1)
+EVADE2_LOG = _ENV.get('L3_EVADE_LOG') or None
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_REAL=1 -- the reflex runs on real legal states only; the
+# Sandbox imagination (states without a track log) executes the released executor, so a ranker trained on imagined
+# features of the old executor sees unchanged inputs and the reflex is a safety layer underneath it.
+EVADE2_REAL = _ENV.get('L3_EVADE_REAL') == '1'
 EVADE2_FCW = float(_ENV.get('L3_EVADE_FCW', '0.2') or 0.2)
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_UNREACH_FALLBACK=1): a goal / goto /
@@ -161,6 +173,23 @@ class _TightLegal:
 
 def tight_legal(legal, cells):
     return _TightLegal(legal, cells) if cells else legal
+
+
+_CORE = {}
+
+
+def _core_map(legal):
+    """``tight_legal(legal, 2).map`` (observed wall cores), cached per map object and revision (the reflex reads it
+    every step; the erosion of the whole grid costs ~2 ms)."""
+    from .legal import BLOCKED
+    g = legal.map
+    key = (id(g), g.revision, g.ox, g.oz, g.state.shape, int(np.count_nonzero(g.state == BLOCKED)))
+    m = _CORE.get(key)
+    if m is None:
+        if len(_CORE) > 8:
+            _CORE.clear()
+        m = _CORE[key] = tight_legal(legal, 2).map
+    return m
 
 
 SOFT_COST = 6.0     # v15 candidate 'thru' queries: route cost factor of soft (seen-but-unproven) obstacle cells
@@ -380,7 +409,7 @@ class QueryExecution:
     def _evade2(self, legal, prim, level):
         """L3_EVADE2 (module docstring at ``EVADE2``).  ``prim``: this step's kinematic primitive, or a planner-realised
         command (DWA) for robots without speed state; returns the (possibly replaced) primitive of the same kind."""
-        from .planners import Realized, DWAPlanner
+        from .planners import Realized
         realized = isinstance(prim, Realized)
         if realized and self.dyn.stateful:
             return prim                    # momentum DWA: its own rollouts already brake for humans
@@ -392,12 +421,15 @@ class QueryExecution:
         P0 = to_plane([legal.pose[0], legal.pose[2]])
         H = EVADE2_H
         esc = getattr(self, '_esc', None)
-        truth = getattr(legal, '_ev2_truth', None) if EVADE2_TRUTH else None
-        if truth is not None:
-            tape, idx = truth                                       # ANALYSIS ONLY (see EVADE2_TRUTH)
-            tape = np.asarray(tape, np.float64)
-            rows = np.minimum(np.arange(idx+1, idx+H+1), len(tape)-1)
-            cur = tape[min(idx, len(tape)-1)]
+        tape = getattr(legal, '_ev2_truth', None)                     # PRIVILEGED tape (diagnostics / labels only)
+        real = getattr(legal, 'track_log', None) is not None          # a real legal state (imagined ones: no log)
+        learned = bool(EVADE2_RISK) and real
+        log = bool(EVADE2_LOG) and tape is not None
+        cur = keep = None
+        if EVADE2_TRUTH and tape is not None:
+            T_, idx = np.asarray(tape[0], np.float64), int(tape[1])   # ANALYSIS ONLY (see EVADE2_TRUTH)
+            rows = np.minimum(np.arange(idx+1, idx+H+1), len(T_)-1)
+            cur = T_[min(idx, len(T_)-1)]
             keep = np.hypot(cur[:, 0]-legal.pose[0], cur[:, 2]-legal.pose[2]) < EVADE2_RANGE if len(cur) else \
                 np.zeros(0, bool)
             if EVADE2_TRUTH == 'tracked' and len(cur):
@@ -409,8 +441,8 @@ class QueryExecution:
                     if d[j] < 0.75:
                         seen[j] = True
                 keep &= seen
-            Hp = to_plane(tape[rows][:, keep][:, :, [0, 2]]) if keep.any() else np.zeros((H, 0, 2))
-        elif EVADE2_FC and getattr(legal, 'track_log', None) is not None:
+            Hp = to_plane(T_[rows][:, keep][:, :, [0, 2]]) if keep.any() else np.zeros((H, 0, 2))
+        elif EVADE2_FC and real:
             Hp = self._fc_predict(legal, P0, H)                       # L3_EVADE_FC (legal forecaster)
         else:
             humans = [h for h in human_estimates(legal.tracks, legal.time)
@@ -418,18 +450,21 @@ class QueryExecution:
             T = np.arange(1, H+1)[:, None, None]*STEP_SECONDS
             Hp = (np.stack([h.position for h in humans])[None]+np.stack([h.velocity for h in humans])[None]*T
                   if humans else np.zeros((H, 0, 2)))                # [H,N,2]
-        if not Hp.shape[1]:
+        if not Hp.shape[1] and not learned and not log:
             self._esc = None
             return prim
         # standing humans (predicted to move < 0.3 m over the horizon) are a threat only within EVADE2_STATIC of the
         # rectangle: they are obstacles for the planner (the one-step check keeps 0.30 m), and a reflex that yields to
         # them holds forever beside a standing person
-        p_now = Hp[0] if truth is None else to_plane(cur[keep][:, [0, 2]])
-        moving = np.hypot(*(Hp-p_now[None]).transpose(2, 0, 1)).max(axis=0) >= 0.3          # [N]
+        if Hp.shape[1]:
+            p_now = Hp[0] if cur is None else to_plane(cur[keep][:, [0, 2]])
+            moving = np.hypot(*(Hp-p_now[None]).transpose(2, 0, 1)).max(axis=0) >= 0.3          # [N]
+        else:
+            moving = np.zeros(0, bool)
         offs = np.where(moving, 0., EVADE2_R-EVADE2_STATIC)
         dyn = self.dyn
         psi0 = float(legal.pose[3])
-        core = tight_legal(legal, 2).map
+        core = _core_map(legal)
         from .legal import BLOCKED
         free_memo = {}
 
@@ -474,47 +509,46 @@ class QueryExecution:
                 out[k] = (P[0], P[1], psi)
             return out
 
-        def clearance(trajs):
-            Q = np.asarray(trajs)                                  # [S,H,3]
-            c, s = np.cos(Q[..., 2])[..., None], np.sin(Q[..., 2])[..., None]
-            d = Hp[None]-Q[..., None, :2]                          # [S,H,N,2]
-            lx = d[..., 0]*c+d[..., 1]*s
-            ly = -d[..., 0]*s+d[..., 1]*c
-            from .control import BODY_X, BODY_HALF_WIDTH
-            dx = np.maximum(np.maximum(BODY_X[0]-lx, 0.), lx-BODY_X[1])
-            dy = np.maximum(np.abs(ly)-BODY_HALF_WIDTH, 0.)
-            return (np.hypot(dx, dy)+offs).min(axis=(1, 2))        # [S]
+        def clearance(trajs, pts=None, off=None):
+            from eventwm_graph.l3.reflex import rect_dist
+            pts = Hp if pts is None else pts
+            if not pts.shape[1]:
+                return np.full(len(trajs), np.inf)
+            D = rect_dist(np.asarray(trajs), pts)                   # [S,H,N]
+            return (D+(offs if off is None else off)).min(axis=(1, 2))
         plan = [self._EV2_CODE.get(p, 'h') for p in (self._plan_now or [])]
         own = [self._EV2_CODE[kin]]+(plan[1:H] if plan and plan[0] == self._EV2_CODE[kin] else [])
-        d_own = float(clearance([roll(own)])[0])
-        if esc is None and d_own >= EVADE2_R:
-            return prim
-        if esc is not None and d_own >= EVADE2_R+0.1:
-            self._esc = None
-            _EV2['release'] += 1
-            return prim
-        _EV2['threat'] += 1
-        cands = [own, ['h']*H]
+        own_traj = roll(own)
+        d_own = float(clearance([own_traj])[0])
+        sample = log and (_EV2['steps'] % 3 == 0 or d_own < EVADE2_R+0.3)
+        if not learned and not sample:
+            if esc is None and d_own >= EVADE2_R:
+                return prim
+            if esc is not None and d_own >= EVADE2_R+0.1:
+                self._esc = None
+                _EV2['release'] += 1
+                return prim
+        cands, kinds = [own, ['h']*H], [0, 1]
         for n in (2, 4, 8, 12, 16, 24):
-            cands.append(['f']*n)
+            cands.append(['f']*n); kinds.append(2)
         for a in 'lr':
             for k in (2, 4, 6, 9, 12, 16, 19):
                 for n in (0, 4, 8, 16):
                     if k+n <= H:
-                        cands.append([a]*k+['f']*n)
+                        cands.append([a]*k+['f']*n); kinds.append(3 if n else 4)
+        waitk = {}
         if plan:
             for k in (4, 8, 16):
-                cands.append(['h']*k+plan[:H-k])
+                waitk[len(cands)] = k
+                cands.append(['h']*k+plan[:H-k]); kinds.append(5)
         i_esc = None
         if esc:
             i_esc = len(cands)
-            cands.append(list(esc))
-        trajs = [roll(c) for c in cands]
-        dmin = clearance(trajs)
-        capped = np.minimum(dmin, EVADE2_R+EVADE2_CAP)
-        eff = capped.copy()
-        if i_esc is not None:
-            eff[i_esc] += EVADE2_KEEP
+            cands.append(list(esc)); kinds.append(6)
+        if dyn.stateful:
+            trajs = np.stack([own_traj]+[roll(c) for c in cands[1:]])
+        else:
+            trajs = self._ev2_fast_trajs(legal, cands, kinds, waitk, own_traj, plan, roll, P0, psi0, H)
         prog = np.zeros(len(cands))
         if self.view is not None and self.field is not None:
             c0 = self.view.cost_to_go(self.field, tuple(to_world(P0)))
@@ -524,6 +558,36 @@ class QueryExecution:
                     prog[i] = c0-c1 if np.isfinite(c1) else -10.
         off = np.array([sum(1 for k in range(H) if (c[k] if k < len(c) else 'h') != (own[k] if k < len(own) else 'h'))
                         for c in cands])
+        Xf = None
+        if learned or sample:
+            from eventwm_graph.l3 import reflex
+            ests = [h for h in human_estimates(legal.tracks, legal.time) if float(np.hypot(*(h.position-P0))) < EVADE2_RANGE]
+            Xf = reflex.features(legal, dyn, level, P0, psi0, cands, kinds, trajs, ests, prog, off)
+            if sample:
+                # PRIVILEGED labels: the TRUE clearance of every candidate to every person on the tape (training data)
+                T_, idx = np.asarray(tape[0], np.float64), int(tape[1])
+                rows_ = np.minimum(np.arange(idx+1, idx+H+1), len(T_)-1)
+                truep = to_plane(T_[rows_][:, :, [0, 2]]) if T_.shape[1] else np.zeros((H, 0, 2))
+                tc = clearance(trajs, truep, 0.)
+                key = tape[2] if len(tape) > 2 else ''
+                reflex.log_rows(EVADE2_LOG, dict(key=key, scene=key.split('/')[2] if key.count('/') >= 3 else key,
+                                                 step=idx, dyn=dyn.name, planner=type(self.planner).__name__,
+                                                 kind=self.query.kind, label=self.query.label, d_own=d_own),
+                                Xf, (tc < reflex.LABEL_R).astype(np.int8), np.minimum(tc, 9.).astype(np.float32))
+        if learned:
+            return self._evade2_learned(legal, prim, kin, realized, top, P0, psi0, cands, Xf, prog, off, i_esc, esc)
+        if esc is None and d_own >= EVADE2_R:
+            return prim
+        if esc is not None and d_own >= EVADE2_R+0.1:
+            self._esc = None
+            _EV2['release'] += 1
+            return prim
+        _EV2['threat'] += 1
+        dmin = clearance(trajs)
+        capped = np.minimum(dmin, EVADE2_R+EVADE2_CAP)
+        eff = capped.copy()
+        if i_esc is not None:
+            eff[i_esc] += EVADE2_KEEP
         top_eff = float(eff.max())
         pool = [i for i in range(len(cands)) if eff[i] >= top_eff-0.02]
         best = max(pool, key=lambda i: (prog[i], -off[i]))
@@ -532,8 +596,81 @@ class QueryExecution:
                 _EV2['release'] += 1
             self._esc = None
             return prim
-        seq = cands[best]
-        _EV2['keep' if best == i_esc else 'escape'] += 1
+        return self._evade2_exec(legal, kin, realized, top, P0, psi0, cands[best], best == i_esc)
+
+    def _ev2_fast_trajs(self, legal, cands, kinds, waitk, own_traj, plan, roll, P0, psi0, H):
+        """Rollouts of the reflex candidates for robots without speed state, built from shared prefixes (the semantics
+        of ``roll``: holds keep the pose, turns keep the position, an advance whose target is an observed wall core or
+        whose front contact point is in a bump disc keeps the pose -- and so does every later advance of the run)."""
+        dyn = self.dyn
+        out = np.empty((len(cands), H, 3))
+        static = np.array([P0[0], P0[1], psi0])
+        need = {}
+        for c, kd in zip(cands, kinds):
+            if kd in (2, 3, 4):
+                k = 0 if kd == 2 else next((j for j in range(len(c)) if c[j] != c[0]), len(c))
+                psi_k = psi0+(0. if kd == 2 else (1. if c[0] == 'l' else -1.))*k*dyn.turn_rad
+                key = round(psi_k, 9)
+                need[key] = (psi_k, max(need.get(key, (0, 0))[1], len(c)-k))
+        runs = {key: self._ev2_run(legal, P0, psi, n) for key, (psi, n) in need.items() if n > 0}
+        plan_traj = None
+        for i, (c, kd) in enumerate(zip(cands, kinds)):
+            if i == 0:
+                out[0] = own_traj
+            elif kd == 1:
+                out[i] = static
+            elif kd in (2, 3, 4):                    # [turn k] then forward n, then hold
+                k = 0 if kd == 2 else next((j for j in range(len(c)) if c[j] != c[0]), len(c))
+                n = len(c)-k
+                sgn = 0. if kd == 2 else (1. if c[0] == 'l' else -1.)
+                if k:
+                    out[i, :k, 0], out[i, :k, 1] = P0[0], P0[1]
+                    out[i, :k, 2] = psi0+sgn*np.arange(1, k+1)*dyn.turn_rad
+                psi_k = psi0+sgn*k*dyn.turn_rad
+                if n:
+                    r = runs[round(psi_k, 9)]
+                    out[i, k:k+n, :2] = r[:n]
+                    out[i, k:k+n, 2] = psi_k
+                out[i, k+n:] = out[i, k+n-1] if k+n > 0 else static
+            elif kd == 5:                            # hold k, then the plan from the start
+                if plan_traj is None:
+                    plan_traj = roll(plan)
+                k = waitk[i]
+                out[i, :k] = static
+                out[i, k:] = plan_traj[:H-k]
+            else:
+                out[i] = roll(c)
+        return out
+
+    def _ev2_run(self, legal, P0, psi, n):
+        """Planar positions [n, 2] after each of ``n`` advances along ``psi`` from P0 (see ``_ev2_fast_trajs``)."""
+        from .legal import BLOCKED, LegalState
+        g = _core_map(legal)
+        h = heading_vec(psi)
+        Pn = P0[None]+np.arange(1, n+1)[:, None]*self.dyn.step_m*h[None]
+        W = to_world(Pn)
+        ii = np.floor(W[:, 0]/g.res).astype(np.int64)-g.ox
+        jj = np.floor(W[:, 1]/g.res).astype(np.int64)-g.oz
+        inside = (ii >= 0) & (ii < g.state.shape[0]) & (jj >= 0) & (jj < g.state.shape[1])
+        st = np.zeros(n, np.uint8)
+        st[inside] = g.state[ii[inside], jj[inside]]
+        blocked = st == BLOCKED
+        bumps = getattr(legal, 'bumps', None)
+        if bumps and (self.query.meta or {}).get('bumpf'):
+            Pb = np.vstack([P0[None], Pn[:-1]])+LegalState.BUMP_FRONT_M*h[None]
+            Fb = to_world(Pb)
+            B = np.asarray(bumps, np.float64)
+            blocked |= (np.hypot(Fb[:, None, 0]-B[None, :, 0], Fb[:, None, 1]-B[None, :, 1]) <=
+                        float(LegalState.BUMP_MEMORY)).any(axis=1)
+        if blocked.any():
+            b = int(np.argmax(blocked))
+            Pn[b:] = Pn[b-1] if b > 0 else P0
+        return Pn
+
+    def _evade2_exec(self, legal, kin, realized, top, P0, psi0, seq, keep):
+        """Execute the first action of the chosen escape ``seq`` and keep the rest (hysteresis)."""
+        from .planners import Realized
+        _EV2['keep' if keep else 'escape'] += 1
         self._esc = list(seq[1:]) if len(seq) > 1 else None
         a = seq[0]
         if a == 'h':
@@ -547,6 +684,34 @@ class QueryExecution:
         if realized:
             return Realized(out, (top if out == 'forward' else 0))
         return out
+
+    def _evade2_learned(self, legal, prim, kin, realized, top, P0, psi0, cands, Xf, prog, off, i_esc, esc):
+        """L3_EVADE_RISK: the learned threat probability (l3/reflex.py) replaces the constant-velocity clearance --
+        trigger when the committed motion's probability exceeds L3_EVADE_PTRIG (release below half of it), then the
+        lowest-probability candidates (within 0.03), most progress, fewest off-plan steps; act if the winner is at
+        least L3_EVADE_PGAIN below the committed motion (the running escape gets a 0.03 bonus)."""
+        from eventwm_graph.l3 import reflex
+        p = reflex.load(EVADE2_RISK).prob(Xf)
+        p_own = float(p[0])
+        if esc is None and p_own < EVADE2_PTRIG:
+            return prim
+        if esc is not None and p_own < 0.5*EVADE2_PTRIG:
+            self._esc = None
+            _EV2['release'] += 1
+            return prim
+        _EV2['threat'] += 1
+        eff = p.copy()
+        if i_esc is not None:
+            eff[i_esc] -= 0.03
+        lo = float(eff.min())
+        pool = [i for i in range(len(cands)) if eff[i] <= lo+0.03]
+        best = max(pool, key=lambda i: (prog[i], -off[i]))
+        if best == 0 or (i_esc is None and p[best] > p_own-EVADE2_PGAIN):
+            if esc is not None:
+                _EV2['release'] += 1
+            self._esc = None
+            return prim
+        return self._evade2_exec(legal, kin, realized, top, P0, psi0, cands[best], best == i_esc)
 
     def _fc_predict(self, legal, P0, H):
         """L3_EVADE_FC: planar predictions [H, M, 2] of the tracked people within EVADE2_RANGE at steps 1..H (legal)."""
@@ -791,7 +956,8 @@ class QueryExecution:
             self.plan, self.st = None, None
             legal = self._exec_legal(raw_legal)
             prim = self._step_kin(legal, level)
-        if EVADE2 and (self.query.meta or {}).get('evade'):
+        if EVADE2 and (self.query.meta or {}).get('evade') and \
+                (not EVADE2_REAL or getattr(raw_legal, 'track_log', None) is not None):
             prim = self._evade2(raw_legal, prim, level)
         elif (self.query.meta or {}).get('evade') and self.dyn.discrete and prim in ('forward', 'left', 'right') \
                 and self.status == 'running':

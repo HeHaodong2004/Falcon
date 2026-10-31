@@ -28,6 +28,14 @@ if os.environ.get('CUDA_VISIBLE_DEVICES', '1') == '1' and not os.environ.get('SA
 DEPS = '/home/haodong/workspace/projects/eventwm-falcon-l2-two-stage-20261023/output/l2_two_stage_20261023/deps'
 if os.path.isdir(DEPS):
     sys.path.append(DEPS)            # orjson for the frozen Layer 2 development data (tests only)
+# Layer 3 executor bundles (default off; L3_EXEC=<name>): one name for a frozen set of default-off executor options, so
+# every Layer 3 process (actors, probes, statebank capture, feature extraction / Sandbox imagination, official replay)
+# runs the same executor.  Explicitly set variables win over the bundle.
+EXEC_BUNDLES = {
+}
+if os.environ.get('L3_EXEC'):
+    for _k, _v in EXEC_BUNDLES[os.environ['L3_EXEC']].items():
+        os.environ.setdefault(_k, _v)
 ns = types.ModuleType('eventwm_graph')
 ns.__path__ = [str(BASE/'eventwm_graph')]
 sys.modules['eventwm_graph'] = ns
