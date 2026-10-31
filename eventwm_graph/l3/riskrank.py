@@ -627,6 +627,46 @@ def select_from_scores(s, dflt, thr):
     return best if s[best]-s[dflt] > thr else int(dflt)
 
 
+_REPEAT = {}
+
+
+def _repeat_key(legal):
+    return (tuple(np.round(np.asarray(legal.goal, float), 3)), round(float(legal.start_time), 3))
+
+
+def _repeat_fail_mask(s, legal, d, still_m=0.10):
+    """Layer 3 option (default off; L3_REPEAT_FAIL=1): when the same candidate label was chosen at the last two decisions
+    and the robot moved less than ``still_m`` over each of those intervals (legal odometry), that label is not chosen now;
+    if it is the default, the best other candidate is taken regardless of the deviation threshold.  Returns (scores,
+    force_deviation).  Held-out ranker timeouts re-issued a failing query 20-400 times (creep3 / st_goal_th pushing,
+    one-step unreachable 'goal' loops)."""
+    hist = _REPEAT.setdefault(_repeat_key(legal), [])
+    if len(_REPEAT) > 64:
+        for k in list(_REPEAT)[:-8]:
+            _REPEAT.pop(k, None)
+    pose = np.asarray(legal.pose, float)
+    if hist and hist[-1]['disp'] is None:                # close the previous decision's interval
+        p0 = hist[-1]['pose']
+        hist[-1]['disp'] = float(np.hypot(pose[0]-p0[0], pose[2]-p0[2]))
+    out, force = s.copy(), False
+    if len(hist) >= 2 and hist[-1]['label'] is not None and hist[-1]['label'] == hist[-2]['label'] and \
+            hist[-1]['disp'] < still_m and hist[-2]['disp'] < still_m:
+        lab = hist[-1]['label']
+        for i, l in enumerate(d.labels):
+            if l == lab:
+                out[i] = -np.inf
+                force = force or i == int(d.default)
+    hist.append(dict(label=None, pose=pose.copy(), disp=None))
+    return out, force
+
+
+def _repeat_record(legal, label):
+    """Record the label chosen at this decision (L3_REPEAT_FAIL)."""
+    hist = _REPEAT.get(_repeat_key(legal))
+    if hist:
+        hist[-1]['label'] = label
+
+
 def risk_select(path, sb, legal, d, state=None, cur=None):
     """The ranker's choice for one decision (``heuristics.multiworld_index`` with ``L3_MW_RISK=<path>``)."""
     from .oraclebank import CVBank
@@ -675,6 +715,9 @@ def risk_select(path, sb, legal, d, state=None, cur=None):
     X, names = features(legal, dd, outs, hz, labels_vocab=m.vocab)
     Xm = m.columns(X, names)
     s = m.score(Xm)
+    force = False
+    if os.environ.get('L3_REPEAT_FAIL') == '1':
+        s, force = _repeat_fail_mask(np.asarray(s, np.float64), legal, d)
     mask = os.environ.get('L3_MW_MASK')
     if mask:
         # Layer 3 option (default off; L3_MW_MASK=<regex>): candidates whose label matches are never chosen (the default
@@ -685,7 +728,12 @@ def risk_select(path, sb, legal, d, state=None, cur=None):
             if i != int(d.default) and re.search(mask, str(lab)):
                 s[i] = -np.inf
     thr = float(os.environ.get('L3_MW_RISK_THR', m.thr))
-    a = select_from_scores(s, int(d.default), thr)
+    if force and np.isfinite(s).any():
+        a = int(np.argmax(s))                            # (L3_REPEAT_FAIL: the failing default is masked)
+    else:
+        a = select_from_scores(s, int(d.default), thr)
+    if os.environ.get('L3_REPEAT_FAIL') == '1':
+        _repeat_record(legal, d.labels[a])
     RISK_DEBUG.clear()
     RISK_DEBUG.update(scores=s.tolist(), thr=thr, choice=a, default=int(d.default),
                       rule_choice={c: int(outs[c]['choice']) for c in CONTS},

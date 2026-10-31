@@ -124,6 +124,17 @@ EVADE2_LOG = _ENV.get('L3_EVADE_LOG') or None
 # Sandbox imagination (states without a track log) executes the released executor, so a ranker trained on imagined
 # features of the old executor sees unchanged inputs and the reflex is a safety layer underneath it.
 EVADE2_REAL = _ENV.get('L3_EVADE_REAL') == '1'
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_MEM=<s> -- the reflex also avoids people whose track the
+# tracker dropped (> 2 s without a detection) but who were detected within the last <s> seconds (legal track log): last
+# detected position extrapolated at the last valid velocity for at most L3_EVADE_MEM_EXT seconds (default 2.5).  Held-out
+# attribution (tuning set, ranker + reflex): 5 of 22 non-spawn collisions were with people seen 1.2-3.0 s earlier.
+EVADE2_MEM = float(_ENV.get('L3_EVADE_MEM', '0') or 0)
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_RESTART=1 -- pause-robust prediction: a tracked person whose
+# legal velocity is below 0.2 m/s now but who walked faster than 0.8 m/s within the last 1.5 s (legal track log) also
+# counts as a hypothetical walker restarting now along the last walking velocity (Falcon people stop and go; earlier
+# attribution: ~40% of contacts came ~0.2 s after a restart of a person the robot had tracked).
+EVADE2_RESTART = _ENV.get('L3_EVADE_RESTART') == '1'
+EVADE2_MEM_EXT = float(_ENV.get('L3_EVADE_MEM_EXT', '2.5') or 2.5)
 EVADE2_FCW = float(_ENV.get('L3_EVADE_FCW', '0.2') or 0.2)
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_UNREACH_FALLBACK=1): a goal / goto /
@@ -450,6 +461,16 @@ class QueryExecution:
             T = np.arange(1, H+1)[:, None, None]*STEP_SECONDS
             Hp = (np.stack([h.position for h in humans])[None]+np.stack([h.velocity for h in humans])[None]*T
                   if humans else np.zeros((H, 0, 2)))                # [H,N,2]
+            if EVADE2_MEM > 0 and real:
+                mem = self._remembered(legal, P0, [h.track_id for h in humans])
+                if mem:
+                    Mp = np.stack([p for p, v in mem])[None]+np.stack([v for p, v in mem])[None]*T
+                    Hp = np.concatenate([Hp, Mp], axis=1)
+            if EVADE2_RESTART and real and humans:
+                ghosts = self._restart_ghosts(legal, humans)
+                if ghosts:
+                    Gp = np.stack([p for p, v in ghosts])[None]+np.stack([v for p, v in ghosts])[None]*T
+                    Hp = np.concatenate([Hp, Gp], axis=1)
         if not Hp.shape[1] and not learned and not log:
             self._esc = None
             return prim
@@ -742,6 +763,54 @@ class QueryExecution:
                 else:
                     cols.append(to_plane((w[m][:, None, None]*tr).sum(0)))
         return np.stack(cols, axis=1)
+
+    def _remembered(self, legal, P0, current_ids):
+        """L3_EVADE_MEM: (planar position now, planar velocity) of people detected within EVADE2_MEM seconds whose
+        track is no longer in the tracker's list (legal track log; extrapolation capped at EVADE2_MEM_EXT seconds; the
+        velocity is zeroed once the cap is reached)."""
+        now = float(legal.time)
+        seen = set(current_ids)
+        out = []
+        for tm, trs in reversed(legal.track_log or []):
+            if now-float(tm) > EVADE2_MEM:
+                break
+            for t in trs:
+                tid = t.get('track_id')
+                if tid in seen or not t.get('visible_now'):
+                    continue
+                seen.add(tid)
+                p = to_plane(np.asarray(t['position'], float)[[0, 2]])
+                v = to_plane(np.asarray(t['estimated_velocity'], float)[[0, 2]]) if t.get('velocity_valid') and \
+                    t.get('estimated_velocity') is not None else np.zeros(2)
+                age = now-float(t.get('last_seen_time', tm))
+                if age <= 2.0:
+                    continue                                   # still a live track (or about to be one)
+                if age >= EVADE2_MEM_EXT:
+                    p, v = p+v*EVADE2_MEM_EXT, np.zeros(2)
+                else:
+                    p = p+v*age
+                if float(np.hypot(*(p-P0))) < EVADE2_RANGE:
+                    out.append((p, v))
+        return out
+
+    def _restart_ghosts(self, legal, humans):
+        """L3_EVADE_RESTART: (position, last walking velocity) of tracked people paused now (< 0.2 m/s) who walked
+        faster than 0.8 m/s within the last 1.5 s (legal track log)."""
+        paused = {h.track_id: h for h in humans if float(np.hypot(*h.velocity)) < 0.2}
+        if not paused:
+            return []
+        now = float(legal.time)
+        walk = {}
+        for tm, trs in reversed(legal.track_log or []):
+            if now-float(tm) > 1.5:
+                break
+            for t in trs:
+                tid = t.get('track_id')
+                if tid in paused and tid not in walk and t.get('velocity_valid') and t.get('estimated_velocity') is not None:
+                    v = to_plane(np.asarray(t['estimated_velocity'], float)[[0, 2]])
+                    if float(np.hypot(*v)) > 0.8:
+                        walk[tid] = v
+        return [(paused[k].position, v) for k, v in walk.items()]
 
     def _gaze_target(self, legal):
         """L3_HOLD_GAZE: heading toward the nearest tracked person within 4 m who is not visible now (None if none)."""
