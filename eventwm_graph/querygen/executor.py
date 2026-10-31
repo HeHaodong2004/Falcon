@@ -126,6 +126,15 @@ EVADE2_ROTPLAN = __import__('os').environ.get('L3_EVADE_ROTPLAN') == '1'
 # motion's clearance is below <d> (e.g. 0.30) an escape needs only 0.03 m more clearance, and when even the best candidate
 # is below L3_EVADE_R the pick is by clearance alone (pool tolerance 0.005 m instead of 0.02 m).
 EVADE2_GAINLOW = float(__import__('os').environ.get('L3_EVADE_GAINLOW', '0') or 0)
+# Layer 3 options (default OFF; real legal states, goal-like queries): wrong legal routes (5 of 10 timeouts of the best
+# legal stack on the tuning set: the conservative map closes the true exit or the route takes a shortcut through unknown
+# space that does not exist).  L3_THRU_PROBE=<ratio> (e.g. 1.6): at the query's first step and every 32 steps, when the
+# conservative route is missing or at least <ratio> x the route on the 'thru' map (observed walls soft, bump discs hard),
+# follow the thru map for the rest of the query (as the L3_UNREACH_FALLBACK level 2).  L3_GOAL_GLANCE=1: when the goal is
+# within 6 m in a straight line, the legal route is at least 1.8 x that distance and at least 60% of the straight segment
+# is UNKNOWN on the legal map, turn toward the goal once (the camera reveals the direct way), at most once per 64 steps.
+THRU_PROBE = float(__import__('os').environ.get('L3_THRU_PROBE', '0') or 0)
+GOAL_GLANCE = __import__('os').environ.get('L3_GOAL_GLANCE') == '1'
 STOP_GUARD_OFF_M = float(__import__('os').environ.get('L3_STOP_GUARD_OFF_M', '0.40') or 0.40)
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_EVADE2=1): plan-aware threat reflex for
@@ -468,6 +477,53 @@ class QueryExecution:
             self.reason = 'evade'
             return {'f': 'forward', 'l': 'left', 'r': 'right'}[best[0]]
         return prim
+
+    def _thru_better(self, raw_legal):
+        """L3_THRU_PROBE: is the conservative route missing or >= THRU_PROBE x the thru-map route?"""
+        target = self._goal_xz(raw_legal)
+        robot_xz = (float(raw_legal.pose[0]), float(raw_legal.pose[2]))
+        lc = self._ensure_field(self._exec_legal(raw_legal), target) is not None and self.route_len
+        thru = _ThruLegal(raw_legal)
+        view = PlanningView(thru.map, robot_xz, target)
+        r = view.route(view.field([target]), robot_xz)
+        lt = path_length(r) if r is not None else None
+        if not lt:
+            return False
+        return (not lc) or lc >= THRU_PROBE*lt
+
+    def _goal_glance(self, raw_legal):
+        """L3_GOAL_GLANCE: the next turn of a glance toward the goal, or None."""
+        from .legal import UNKNOWN
+        P = to_plane([raw_legal.pose[0], raw_legal.pose[2]])
+        psi = float(raw_legal.pose[3])
+        gx, gz = self._goal_xz(raw_legal)
+        G = to_plane([gx, gz])
+        head = math.atan2(G[1]-P[1], G[0]-P[0])
+        gl = getattr(self, '_glance', None)
+        if gl is not None:                                          # glance in progress
+            if abs(wrap(gl-psi)) <= math.radians(20.) or self.steps-getattr(self, '_glance_t', -999) > 40:
+                self._glance = None
+                return None
+            return 'left' if wrap(gl-psi) > 0 else 'right'
+        if self.steps-getattr(self, '_glance_t', -999) < 64:
+            return None
+        if any(float(np.hypot(*(h.position-P))) < 3.0 for h in human_estimates(raw_legal.tracks, raw_legal.time)):
+            return None                                             # no glance with a tracked person near
+        d = float(np.hypot(*(G-P)))
+        if d > 6.0 or d < 0.8 or not self.route_len or self.route_len < 1.8*d:
+            return None
+        if abs(wrap(head-psi)) <= math.radians(35.):
+            return None                                             # already looking that way
+        g = raw_legal.map
+        n = unk = 0
+        for f in np.linspace(0.1, 1.0, 20):
+            x, z = to_world(P+f*(G-P))
+            n += 1
+            unk += g.state_at(x, z) == UNKNOWN
+        if unk < 0.6*n:
+            return None
+        self._glance, self._glance_t = head, self.steps
+        return 'left' if wrap(head-psi) > 0 else 'right'
 
     def _stop_guard(self, legal, level):
         """L3_STOP_GUARD (see the option): ('stop', 0) when the goal is reached by the legal tests, else None."""
@@ -1073,6 +1129,9 @@ class QueryExecution:
             return
         if STOP_GUARD and getattr(prev, '_sg_hist', None):
             self._sg_hist = list(prev._sg_hist)                    # (L3_STOP_GUARD: goal-distance history)
+        if GOAL_GLANCE and getattr(prev, '_glance_t', None) is not None:
+            self._glance_t = prev._glance_t-prev.steps             # (L3_GOAL_GLANCE: cooldown across queries)
+            self._glance = getattr(prev, '_glance', None)
         if ST_COMMIT > 0 and self.query.kind == 'stgoal' and prev.query.kind == 'stgoal' and \
                 getattr(prev, '_st_real', False) and prev.st is not None and not prev.st.get('static') and \
                 prev.st_i < len(prev.st['prims']) and tuple(map(tuple, prev.query.via or ())) == \
@@ -1220,6 +1279,19 @@ class QueryExecution:
             g = self._stop_guard(raw_legal, level)
             if g is not None:
                 return g
+        if (THRU_PROBE > 0 or GOAL_GLANCE) and getattr(raw_legal, 'track_log', None) is not None and \
+                self.query.kind in ('goal', 'stgoal') and not self.query.via and self.status == 'running':
+            if THRU_PROBE > 0 and getattr(self, '_relax', 0) < 2 and self.steps % 32 == 0 and self._thru_better(raw_legal):
+                self._relax = 2                                     # (L3_THRU_PROBE) follow the thru map
+                self.view = self.field = self.field_key = None
+                self.plan, self.st = None, None
+                legal = self._exec_legal(raw_legal)
+            if GOAL_GLANCE and not self.dyn.stateful:
+                g = self._goal_glance(raw_legal)
+                if g is not None:
+                    self.steps += 1
+                    self.plan, self.st = None, None
+                    return g, 0
         n_recent = len(self.recent)
         prim = self._step_kin(legal, level)
         while UNREACH_FALLBACK and self.status == 'done' and self.reason == 'unreachable' and \
