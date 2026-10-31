@@ -25,6 +25,11 @@ from .control import heading_vec, body_ok, body_cost, FORWARD_X, BODY_X, BODY_HA
 # and at STOP is kept.  The extra gates make momentum robots refuse advances the native robot takes in tight spots
 # (dev floors: in-place dithering and stalls in the timeouts of every momentum family).
 MOM_SIMPLE = __import__('os').environ.get('L3_MOM_SIMPLE') == '1'
+# Layer 3 option (default OFF; with L3_MOM_SIMPLE): L3_MOM_BUDGET=1 -- keep the arrival braking of the full realizer when
+# the plan's remaining primitives are all advances (the goal / via-point approach): the highest admissible level that can
+# still stop within the remaining straight run + half a step.  Without it quick_inertia reached the goal at full speed
+# and overshot the STOP disc in 5 of 48 ranker successes (47-313 steps lost each; native / slowturn never).
+MOM_BUDGET = __import__('os').environ.get('L3_MOM_BUDGET') == '1'
 from .dynamics import STEP_SECONDS
 
 
@@ -74,6 +79,14 @@ class MotionRealizer:
         if MOM_SIMPLE:
             top = len(dyn.levels)-1 if cap is None else max(1, min(int(cap), len(dyn.levels)-1))
             l2 = max(1, min(top, int(level)+dyn.accel)) if int(level) < top else max(top, int(level)-dyn.brake)
+            if MOM_BUDGET and plan_prims and all(p == 'forward' for p in plan_prims):
+                budget = len(plan_prims)*dyn.step_m+0.5*dyn.step_m          # arrival: stop within the plan end
+                ok = [l for l in dyn.next_levels(level) if 0 < l <= top and dyn.levels[l]+dyn.stop_distance(l) <= budget+1e-9]
+                if ok:
+                    l2 = max(ok)
+                else:
+                    l2 = max(0, int(level)-dyn.brake)
+                    return (('forward', l2) if l2 > 0 else 'idle'), l2
             return ('forward', l2), l2
         # forward with speed planning
         budget = math.inf

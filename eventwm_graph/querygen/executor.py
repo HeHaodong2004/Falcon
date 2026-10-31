@@ -37,7 +37,7 @@ from . import lattice
 from .control import body_cost, HOLD_SWEEP, HOLD_GAZE
 from .motion import MotionRealizer
 from .planners import PlanContext, make_adapter
-from .dynamics import STEP_SECONDS
+from .dynamics import STEP_SECONDS, NATIVE_TURN_RAD
 
 ARRIVE_M = 0.30
 HARD_CLEARANCE = 0.30        # one-step rectangle-to-predicted-human clearance (all query kinds)
@@ -79,6 +79,18 @@ LOOKAHEAD_M = 0.8
 # slowturn).  With the option, after 6 strictly alternating in-place turns the execution commits to its last turn
 # direction for <steps> steps (or until it translates), so the heading leaves the tie and the planner finds a way on.
 ANTIDITHER = int(__import__('os').environ.get('L3_ANTIDITHER', '0') or 0)
+# Layer 3 option (default OFF; with L3_ANTIDITHER): L3_ANTIDITHER_HOLD=0 -- alternations that ARE holds (adapter modes
+# hold / duty / jammed, wait / wait_clear queries, reflex holds) neither count nor commit: a native hold is a strict
+# left/right alternation, so every hold of 6+ steps became a forced 12-step (57-degree) rotation and a turn back
+# (tuning set, quick floor: 221 forced rotations in 43 episodes; ranker: 25, inside 4 of 35 non-spawn collisions).
+ANTIDITHER_HOLD = __import__('os').environ.get('L3_ANTIDITHER_HOLD', '1') != '0'
+# Layer 3 option (default OFF; L3_BUMP_CREEP=1): creep queries respect bump memory -- a creep step whose body front lies
+# in a bump disc holds instead of pushing (slow / quick timeouts re-issued creep3 47-98 times into unseen obstacles).
+BUMP_CREEP = __import__('os').environ.get('L3_BUMP_CREEP') == '1'
+# Layer 3 option (default OFF; with L3_EVADE2=1): L3_EVADE_DYN=1 -- the reflex horizon and its escape-turn lengths scale
+# with the robot's turn rate (native turn / turn, horizon capped at 62 steps), so a slow-turning robot considers the
+# same escape angles (10-90 degrees) and sees a whole turn ahead (slowturn: a 90-degree turn takes 38 steps > 31).
+EVADE2_DYN = __import__('os').environ.get('L3_EVADE_DYN') == '1'
 
 # Layer 3 option (process-wide, default OFF -> released behaviour unchanged; L3_EVADE2=1): plan-aware threat reflex for
 # queries with meta 'evade' (replaces the v11 reflex, which tests only the next primitive followed by holding over 14
@@ -421,6 +433,17 @@ class QueryExecution:
             return {'f': 'forward', 'l': 'left', 'r': 'right'}[best[0]]
         return prim
 
+    def _bump_front(self, legal, P, psi):
+        """The body's front contact point at (P, psi) lies in a bump-memory disc (as ``_bump_blocked``, without the
+        'bumpf' meta requirement)."""
+        bumps = getattr(legal, 'bumps', None)
+        if not bumps:
+            return False
+        from .legal import LegalState
+        r = float(LegalState.BUMP_MEMORY)
+        fx, fz = to_world(P+LegalState.BUMP_FRONT_M*heading_vec(psi))
+        return any(math.hypot(fx-bx, fz-bz) <= r for bx, bz in bumps)
+
     _EV2_CODE = {'forward': 'f', 'left': 'l', 'right': 'r'}
 
     def _evade2(self, legal, prim, level):
@@ -436,7 +459,8 @@ class QueryExecution:
             return prim
         _EV2['steps'] += 1
         P0 = to_plane([legal.pose[0], legal.pose[2]])
-        H = EVADE2_H
+        tscale = (NATIVE_TURN_RAD/self.dyn.turn_rad) if EVADE2_DYN else 1.
+        H = min(62, int(round(EVADE2_H*tscale))) if EVADE2_DYN else EVADE2_H
         esc = getattr(self, '_esc', None)
         tape = getattr(legal, '_ev2_truth', None)                     # PRIVILEGED tape (diagnostics / labels only)
         real = getattr(legal, 'track_log', None) is not None          # a real legal state (imagined ones: no log)
@@ -559,7 +583,8 @@ class QueryExecution:
         for n in (2, 4, 8, 12, 16, 24):
             cands.append(['f']*n); kinds.append(2)
         for a in 'lr':
-            for k in (2, 4, 6, 9, 12, 16, 19):
+            for k in ((2, 4, 6, 9, 12, 16, 19) if tscale == 1. else
+                      sorted({max(1, int(round(k0*tscale))) for k0 in (2, 4, 6, 9, 12, 16, 19)})):
                 for n in (0, 4, 8, 16):
                     if k+n <= H:
                         cands.append([a]*k+['f']*n); kinds.append(3 if n else 4)
@@ -702,6 +727,7 @@ class QueryExecution:
         a = seq[0]
         if a == 'h':
             out = self.adapter.wait_action(P0, psi0, legal.map)
+            self._ev2_hold = True
         else:
             out = {'f': 'forward', 'l': 'left', 'r': 'right'}[a]
         if out != kin:
@@ -1014,7 +1040,15 @@ class QueryExecution:
 
     def step(self, legal, level=0):
         """Next (command primitive, new speed level) under the dynamics family."""
+        if ANTIDITHER and not ANTIDITHER_HOLD:
+            self.planner.mode = None
+            self._ev2_hold = False
         out = self._step_inner(legal, level)
+        if ANTIDITHER and not ANTIDITHER_HOLD and (
+                getattr(self.planner, 'mode', None) in ('hold', 'duty', 'jammed') or getattr(self, '_ev2_hold', False)
+                or self.query.kind in ('wait', 'wait_clear')):
+            self._ad_hist, self._ad_commit = [], None          # (L3_ANTIDITHER_HOLD=0) a hold is not a dither
+            return out
         return self._antidither(out) if ANTIDITHER else out
 
     def _antidither(self, out):
@@ -1164,7 +1198,8 @@ class QueryExecution:
             from .planners import one_step_hard_ok
             hard = one_step_hard_ok(ctx.humans, self.hard_clearance)
             P1, psi1 = ctx.P+self.dyn.step_m*heading_vec(ctx.psi), ctx.psi
-            if hard is None or hard(P1, psi1):
+            bumped = BUMP_CREEP and self._bump_front(legal, ctx.P, ctx.psi)
+            if (hard is None or hard(P1, psi1)) and not bumped:
                 remaining = max(1, int(q.duration)-self.steps+1)
                 self._plan_now = ['forward']*remaining     # stateful families brake to rest at the end
                 return 'forward'
